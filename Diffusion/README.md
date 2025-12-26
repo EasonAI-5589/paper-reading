@@ -5,10 +5,11 @@
 ```
 Diffusion/
 ├── Base-Models/
-│   └── Video/           # 视频生成基础模型
-│       └── wan-notes.md # Wan 2.1/2.2 笔记
-├── Efficiency/          # 效率优化方法（综合）
-│   └── turbodiffusion.md
+│   └── Video/
+│       ├── wan2.1-notes.md  # DiT + Flow Matching
+│       └── wan2.2-notes.md  # MoE 架构
+├── Efficiency/
+│   └── turbodiffusion.md    # 100-200x 加速
 └── pdfs/
 ```
 
@@ -18,13 +19,14 @@ Diffusion/
 
 ### Base Models - Video
 
-| Paper | Date | arXiv | Notes |
-|-------|------|-------|-------|
-| Wan 2.1 Technical Report | 2025-03 | [2503.20314](https://arxiv.org/abs/2503.20314) | [notes](Base-Models/Video/wan-notes.md) ✅ |
-| Wan 2.2 (MoE) | 2025-07 | - | - |
-| Sora | 2024-02 | - | - |
-| CogVideo | 2024 | - | - |
-| HunyuanVideo | 2024 | - | - |
+| Paper | Date | arXiv | 核心技术 | Notes |
+|-------|------|-------|----------|-------|
+| **Wan 2.1** | 2025-03 | [2503.20314](https://arxiv.org/abs/2503.20314) | DiT + Flow Matching | [notes](Base-Models/Video/wan2.1-notes.md) ✅ |
+| **Wan 2.2** | 2025-07 | - | MoE (首个开源) | [notes](Base-Models/Video/wan2.2-notes.md) ✅ |
+| Wan 2.2-S2V | 2025-08 | [2508.18621](https://arxiv.org/abs/2508.18621) | 音频驱动 | - |
+| Sora | 2024-02 | - | DiT | - |
+| CogVideo | 2024 | - | 3D VAE + DiT | - |
+| HunyuanVideo | 2024 | - | Dual-stream DiT | - |
 
 ### Base Models - Image
 
