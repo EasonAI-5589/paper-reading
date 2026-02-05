@@ -22,6 +22,44 @@
 
 ---
 
+## 📊 核心图表
+
+### Fig 1: Token Compression 方法发展时间线
+
+<img src="https://github.com/user-attachments/assets/b552ed71-902b-48a2-ae67-8323c335a793" width="800" alt="Timeline of Token Compression Methods"/>
+
+> 2022-2025 年 Token Compression 方法快速发展，2024 年后爆发式增长
+
+### Fig 2: 分类体系 (Taxonomy)
+
+```
+Where to Compress?
+├── Vision Encoder
+│   ├── Inside-Encoder (Token Dropping/Merging)
+│   └── Outside-Encoder (Purely-Vision/Text-guided)
+├── Projector
+│   ├── Transformation-based (Pooling/PixelShuffle/Conv)
+│   ├── Query-based (Q-Former)
+│   └── Importance-driven
+├── LLM
+│   ├── Prefilling Stage
+│   └── Decoding Stage (KV Cache)
+└── Hybrid (Multi-Module)
+```
+
+### Fig 6: 方法选择决策树
+
+```
+How to Select?
+├── Temporal-Enhanced? → Video专属压缩
+├── Text-guided vs Purely-Visual? → 单轮QA vs 多轮对话
+├── Merging vs Dropping? → 保留细节 vs 激进压缩
+├── Plug-in vs Re-training? → 快速部署 vs 高性能
+└── Training vs Inference? → 训练成本 vs 推理成本
+```
+
+---
+
 ## 核心问题
 
 高分辨率图像和长视频会产生大量 visual tokens，导致：
