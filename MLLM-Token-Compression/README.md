@@ -21,9 +21,9 @@ MLLM-Token-Compression/
 │       ├── 00-abstract.md
 │       ├── 01-introduction.md
 │       ├── 02-preliminaries.md
-│       ├── 03-where-to-compress.md  # ⭐ 核心章节
-│       ├── 04-how-to-select.md      # ⭐ 核心章节
-│       ├── 05-evaluation.md
+│       ├── 03-methods.md            # ⭐ 核心章节 (Where to Compress)
+│       ├── 04-how-to-select.md      # ⭐ 核心章节 (How to Select)
+│       ├── 05-experiments.md
 │       ├── 06-applications.md
 │       ├── 07-challenges.md
 │       └── 08-conclusion.md
