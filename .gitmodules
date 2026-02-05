@@ -1,0 +1,3 @@
+[submodule "MLLM-Token-Compression/repo"]
+	path = MLLM-Token-Compression/repo
+	url = https://github.com/yaolinli/MLLM-Token-Compression.git
