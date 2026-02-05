@@ -15,18 +15,9 @@
 ```
 MLLM-Token-Compression/
 ├── repo/                           # [submodule] 原始 GitHub 仓库
-├── survey-token-compression/       # 📖 Survey 论文分段笔记
-│   ├── README.md                   # 论文概览
-│   └── sections/                   # 各章节笔记
-│       ├── 00-abstract.md
-│       ├── 01-introduction.md
-│       ├── 02-preliminaries.md
-│       ├── 03-methods.md            # ⭐ 核心章节 (Where to Compress)
-│       ├── 04-how-to-select.md      # ⭐ 核心章节 (How to Select)
-│       ├── 05-experiments.md
-│       ├── 06-applications.md
-│       ├── 07-challenges.md
-│       └── 08-conclusion.md
+├── survey-token-compression/       # 📖 Survey 论文笔记
+├── fastv/                          # 📖 FastV 论文笔记
+├── pyramiddrop/                    # 📖 PyramidDrop (待读)
 └── README.md                       # 本文件
 ```
 
@@ -42,10 +33,10 @@ MLLM-Token-Compression/
 
 | # | 论文 | 类型 | 状态 | 笔记 |
 |---|------|------|------|------|
-| 001 | Towards Efficient MLLMs: A Survey on Token Compression | Survey | ✅ 已读 | [📝 分段笔记](./survey-token-compression/) |
-| 002 | FastV | Method | 📋 待读 | - |
-| 003 | VisionZip | Method | 📋 待读 | - |
-| 004 | PyramidDrop | Method | 📋 待读 | - |
+| 001 | Towards Efficient MLLMs: A Survey on Token Compression | Survey | ✅ 已读 | [📝](./survey-token-compression/) |
+| 002 | FastV: An Image is Worth 1/2 Tokens After Layer 2 | Method | ✅ 已读 | [📝](./fastv/) |
+| 003 | PyramidDrop | Method | 📋 待读 | - |
+| 004 | VisionZip | Method | 📋 待读 | - |
 | 005 | DART | Method | 📋 待读 | - |
 
 ## 📈 阅读进度
