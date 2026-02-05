@@ -20,12 +20,12 @@
 | # | 章节 | 笔记 | 状态 |
 |---|------|------|------|
 | 0 | Abstract | [📝](./sections/00-abstract.md) | ✅ |
-| 1 | Introduction | [📝](./sections/01-introduction.md) | 🚧 |
-| 2 | Related Work | - | - |
+| 1 | Introduction | [📝](./sections/01-introduction.md) | ✅ |
+| 2 | Related Work | [📝](./sections/02-related-work.md) | ✅ |
 | 3 | Inefficient Visual Attention | [📝](./sections/03-inefficient-attention.md) | ✅ ⭐ |
 | 4 | FastV Method | [📝](./sections/04-method.md) | ✅ ⭐ |
-| 5 | Experiments | [📝](./sections/05-experiments.md) | 🚧 |
-| 6 | Conclusion | - | - |
+| 5 | Experiments | [📝](./sections/05-experiments.md) | ✅ |
+| 6 | Conclusion | [📝](./sections/06-conclusion.md) | ✅ |
 
 ## 🔥 核心发现
 
