@@ -23,10 +23,9 @@ MLLM-Token-Compression/
 
 | 资源 | 链接 |
 |------|------|
-| 📚 原始仓库 | **[yaolinli/MLLM-Token-Compression](https://github.com/yaolinli/MLLM-Token-Compression)** |
-| 📄 Survey PDF | [直接下载](https://github.com/yaolinli/MLLM-Token-Compression/releases/download/v1.0_2512/Towards.Efficient.Multimodal.Large.Language.Models.-.A.Survey.on.Token.Compression.-.v2512.pdf) |
+| 📄 论文 | **[TechRxiv](https://www.techrxiv.org/doi/full/10.36227/techrxiv.176823010.07236701/v1)** |
+| 📚 GitHub | [yaolinli/MLLM-Token-Compression](https://github.com/yaolinli/MLLM-Token-Compression) |
 | 📖 论文列表 | [100+ Papers](https://github.com/yaolinli/MLLM-Token-Compression#-paper-table) |
-| 🔬 TechRxiv | [DOI](https://www.techrxiv.org/doi/full/10.36227/techrxiv.176823010.07236701/v1) |
 
 ## 📖 阅读列表
 

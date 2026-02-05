@@ -11,8 +11,8 @@
 | **机构** | 北京大学、中科大、南洋理工等 |
 | **发布** | 2025年12月 (TechRxiv v1.0) |
 | **类型** | Survey |
+| **论文链接** | [TechRxiv](https://www.techrxiv.org/doi/full/10.36227/techrxiv.176823010.07236701/v1) |
 | **GitHub** | [yaolinli/MLLM-Token-Compression](https://github.com/yaolinli/MLLM-Token-Compression) |
-| **PDF** | [repo/](./repo/) |
 
 ---
 
