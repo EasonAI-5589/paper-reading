@@ -32,7 +32,7 @@ MLLM-Token-Compression/
 
 | # | 论文 | 类型 | 状态 | 笔记 |
 |---|------|------|------|------|
-| 001 | Towards Efficient MLLMs: A Survey on Token Compression | Survey | ✅ 已读 | [notes.md](./notes.md) |
+| 001 | Towards Efficient MLLMs: A Survey on Token Compression | Survey | ✅ 已读 | [📝 笔记](./Towards-Efficient-MLLMs-A-Survey-on-Token-Compression.md) |
 | 002 | FastV | Method | 📋 待读 | - |
 | 003 | VisionZip | Method | 📋 待读 | - |
 | 004 | PyramidDrop | Method | 📋 待读 | - |
