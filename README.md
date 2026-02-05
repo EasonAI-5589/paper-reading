@@ -1,3 +1,5 @@
+![Paper Reading Banner](./banner.png)
+
 # Paper Reading 📚
 
 Eason 的文献阅读仓库，按课题组织。
