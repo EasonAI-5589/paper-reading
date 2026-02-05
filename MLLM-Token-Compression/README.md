@@ -29,12 +29,21 @@ MLLM-Token-Compression/
 | Survey PDF | [repo/Towards Efficient...pdf](./repo/) |
 | TechRxiv | [DOI](https://www.techrxiv.org/doi/full/10.36227/techrxiv.176823010.07236701/v1) |
 
-## 📖 阅读进度
+## 📖 阅读列表
+
+| # | 论文 | 类型 | 状态 | 笔记 |
+|---|------|------|------|------|
+| 001 | Towards Efficient MLLMs: A Survey on Token Compression | Survey | ✅ 已读 | [notes.md](./notes.md) |
+| 002 | FastV | Method | 📋 待读 | - |
+| 003 | VisionZip | Method | 📋 待读 | - |
+| 004 | PyramidDrop | Method | 📋 待读 | - |
+
+## 📈 阅读进度
 
 - [x] Survey 主体内容
 - [x] 分类框架 (Taxonomy)
 - [x] 方法选择指南
-- [ ] 重点论文深读
+- [ ] 重点论文深读 (FastV, VisionZip, PyramidDrop...)
 - [ ] 与自己研究的结合点
 
 ## 💡 Key Takeaways

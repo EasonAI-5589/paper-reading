@@ -1,13 +1,22 @@
-# Towards Efficient Multimodal Large Language Models: A Survey on Token Compression
+# 📄 Towards Efficient Multimodal Large Language Models: A Survey on Token Compression
 
-**作者**: Linli Yao, Long Xing, Yang Shi 等 (北京大学、中科大、南洋理工等)
-**发布**: 2025年12月 (TechRxiv v1.0)
-**GitHub**: https://github.com/yaolinli/MLLM-Token-Compression
-**本地PDF**: `./MLLM-Token-Compression-Survey-v2512.pdf`
+> **Paper Reading #001** | 阅读日期: 2026-02-06
+
+## 📌 论文信息
+
+| 项目 | 内容 |
+|------|------|
+| **标题** | Towards Efficient Multimodal Large Language Models: A Survey on Token Compression |
+| **作者** | Linli Yao, Long Xing, Yang Shi 等 |
+| **机构** | 北京大学、中科大、南洋理工等 |
+| **发布** | 2025年12月 (TechRxiv v1.0) |
+| **类型** | Survey |
+| **GitHub** | [yaolinli/MLLM-Token-Compression](https://github.com/yaolinli/MLLM-Token-Compression) |
+| **PDF** | [repo/](./repo/) |
 
 ---
 
-## 一句话总结
+## 🎯 一句话总结
 
 这是一篇关于 **MLLM 视觉 Token 压缩** 的全面综述，系统梳理了 100+ 篇论文，按压缩位置（Vision Encoder / Projector / LLM）和压缩策略进行分类，并提供了方法选择指南。
 
