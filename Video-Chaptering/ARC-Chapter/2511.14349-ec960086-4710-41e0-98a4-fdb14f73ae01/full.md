@@ -1,0 +1,464 @@
+# ARC-Chapter: Structuring Hour-Long Videos into Navigable Chapters and Hierarchical Summaries
+
+Junfu $\mathbf { p } _ { \mathbf { u } } { } ^ { * }$ , Teng Wang∗, Yixiao Ge†, Yuying Ge, Chen Li, Ying Shan
+
+ARC Lab, Tencent PCG
+
+∗Core contributors, †Project lead
+
+The proliferation of hour-long videos (e.g., lectures, podcasts, documentaries) has intensified demand for efficient content structuring. However, existing approaches are constrained by small-scale training with annotations that are typical short and coarse, restricting generalization to nuanced transitions in long videos. We introduce ARC-Chapter, the first large-scale video chaptering model trained on over million-level long video chapters, featuring bilingual, temporally grounded, and hierarchical chapter annotations. To achieve this goal, we curated a bilingual English-Chinese chapter dataset via a structured pipeline that unifies ASR transcripts, scene texts, visual captions into multi-level annotations, from short title to long summaries. We demonstrate clear performance improvements with data scaling, both in data volume and label intensity. Moreover, we design a new evaluation metric termed GRACE, which incorporates many-to-one segment overlaps and semantic similarity, better reflecting real-world chaptering flexibility. Extensive experiments demonstrate that ARC-Chapter establishes a new state-of-the-art by a significant margin, outperforming the previous best by $1 4 . 0 \%$ in F1 score and $1 1 . 3 \%$ in SODA score. Moreover, ARC-Chapter shows excellent transferability, improving the state-of-the-art on downstream tasks like dense video captioning on YouCook2.
+
+Date: November 18, 2025
+
+Github: https://github.com/TencentARC/ARC-Chapter
+
+# 1 Introduction
+
+The exponential proliferation of long-form video content, including educational lectures, vlogs, live streams, and meeting recordings—poses significant challenges for automatic content understanding. Video chaptering [35; 44] has emerged as a promising solution, segmenting videos into navigable and semantically coherent chapters. This enables efficient content retrieval, summarization, and enhanced user interaction, which are critical for managing and consuming large-scale video data.
+
+Despite notable advances in segmenting short videos (usually within five minutes) for tasks such as action segmentation [8; 22; 27; 32; 39], temporal event localization [16; 54], and dense video captioning [19; 38; 46], the structuring of hour-long videos remains a formidable challenge. First, modeling sophisticated semantics across multimodal inputs, including visual and audio streams—over extended temporal horizons requires robust and scalable architectures. Second, the scarcity of large-scale datasets with fine-grained annotations hinders the development and evaluation of effective chaptering models. Third, existing evaluation metrics [10; 19] often fail to capture the semantic granularity of chapter boundaries, leading to suboptimal matching and similarity scoring between predicted and ground-truth segments [10].
+
+In this technical report, we introduce ARC-Chapter, a comprehensive framework designed to address the unique challenges of long-form video structuring. As illustrated in Fig. 1, ARC-Chapter enables the segmentation of lengthy videos into navigable chapters and generates hierarchical summaries that capture both coarse and fine-grained content structure. Our work makes three primary contributions. First, we advance the scalability of video chaptering by developing the first large-scale model trained on one million long videos, totaling 400,000 hours of content. This dataset is fifty times larger than those used in previous studies [35], allowing our model to generalize across diverse video domains and formats. Second, we propose a semi-automatic annotation pipeline for hierarchical summaries, which leverages easily accessible human-annotated coarse labels. This pipeline integrates automatic speech recognition (ASR) derived transcripts with timestamped visual
+
+![](images/2a72d77e0c5249282bb10f53b978aa4515a296d1a978577042ce495ecc54ccfb.jpg)  
+Figure 1 An illustration of the capabilities of our video chaptering model. Given a video, our model is able to generate timestamped chapters with three-level structured output: 1) Short Title - a concise label summarizing each chapter; 2) Structural Chapter - a detailed, structured annotation for each chapter, including a rewritten comprehensive title, an abstract summarizing the core content, and an introduction describing key details and highlights; and 3) Timestamp-Aligned Video Description - fine-grained descriptions aligned with precise temporal boundaries. This hierarchical structure facilitates an efficient and precise understanding of video content.
+
+elements, enabling a holistic and multimodal understanding of video content. Third, we introduce GRACE, a novel granularity-robust evaluation metric designed to address the semantic misalignment issues prevalent in existing chaptering benchmarks. GRACE provides a more accurate assessment of chapter boundary quality by accounting for varying levels of semantic granularity.
+
+Our extensive experiments demonstrate the effectiveness of ARC-Chapter, which establishes a new stateof-the-art on both Chinese and English long-form video chaptering benchmarks. Specifically, ARC-Chapter substantially outperforms previous methods on the VidChapters-7M test sets (e.g., CIDEr: 100.9→186.6; F1: 45.3→59.3; SODA: 19.3→30.6). We validate the importance of multimodality, showing that our full model surpasses video-only and audio-only variants by 7.7 and 5.3 points on SODA, respectively. Furthermore, pretraining on our large-scale dataset significantly enhances transferability, evidenced by notable performance gains on downstream tasks like YouCook2 and ActivityNet Captions. Crucially, our work is the first to identify a clear scaling law in video chaptering: model performance consistently improves with increased training data and label density. This finding refutes previous observations that performance saturates on smaller datasets ( $\sim$ 20k samples) [35] and suggests a promising direction for future research.
+
+The remainder of this report is structured as follows: Section 2 reviews related works; Section 3 describes the dataset and annotation pipeline; Section 4 details our methodology and model architecture; Section 5 presents experimental results and analysis; Section 6 concludes.
+
+# 2 Related Works
+
+Global Video Understanding. Early video understanding [1; 7; 13; 23; 26; 33; 37; 41; 42; 49; 52; 53; 57] research primarily targeted global comprehension tasks, such as video question answering, video captioning, and video classification. These methods treat entire videos as holistic units, extracting global representations to predict semantic labels or generate summaries. While effective for short videos, they often fail to capture complex temporal dynamics and hierarchical structures of long-form content [24; 30].
+
+![](images/7d0a7673bdb7eb96f5e60643c9caa12daa61973ebd44332eaf9c3f1d85aad89b.jpg)  
+Figure 2 Overview of our automatic video annotation pipeline for hierarchical chaptering and summarization. We extract visual captions (OCR included) from sampled video frames and ASR transcripts from audio. These outputs are temporally aligned and interleaved into a unified multimodal transcript. This transcript, together with original chapter markers, is processed by an LLM to produce structured chapters and timestamp-aligned video descriptions.
+
+Temporal Segmentation for Short Videos. To address the limitations of global approaches, recent works [14; 15; 17; 28; 30; 40; 47; 50; 56] have shifted towards modeling the temporal structure of videos. Datasets like ActivityNet Captions [19], Charades-STA [11], YouCook2 [55] and Breakfast [21] provide timestamped event annotations, enabling tasks such as temporal event localization, action segmentation, and dense video captioning. These approaches move beyond global representations to identify and describe fine-grained events and local temporal dependencies. However, most temporally-structured datasets [25; 48] are limited to short clips, typically under several minutes, and thus do not capture the challenges of ultra-long videos found in lectures, podcasts, or livestreams. The lack of large-scale, long-duration datasets with fine-grained temporal annotations remains a major bottleneck.
+
+Long-Form Video Structuring. A few efforts [35; 45] have explored the structuring of hour-long videos. The VidChapters-7M dataset [45] provides a large-scale benchmark for video chaptering, with millions of videos and annotated chapter boundaries, better reflecting real-world scenarios such as vlogs, podcasts, and meetings where long-term temporal reasoning is essential.
+
+Despite these advances, significant challenges remain. Existing chaptering models often rely on limited modalities, such as automatic speech recognition, are trained on small-scale datasets, and produce coarse, uninformative descriptions, which limits their scalability across diverse video domains. To address these issues, we propose a scalable, multimodal framework for long-form video chaptering, supported by a large-scale dataset with detailed chapter descriptions.
+
+# 3 Data Collection and Annotation
+
+A significant challenge in developing strong video chaptering models is the scarcity of publicly available datasets with detailed, multi-level annotations. Existing datasets typically provide only sparse labels, such as video-level categories for video classification or coarse temporal segments with brief titles such as VidChapters-7M. To address this limitation and to facilitate research on hierarchical video chaptering and summarization, we introduce a new, richly annotated video chaptering dataset. This section details our data curation and annotation pipeline.
+
+# 3.1 Data Curation
+
+One of the key contributions of our work is the introduction of a new large-scale dataset, named VidAtlas, which is designed for the task of hierarchical video chaptering and summarization. Our primary goal is to construct a dataset that not only provides accurate chapter boundaries but also offers dense, multi-granularity textual descriptions for both individual chapters and the entire video.
+
+Data Sourcing. We begin by sourcing videos from the video platform. The primary selection criterion is the presence of author-provided chapter markers. These markers, which include the start/end timestamps and a short title for each chapter, are manually defined by the video uploader. This approach provides us with a highly accurate human-verified ground truth for the temporal segmentation of videos, which is a significant foundation for our subsequent annotation efforts. The collected videos, which are long, well-structured, and information-dense, are ideal candidates for video chaptering.
+
+Filtering and Refinement. Starting with this initial collection, we apply several filtering criteria to guarantee the quality and diversity of our dataset for video understanding and chaptering. First, we retain videos whose durations lie between 2 minutes and 3 hours. This range excludes trivial short clips, which are unnecessary for chaptering, as well as overly long videos, which are often unstructured (e.g., live streams) and difficult to process due to the context-length limitations of our model. Second, we curate videos across a wide range of domains, including educational lectures, DIY tutorials, reviews & unboxings, interviews & podcasts, webinars & presentations, gaming & music albums, fitness & cooking and documentaries. This wide distribution of domains ensures that the dataset is not biased towards any specific genre and supports the development of more generalizable models.
+
+![](images/1b7c1b8ef6fafd82a0a18353bce84609a09d854b3f87d8137cbea99ff341d56d.jpg)  
+(a) Duration distribution
+
+![](images/e1f81fe4389926f34fc44623f159b83692ce57b41b43e0088738d0c83f9d8ec7.jpg)  
+(b) Categories in dataset   
+Figure 3 Dataset statistics: (a) Distribution of video durations (top) and chapter durations (bottom) in the VidAtlas dataset. (b) Distribution of video topics in VidAtlas.
+
+# 3.2 Hierarchical Annotation
+
+To generate high-quality video chaptering annotations, we design an automated annotation pipeline that leverages both multimodal content extraction and large language model (LLM)-based reasoning based on the videos with user-provided chapter makers, i.e. timestamps and brief title of each chapter. The illustration of our annotation pipeline is shown in Fig. 2.
+
+Multimodal Information Extraction. Considering efficiency and cost, we avoid directly using multimodal large language models (MLLMs) for video annotation. Instead, we first extract multimodal information from video frames and audio, integrate this content, and then feed the result into text-only LLM for reasoning and annotation. Specifically, we use Whisper-v3 [29] to transcribe speech into text, segmented into sentences with the corresponding timestamps. In parallel, we uniformly sample video frames with a fixed sampling frame rate and employ Qwen2.5-VL-7B [4] to extract visual captions and on-screen text (OCR) for better understanding of the video content. Subsequently, the visual captions and ASR transcripts are temporally aligned based on their respective timestamps. This process allows us to interleave the textual content from both modalities into a unified chronologically ordered sequence. This multimodal transcript, together with
+
+the original user-provided chapter timestamps and short titles, is fed into LLM for reasoning and structural segmentation.
+
+LLM Reasoning and Chaptering. The LLM is prompted to analyze the transcript and reorganize the content into a structured set of chapters, each containing a comprehensive title, an abstract, an introduction, and precise temporal boundaries. Following this, we perform a verification step on the LLM’s output to ensure that the generated chapter boundaries strictly adhere to the original timestamps. Building upon the verified structured chapter information, we further prompt the LLM to produce a comprehensive, timestamped narrative description for the entire video. Through this annotation pipeline, we can efficiently obtain accurate, multi-level video chapter segmentation and descriptive annotations. The resulting annotations form a dense, hierarchically organized representation of long-form videos, supporting a wide range of research tasks in video understanding, temporal reasoning, chaptering, and summarization.
+
+# 3.3 Dataset Statistics
+
+We summarize the key statistics of our VidAtlas dataset and highlight the properties that make it suited for research on video chaptering and summarization. The dataset comprises 410k+ videos with an average duration of 16.8 minutes, amounting to more than 115k hours of diverse content. On average, each video is segmented into 5.5 chapters, with an average chapter duration of 182 seconds (approximately 3 minutes). Fig. 3a provides a detailed statistic of the duration distributions for both videos and chapters. Our dataset contains a wide spectrum of video and chapter lengths to ensure models are trained on a diverse temporal structures. This comprehensive video/chapter length distribution makes the models exposed to a variety of content length, from concise segments to hour-long narratives, forcing models to resolve both rapid topic shifts and sustained thematic segments. To mitigate genre bias, VidAtlas covers a wide array of topics, including 16 primary categories with over 100 subcategories, as shown in Fig. 3b. The categories of VidAtlas include Games, Knowledge, Technology, Music, Life, Animation, and Sports, together with other variety that captures long-tail topics. Videos in these categories are typically well-structured and information-dense, making them ideal for chaptering.
+
+# 4 ARC-Chapter
+
+# 4.1 Overall Framework
+
+We leverage Qwen2.5-VL-7B [5] as our base model, enhancing its capabilities to process and structure video content into chapters. The architecture of our model is illustrated in Fig. 4. The model unifies three inputs: 1) an instruction prompt that specifies the task of input modalities and output schema. 2) a sequence of sampled video frames that provide appearance, layout and on-screen text (including subtitles which often align with the ASR transcript), and 3) a timestamp-aligned ASR transcript from audio. While both the video and ASR transcript inputs are optional, the model requires at least one modality to be provided. Frames are embedded with Qwen2.5-VL vision encoder and translated into visual tokens, while ASR transcript is tokenized as plain text with explicit timestamps. The vision encoder is kept frozen and the language model is instruction tuned on VidAtlas to specialize in video chaptering.
+
+Prompt Design. The model’s behavior is guided by carefully designed prompts that specify the desired task and output format. To handle the diverse requirements of different inputs and outputs of the model, we design a set of 18 distinct prompt templates. These prompts are constructed based on three axes: language in source video, input modality, and desired output format.
+
+• Language: We support English and Chinese to match the language of the source video.   
+• Input Modality: The prompt specifies whether the model should rely on ASR-only, video-only, or both video and ASR inputs. This allows for ablation studies and adaptation to scenarios where one modality may be absent or noisy.
+
+![](images/02c2243528c120860794a2198f238a6c1bbd52ae51d8740bb6ae570866500cdd.jpg)  
+Figure 4 Overview of the model architecture for video chaptering. The model inputs include a task-specific prompt, sampled video frames, and timestamped ASR transcripts. Video frames are processed with a frozen vision encoder. The resulting visual features, along with the tokenized prompt and ASR text, are fed into a trainable multimodal large language model (MLLM). Based on the inputs, the model is able to generate chapters in various formats, including timestamped concise title, detailed structural chapters, or comprehensive video description with timestamps.
+
+• Output Format: We define three distinct output structures: (a) Short Titles for concise chapter markers, (b) Structured Chapters that include a title, abstract, and introduction for each chapter, and (c) Video Descriptions that provide a dense, timestamp-aligned summary of the entire video.
+
+Video Input. To balance temporal coverage and context budget, we follow the setup of Qwen2.5-VL and cap the visual stream at 768 frames sampled at up to 1 fps. That is to say, videos shorter than 12.8 minutes are sampled with 1 fps, while longer videos are uniformly down-sampled to 768 frames with a lower fps. The sampling strategy retains coarse global coverage for hour-long content, ensuring sufficient representation to capture the high-level semantic shifts necessary for the chaptering task. Since the model context length is shared across modalities, we dynamically adjust the per-frame token allowance according to the input of ASR transcript. For video-only inputs we use a higher frame resolution (higher token budget per frame) so that small text (OCR and subtitles) and fine-grained visual cues are preserved. When ASR is provided alongside video, we reduce frame resolution (thus reducing the number of visual tokens) so that the combined input of visual tokens and ASR text fits the maximum context length of MLLM. This dynamic allocation is implemented by adjusting image scaling and patch-tokenization parameters at preprocessing time. Moreover, to enhance temporal awareness, we randomly overlay timestamps onto the video frames, making the model more sensitive to the video timeline.
+
+ASR Input. Although integrating raw audio features or learned audio embeddings from pretrained ASR models (e.g.Whisper [29]) is attractive, it presents severe scalability challenges for long-form video. For example, while Whisper-style audio encoder produces 50 audio tokens per second, a 60-minute audio therefore produces 180k tokens, far exceeding feasible LLM context budgets without aggressive compression or specialized audio-to-token aggregation. Furthermore, synchronizing fixed-rate audio features with dynamically sampled video frames poses an additional alignment problem. To address these practical constraints, we opt to use ASR transcripts as a highly effective proxy for the audio modality. Text is significantly more information-dense. Therefore,
+
+the ASR transcript of a long audio segment occupies far fewer tokens than its raw feature representation. This makes processing hour-long videos computationally feasible for both training and inference. Although such a paradigm introduces an extra step for offline ASR transcription, we believe that trading a modest amount of offline processing time for the ability to handle long-form audio under strict context-length budgets is worthwhile. In our implementation, we use Whisper-large-v3 [29] to generate timestamped ASR transcripts. The model provides sentence-level segments with corresponding start timestamps. We formulate the ASR text and timestamp of each segment as start time (hh:mm:ss): <ASR text>. The normalized ASR transcript is then passed to the model either alone (ASR-only) or together with visual tokens (ASR+Video), providing dense semantic information that is particularly useful for temporal boundary detection and chaptering.
+
+# 4.2 Training Strategy
+
+Training Objective. We perform supervised instruction tuning on VidAtlas and VidChapter-7M using all prompt templates. The training objective is the standard autoregressive next-token prediction loss over the target sequence. Given a multimodal input sequence consisting of a prompt $X _ { \mathrm { p r o m p t } }$ , video frames $X _ { \mathrm { v i d e o } }$ , and an ASR transcript $X _ { \mathrm { a s r } }$ (video stream $X _ { \mathrm { v i d e o } }$ and ASR streams $X _ { \mathrm { a s r } }$ are optional), the model is trained to maximize the log-likelihood of the target output sequence $Y = ( y _ { 1 } , y _ { 2 } , . . . , y _ { n } )$ (e.g., a list of chapter titles, a structured chapter object, or a timestamped description):
+
+$$
+\mathcal {L} = - \sum_ {i = 1} ^ {n} \log P \left(y _ {i} \mid y _ {<   n}, X _ {\text {p r o m p t}}, X _ {\text {v i d e o}}, X _ {\text {a s r}}\right),
+$$
+
+where $y _ { < i }$ represents the preceding ground-truth tokens. During training, the vision encoder is frozen to enable a larger context length, while all parameters of the large language model are optimized with the training objective.
+
+Adaptive Modality Dropping. To enable a single model to perform well under various deployment conditions, we adopt an adaptive modality dropping strategy during training. For each training sample, we randomly configure the input with a certain probability to be one of three types: 1) Video + ASR: Both modalities are provided to the model. 2) Video-only: The ASR transcript is omitted, forcing the model to rely solely on visual information. and 3) ASR-only: The video frames are omitted, requiring the model to understand the content based on the transcript alone. This strategy prevents the model from becoming overly reliant on a single modality and ensures it develops a comprehensive understanding from all available input modalities. Consequently, a single trained model can be deployed to handle videos under various conditions during inference (whether only a video is available, only transcript is provided, or both are present), without requiring specialized models for each scenario.
+
+# 4.3 Evaluation Metrics
+
+Evaluation metrics can be divided into two aspects: (1) the accuracy of segmentation (e.g., Precision, Recall, and tIOU [20]), and (2) joint metrics that assess both segmentation and chapter captioning (e.g., CIDEr [20], SODA [10]). However, we observe that the primary metrics such as SODA, originally developed for dense video captioning, are not well-suited for the video chaptering task. While SODA enforces a one-to-one matching between predicted and ground-truth events to suppress redundancy in overlapping event detection, video chaptering requires segmenting videos into sequential, non-overlapping chapters. Furthermore, chaptering annotations often exhibit granularity ambiguity: different annotators may segment the same video at varying levels of detail—some may annotate coarse-grained chapters (e.g., by day in a travel vlog), while others may provide fine-grained chapters (e.g., by each visited site within a day). This results in multiple valid annotation granularities for the same content.
+
+To address these challenges, we propose GRACE, a metric tailored for video chaptering. It introduces a many-to-one (set-to-one) matching paradigm, allowing each ground-truth (predicted) chapter to be matched with a set of predicted (ground-truth) chapters. As illustrated in Fig. 5, for each ground-truth chapter, GRACE evaluates the temporal overlap and semantic similarity between the chapter and its matched prediction set, using established language similarity metrics (e.g., BERTscore [51]) for textual comparison. Specifically, we aim to find a best many-to-one mapping $M$ which splits both ground-truth set $G$ and prediction set $P$ into several pairs of groups $\{ ( P _ { i } , G _ { i } ) \} _ { i = 1 } ^ { K }$ , followed by group-based similarity calculation:
+
+![](images/9e9046bb318c9f0d8c01d47f9d0020e26b722adf04856fbc933b388d92abcecb.jpg)  
+(a) One-to-One Matching: SODA
+
+![](images/c03b9e3cad324ba021c2e18608ca4632e00221e396ddee1ae7818a63f5964c41.jpg)  
+(b) Many-to-One Matching: GRACE   
+Figure 5 Comparison of one-to-one (SODA) and many-to-one (GRACE) matching strategies. The one-to-one matching can fail to account for important events like $p _ { 2 }$ and $g _ { 2 }$ , whereas the many-to-one strategy considers all predicted and ground-truth events for a more robust, overall assessment.
+
+$$
+\operatorname {G R A C E} = \sum_ {\left(P _ {i}, G _ {i}\right) \in M (P, G)} \varphi \left(P _ {i}, G _ {i}\right) \cdot \operatorname {B E R T s c o r e} \left(P _ {i}, G _ {i}\right) \tag {1}
+$$
+
+$$
+\varphi \left(P _ {i}, G _ {i}\right) = \frac {1}{\left| P _ {i} \right| \left| G _ {i} \right|} \sum_ {p \in P _ {i}, g \in G _ {i}} \mathrm {I O U} (p, g) \tag {2}
+$$
+
+$$
+\mathbf {s t .} P _ {i} \cap P _ {j} = \emptyset , \cup \left(P _ {i}\right) = P, G _ {i} \cap G _ {j} = \emptyset , \cup \left(G _ {i}\right) = G, \min  \left(\left| P _ {i} \right|, \left| G _ {i} \right|\right) = 1 \tag {3}
+$$
+
+where $P _ { i }$ and $G _ { i }$ epresent groups of chapters. When calculating the BERTScore between two groups, we first concatenate all captions within each group into a single sentence, then compute the BERTScore between the two merged sentences. We adopt the dynamic time warping algorithm (DTW) [6; 31] to achieve the optimal matching $M ( P , G )$ , with IOU between two chapters being used as the matching criteria.
+
+GRACE provides a more accurate and human-aligned assessment of chaptering models. This design confers several advantages: (1) robustness to annotation granularity, enabling fair evaluation across diverse annotation styles; (2) improved semantic fidelity, rewarding models that capture the full scope of ground-truth chapters; and (3) closer alignment with human judgment of chapter boundaries and content.
+
+# 4.4 Reinforcement Learning with GRPO
+
+While supervised fine-tuning (SFT) achieves strong performance, the standard cross-entropy loss does not directly optimize for the primary objective of video chaptering: temporal accuracy. To further enhance the model’s temporal localization capabilities, we introduce a subsequent reinforcement learning phase using the GRPO algorithm [12].
+
+The core of this phase is a reward function designed to directly incentivize precise chapter boundary prediction. We leverage our proposed GRACE metric, which holistically evaluates both temporal alignment and semantic content. However, to specifically sharpen the model’s ability to predict accurate timestamps of segmented chapters, we formulate a simplified, temporal-only reward by omitting the semantic BERTscore component from Equation (1). For a given ground-truth chapter set $G$ and a model-generated set $P$ , the reward $R$ is calculated by summing the temporal alignment scores $\varphi$ over the optimal matching $M ( P , G )$ found via DTW:
+
+$$
+R = \sum_ {\left(P _ {i}, G _ {i}\right) \in M (P, G)} \varphi \left(P _ {i}, G _ {i}\right). \tag {4}
+$$
+
+This reward directly reflects the quality of the temporal segmentation, providing a clear and targeted optimization objective.
+
+Due to the significant context length required for multimodal inputs, and to specifically bolster the model’s ability to reason from visual cues, we conduct this RL training phase using only the video modality. We select a diverse subset of 90k videos from both Chinese and English SFT data, ensuring that training samples cover all three output formats: short titles, structural chapters, and timestamped video description. We initialize the model with the weights from our best-performing SFT model and further optimize it using GRPO. The KL divergence coefficient is set to 0.01 to ensure that the policy does not stray far from the robust language generation capabilities learned during SFT, thereby balancing temporal refinement with descriptive quality.
+
+Table 1 Comparison to the state of the art on VidChapters7M-test set: The results of compared methods are evaluated in the ASR-only setting from Chapter-Llama [35]. We evaluate ARC-Chapter with different input modalities: -vid for video, -asr for ASR, and -vidasr for both. “Ft.” indicates whether the model is finetuned for chaptering task. †denotes LLM-API results reported from Chapter-Llama. Our model, ARC-Cchapter, achieves the best performance across all metrics and video durations.   
+
+<table><tr><td rowspan="2">Backbone</td><td rowspan="2">Ft.</td><td colspan="4">Short</td><td colspan="4">Medium</td><td colspan="4">Long</td><td colspan="4">All</td></tr><tr><td>F1</td><td>tIoU</td><td>S</td><td>C</td><td>F1</td><td>tIoU</td><td>S</td><td>C</td><td>F1</td><td>tIoU</td><td>S</td><td>C</td><td>F1</td><td>tIoU</td><td>S</td><td>C</td></tr><tr><td>GPT-4o-mini [18]†</td><td>X</td><td>32.1</td><td>64.5</td><td>7.2</td><td>42.4</td><td>30.5</td><td>62.3</td><td>6.1</td><td>30.6</td><td>28.0</td><td>61.0</td><td>6.0</td><td>27.3</td><td>31.2</td><td>63.6</td><td>6.8</td><td>37.8</td></tr><tr><td>GPT-4o [18]†</td><td>X</td><td>37.7</td><td>68.0</td><td>8.4</td><td>53.8</td><td>38.1</td><td>68.8</td><td>8.1</td><td>51.4</td><td>36.5</td><td>66.2</td><td>6.6</td><td>34.8</td><td>37.6</td><td>68.0</td><td>8.1</td><td>51.0</td></tr><tr><td>Gemini-2.0-Flash [34]†</td><td>X</td><td>39.9</td><td>69.2</td><td>12.0</td><td>72.8</td><td>43.8</td><td>71.4</td><td>11.2</td><td>70.3</td><td>34.9</td><td>66.2</td><td>9.0</td><td>51.6</td><td>40.2</td><td>69.3</td><td>11.4</td><td>69.7</td></tr><tr><td>Gemini-1.5-Pro [34]†</td><td>X</td><td>41.7</td><td>70.6</td><td>11.7</td><td>65.3</td><td>43.8</td><td>71.8</td><td>11.2</td><td>61.4</td><td>41.3</td><td>70.6</td><td>10.1</td><td>55.3</td><td>42.2</td><td>70.9</td><td>11.4</td><td>63.2</td></tr><tr><td>Vid2Seq [45; 46]</td><td>X</td><td>2.5</td><td>28.6</td><td>0.3</td><td>0.3</td><td>3.2</td><td>29.7</td><td>0.3</td><td>0.4</td><td>4.6</td><td>32.0</td><td>0.3</td><td>0.5</td><td>3.0</td><td>29.3</td><td>0.3</td><td>0.4</td></tr><tr><td>Llama 3.1-8B [9]</td><td>X</td><td>29.9</td><td>63.4</td><td>7.1</td><td>34.5</td><td>30.6</td><td>62.7</td><td>5.4</td><td>28.1</td><td>26.6</td><td>59.3</td><td>3.6</td><td>18.9</td><td>29.5</td><td>62.5</td><td>6.2</td><td>30.7</td></tr><tr><td>Vid2Seq [45; 46]</td><td>✓</td><td>33.4</td><td>63.7</td><td>15.2</td><td>74.9</td><td>19.0</td><td>53.3</td><td>7.5</td><td>31.9</td><td>16.7</td><td>50.8</td><td>5.9</td><td>28.4</td><td>26.7</td><td>58.6</td><td>11.6</td><td>55.8</td></tr><tr><td>Chapter-Llama [35]</td><td>✓</td><td>45.5</td><td>72.2</td><td>20.2</td><td>103.5</td><td>46.7</td><td>72.3</td><td>18.8</td><td>98.7</td><td>41.3</td><td>69.2</td><td>15.8</td><td>91.2</td><td>45.3</td><td>71.8</td><td>19.3</td><td>100.9</td></tr><tr><td>ARCChapter-asr1</td><td>✓</td><td>54.5</td><td>76.7</td><td>26.3</td><td>144.1</td><td>55.9</td><td>77.5</td><td>25.1</td><td>143.0</td><td>55.1</td><td>77.0</td><td>24.8</td><td>158.0</td><td>54.5</td><td>76.7</td><td>25.3</td><td>144.0</td></tr><tr><td>ARCChapter-vid</td><td>✓</td><td>52.6</td><td>75.8</td><td>26.0</td><td>156.8</td><td>51.4</td><td>75.3</td><td>20.6</td><td>124.0</td><td>47.3</td><td>72.3</td><td>19.2</td><td>119.8</td><td>50.2</td><td>74.3</td><td>22.9</td><td>138.3</td></tr><tr><td>ARCChapter-vidasr</td><td>✓</td><td>60.0</td><td>80.1</td><td>32.5</td><td>195.7</td><td>59.2</td><td>79.4</td><td>29.6</td><td>177.3</td><td>60.2</td><td>79.9</td><td>29.2</td><td>190.3</td><td>59.3</td><td>79.6</td><td>30.6</td><td>186.6</td></tr></table>
+
+Table 2 Comparison to the state of the art on VidChapter7M-sml300 with different input modalities. Our method, ARC-Chapter, demonstrates superior performance on VidChapter-sml300 by effectively integrating both speech and video information. The modalities of “Embed” and “Caption” in LLaMA and Chapter-LLaMA models play the same role as “Video” in ARC-Chapter model.   
+
+<table><tr><td rowspan="2">Method</td><td rowspan="2">Ft.</td><td colspan="3">Modalities</td><td colspan="2">Segmentation</td><td colspan="2">Titles</td></tr><tr><td>Speech</td><td>Embed.</td><td>Caption</td><td>F1</td><td>tIoU</td><td>S</td><td>C</td></tr><tr><td rowspan="3">LLaMA 3.1-8B</td><td>X</td><td>X</td><td>X</td><td>✓</td><td>12.6</td><td>48.6</td><td>1.9</td><td>6.4</td></tr><tr><td>X</td><td>✓</td><td>X</td><td>X</td><td>22.7</td><td>57.3</td><td>4.4</td><td>19.7</td></tr><tr><td>X</td><td>✓</td><td>X</td><td>✓</td><td>29.9</td><td>63.0</td><td>6.9</td><td>33.7</td></tr><tr><td rowspan="6">Chapter-LLaMA</td><td>✓</td><td>✓</td><td>X</td><td>X</td><td>38.5</td><td>68.1</td><td>13.9</td><td>67.3</td></tr><tr><td>✓</td><td>X</td><td>✓</td><td>X</td><td>38.4</td><td>66.5</td><td>3.4</td><td>7.3</td></tr><tr><td>✓</td><td>X</td><td>X</td><td>✓</td><td>39.1</td><td>67.7</td><td>5.9</td><td>20.2</td></tr><tr><td>✓</td><td>✓</td><td>✓</td><td>X</td><td>40.4</td><td>68.2</td><td>15.3</td><td>74.9</td></tr><tr><td>✓</td><td>✓</td><td>X</td><td>✓</td><td>42.6</td><td>70.6</td><td>16.4</td><td>82.4</td></tr><tr><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>44.4</td><td>71.5</td><td>16.3</td><td>84.2</td></tr><tr><td></td><td></td><td>Speech</td><td colspan="2">Video</td><td>F1</td><td>tIoU</td><td>S</td><td>C</td></tr><tr><td rowspan="3">ARCChapter</td><td>✓</td><td>✓</td><td></td><td>X</td><td>56.5</td><td>78.1</td><td>25.9</td><td>148.5</td></tr><tr><td>✓</td><td>X</td><td></td><td>✓</td><td>50.0</td><td>74.3</td><td>21.6</td><td>130.8</td></tr><tr><td>✓</td><td>✓</td><td></td><td>✓</td><td>62.4</td><td>81.6</td><td>30.1</td><td>190.7</td></tr></table>
+
+# 5 Experiments
+
+In this section, we conduct a series of experiments to thoroughly evaluate our video chaptering model. We first introduce the evaluation benchmarks, then present the main results and detailed ablation studies.
+
+# 5.1 Evaluation Benchmark
+
+To comprehensively assess our model’s capabilities in video chaptering, we evaluate it on three distinct benchmarks covering different languages, scales, and data modalities. The evaluation targets two key criteria: the precision of temporal boundary localization and semantic relevance of the generated chapter titles/descriptions. VidChapters7M is a large-scale English chaptering dataset. We use two of its standard splits for evaluation, i.e., VidChapters7M-test and VidChapters7M-sml300val. VidChapters7M-test is a large-scale test set comprising 8.2k samples. For this split, the compared methods are only based on ASR
+
+Table 3 Comparison to the state of the art on VidAtlas-test set: “Ft.” indicates whether the model is finetuned for chaptering task. Modality‡ specifies which inputs are provided: A for ASR and V for video. $^ \dagger$ denotes LLM-API results. For API-base models, the video is converted into a textual description, which is then provided as input for LLM.   
+
+<table><tr><td rowspan="2">Backbone</td><td rowspan="2">Ft.</td><td colspan="2">Modality‡</td><td colspan="4">Short</td><td colspan="4">Medium</td><td colspan="4">Long</td><td colspan="4">All</td><td></td></tr><tr><td>A</td><td>V</td><td>F1</td><td>tIoU</td><td>S</td><td>C</td><td>F1</td><td>tIoU</td><td>S</td><td>C</td><td>F1</td><td>tIoU</td><td>S</td><td>C</td><td>F1</td><td>tIoU</td><td>S</td><td>C</td><td>G</td></tr><tr><td>Claude-Sonnet [3]†</td><td>X</td><td>✓</td><td>X</td><td>39.2</td><td>69.8</td><td>7.6</td><td>38.8</td><td>34.7</td><td>66.3</td><td>6.5</td><td>33.8</td><td>36.6</td><td>66.9</td><td>5.8</td><td>33.5</td><td>37.8</td><td>68.6</td><td>7.1</td><td>36.9</td><td>11.1</td></tr><tr><td>Doubao-1.5-Pro [13]†</td><td>X</td><td>✓</td><td>X</td><td>38.8</td><td>70.4</td><td>7.4</td><td>40.6</td><td>35.8</td><td>68.4</td><td>6.9</td><td>38.3</td><td>36.1</td><td>67.1</td><td>3.2</td><td>17.4</td><td>37.7</td><td>69.5</td><td>6.7</td><td>36.4</td><td>9.8</td></tr><tr><td>DeepSeek-R1 [12]†</td><td>X</td><td>✓</td><td>X</td><td>40.0</td><td>71.1</td><td>11.0</td><td>48.8</td><td>37.9</td><td>69.5</td><td>9.6</td><td>45.2</td><td>35.7</td><td>66.8</td><td>6.3</td><td>28.3</td><td>38.9</td><td>70.1</td><td>10.0</td><td>44.8</td><td>13.4</td></tr><tr><td>Gemini-2.5-Pro [7]†</td><td>X</td><td>✓</td><td>X</td><td>39.6</td><td>68.3</td><td>8.1</td><td>44.6</td><td>30.6</td><td>60.1</td><td>6.3</td><td>37.4</td><td>34.0</td><td>60.2</td><td>9.9</td><td>54.0</td><td>45.2</td><td>73.2</td><td>9.7</td><td>53.5</td><td>14.9</td></tr><tr><td>GPT-4.1 [2]†</td><td>X</td><td>✓</td><td>X</td><td>36.5</td><td>68.6</td><td>6.6</td><td>34.6</td><td>33.0</td><td>66.1</td><td>5.8</td><td>32.4</td><td>36.0</td><td>66.3</td><td>5.9</td><td>33.0</td><td>35.7</td><td>67.7</td><td>6.3</td><td>33.9</td><td>-</td></tr><tr><td>Qwen3-235B [43]†</td><td>X</td><td>✓</td><td>X</td><td>36.7</td><td>67.7</td><td>7.7</td><td>36.9</td><td>33.5</td><td>65.6</td><td>6.7</td><td>33.9</td><td>26.6</td><td>61.0</td><td>3.8</td><td>18.7</td><td>34.4</td><td>66.2</td><td>6.9</td><td>33.4</td><td>10.2</td></tr><tr><td>Claude-Sonnet [3]†</td><td>X</td><td>✓</td><td>✓</td><td>36.8</td><td>68.2</td><td>7.9</td><td>42.4</td><td>32.0</td><td>65.2</td><td>8.0</td><td>45.0</td><td>40.8</td><td>68.2</td><td>16.8</td><td>110.4</td><td>36.4</td><td>67.5</td><td>9.3</td><td>53.6</td><td>13.2</td></tr><tr><td>Doubao-1.5-Pro [13]†</td><td>X</td><td>✓</td><td>✓</td><td>39.5</td><td>70.0</td><td>7.7</td><td>43.3</td><td>35.5</td><td>67.6</td><td>7.6</td><td>45.2</td><td>44.4</td><td>69.8</td><td>14.9</td><td>109.0</td><td>39.5</td><td>69.4</td><td>8.8</td><td>54.1</td><td>12.6</td></tr><tr><td>DeepSeek-R1 [12]†</td><td>X</td><td>✓</td><td>✓</td><td>39.4</td><td>69.9</td><td>10.5</td><td>50.0</td><td>38.0</td><td>68.7</td><td>10.8</td><td>54.9</td><td>62.2</td><td>80.3</td><td>48.2</td><td>264.4</td><td>41.1</td><td>70.5</td><td>13.9</td><td>69.7</td><td>17.1</td></tr><tr><td>Gemini-2.5-Pro[7]†</td><td>X</td><td>✓</td><td>✓</td><td>48.3</td><td>73.1</td><td>9.8</td><td>54.9</td><td>45.4</td><td>70.1</td><td>11.8</td><td>66.1</td><td>54.8</td><td>75.3</td><td>30.6</td><td>172.5</td><td>48.7</td><td>72.8</td><td>13.5</td><td>75.8</td><td>19.8</td></tr><tr><td>GPT-4.1 [2]†</td><td>X</td><td>✓</td><td>✓</td><td>35.3</td><td>67.2</td><td>6.3</td><td>34.2</td><td>30.8</td><td>64.2</td><td>6.2</td><td>34.8</td><td>43.9</td><td>69.2</td><td>19.1</td><td>120.2</td><td>35.8</td><td>66.9</td><td>8.3</td><td>47.9</td><td>11.7</td></tr><tr><td>Qwen3-235B [43]†</td><td>X</td><td>✓</td><td>✓</td><td>24.8</td><td>59.2</td><td>6.5</td><td>31.9</td><td>19.5</td><td>52.9</td><td>5.6</td><td>28.2</td><td>27.5</td><td>57.8</td><td>16.0</td><td>92.9</td><td>24.1</td><td>57.7</td><td>7.8</td><td>40.7</td><td>9.6</td></tr><tr><td>ARCChapter-asr</td><td>✓</td><td>✓</td><td>X</td><td>57.3</td><td>79.3</td><td>24.1</td><td>103.3</td><td>60.1</td><td>80.8</td><td>24.5</td><td>113.5</td><td>63.2</td><td>79.5</td><td>28.1</td><td>140.6</td><td>58.8</td><td>79.7</td><td>24.8</td><td>111.3</td><td>28.0</td></tr><tr><td>ARCChapter-vid</td><td>✓</td><td>X</td><td>✓</td><td>57.1</td><td>79.1</td><td>21.2</td><td>91.5</td><td>55.9</td><td>78.2</td><td>18.4</td><td>88.2</td><td>62.0</td><td>79.4</td><td>27.9</td><td>137.8</td><td>57.6</td><td>78.9</td><td>21.6</td><td>98.1</td><td>25.0</td></tr><tr><td>ARCChapter-vidasr</td><td>✓</td><td>✓</td><td>✓</td><td>65.5</td><td>83.8</td><td>28.5</td><td>129.2</td><td>65.7</td><td>84.2</td><td>29.0</td><td>140.0</td><td>69.6</td><td>84.2</td><td>38.5</td><td>192.3</td><td>66.2</td><td>84.0</td><td>30.2</td><td>141.5</td><td>34.1</td></tr></table>
+
+transcripts, while ARC-Chapter is evaluated with different input modalities. VidChapters7M-sml300val is a smaller validation set of 300 samples, which includes both the original videos and their corresponding ASR transcripts. This subset is ideal for fast evaluation and conducting modality ablation studies. To assess generalization beyond English, we additionally report experimental results on VidAtlas-test, a Chinese test set with more than 1.5k videos together with ASR transcripts and original videos.
+
+# 5.2 Comparison with the State of the Art
+
+Performance on VidChapters7M. As shown in Tab. 1, our ARC-Chapter significantly outperforms all existing methods on VidChapters7M-test benchmark. Our model achieves a new state-of-the-art result in the ASR-only regime, with an overall F1 score of 54.5, tIoU of 76.7, SODA of 23.5, and a CIDEr of 144.0. This represents a substantial improvement over the previous SOTA model, Chapter-Llama, with absolute gains of +9.2 in F1, $+ 4 . 9$ in tIoU, and $+ 6 . 0$ in the SODA score. Notably, the performance gain enlarges as video duration increases. For long videos (30-60 min), the evaluation metrics of SODA and CIDEr for ARC-Chapter are remarkably higher than which in Chapter-LLama, demonstrating the superior capability of our model in processing long videos. Even when compared against powerful general models like GPT-4o and Gemini-1.5-Pro, which are not finetuned on this task, ARC-Chapter perform much better. The experiments conducted on VidChapter7M-sml300 show more comparisons for different input modalities, shown in Tab. 2.
+
+Performance on VidAtlas. As detailed in Tab. 3, we evaluate our model on the VidAtlas benchmark under three settings: ASR-only, video-only, and ASR+video. ARC-Chapter consistently establish a new state-of-the-art across all settings. Our full multimodal model, ARCChapter-vidasr, which leverages both ASR and video inputs, achieves an overall F1 score of 66.2, tIoU of 84.0, SODA of 30.2, CIDEr of 141.5, and GRACE of 34.1. This marks a significant leap over the strongest LLM, Gemini-2.5-Pro, with an absolute improvement of $+ 1 7 . 5$ in F1 score and more than doubling the SODA score (+16.7). Furthermore, our single-modality versions also demonstrate superior performance. The ASR-only model, ARCChapter-asr, achieves an F1 of 58.8, and the video-only model, ARCChapter-vid, scores an F1 of 57.6. From shot-to-long videos, our model consistently outperforms other models, demonstrating its robustness in handling extended content.
+
+# 5.3 Transferability
+
+To evaluate transferability, we pre-trained ARC-Chapter on our dataset before fine-tuning and testing it on the dense video captioning benchmarks, i.e., Youcook2 and ActivityNet Captions. As shown in Table 4, our model establishes a new state-of-the-art, significantly outperforming all prior MLLM-based methods.
+
+Notably, for event segmentation ability, ARC-Chapter achieves an F1/SODA Score of 37.9/12.5 on YouCook2, a substantial improvement over the previous best of 33.5/7.9. This demonstrates that the knowledge acquired during pre-training effectively transfers and enhances performance on downstream tasks.
+
+Table 4 Transferability Performance on YouCook2 and ActivityNet Captions [20] for Dense Video Captioning. All methods use visual modality as inputs without ASR. The Rank(↓) column represents the overall performance, calculated as the arithmetic mean of a method’s rank across all reported metrics (M, S, C, and F1) for that dataset. Some results for ActivityNet Captions are sourced from [14] and [46]. * indicates zero-shot evaluation. The best results on each dataset are in bold and the second-best are underlined.   
+
+<table><tr><td rowspan="2">Method</td><td colspan="5">YouCook2</td><td colspan="5">ActivityNet Captions</td></tr><tr><td>M</td><td>S</td><td>C</td><td>F1</td><td>Rank↓</td><td>M</td><td>S</td><td>C</td><td>F1</td><td>Rank↓</td></tr><tr><td>GIT [36]</td><td>3.4</td><td>3.1</td><td>12.1</td><td>17.7</td><td>7.5</td><td>7.8</td><td>5.7</td><td>29.8</td><td>50.6</td><td>4.3</td></tr><tr><td>ECHR [46]</td><td>3.8</td><td>-</td><td>-</td><td>-</td><td>4.0</td><td>7.2</td><td>3.2</td><td>14.7</td><td>-</td><td>8.6</td></tr><tr><td>PDVC [46]</td><td>4.7</td><td>4.4</td><td>22.7</td><td>-</td><td>5.0</td><td>8.0</td><td>5.4</td><td>29.0</td><td>56.7</td><td>3.8</td></tr><tr><td>Vid2Seq [46]</td><td>9.3</td><td>7.9</td><td>47.1</td><td>27.3</td><td>2.8</td><td>8.5</td><td>5.8</td><td>30.1</td><td>52.4</td><td>2.6</td></tr><tr><td>CM²</td><td>-</td><td>5.3</td><td>31.7</td><td>28.4</td><td>4.7</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr><td>TimeChat [30]</td><td>-</td><td>3.4</td><td>11.0</td><td>19.5</td><td>8.0</td><td>5.7</td><td>4.7</td><td>19.0</td><td>36.9</td><td>8.8</td></tr><tr><td>VTimeLLM [17]</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>6.8</td><td>5.8</td><td>27.6</td><td>-</td><td>5.8</td></tr><tr><td>Momentor* [28]</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>4.7</td><td>2.3</td><td>14.9</td><td>-</td><td>10.7</td></tr><tr><td>TRACE [14]</td><td>-</td><td>6.7</td><td>35.5</td><td>31.8</td><td>3.7</td><td>6.4</td><td>6.0</td><td>25.9</td><td>39.3</td><td>5.8</td></tr><tr><td>VTG-LLM [15]</td><td>-</td><td>3.6</td><td>13.4</td><td>20.6</td><td>6.7</td><td>5.9</td><td>5.1</td><td>20.7</td><td>34.8</td><td>8.3</td></tr><tr><td>TimeExpert [47]</td><td>-</td><td>7.2</td><td>39.0</td><td>33.5</td><td>2.7</td><td>7.0</td><td>6.5</td><td>28.4</td><td>40.5</td><td>4.3</td></tr><tr><td>ARC-Chapter</td><td>9.6</td><td>12.5</td><td>69.4</td><td>37.9</td><td>1.0</td><td>8.1</td><td>5.9</td><td>35.4</td><td>55.9</td><td>2.0</td></tr></table>
+
+# 5.4 Ablation Studies
+
+# 5.4.1 Scaling Property
+
+We analyze how ARC-Chapter scales with the amount of training data. Concretely, we subsample the training set at $2 0 \%$ , $4 0 \%$ , $6 0 \%$ , $8 0 \%$ , and 100% and keep the model architecture and prompt templates fixed. We evaluate three inference modalities, i.e.ASR-only, Video-only, and ASR+Video, on two benchmarks: VidChapters-7M (sml300val) and a sampled subset of the VidAtlas-testset for efficiency. As illustrated in Fig. 6, the performance across all metrics (F1, tIOU, SODA, and CIDEr) and input modalities (ASR-only, Video-only, Video+ASR) demonstrates a clear positive correlation with the amount of training data. Specifically, the full multimodal model (Video+ASR) consistently achieves the best performance. ARC-Chapter is highly data-efficient, achieving strong performance with as little as $2 0 \%$ of the training data. Furthermore, it is data-scalable, continuing to benefit from larger corpora for even better results.
+
+# 5.4.2 Hierarchical Annotations
+
+A core contribution of our work is the VidAtlas dataset, which features rich, hierarchical annotations. To validate the effectiveness of this data structure, we evaluate our model’s capability to generate outputs of varying complexity, from simple Short Title to detailed Structural Info which comprising a title, abstract and introduction for each chapter. The results are presented in Table 5. From the experimental results, our model successfully learns to generate these complex, structured outputs, achieving strong performance across all generated components (title, abstract, introduction) on both VidChapter-sml300 and VidAtlas-testset benchmarks, particularly when using both video and ASR inputs. This demonstrates a high degree of semantic understanding.
+
+More importantly, the capability for detailed generation does not come at the cost of performance on the fundamental chaptering task. When comparing the segmentation metrics (temporal evaluation score F1 and tIoU) for the Short Title task versus the more demanding Structural Info task, we observe only a negligible difference. For example, on VidChapter-sml300, the multimodal model achieved an F1 score of 62.4 and a tIoU of 81.6 for Short Title generation, compared to slightly lower scores of 61.4 and 80.6 for Structural Info generation. Notably, this small margin represents the largest performance gap observed across all modality inputs on both benchmarks, indicating that the model can perform complex, multi-part generation in a single forward pass without compromising its core ability to accurately segment the video. This result strongly validates our hierarchical annotation strategy, demonstrating that training on such rich data endows the model with advanced structural reasoning capabilities.
+
+![](images/89880f9c26de69cb32ca9e476ea6b2aa86964afd52693bb66a0d4d4483fd233f.jpg)
+
+![](images/a7a6eae0edb311f90140521d9188198795aa7ab1c96b70462eb029cccc538790.jpg)
+
+![](images/3d5b90daa5bf2d6ffad6d3759f14f3d6d27ab0c58c729ad0187e930731a55813.jpg)
+
+![](images/9a39b73ab3b3c1289ce32ec8ef4ef5c6a56ceaa378d57c5f3445425c4e50c986.jpg)
+
+![](images/22b5cc432ab9decf7b04f4675235449c0d8ead6153b848f921e295f69703c608.jpg)
+
+![](images/26cc2644aa2e83d5d6e6e02aa43993b5262b0dbae06b4279e6fb3146bebb9206.jpg)
+
+![](images/bc05303ff15ebaa765967b4583afdc41b2d4124ee0360be0a353b314c0b71f1f.jpg)
+
+![](images/bed5b1d54b7b30c3aca679f2cb6df8b3b49ac30c8ab48d60241ae096a30300a6.jpg)  
+Figure 6 Data Scaling property of ARC-Chapter. We report the performance on VidChapter (a sampled subset) and VidAtlas test set with respect to different percentage of training samples.
+
+Table 5 Ablation study on the model’s capability to generate hierarchical annotations. We compare models trained with Short Title and Structural Info (structured chapters with short title, title, abstract, and introduction) across different input modalities (A for ASR, and V for Video) on both English (VidChapter-sml300) and Chinese (VidAtlas-testset) benchmarks. Metrics include F1 and tIoU for boundary quality evaluation, and SODA(S), CIDEr(C), as well as our proposed GRACE(G) for semantic quality evaluation.   
+
+<table><tr><td rowspan="3">Dataset</td><td rowspan="2" colspan="2">Modality</td><td colspan="5">Short Title</td><td colspan="13">Structural Info</td><td></td></tr><tr><td colspan="2">Segmentation</td><td colspan="3">Short Title</td><td colspan="2">Segmentation</td><td colspan="2">Short Title</td><td colspan="2">Title</td><td colspan="2">Abstract</td><td colspan="4">Intro</td><td></td><td></td></tr><tr><td>A</td><td>V</td><td>F1</td><td>tIoU</td><td>S</td><td>C</td><td>G</td><td>F1</td><td>tIoU</td><td>S</td><td>C</td><td>G</td><td>S</td><td>C</td><td>G</td><td>S</td><td>C</td><td>G</td><td>S</td><td>C</td><td>G</td></tr><tr><td rowspan="3">VidChapter-sml300(English)</td><td>✓</td><td>✗</td><td>56.5</td><td>78.1</td><td>25.9</td><td>148.5</td><td>33.0</td><td>54.8</td><td>77.1</td><td>25.5</td><td>147.9</td><td>32.5</td><td>12.8</td><td>91.2</td><td>25.6</td><td>12.3</td><td>14.5</td><td>25.1</td><td>11.8</td><td>11.9</td><td>24.6</td></tr><tr><td>✗</td><td>✓</td><td>50.0</td><td>74.3</td><td>21.6</td><td>130.8</td><td>27.9</td><td>50.4</td><td>74.4</td><td>22.3</td><td>136.4</td><td>28.7</td><td>8.6</td><td>57.7</td><td>19.8</td><td>8.5</td><td>6.4</td><td>19.7</td><td>8.2</td><td>5.2</td><td>19.4</td></tr><tr><td>✓</td><td>✓</td><td>62.4</td><td>81.6</td><td>30.1</td><td>190.7</td><td>38.4</td><td>61.4</td><td>80.6</td><td>30.8</td><td>194.5</td><td>38.4</td><td>14.6</td><td>107.2</td><td>28.6</td><td>13.4</td><td>14.5</td><td>27.4</td><td>13.0</td><td>10.2</td><td>27.0</td></tr><tr><td rowspan="3">VidAtlas-testset(Chinese)</td><td>✓</td><td>✗</td><td>58.8</td><td>79.7</td><td>24.8</td><td>111.3</td><td>28.0</td><td>59.1</td><td>79.8</td><td>25.5</td><td>112.8</td><td>28.6</td><td>16.2</td><td>101.7</td><td>27.0</td><td>17.5</td><td>57.8</td><td>31.8</td><td>16.4</td><td>36.0</td><td>29.6</td></tr><tr><td>✗</td><td>✓</td><td>57.6</td><td>78.9</td><td>21.6</td><td>98.1</td><td>25.0</td><td>56.8</td><td>78.7</td><td>22.0</td><td>97.8</td><td>25.1</td><td>12.7</td><td>67.4</td><td>21.7</td><td>14.5</td><td>37.5</td><td>27.3</td><td>13.8</td><td>22.2</td><td>25.2</td></tr><tr><td>✓</td><td>✓</td><td>66.2</td><td>84.0</td><td>30.2</td><td>141.5</td><td>34.1</td><td>65.9</td><td>83.8</td><td>30.8</td><td>143.5</td><td>34.6</td><td>18.5</td><td>119.8</td><td>30.7</td><td>19.1</td><td>66.3</td><td>35.3</td><td>18.2</td><td>39.8</td><td>33.0</td></tr></table>
+
+# 5.4.3 Performance with GRPO
+
+To validate the effectiveness of our GRPO-based reinforcement learning stage, we compare the performance of our models before (SFT-base) and after ( $^ +$ RL) this optimization. The results, detailed in Table 6, confirm that GRPO serves as a powerful fine-tuning method for enhancing temporal precision in video chaptering. From the experimental results, we draw three key conclusions.
+
+First, GRPO directly and consistently improves metrics correlated with temporal segmentation accuracy. As hypothesized, by optimizing with a reward focused on temporal alignment, we observe a clear performance boost in F1 and tIoU scores across all configurations. For instance, on the VidAtlas-test set, the GRPO model with video input achieves a notable gain of +0.8 in F1 and +0.7 in tIoU over its SFT baseline. This empirically validates that GRPO effectively sharpens the model’s ability to predict precise chapter boundaries.
+
+Second, we observe a significant degree of cross-modal transferability from the RL training. Notably, despite the GRPO training being conducted exclusively on the video modality, the temporal localization performance of the ASR and Video+ASR inputs also improves. The GRPO model with Video+ASR input, for example, achieves a +1.5 F1 and +1.1 tIoU gain on VidChapter7M-test. This suggests that the optimization is not merely learning a superficial visual-to-temporal mapping but is refining a more abstract, modality-agnostic representation of temporal structure within the language model’s parameters.
+
+Finally, these enhancements in temporal precision are achieved without sacrificing semantic quality. Crucially, although our reward function is agnostic to content, semantic metric such as CIDEr remain highly comparable to the SFT baseline, and in some cases even improve (e.g., +1.1 CIDEr for video input on VidChapters7M-
+
+Table 6 Effectiveness of Reinforcement Learning with GRPO. We compare the performance of our models before (SFT) and after applying reinforcement learning $( + \mathrm { R L } )$ with GRPO. The evaluation is conducted on two benchmarks across different input modalities (A: ASR, V: Video). The results show that GRPO consistently improves temporal segmentation metrics (F1, tIoU) while maintaining or slightly improving semantic quality metrics (S: SODA, C: CIDEr). Bold numbers indicate the best performance between the base model and GRPO-enhanced model for each metric.   
+
+<table><tr><td rowspan="2">Method</td><td rowspan="2">Stage</td><td colspan="2">Modality</td><td colspan="5">VidChapters7M-test</td><td colspan="5">VidAtlas-test</td></tr><tr><td>A</td><td>V</td><td>F1</td><td>tIoU</td><td>S</td><td>C</td><td>G</td><td>F1</td><td>tIoU</td><td>S</td><td>C</td><td>G</td></tr><tr><td>Base-asr</td><td>sft</td><td>✓</td><td>X</td><td>54.5</td><td>76.7</td><td>26.3</td><td>144.0</td><td>28.9</td><td>58.8</td><td>79.7</td><td>24.8</td><td>111.3</td><td>28.0</td></tr><tr><td>GRPO-asr</td><td>+rl</td><td>✓</td><td>X</td><td>54.8(+0.3↑)</td><td>77.2(+0.5↑)</td><td>25.3(-1.0↓)</td><td>143.7(-0.3↓)</td><td>28.8 (-0.1↓)</td><td>59.6(+0.8↑)</td><td>80.2(+0.5↑)</td><td>24.7(-0.1↓)</td><td>109.9(-1.4↓)</td><td>28.0(↑↓)</td></tr><tr><td>Base-vid</td><td>sft</td><td>X</td><td>✓</td><td>50.2</td><td>74.3</td><td>22.9</td><td>138.3</td><td>25.4</td><td>57.6</td><td>78.9</td><td>21.6</td><td>98.1</td><td>25.0</td></tr><tr><td>GRPO-vid</td><td>+rl</td><td>X</td><td>✓</td><td>50.6(+0.4↑)</td><td>74.8(+0.5↑)</td><td>22.9(↑↓)</td><td>139.4(+1.1↑)</td><td>25.4(↑↓)</td><td>58.4(+0.8↑)</td><td>79.6(+0.7↑)</td><td>21.9(+0.3↑)</td><td>98.2(+0.1↑)</td><td>25.0(↑↓)</td></tr><tr><td>Base-vidasr</td><td>sft</td><td>✓</td><td>✓</td><td>59.3</td><td>79.6</td><td>30.6</td><td>186.6</td><td>34.3</td><td>66.2</td><td>84.0</td><td>30.2</td><td>141.5</td><td>34.1</td></tr><tr><td>GRPO-vidasr</td><td>+rl</td><td>✓</td><td>✓</td><td>60.8(+1.5↑)</td><td>80.7(+1.1↑)</td><td>31.0(+0.4↑)</td><td>190.7(+4.1↑)</td><td>34.6(+0.3↑)</td><td>66.8(+0.6↑)</td><td>84.3(+0.3↑)</td><td>30.4(+0.2↑)</td><td>141.7(+0.2↑)</td><td>34.4(+0.3↑)</td></tr></table>
+
+test.). Composite metrics like SODA and GRACE, which balance segmentation and description, also maintain their performance or exhibit slight gains. This indicates that the KL-regularized optimization successfully avoids policy degradation, suggesting a positive effect where more accurate segmentation enables the model to generate more focused and relevant content. In summary, GRPO acts as a critical fine-tuning step, effectively sharpening the model’s temporal acuity while preserving its descriptive capabilities.
+
+# 5.5 Qualitative Visualization
+
+To provide a more intuitive understanding of our model’s capabilities beyond quantitative metrics, we present qualitative examples on both English and Chinese videos. These visualizations showcase ARC-Chapter’s ability to generate accurate, coherent, and hierarchically structured outputs in multiple formats and languages.
+
+Fig. 7 illustrates the model’s performance on a challenging English video discussing US debt and the role of stablecoins. The topic is dense with financial terminology and complex arguments. Our model successfully navigates this complexity across all output formats. The Short Title accurately segments the video into logical thematic units, such as "Intro", "Stablecoin Regulation". The Video Description with Timestamp summarizes the video content for each chapter. More impressively, the Structural Chapters demonstrates the model’s advanced capability for hierarchical chaptering. The generated title, abstract, and introduction for each chapter are distinct yet complementary, providing a rich, layered understanding of the content that mirrors human-authored summaries.
+
+To showcase the multilingual performance of our model, Fig. 8 presents the results for a Chinese video on a similar topic. The model exhibits a comparable level of understanding and generation quality in Chinese. The generated Short Titles are precise. The detailed Description and Structural Chapters are fluent and contextually appropriate. This strong cross-lingual performance underscores the model’s ability to generalize the learned chaptering and summarization skills, rather than merely memorizing patterns in a single language.
+
+Together, these qualitative examples confirm that ARC-Chapter is not only a powerful chaptering tool but also a versatile video understanding model capable of producing rich, structured, and multilingual summaries that are both accurate and useful for end-users.
+
+# 6 Conclusion
+
+In this report, we introduced ARC-Chapter, a scalable and robust framework for structuring long-form videos into semantically coherent chapters and hierarchical summaries. ARC-Chapter leverages a large-scale dataset of millions of long video chapters and employs a semi-automatic annotation pipeline. These innovations advance the state of the art in video chaptering and summary generation. We also proposed the GRACE metric, which addresses the limitations of existing evaluation methods by providing a granularity-robust assessment of chapter boundaries. Experimental results show that ARC-Chapter achieves superior performance across multiple benchmarks, video durations, and languages. These findings demonstrate the framework’s effectiveness and generalizability. ARC-Chapter has strong potential to facilitate efficient content navigation, retrieval, and understanding as long-form video content continues to grow rapidly.
+
+![](images/457f769d7e132046e6fa62de4c1adf38022eb7cd4aa2257c090936363dd12df3.jpg)
+
+![](images/f5330556369a4a4834e2f85e0fae16b253a3fa8d41a249557c60eb85bca21c31.jpg)
+
+# Short Title
+
+00:00:00
+
+Intro
+
+00:00:48
+
+US Debt Problem
+
+00:05:35
+
+Stablecoins & US Bonds
+
+00:09:22
+
+Refilling The TGA
+
+00:14:24
+
+Stablecoin Regulation
+
+00:17:08
+
+Which Cryptos Will Win
+
+![](images/eacf88cafd8c7fb66dad475f4b3a9a48d706c74dde720dca86c501b23dd8a27e.jpg)
+
+# Video Description with Timestamp
+
+![](images/09c9a4dea1f6bafef939787697e998f97b04092e4fc76d238d3ecd67065b1e5a.jpg)
+
+(00:00:00 - 00:00:48) The video begins by introducing the pressing issue of the US national debt, highlighting the potential consequences of a default and the Trump administration's interest in utilizing stablecoins as a potential solution. This sets the stage for a deeper dive into the mechanics of the debt ceiling and the role stablecoins might play. (00:00:48 - 00:05:35) Next, the video explains the debt ceiling and its implications, including the possibility of market stimulation due to reduced government debt issuance. The discussion covers the Federal Reserve's quantitative tightening (QT) program and its impact on commercial banks' cash reserves, ultimately leading to the exploration of how stablecoins could contribute to refilling the Treasury General Account (TGA). (00:05:35 - 00:09:23) Moving on, the video defines stablecoins and their connection to US dollar-backed assets. It examines the role of stablecoins like USDT and USDC in various market segments, such as crypto trading and DeFi, and discusses the potential for significant growth driven by increased demand from retail investors and PayPal's expanding use of stablecoins. (00:09:23 - 00:14:24) The video then delves into the potential of stablecoins to address the TGA funding gap, drawing parallels to the 2023 refill process. It analyzes the potential growth of USDT, USDC, and PayPal's PYUSD, considering the influence of retail investors, DeFi adoption, and PayPal's merchant network. The analysis suggests that stablecoins could play a crucial role in meeting the $\$ 800$ billion funding requirement. (00:14:24 - 00:17:08) Shifting focus to regulatory developments, the video discusses the two proposed stablecoin bills in Congress: the Senate's Genius Act and the House's Stable Act. It compares the two bills, highlighting their differing approaches to regulation, particularly concerning decentralized stablecoins, and emphasizes the importance of swift passage of these regulations. (00:17:08 - 00:20:57) Finally, the video explores the potential benefits of stablecoins for various cryptocurrencies, focusing on the blockchains where major stablecoins are active. It examines the growth of USDT, USDC, and PYUSD on platforms like Ethereum, Solana, and others, and discusses the potential impact of XRP's EVMcompatible sidechain on the XRP ecosystem and the broader crypto market.
+
+![](images/77bb5b7cc8a54635e52304ffc7082c58ddde8a818245ba3235267cb930505437.jpg)
+
+# Structural Chapter
+
+![](images/134bdd28068cb7f887c72f6a6de19d05ecb8118ce900ed30766202d77538363d.jpg)  
+Figure 7 Qualitative results on an English video about finance and cryptocurrency.
+
+# Video Chapters
+
+▷ Intro [00:00:00]
+
+Title: US Debt Bubble & Stablecoins: An Overview
+
+Intro: The video begins by discussing the US national debt exceeding $\$ 36$ trillion and the potential for a bubble burst. It introduces the idea that stablecoins could be a solution, noting that stablecoin issuers have already purchased over $\$ 60$ billion in US debt. The presenter, Nick, sets the stage for explaining the debt problem, the role of stablecoins, and which cryptocurrencies might benefit.
+
+▷ US Debt Problem [00:00:48]
+
+Title: The US Debt Ceiling Crisis and Market Impact
+
+Intro: This section details the US debt ceiling situation, explaining that the US government hit its debt ceiling in January and cannot issue more debt. The presenter explains that this can paradoxically stimulate the market by reducing debt issuance, leading to more money flowing into other assets. The chapter highlights the need for the US government to refill the Treasury General Account (TGA) with $\$ 800$ billion in bonds, which presents a challenge for the market.
+
+▷ Stablecoins & US Debt [00:05:35]
+
+Title: Stablecoins as Potential Solutions for US Debt
+
+Intro: This segment focuses on how stablecoins could be a solution to the US debt problem. It explains that stablecoins are crypto tokens pegged to fiat currencies, often the US dollar, and are backed by US bonds. The presenter notes that stablecoin issuers have purchased over $60 billion in US bonds. The chapter highlights the potential of stablecoins to help refill the TGA, with the presenter emphasizing the importance of stablecoins in the market.
+
+▷ How Much Stablecoin Growth Needed [00:09:22]
+
+Title: Estimating Stablecoin Growth to Refill the TGA
+
+Intro: This section examines how much stablecoin growth is needed to refill the TGA. The presenter uses the 2023 refill as a reference point, noting that the RRP facility was used to refill the TGA. The presenter then discusses the impact of Quantitative Tightening (QT) on the TGA refill. The presenter estimates that stablecoins could be the primary buyers of the $\$ 800$ billion needed to refill the TGA.
+
+▷ Stablecoin Regulations [00:14:24]
+
+Title: Stablecoin Regulation and Congressional Action
+
+Intro: This segment covers the stablecoin bills being considered in Congress. The presenter mentions the Genius Act in the Senate and the Stable Act in the House. The presenter notes that the Genius Act is more favorable for the TGA refill because it has fewer restrictions. The presenter also discusses the potential for these bills to be incompatible and the possibility of a pro-crypto supermajority in Congress. The presenter notes that stablecoin regulations are expected to be passed by August.
+
+▷ Which Cryptos Will Benefit [00:17:08]
+
+Title: Cryptocurrencies Set to Benefit from Stablecoin Growth
+
+Intro: This section identifies which cryptocurrencies will benefit from the stablecoin frenzy. The presenter suggests looking at the blockchains where the biggest stablecoins are active and growing. The presenter notes that USDT is growing the fastest on Tron, APTOS, and Ethereum’s layer twos. The presenter also notes that USDC is growing the most on Hyperliquid, Solana, SUI, APTOS, and Sonic. The presenter also mentions that PayPal’s PYUSD is expanding to Solana and Ethereum, and Ripple’s XRP is launching an EVM-compatible sidechain.
+
+# Video Summary
+
+This video analyzes the potential of stablecoins to address the US national debt bubble. It begins by outlining the US debt ceiling crisis and its market implications, then explores how stablecoins, particularly those backed by US bonds, could be a solution. The video estimates the necessary stablecoin growth to refill the Treasury General Account (TGA), discusses the regulatory landscape in Congress, and identifies cryptocurrencies poised to benefit from the anticipated stablecoin growth, focusing on the blockchains where major stablecoins are active. The video concludes by highlighting the potential for a significant injection of crypto-native liquidity and the impact on the broader crypto market, particularly altcoins on layer-one blockchains.
+
+![](images/ef0f01f05a785b7db4502197d9805233253bab02b48aafb9cbcc6c3faa6b37c2.jpg)
+
+# Structural Chapter
+
+# Video Chapters
+
+▷ 前言 [00:00:00]
+
+标题: 稳定币投资机遇与挑战
+
+简介: 视频开篇，美投君介绍了稳定币行业，并指出行业内投资标的难寻，引发了对稳定币投资机会的思考。通过对比特币的波动性进行分析，强调了把握投资机会的难度，并预告了本期视频将深入探讨稳定币的投资价值。
+
+▷ 什么是稳定币？ [00:01:40]
+
+标题: 稳定币的基本概念与特性
+
+简介: 本章详细解释了稳定币的概念，它是一种基于区块链技术的加密货币，与传统货币不同，稳定币的价值锚定于现实法币，例如美元。视频强调了稳定币的防伪、可追踪、不可复制等特性，并将其与比特币等波动性货币进行了对比。
+
+▷ 为何大火？ [00:02:23]
+
+标题: 稳定币的市场潜力与优势
+
+简介: 本章探讨了稳定币成为市场焦点的原因，主要在于其在交易成本、速度和稳定性方面的优势。与美元和比特币相比，稳定币在跨境支付中具有显著优势，例如更低的手续费和更快的到账速度。此外，稳定币作为交易媒介，更适合于日常交易，具有取代美元作为全球贸易货币的潜力。
+
+▷ 稳定币使用场景 [00:03:53]
+
+标题: 稳定币的核心应用场景：跨境支付
+
+简介: 本章深入探讨了稳定币的核心应用场景——跨境支付。视频对比了传统SWIFT系统的弊端，如高昂的手续费和漫长的到账时间。稳定币通过区块链技术，实现了点对点的转账，降低了成本，提高了效率。更重要的是，稳定币降低了国际贸易的门槛，使得中小企业也能参与到全球贸易中，从而推动了跨境支付市场的扩张。
+
+▷ 稳定币vs比特币 [00:07:21]
+
+标题: 稳定币与比特币的投资逻辑差异
+
+简介: 本章对比特币和稳定币的投资逻辑进行了对比。比特币更像是一种资产，其价值来源于不断换手交易带来的价格上涨。而稳定币更像是一种商品，其价值来自于用量的提升，类似于美元。因此，稳定币的增长比比特币更难，需要依靠真实的个体参与到使用中。
+
+▷ 制约和解药 [00:09:01]
+
+标题: 稳定币发展面临的挑战与监管的重要性
+
+简介: 本章深入探讨了稳定币发展面临的挑战，首先是缺乏信任，由于行业内存在乱象，导致用户对稳定币的稳定性产生怀疑。其次是监管不足，早期的比特币也面临过类似问题。视频强调了监管对于稳定币行业健康发展的重要性，并介绍了美国《Genius Act》的出台，为稳定币行业提供了基础的监管框架。
+
+▷ 真正的挑战 [00:12:02]
+
+标题: 稳定币发展的关键瓶颈：用户体验与网络效应
+
+简介: 本章深入探讨了稳定币发展面临的挑战，首先是缺乏信任，由于行业内存在乱象，导致用户对稳定币的稳定性产生怀疑。其次是监管不足，早期的比特币也面临过类似问题。视频强调了监管对于稳定币行业健康发展的重要性，并介绍了美国《Genius Act》的出台，为稳定币行业提供了基础的监管框架。
+
+▷ 如何投资？ [00:18:57]
+
+标题: 稳定币投资策略与未来展望
+
+简介: 本章给出了稳定币投资的短期和长期策略。短期内，监管的完善将带来爆发，但增长的可持续性取决于稳定币的好用程度。长期来看，稳定币是支付系统技术进步的必然结果，技术进步最终会得到解决。视频还提到了Meta在AI领域的投资价值，并预告了后续的Meta Pro视频。
+
+# Video Summary
+
+本视频深入探讨了稳定币的投资价值与挑战。首先介绍了稳定币的基本概念、市场潜力和核心应用场景——跨境支付。随后，对比特币和稳定币的投资逻辑进行了对比，强调了稳定币更像是一种商品，其价值取决于用量。视频分析了稳定币发展面临的挑战，包括信任问题、监管不足、用户体验不佳和缺乏网络效应，并强调了监管和基础设施建设的重要性。最后，给出了稳定币投资的短期和长期策略，并展望了稳定币的未来发展方向，强调了技术进步的重要性。 视频还预告了后续关于Meta AI技术的深度解读。
+
+![](images/4edeeac21150742bb9508b95043f8c227cd3a3c4130b7d316990b19fb64fe550.jpg)  
+Figure 8 Qualitative results on a Chinese video discussing stablecoins.
+
+# References
+
+[1] Abdelrahman Abouelenin, Atabak Ashfaq, Adam Atkinson, Hany Awadalla, Nguyen Bach, Jianmin Bao, Alon Benhaim, Martin Cai, Vishrav Chaudhary, Congcong Chen, et al. Phi-4-mini technical report: Compact yet powerful multimodal language models via mixture-of-loras. arXiv preprint arXiv:2503.01743, 2025.   
+[2] Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ahmad, Ilge Akkaya, Florencia Leoni Aleman, Diogo Almeida, Janko Altenschmidt, Sam Altman, Shyamal Anadkat, et al. Gpt-4 technical report. arXiv preprint arXiv:2303.08774, 2023.   
+[3] Anthropic. The claude 3 model family: Opus, sonnet, haiku. 2024.   
+[4] Jinze Bai, Shuai Bai, Shusheng Yang, Shijie Wang, Sinan Tan, Peng Wang, Junyang Lin, Chang Zhou, and Jingren Zhou. Qwen-VL: A frontier large vision-language model with versatile abilities. arXiv preprint arXiv:2308.12966, 2023.   
+[5] Shuai Bai, Keqin Chen, Xuejing Liu, Jialin Wang, Wenbin Ge, Sibo Song, Kai Dang, Peng Wang, Shijie Wang, Jun Tang, et al. Qwen2. 5-vl technical report. arXiv preprint arXiv:2502.13923, 2025.   
+[6] Richard Bellman and Robert Kalaba. On adaptive control processes. IRE Transactions on Automatic Control, 4 (2):1–9, 2003.   
+[7] Gheorghe Comanici, Eric Bieber, Mike Schaekermann, Ice Pasupat, Noveen Sachdeva, Inderjit Dhillon, Marcel Blistein, Ori Ram, Dan Zhang, Evan Rosen, et al. Gemini 2.5: Pushing the frontier with advanced reasoning, multimodality, long context, and next generation agentic capabilities. arXiv preprint arXiv:2507.06261, 2025.   
+[8] Guodong Ding, Fadime Sener, and Angela Yao. Temporal action segmentation: An analysis of modern techniques. TPAMI, 46(2):1011–1030, 2023.   
+[9] Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Abhishek Kadian, Ahmad Al-Dahle, Aiesha Letman, Akhil Mathur, Alan Schelten, Amy Yang, Angela Fan, et al. The llama 3 herd of models. arXiv preprint arXiv:2407.21783, 2024.   
+[10] Soichiro Fujita, Tsutomu Hirao, Hidetaka Kamigaito, Manabu Okumura, and Masaaki Nagata. Soda: Story oriented dense video captioning evaluation framework. In ECCV, pages 517–531, 2020.   
+[11] Jiyang Gao, Chen Sun, Zhenheng Yang, and Ram Nevatia. Tall: Temporal activity localization via language query. In ICCV, 2017.   
+[12] Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Ruoyu Zhang, Runxin Xu, Qihao Zhu, Shirong Ma, Peiyi Wang, Xiao Bi, et al. Deepseek-r1: Incentivizing reasoning capability in llms via reinforcement learning. arXiv preprint arXiv:2501.12948, 2025.   
+[13] Dong Guo, Faming Wu, Feida Zhu, Fuxing Leng, Guang Shi, Haobin Chen, Haoqi Fan, Jian Wang, Jianyu Jiang, Jiawei Wang, et al. Seed1. 5-vl technical report. arXiv preprint arXiv:2505.07062, 2025.   
+[14] Yongxin Guo, Jingyu Liu, Mingda Li, Qingbin Liu, Xi Chen, and Xiaoying Tang. Trace: Temporal grounding video llm via causal event modeling. arXiv preprint arXiv:2410.05643, 2024.   
+[15] Yongxin Guo, Jingyu Liu, Mingda Li, Dingxin Cheng, Xiaoying Tang, Dianbo Sui, Qingbin Liu, Xi Chen, and Kevin Zhao. Vtg-llm: Integrating timestamp knowledge into video llms for enhanced video temporal grounding. In AAAI, pages 3302–3310, 2025.   
+[16] Fabian Caba Heilbron, Juan Carlos Niebles, and Bernard Ghanem. Fast temporal activity proposals for efficient detection of human actions in untrimmed videos. In CVPR, pages 1914–1923, 2016.   
+[17] Bin Huang, Xin Wang, Hong Chen, Zihan Song, and Wenwu Zhu. Vtimellm: Empower llm to grasp video moments. In CVPR, pages 14271–14280, 2024.   
+[18] Aaron Hurst, Adam Lerer, Adam P Goucher, Adam Perelman, Aditya Ramesh, Aidan Clark, AJ Ostrow, Akila Welihinda, Alan Hayes, Alec Radford, et al. Gpt-4o system card. arXiv preprint arXiv:2410.21276, 2024.   
+[19] Ranjay Krishna, Kenji Hata, Frederic Ren, Li Fei-Fei, and Juan Carlos Niebles. Dense-captioning events in videos. In ICCV, pages 706–715, 2017.   
+[20] Ranjay Krishna, Kenji Hata, Frederic Ren, Li Fei-Fei, and Juan Carlos Niebles. Dense-captioning events in videos. In ICCV, pages 706–715, 2017.
+
+[21] Hilde Kuehne, Ali Arslan, and Thomas Serre. The language of actions: Recovering the syntax and semantics of goal-directed human activities. In CVPR, 2014.   
+[22] Colin Lea, Michael D Flynn, Rene Vidal, Austin Reiter, and Gregory D Hager. Temporal convolutional networks for action segmentation and detection. In CVPR, pages 156–165, 2017.   
+[23] Bo Li, Yuanhan Zhang, Liangyu Chen, Jinghao Wang, Jingkang Yang, and Ziwei Liu. Otter: A multi-modal model with in-context instruction tuning. arXiv preprint arXiv:2305.03726, 2023.   
+[24] Yanwei Li, Chengyao Wang, and Jiaya Jia. Llama-vid: An image is worth 2 tokens in large language models. In ECCV, pages 323–340, 2024.   
+[25] Ye Liu, Kevin Qinghong Lin, Chang Wen Chen, and Mike Zheng Shou. Videomind: A chain-of-lora agent for long video reasoning. arXiv preprint arXiv:2503.13444, 2025.   
+[26] Haoyu Lu, Wen Liu, Bo Zhang, Bingxuan Wang, Kai Dong, Bo Liu, Jingxiang Sun, Tongzheng Ren, Zhuoshu Li, Yaofeng Sun, et al. DeepSeek-VL: Towards real-world vision-language understanding. arXiv preprint arXiv:2403.05525, 2024.   
+[27] Zijia Lu and Ehsan Elhamifar. Fact: Frame-action cross-attention temporal modeling for efficient action segmentation. In CVPR, pages 18175–18185, 2024.   
+[28] Long Qian, Juncheng Li, Yu Wu, Yaobo Ye, Hao Fei, Tat-Seng Chua, Yueting Zhuang, and Siliang Tang. Momentor: Advancing video large language model with fine-grained temporal reasoning. In ICML, 2024.   
+[29] Alec Radford, Jong Wook Kim, Tao Xu, Greg Brockman, Christine McLeavey, and Ilya Sutskever. Robust speech recognition via large-scale weak supervision. In ICML, pages 28492–28518, 2023.   
+[30] Shuhuai Ren, Linli Yao, Shicheng Li, Xu Sun, and Lu Hou. Timechat: A time-sensitive multimodal large language model for long video understanding. In CVPR, pages 14313–14323, 2024.   
+[31] Hiroaki Sakoe and Seibi Chiba. Dynamic programming algorithm optimization for spoken word recognition. IEEE Transactions on Acoustics, Speech, and Signal Processing, 26(1):43–49, 2003.   
+[32] Yuhan Shen and Ehsan Elhamifar. Progress-aware online action segmentation for egocentric procedural task videos. In CVPR, pages 18186–18197, 2024.   
+[33] Fangxun Shu, Lei Zhang, Hao Jiang, and Cihang Xie. Audio-visual llm for video understanding. arXiv preprint arXiv:2312.06720, 2023.   
+[34] Gemini Team, Rohan Anil, Sebastian Borgeaud, Jean-Baptiste Alayrac, Jiahui Yu, Radu Soricut, Johan Schalkwyk, Andrew M Dai, Anja Hauth, Katie Millican, et al. Gemini: a family of highly capable multimodal models. arXiv preprint arXiv:2312.11805, 2023.   
+[35] Lucas Ventura, Antoine Yang, Cordelia Schmid, and Gül Varol. Chapter-llama: Efficient chaptering in hour-long videos with llms. In CVPR, pages 18947–18958, 2025.   
+[36] Jianfeng Wang, Zhengyuan Yang, Xiaowei Hu, Linjie Li, Kevin Lin, Zhe Gan, Zicheng Liu, Ce Liu, and Lijuan Wang. Git: A generative image-to-text transformer for vision and language. arXiv preprint arXiv:2205.14100, 2022.   
+[37] Peiyu Wang, Yichen Wei, Yi Peng, Xiaokun Wang, Weijie Qiu, Wei Shen, Tianyidan Xie, Jiangbo Pei, Jianhao Zhang, Yunzhuo Hao, et al. Skywork r1v2: Multimodal hybrid reinforcement learning for reasoning. arXiv preprint arXiv:2504.16656, 2025.   
+[38] Teng Wang, Ruimao Zhang, Zhichao Lu, Feng Zheng, Ran Cheng, and Ping Luo. End-to-end dense video captioning with parallel decoding. In ICCV, pages 6847–6857, 2021.   
+[39] Zhenzhi Wang, Ziteng Gao, Limin Wang, Zhifeng Li, and Gangshan Wu. Boundary-aware cascade networks for temporal action segmentation. In ECCV, pages 34–51, 2020.   
+[40] Hao Wu, Huabin Liu, Yu Qiao, and Xiao Sun. Dibs: Enhancing dense video captioning with unlabeled videos via pseudo boundary enrichment and online refinement. In CVPR, pages 18699–18708, 2024.   
+[41] Shengqiong Wu, Hao Fei, Leigang Qu, Wei Ji, and Tat-Seng Chua. NExT-GPT: Any-to-any multimodal llm. arXiv preprint arXiv:2309.05519, 2023.   
+[42] Cilin Yan, Haochen Wang, Shilin Yan, Xiaolong Jiang, Yao Hu, Guoliang Kang, Weidi Xie, and Efstratios Gavves. Visa: Reasoning video object segmentation via large language models. In ECCV, pages 98–115, 2024.
+
+[43] An Yang, Anfeng Li, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng, Bowen Yu, Chang Gao, Chengen Huang, Chenxu Lv, et al. Qwen3 technical report. arXiv preprint arXiv:2505.09388, 2025.   
+[44] Antoine Yang, Arsha Nagrani, Ivan Laptev, Josef Sivic, and Cordelia Schmid. Vidchapters-7m: Video chapters at scale. NeurIPS, 36:49428–49444, 2023.   
+[45] Antoine Yang, Arsha Nagrani, Ivan Laptev, Josef Sivic, and Cordelia Schmid. Vidchapters-7m: Video chapters at scale. In NeurIPS, 2023.   
+[46] Antoine Yang, Arsha Nagrani, Paul Hongsuck Seo, Antoine Miech, Jordi Pont-Tuset, Ivan Laptev, Josef Sivic, and Cordelia Schmid. Vid2seq: Large-scale pretraining of a visual language model for dense video captioning. In CVPR, 2023.   
+[47] Zuhao Yang, Yingchen Yu, Yunqing Zhao, Shijian Lu, and Song Bai. Timeexpert: An expert-guided video llm for video temporal grounding. arXiv preprint arXiv:2508.01699, 2025.   
+[48] Xiangyu Zeng, Kunchang Li, Chenting Wang, Xinhao Li, Tianxiang Jiang, Ziang Yan, Songze Li, Yansong Shi, Zhengrong Yue, Yi Wang, et al. Timesuite: Improving mllms for long video understanding via grounded tuning. arXiv preprint arXiv:2410.19702, 2024.   
+[49] Boqiang Zhang, Kehan Li, Zesen Cheng, Zhiqiang Hu, Yuqian Yuan, Guanzheng Chen, Sicong Leng, Yuming Jiang, Hang Zhang, Xin Li, et al. Videollama 3: Frontier multimodal foundation models for image and video understanding. arXiv preprint arXiv:2501.13106, 2025.   
+[50] Haoji Zhang, Xin Gu, Jiawen Li, Chixiang Ma, Sule Bai, Chubin Zhang, Bowen Zhang, Zhichao Zhou, Dongliang He, and Yansong Tang. Thinking with videos: Multimodal tool-augmented reinforcement learning for long video reasoning. arXiv preprint arXiv:2508.04416, 2025.   
+[51] Tianyi Zhang, Varsha Kishore, Felix Wu, Kilian Q Weinberger, and Yoav Artzi. Bertscore: Evaluating text generation with bert. arXiv preprint arXiv:1904.09675, 2019.   
+[52] Xiaoying Zhang, Da Peng, Yipeng Zhang, Zonghao Guo, Chengyue Wu, Chi Chen, Wei Ke, Helen Meng, and Maosong Sun. Towards self-improving systematic cognition for next-generation foundation mllms. arXiv preprint arXiv:2503.12303, 2025.   
+[53] Yipeng Zhang, Yifan Liu, Zonghao Guo, Yidan Zhang, Xuesong Yang, Chi Chen, Jun Song, Bo Zheng, Yuan Yao, Zhiyuan Liu, et al. Llava-uhd v2: an mllm integrating high-resolution feature pyramid via hierarchical window transformer. arXiv preprint arXiv:2412.13871, 2024.   
+[54] Yue Zhao, Yuanjun Xiong, Limin Wang, Zhirong Wu, Xiaoou Tang, and Dahua Lin. Temporal action detection with structured segment networks. In ICCV, pages 2914–2923, 2017.   
+[55] Luowei Zhou, Chenliang Xu, and Jason Corso. Towards automatic learning of procedures from web instructional videos. In AAAI, 2018.   
+[56] Xingyi Zhou, Anurag Arnab, Shyamal Buch, Shen Yan, Austin Myers, Xuehan Xiong, Arsha Nagrani, and Cordelia Schmid. Streaming dense video captioning. In CVPR, pages 18243–18252, 2024.   
+[57] Jinguo Zhu, Weiyun Wang, Zhe Chen, Zhaoyang Liu, Shenglong Ye, Lixin Gu, Hao Tian, Yuchen Duan, Weijie Su, Jie Shao, et al. Internvl3: Exploring advanced training and test-time recipes for open-source multimodal models. arXiv preprint arXiv:2504.10479, 2025.
