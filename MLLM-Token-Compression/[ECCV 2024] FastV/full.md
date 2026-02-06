@@ -1,0 +1,355 @@
+# An Image is Worth 1/2 Tokens After Layer 2: Plug-and-PLay Acceleration for VLLM Inference
+
+Liang Chen1, Haozhe Zhao1, Tianyu Liu2†, Shuang Bai2, Junyang Lin2 Chang Zhou2, Baobao Chang1†
+
+1National Key Laboratory for Multimedia Information Processing, Peking University
+
+2Alibaba Group
+
+leo.liang.chen@outlook.com
+
+# Abstract
+
+In this study, we identify the inefficient attention phenomena in Large Vision-Language Models (LVLMs), notably within prominent models like LLaVA-1.5, QwenVL-Chat, and Video-LLaVA. We find that the attention computation over visual tokens is extremely inefficient in the deep layers of popular LVLMs, suggesting a need for a sparser approach compared to textual data handling. To this end, we introduce FastV, a versatile plug-andplay method designed to optimize computational efficiency by learning adaptive attention patterns in early layers and pruning visual tokens in subsequent ones. Our evaluations demonstrate FastV’s ability to dramatically reduce computational costs (e.g., a $4 5 \%$ reduction in FLOPs for LLaVA-1.5- 13B) without sacrificing performance in a wide range of image and video understanding tasks. The computational efficiency and performance tradeoff of FastV are highly customizable and Pareto-efficient. It can compress the FLOPs of a 13B-parameter model to achieve a lower cost than that of a 7B-parameter model while still maintaining superior performance. We believe FastV has practical value for the deployment of LVLMs in edge devices and commercial models. Code is released at github.com/pkunlpicler/FastV.
+
+![](images/c0c4cb44b879da51a4563f0610cdbd9e629e45f5f0b1d11b12193151e0ed6fb9.jpg)  
+Figure 1: The Efficiency/Performance trade-off curve of FastV. The x-axis stands for the theoretical FLOPs reduction ratio under different FastV configurations. The y-axis stands for performance under different settings, we report the average scores of {Nocaps (Cider), Flickr30k (Cider), A-OKVQA (Acc), MMMU (Acc)}. We can see that FastV can achieve $4 5 \%$ FLOPs reduction with nearly no performance loss for different models.
+
+# 1 Introduction
+
+Large Vision-Language Models (LVLMs) have become a hit in both computer vision and natural language processing studies. We have witnessed tremendous creative research and applications that are built upon powerful LVLMs Liu et al. (2023c; 2024a); Team et al. (2023); Bai et al. (2023). From describing the given picture to navigating the internet Zheng et al. (2024), using smartphones Wang et al. (2024) and making decisions in the real world Driess et al. (2023); Chen et al. (2024), large language models with vision abilities are reshaping how we interact with AI systems, which cannot be achieved solely by language or vision uni-modal models.
+
+Currently, a majority of popular LVLMs rely on sequential visual representation, where images are transformed into hundreds or thousands of tokens when feeding them to LLM along with language prompts OpenAI (2023); Zhu et al. (2023); Liu et al. (2023c); Zhao et al. (2023); Bai et al. (2023). As LVLMs leverage the advanced emergent capabilities inherent in their language components, they concurrently face a surge in computational complexity, correlating with cost increments. This complexity stems from the principle that the proficiency of Large Language Models (LLMs) is predominantly influenced by their scale. Two critical areas remain under-explored in this context: 1) How do language models process and interpret images? and 2) While the efficient training and inference of LLMs have attracted considerable attention, these dimensions within LVLMs are yet to be thoroughly examined and understood.
+
+In this paper, we uncover the fact that current LVLMs actually apply an inefficient way while processing image information. Specifically, the image tokens receive strikingly lower attention scores compared to their textual counterparts within the token-based LVLMs like LLaVA. The degree of imbalance also varies between the shallow and deep layers. In the image captioning tasks, we observed that within the deep layers (after layer 2) of renowned LVLMs such as LLaVA 1.5, image tokens garner an average attention score that amounts to only $0 . 2 1 \%$ of the score attributed to system prompts. In contrast, this figure reaches $5 0 \%$ in the initial two layers. These observations raise questions upon the optimal utilization of visual information within LVLMs.
+
+To address the problem, we assume a plausible explanation is that the high redundancy in visual signals leads to the aggregation of image-related, instruction-specific features onto certain “anchor” tokens through the self-attention mechanism in the shallow layers. Notably, these anchor tokens are not image tokens. In deep layers, attentions are focused on those anchor tokens, leading to significantly reduced attention on the image tokens themselves.
+
+The phenomena inspires to propose FastV, a dynamic image tokens pruning method to reduce the inference cost of LVLMs. Our findings suggest an intriguing possibility: Given that image tokens contribute minimally to output generation in deeper layers due to diminished attention, why not consider removing them at these stages? FastV implements an image token pruning strategy at one specific layer of LLM. Prior to this layer, computations proceed as usual. Beyond this selected layer, image tokens are re-evaluated based on their average received attention scores. Tokens falling below a predefined attention score threshold are then selectively discarded in subsequent layers, streamlining the process by focusing on the most impactful tokens.
+
+Compared to other attention-based methods for accelerating inference, such as sparse attention, FastV’s most notable distinction lies in its direct elimination of tokens. This approach not only bypasses the computational demand of the self-attention module but also the Feed-Forward Network (FFN) module in deeper layers. As a result, FastV achieves a great theoretical reduction in FLOPs while maintaining relatively high performance as shown in Figure 1’s experiment on LLaVA and Qwen-VL-Chat models. Our experiment on LLaVA-1.5-13B model shows that we can filter out $5 0 \%$ image tokens after layer 2 without sacrificing the average performance on a combination of Vision-Language tasks including captioning tasks like Nocaps Agrawal et al. (2019), Flickr30K Plummer et al. (2015), multimple choice tasks like A-OKVQA Schwenk et al. (2022), MMMU Yue et al. (2023), complex embodied reasoning task like PCA-Bench Chen et al. (2024; 2023), tasks requiring detailed OCR ablitily like OCR-VQA Mishra et al. (2019), more challenging video
+
+understanding tasks Jang et al. (2017); Xu et al. (2017a;b) and more fine-grained evaluation like MME Fu et al. (2023), MMVet Yu et al. (2023) and SeedBench Li et al. (2023a). Our latency test experiment on A-OKVQA showed that LLaVA-13B model with FastV could achieve a lower latency than LLaVA-7B model while maintaining superior performance. This result highlights the effectiveness of FastV in balancing the trade-off between speed and accuracy in LVLMs.
+
+Researches Liu et al. (2023c); Li et al. (2023e) underscore the significance of enhancing image resolution for the performance of LVLMs. However, it’s equally important to note that increased resolution comes with its own challenges, including a rise in the computational costs such as longer image token sequence and inference latency. We also conduct experiments on training LVLM in different image feature resolution by setting pooling layer of different strides. Specifically, with an equal number of image tokens, models equipped with FastV can process higher resolution images, leading to better performance than models limited to lower resolution features. This finding highlights the potential to enhance downstream performance by increasing image resolution without incurring additional inference costs.
+
+In summary, the contribution of the work are three-folds:
+
+1. Identify and analyze the inefficient visual attention phenomena in prevailing LVLMs.   
+2. Propose FastV, a plug-and-play method to significantly reduce inference cost for LVLMs without sacrificing performance inspired by our observation.   
+3. Validate the effectiveness of FastV on a wide range of vision-language tasks across different LVLMs with thorough ablations.
+
+# 2 Related Work
+
+Large Vision-Language Model. To benefit from the advancement of LLM and integrate visual information into the LLM, large Vision-Language Models utilize a Visual Prompt Generator Li et al. (2023b) to transform the visual embeddings into prompts that the language model can comprehend Li et al. (2023c); Liu et al. (2023c), resulting in a significant increase in required tokens. Handling higher resolution images inevitably necessitates a quadratic increase in the number of needed tokens. For instance, LLAVA process $3 3 6 x 3 3 6$ images into 576 tokens Liu et al. (2023b) and process images with a greater resolution of 672x672 into 2304 tokens Liu et al. (2024b). Fuyu Bavishi et al. (2023), in a similar vein, translates pixel-level images of $1 0 8 0 { \times } 1 0 8 0$ into 1296 tokens. Understanding and generating multiple images or videos also inherently demands an escalated count of tokens for vision information. Both Video-Poet Kondratyuk et al. (2023) and Unified-IO2 Lu et al. (2023) are compelled to reserve thousands of tokens within the context to facilitate the understanding and generation of multiple images or videos. Large multimodal models like Gemini Team et al. (2023) and LWM Liu et al. (2024a) highlights the significance of long context in developing a robust understanding of the world model and extending the context length to 1M to address the issue of escalating context requirements.
+
+Inference Optimization for LLM. Efficient inference in LLMs is challenged by their autoregressive generation where each token prediction depends on the preceding context. Hence, considering the quadratic complexity of computation’s attention during training, as the context length increases, the generation becomes progressively slower. To tackle these challenges, pioneering studies fall into two categories: methods optimizing memory consumption for attention module like FlashAttention, vLLM and RingAttention Dao et al. (2022); Dao (2023); Kwon et al. (2023); Liu et al. (2023a), which ensure no drastic shifts in the results, and methods like StreamingLLM and FastGen Xiao et al. (2023); Ge et al. (2024) that simplify computations by pruning redundant attention computation. We are interested in the second kind of methods since they are proposed inspired by the distinct attention patterns observed in LLM’s inference. While these methods have boosted the inference efficiency of LLMs, they are designed for text-only language models, and whether their effectiveness can be transferred to LVLMs remain under-explored. There is previous work
+
+![](images/b372e9bfd2cf91e566b70f4d58addc795348f1db179532deb273ba75e1900f5e.jpg)  
+Figure 2: Classic network architecture of LVLM. Image tokens and different types of text tokens are sent to the LLM as input. LLM generates output tokens conditioned on the input tokens and preceding output in an auto-regressive manner.
+
+attempt to handle the long-context in LVLMs efficiently, like LLaMA-VID Li et al. (2023d), which utilizes cross-attention to effectively represent each video frame with two key tokens, the requirement for an additional fine-tuning stage obstructs its broad applicability for different LVLMs.
+
+Token Reduction for VLMs. There have been studies on improving efficiency for Vision-Language Models (VLMs) before the era of large vision-language models. A majority of them focus on token reduction for vision transformers (ViTs). Various methods, such as EViT Liang et al. (2022), SPViT Kong et al. (2022), and Pumer Cao et al. (2023), have been proposed for ViTs. More recently, PYRA Xiong et al. (2024) has enhanced the training and inference of ViTs via a specialized token merging technique. FastV is the first to explore visual token reduction for Large Vision-Language Models (LVLMs), which uses language as an interface for various vision-language tasks. FastV utilizes the signal from LLM to guide the pruning of visual tokens, a strategy not previously explored. We are the first to demonstrate the effectiveness of token reduction in video-QA and various comprehensive LVLM benchmarks. Another significant advantage of FastV over previous methods is its simplicity; it can be applied to any LVLM without requiring model retraining.
+
+# 3 Inefficient Visual Attention in VLLMs
+
+# 3.1 Preliminaries
+
+In this section, we delve into how LVLMs process visual tokens during output generation from the perspective of self-attention module. For an image-question pair $( d , t )$ , the given LVLM $M _ { ☉ }$ , usually in the structure of transformer Vaswani et al. (2017) decoder, predicts the answer $\hat { y } = M ( \bar { d } , t )$ in an auto-regressive manner:
+
+$$
+p (\hat {y}) = \prod_ {i = 1} ^ {N} p _ {M} \left(\hat {y} _ {i} \mid \hat {y} _ {1 \sim i - 1}; d; t\right) \tag {1}
+$$
+
+Multimodal information, encompassing both images and text, is transformed into sequential embeddings prior to being processed by the transformer model. For images, a commonly used approach is to employ a pretrained encoder, such as CLIP-VIT Radford et al. (2021), to extract visual features. These features are then linearized by eliminating the spatial dimension. Additional linear transformations Zhu et al. (2023); Liu et al. (2023b) or crossattention Li et al. (2023c); Bai et al. (2023) modules are utilized to adjust the size of the visual features to match the embedding size of the Large Language Model (LLM) and to achieve semantic alignment. Regarding text, a tokenizer breaks down the natural language into discrete tokens and then performs an embedding lookup to form text embeddings. In the rest of the paper, we refer to ’visual tokens’ and ’text tokens’ not merely as the discrete units of visual and textual data but as the embeddings derived from these units.
+
+![](images/4f1e98b38cb31572f6a7805d5023f0758ae0c58a8368d55a7082cf40bf63412e.jpg)  
+Figure 3: Illustration of inefficient visual attention phenomena. The left part shows the relative position and average number of different type of input tokens, tokens could only attend to preceding tokens in the self-attention module. In average, image tokens take up most of the input tokens $( 6 4 \% )$ . The middle and right part show the average attention allocation $\lambda$ and attention efficiency $\epsilon$ in shallow and deep layers. Image tokens receive far less attention relative to their number in the deep layers.
+
+As illustrated in Figure 2, after preprocessing the image and text token to a unified embedding space, they are fed to the transformer decoder to generate output tokens. The input tokens at each decoding step can be categorized into four distinct types: system prompt (sys), image tokens (img), user instruction (ins), and output tokens (out). The system prompts for LVLMs usually inherit the backbone LLM, used as a general message to control the LLM’s behavior, which is decided during the instruction tuning stage of LLM. Image tokens are the linearized image features transformed by a pretrained vision encoder. User instruction specifies the query question for the given image. Output tokens are generated step by step conditioned on the preceding tokens.
+
+# 3.2 Experiment Settings
+
+To explore how LVLMs process image tokens, we first randomly sample $N$ image-text pairs ${ \bf \dot { D } } = \{ ( d ^ { 1 } , t ^ { 1 } ) , . . . , ( { \hat { d ^ { N } } } , t ^ { N } ) \}$ from a combination of vision langauge tasks including image caption (Flickr30K), embodied reasoning (PCA-Bench), visual question answering (A-OKVQA), multimodal understanding and reasoning (MMMU) and then prompt the LVLM to generate $N$ responses $\hat { Y } = \{ \hat { y } ^ { 1 } , . . . , \hat { y } ^ { N } \}$ .
+
+During the decoding process of one response, we collect each output tokens’ attention score distribution $\alpha$ in different layers and sum up for different type of input tokens. That is, for the i-th token, in the j-th layer, we compute αi,jsys, αi,jimg, $i .$ $j .$ $\bar { \alpha } _ { s y s } ^ { i , j } , \alpha _ { i m g } ^ { i , j } , \alpha _ { i n s } ^ { i , j } , \bar { \alpha } _ { o u t } ^ { i , j }$ to denote the total attention score current token attends to the system prompt, image tokens, user instruction and output tokens. We have:
+
+$$
+\alpha_ {s y s} ^ {i, j} + \alpha_ {i m g} ^ {i, j} + \alpha_ {i n s} ^ {i, j} + \alpha_ {o u t} ^ {i, j} = 1 \tag {2}
+$$
+
+We compute the total attention allocation $\lambda$ to denote the total attention score one type of tokens received in one layer. For example, the total attention of system prompt in layer $j$ is:
+
+$$
+\lambda_ {s y s} ^ {j} = \sum_ {i = 1} ^ {n} \alpha_ {s y s} ^ {i, j} \tag {3}
+$$
+
+![](images/8c7621f1e3e77a2424429151a518b3575b8f1906dd304689c298f9dc7c39876c.jpg)  
+Figure 4: The attention maps during the decoding process of one model response for LLaVA1.5-7B. We can see that in the bottom layer, attention distributes relatively smooth across different type of tokens. In the the deep layers, above from local attention, the attention scores are aggregated to system prompt, instruction and output tokens and attention over image tokens is rather sparse.
+
+where $n$ is the number of tokens in the response. Final attention allocation is averaged over all attention heads in the $N$ image-text pairs we sampled.
+
+Next, we define metric attention efficiency $\epsilon$ to denote the average attention score per type’s token received in one layer during the decoding process of one response. For example, the attention efficiency of image tokens in layer $j$ is:
+
+$$
+\epsilon_ {i m g} ^ {j} = \frac {\sum_ {i = 1} ^ {n} \alpha_ {i m g} ^ {i , j}}{| i m g |} \tag {4}
+$$
+
+where $| i m g |$ is the number of image tokens, $n$ is the number of tokens in the response. Final attention efficiency is averaged over all attention heads in the $N$ image-text pairs we sampled.
+
+In our experiment, $N$ is set to 1000 and we use LLaVA1.5-7B as the LVLM. We follow the same generation configuration as the original paper Liu et al. (2023c).
+
+# 3.3 Results
+
+We have two major findings in the attention pattern statistics regrading attention allocation $\lambda$ and attention efficiency $\epsilon$ for different type of input tokens. We define the first 2 layers as shallow layer and the rest 30 layers as deep layers.
+
+1. Both attention allocation and attention efficiency show different degree of imbalance, which is related to the layer depth. The average attention allocation and efficiency in different layer is shown in Figure 3. In shallow layer the attention allocation is relatively more balanced than in deep layers. In shallow layer, the output tokens tends to attend to the previous output tokens while in deep layers, they tend to attend to the system prompt.   
+2. Image tokens have the lowest attention efficiency in both shallow and deep layers. System prompt is of extremely high attention efficiency in deep layers, which is 472 times that of image tokens, taking up $8 5 \%$ total attention scores.
+
+![](images/1e5a30bf2c371542860902eefc34ac7bf7b3743d4570e011a277e030ce8b4c40.jpg)  
+Figure 5: Illustration of FastV. For image or video input (multiple image frames), they are first transformed to visual tokens with a pretrained image encoder like CLIP-VIT and then processed by the LLM decoder. FastV dynamically prunes $R \%$ image tokens after layer K in the forward process of input tokens. We can tell from the output that FastV does not influence the correctness while reducing significant FLOPs. The correct facts in the outputs are marked green. The first three outputs are completely identical.
+
+# 3.4 Insights
+
+The statistics reveal a surprising trend in the decoding process of LVLMs: despite accounting for the majority of tokens in the input, image tokens receive significantly less attention. Conversely, system prompts, which provides the minimal semantic information, attract the most of the attention scores. To delve deeper into this phenomenon, we analyze the attention maps of the first, middle, and last layers during during the decoding process of a model response as shown in Figure 4. The attention maps for all layers are provided in figure-7 of the supplement material.
+
+From the attention visualization results, we can see that in shallow layer, the attention scores distribute more smoothly across different tokens. While in deep layer, there are vertical strong lines (in the system prompt) that takes up most of attention scores. The existence of vertical strong line shows that there are some input tokens that consistently received high attention during the whole decoding process. This also explains the highly imbalanced attention efficiencies in our statistics: A small portion of anchor tokens aggregate the information from all input tokens and the model much favors to attend to those anchor tokens in deep layers. Our findings also align with the information flow of Large Language Model found in Wang et al. (2023).
+
+# 4 FastV
+
+With insights from the validated phenomena and explanation, we propose FastV as a solution to reduce the inference costs of LVLMs without sacrificing the performance.
+
+# 4.1 Dynamically Prune Vision Tokens
+
+Figure 5 illustrates the general idea of FastV. The key is the image token re-rank and filtering module. It consists of one ranking function $f _ { \phi }$ and two parameters: filtering layer $K$ and filtering ratio $R \%$ . At layer $K$ of the LVLM, the ranking function $f$ takes a sequence of input
+
+tokens and rank them by certain importance criteria $\phi$ . The last $R \%$ tokens after ranking would be pruned out in successive layers. We simply compute the average attention-score one token received from all other tokens as the criteria $\phi _ { a t t n }$ in our experiment. In extreme condition, K could be also set to 0, that image tokens are pruned before sending to the language model, we use random ranking as the criteria $\phi _ { r a n d }$ where image tokens are randomly dropped.
+
+FastV is plug-and-play to different token-based LVLMs for various vision language tasks without the need of training the model. We take video understanding tasks with VideoLLaVA Lin et al. (2023) as example as shown in Figure 5.
+
+# 4.2 Computing Cost Estimation
+
+We consider the computation of multi-head attention (MHA) and feed-forward network (FFN) module in the FLOPs estimation. For one transformer layer, assume $n$ is the token number, $d$ is the hidden state size, $m$ is the intermediate size of FFN, the total FLOPs can be estimated by $4 n d ^ { 2 } + 2 n ^ { 2 } d + 2 n \dot { d } m$ . For the whole model, assume FastV prunes tokens from $n$ to $\hat { n } = \left( 1 - R \% \right) \cdot n$ after layer $K$ and there are T layers at all. The theoretical FLOPs reduction ratio related to image tokens is computed as:
+
+$$
+1 - \frac {K \times \left(4 n d ^ {2} + 2 n ^ {2} d + 2 n d m\right) + (T - K) \times \left(4 \hat {n} d ^ {2} + 2 \hat {n} ^ {2} d + 2 \hat {n} d m\right)}{T \times \left(4 n d ^ {2} + 2 n ^ {2} d + 2 n d m\right)} \tag {5}
+$$
+
+We plot a 3D graph to show how the FLOPs reduction ratio changes with FastV’s parameter $K$ and $R$ in Figure 6.
+
+![](images/077b843e476a064e4a3079a274f9eb4ab004a70247a7b8074d002ce36c649d75.jpg)  
+Figure 6: The heat map of theoretical FLOPs reduction ratio. The color in the figure represents the reduction ratio in different $K$ and R in FastV.
+
+# 4.3 Comparison: Training With Less Visual Tokens
+
+FastV achieves computation reduction through eliminating redundant visual tokens during inference stage. An alternative method to reduce visual tokens is directly training with less visual tokens. This could be simply done by conducting pooling on the output of visual encoder during LVLM’s training process. We compare FastV and this method in our ablation studies (sec. 5.4).
+
+Table 1: Performance/Computation Balance of FastV under different configurations (K for filtering layer, R for filtering ratio). Highest score for each model is in red while the second highest is in blue.   
+
+<table><tr><td rowspan="2">Model</td><td rowspan="2">K</td><td colspan="2">FastV Settings</td><td rowspan="2">Flops Ratio</td><td>Nocaps</td><td>Flickr30k</td><td>A-OKVQA</td><td>MMMU</td><td>Avg</td></tr><tr><td>R</td><td>Flops(B)</td><td>CIDEr</td><td>CIDEr</td><td>Accuracy</td><td>Accuracy</td><td></td></tr><tr><td rowspan="13">LLaVA-1.5-7B</td><td colspan="2">Baseline</td><td>99.3</td><td>100%</td><td>99.8</td><td>67.9</td><td>76.7</td><td>34.8</td><td>69.8</td></tr><tr><td>2</td><td>90%</td><td>19.9</td><td>20%</td><td>72.1</td><td>43.7</td><td>70.1</td><td>35</td><td>55.2</td></tr><tr><td>2</td><td>75%</td><td>32.8</td><td>33%</td><td>94.6</td><td>63.6</td><td>75.5</td><td>34.8</td><td>67.1</td></tr><tr><td>2</td><td>50%</td><td>54.6</td><td>55%</td><td>99.7</td><td>67.5</td><td>77</td><td>34.4</td><td>69.7</td></tr><tr><td>3</td><td>90%</td><td>22.8</td><td>23%</td><td>87.2</td><td>55.8</td><td>71.9</td><td>34.8</td><td>62.4</td></tr><tr><td>3</td><td>75%</td><td>34.8</td><td>35%</td><td>98</td><td>65</td><td>74.7</td><td>34.1</td><td>68.0</td></tr><tr><td>3</td><td>50%</td><td>56.6</td><td>57%</td><td>99.7</td><td>68.3</td><td>76.7</td><td>34.3</td><td>69.8</td></tr><tr><td>5</td><td>90%</td><td>27.8</td><td>28%</td><td>88.6</td><td>59.3</td><td>70.6</td><td>33.9</td><td>63.1</td></tr><tr><td>5</td><td>75%</td><td>39.7</td><td>40%</td><td>98.5</td><td>66.3</td><td>74.8</td><td>34.3</td><td>68.5</td></tr><tr><td>5</td><td>50%</td><td>59.6</td><td>60%</td><td>99.2</td><td>67.9</td><td>76.8</td><td>34.3</td><td>69.6</td></tr><tr><td>0</td><td>90%</td><td>18.9</td><td>19%</td><td>7</td><td>53.2</td><td>66.8</td><td>34.7</td><td>40.4</td></tr><tr><td>0</td><td>75%</td><td>28.8</td><td>29%</td><td>27.2</td><td>61.4</td><td>72.8</td><td>35.1</td><td>49.1</td></tr><tr><td>0</td><td>50%</td><td>51.6</td><td>52%</td><td>100.9</td><td>65.5</td><td>75.3</td><td>34.3</td><td>69.0</td></tr><tr><td rowspan="10">LLaVA-1.5-13B</td><td colspan="2">Baseline</td><td>154.6</td><td>100%</td><td>102.8</td><td>73</td><td>82</td><td>36.4</td><td>73.6</td></tr><tr><td>2</td><td>90%</td><td>29.7</td><td>19%</td><td>87.9</td><td>62</td><td>75</td><td>36.3</td><td>65.3</td></tr><tr><td>2</td><td>75%</td><td>50.2</td><td>32%</td><td>100.5</td><td>72.5</td><td>80.9</td><td>38.1</td><td>73.0</td></tr><tr><td>2</td><td>50%</td><td>84.6</td><td>55%</td><td>103.1</td><td>73.4</td><td>81</td><td>36.7</td><td>73.6</td></tr><tr><td>3</td><td>90%</td><td>33.0</td><td>21%</td><td>90.2</td><td>63.6</td><td>75.2</td><td>34.9</td><td>66.0</td></tr><tr><td>3</td><td>75%</td><td>52.9</td><td>34%</td><td>100.9</td><td>72.1</td><td>79.5</td><td>36.4</td><td>72.2</td></tr><tr><td>3</td><td>50%</td><td>86.4</td><td>56%</td><td>102.7</td><td>73.4</td><td>81.3</td><td>36.4</td><td>73.5</td></tr><tr><td>5</td><td>90%</td><td>39.6</td><td>26%</td><td>93.5</td><td>67.4</td><td>75.8</td><td>35.4</td><td>68.0</td></tr><tr><td>5</td><td>75%</td><td>58.4</td><td>38%</td><td>101.4</td><td>72.5</td><td>80</td><td>36.2</td><td>72.5</td></tr><tr><td>5</td><td>50%</td><td>90.1</td><td>58%</td><td>102.5</td><td>73.5</td><td>81.2</td><td>36.6</td><td>73.5</td></tr><tr><td rowspan="4">QwenVL-Chat-7B</td><td colspan="2">Baseline</td><td>71.9</td><td>100%</td><td>94.9</td><td>72.5</td><td>75.6</td><td>35.8</td><td>69.7</td></tr><tr><td>2</td><td>90%</td><td>15.8</td><td>22%</td><td>81.9</td><td>61.5</td><td>68.5</td><td>35.3</td><td>61.7</td></tr><tr><td>2</td><td>75%</td><td>24.4</td><td>34%</td><td>90.5</td><td>67.0</td><td>75.1</td><td>35.3</td><td>67.0</td></tr><tr><td>2</td><td>50%</td><td>39.5</td><td>55%</td><td>94.4</td><td>71.4</td><td>75.3</td><td>35.6</td><td>69.2</td></tr></table>
+
+Table 2: Experiments with more models and benchmarks.   
+
+<table><tr><td>Methods</td><td>AI2Diagram ↑</td><td>SciQA-IMG ↑</td><td>SeedBench ↑</td><td>MM Vet ↑</td><td>MME ↑</td></tr><tr><td>LLaVA-1.5-13B</td><td>59.45</td><td>72.99</td><td>68.23</td><td>30.55</td><td>1827.75</td></tr><tr><td>+ FastV (K=2,R=50%)</td><td>58.96</td><td>73.23</td><td>68.03</td><td>31.25</td><td>1849.68</td></tr><tr><td>InstructBLIP-Vicuna-13B</td><td>45.46</td><td>61.15</td><td>52.11</td><td>24.19</td><td>1143.5</td></tr><tr><td>+ FastV (K=2,R=50%)</td><td>43.12</td><td>61.23</td><td>50.41</td><td>22.15</td><td>1129.8</td></tr><tr><td>+ FastV (K=5,R=50%)</td><td>44.39</td><td>62.33</td><td>51.69</td><td>23.51</td><td>1140.5</td></tr></table>
+
+Table 3: Fine-grained results on MME benchmark.   
+
+<table><tr><td>Methods</td><td>Exist.</td><td>Count</td><td>Position</td><td>Color</td><td>OCR</td><td>Poster</td><td>Celeb.</td><td>Scene</td><td>Landmark</td><td>Art.</td><td>Comm.</td><td>Num.</td><td>Text.</td><td>Code.</td><td>Total</td></tr><tr><td>LLaVA-1.5-13B</td><td>185.00</td><td>155.00</td><td>133.33</td><td>170.00</td><td>125.00</td><td>160.72</td><td>152.54</td><td>161.25</td><td>170.50</td><td>118.50</td><td>128.41</td><td>42.50</td><td>77.50</td><td>47.50</td><td>1827.75</td></tr><tr><td>+FastV (K=2,R=50%)</td><td>185.00</td><td>155.00</td><td>133.33</td><td>175.00</td><td>132.50</td><td>159.77</td><td>153.15</td><td>161.75</td><td>168.25</td><td>117.00</td><td>126.43</td><td>42.50</td><td>82.50</td><td>57.50</td><td>1849.68</td></tr></table>
+
+# 5 Experiment
+
+# 5.1 Evaluation Tasks
+
+We conduct a wide range of evaluation including image captioning, VQA, multimodal reasoning, video QA and fine-grained benchmarks like MME Fu et al. (2023) to examine the influence of FastV on the performance of LVLMs. We use greedy search for all experiments and provide details for each task in section A in the supplement material.
+
+# 5.2 Model Settings
+
+We test FastV with various open source models. For image understanding tasks, we conduct experiments on LLaVA1.5-7B, 13B Liu et al. (2023b), and Qwen-VL Bai et al. (2023). When it comes to video understanding tasks, our baseline model is VideoLLaVA Lin et al. (2023). We adopt the settings as reported in their paper for the baseline models.
+
+Table 4: Real inference budget comparison between FastV and vanilla decoding. To get rid of the influence of output sequence length on decoding time, we report the result on A-OKVQA dataset where the model only needs to output an option. With FastV, an 13B model could inference as fast as a 7B model while maintaining its superior performance. The latency experiments are conducted on single A40 GPU.   
+
+<table><tr><td>Model</td><td>Total-Time</td><td>GPU-Memory</td><td>Score</td><td>Latency/Example</td></tr><tr><td>LLaVA-1.5-7B</td><td>6:34</td><td>19G</td><td>76.7</td><td>0.344s</td></tr><tr><td>w/ FastV (K=0, R=50%)</td><td>4:23</td><td>16G</td><td>75.3</td><td>0.230s</td></tr><tr><td>LLaVA-1.5-13B</td><td>10:17</td><td>38G</td><td>82.0</td><td>0.539s</td></tr><tr><td>w/ FastV (K=0, R=50%)</td><td>6:30</td><td>30G</td><td>80.5</td><td>0.341s</td></tr></table>
+
+Table 5: Finegrained Results on PCA-Bench and OCR-VQA. P, C, and A each denotes Perception, Cognition and Action score. G-PCA denotes Genuine PCA score where the model must make correct perception, cognition and action for one test example to gain 1 score. The scores are averaged among all three domains including Auto-Driving, Domestic Robot and Open-World Game.   
+
+<table><tr><td rowspan="2">Model</td><td rowspan="2">FLOPs</td><td colspan="3">PCA-Bench</td><td colspan="2">Open Test</td><td colspan="3">PCA-Bench</td><td colspan="2">Closed Test</td><td rowspan="2">OCRVQA Rouge-L</td></tr><tr><td>P</td><td>C</td><td>A</td><td colspan="2">G-PCA</td><td>P</td><td>C</td><td>A</td><td colspan="2">G-PCA</td></tr><tr><td>LLaVA-1.5-7B</td><td>99.3B</td><td>0.493</td><td>0.353</td><td>0.433</td><td colspan="2">0.263</td><td>0.513</td><td>0.387</td><td>0.450</td><td colspan="2">0.277</td><td>0.51</td></tr><tr><td>LLaVA-1.5-13B</td><td>154.6B</td><td>0.530</td><td>0.460</td><td>0.503</td><td colspan="2">0.333</td><td>0.563</td><td>0.550</td><td>0.573</td><td colspan="2">0.353</td><td>0.55</td></tr><tr><td>w/ FastV (K=0, R=50%)</td><td>78.9B</td><td>0.490</td><td>0.395</td><td>0.443</td><td colspan="2">0.292</td><td>0.519</td><td>0.450</td><td>0.512</td><td colspan="2">0.283</td><td>0.49</td></tr><tr><td>w/ FastV (K=2, R=50%)</td><td>84.6B</td><td>0.533</td><td>0.423</td><td>0.513</td><td colspan="2">0.340</td><td>0.581</td><td>0.545</td><td>0.580</td><td colspan="2">0.368</td><td>0.55</td></tr><tr><td>w/ FastV (K=2, R=75%)</td><td>50.2B</td><td>0.513</td><td>0.417</td><td>0.483</td><td colspan="2">0.320</td><td>0.523</td><td>0.510</td><td>0.533</td><td colspan="2">0.323</td><td>0.54</td></tr></table>
+
+# 5.3 Main Results
+
+Image Understanding. The performance on tasks under different FastV settings are shown in Table 1 (Nocaps, Flickr30k, A-OKVQA, MMMU) and Table 5 (PCA-Bench, OCR-VQA). The result of latency test is shown in Table 4.
+
+In Table 1, we present the performance trend with FLOPs ratio ranging from $1 9 \%$ to $1 0 0 \%$ by FastV, for different type and size of models. We also plot the relation between FLOPs Reduction ratio (1-FLOPs Ratio) and average performance in Figure 1. The results indicate that FastV $\mathrm { K } { = } 2 .$ , $\mathrm { R } { = } 5 0 \%$ ) could achieve about $4 5 \%$ FLOPs reduction for different LVLMs without sacrificing the performance. The FLOPs-Performance trade-off is is also highly adjustable by lowering K and increasing R if we want to pursue an ultimate speed up. As shown in the latency test (Table 4), an 13B model with FastV could inference as fast as a 7B model with superior performance for A-OKVQA.
+
+In PCA-Bench and OCR-VQA, (Table 5), which runs finegrained analysis on perception, cognition, action and OCR abilities, we find that FastV $\mathrm { K } { = } 2 .$ , $\mathrm { R } { = } 5 0 \%$ ) could maintain the sub-scores while significantly decreasing the FLOPs.
+
+Video Understanding. The results of FastV on different video question answering tasks in shown in table 6 (TGIF, MSVD, MSRVTT). To our surprise, we find FastV could generally improves the Video-QA tasks performance while saving $4 0 \% +$ computations especially for the TGIF task. We think the main reason is that the redundancy information problem is more severe for video understanding as multiple images from the video are transformed to tokens when sending to the LLM. For example, an image costs 576 tokens in LLaVA1.5 model, while a video costs 2048 tokens in Video-LLaVA. As shown in the case from Figure 5, setting suitable FastV parameters could lead to much FLOPs reduction for Video-LLaVA while the outputs are nearly identical.
+
+Fine-grained Benchmarks and More Models We conduct additional experiments with InstructBLIP and also with more fine-grained LVLM benchmarks such as SciQA-IMGLu et al. (2022), SeedBench Li et al. (2023a), MMVet Yu et al. (2023), and MME Fu et al. (2023), together with benchmarks requiring more visual processing such as AI2Diagram. The results and fine-grained scores of MME are shown in Table 2 and Table 3. FastV works well
+
+Table 6: GPT-Evaluation Results on Video Question Answering Tasks.   
+
+<table><tr><td rowspan="2">Model</td><td colspan="2">TGIF</td><td colspan="2">MSVD</td><td colspan="2">MSRVTT</td><td colspan="2">Avg</td></tr><tr><td>Acc</td><td>Score</td><td>Acc</td><td>Score</td><td>Acc</td><td>Score</td><td>Acc</td><td>Score</td></tr><tr><td>Video-LLaVA (Flops=100%)</td><td>0.18</td><td>2.5</td><td>0.70</td><td>3.9</td><td>0.56</td><td>3.5</td><td>0.48</td><td>3.3</td></tr><tr><td>w/ FastV (K=2, R=50%, Flops=52.3%)</td><td>0.21</td><td>2.6</td><td>0.71</td><td>3.9</td><td>0.55</td><td>3.5</td><td>0.49</td><td>3.3</td></tr><tr><td>w/ FastV (K=5, R=50%, Flops=57.1%)</td><td>0.20</td><td>2.6</td><td>0.71</td><td>4.0</td><td>0.57</td><td>3.5</td><td>0.49</td><td>3.4</td></tr></table>
+
+Table 7: Ablation studies results. Scores labelled as “Failed” denotes the model could not follow instructions to generates valid results for evaluation.   
+
+<table><tr><td>Model</td><td>Nocaps</td><td>Flickr30k</td><td>A-OKVQA</td><td>MMMU</td></tr><tr><td>LLaVA1.5-7B (Retrained)</td><td>100.3</td><td>70.2</td><td>78.5</td><td>34.5</td></tr><tr><td>(a) w/ Train with 50% image tokens</td><td>98.5</td><td>68.5</td><td>76.8</td><td>33.5</td></tr><tr><td>(b) w/ FastV (K=2, R=50%)</td><td>100.1</td><td>70</td><td>78.4</td><td>34.6</td></tr><tr><td>(c) w/ FastV (K=2, R=50%, Random)</td><td>99.5</td><td>68.3</td><td>78.2</td><td>34.2</td></tr><tr><td>(d) w/ FastV (system prompt)</td><td>89.2</td><td>64.3</td><td>69.2</td><td>33.8</td></tr><tr><td>(e) w/ FastV (prune first half system prompt)</td><td>17.5</td><td>27.8</td><td>Failed</td><td>Failed</td></tr><tr><td>(f) w/ FastV (instruction)</td><td>77.3</td><td>50.1</td><td>56.5</td><td>29.5</td></tr><tr><td>(g) w/ StreamingLLM Xiao et al. (2023)</td><td>13.2</td><td>21.4</td><td>Failed</td><td>Failed</td></tr></table>
+
+on different LVLM benchmarks with competitive performance. We find that InstructBLIP shows slightly more performance degradation than LLaVA with same FastV config. The gap soon closes when we just set K to 5. We think it’s because Q-Former initially reduces image tokens, resulting in direct information loss. Consequently, it requires adjusting the FastV parameters to avoid too much information loss.
+
+# 5.4 Ablation Studies
+
+Balance between Cost and Performance. We conduct an ablation experiment on how the parameters (K and R) influence the acceleration and downstream task’s performance. We select OCR-VQA as the task, which necessitates a through understanding of the image. The result is shown in Figure 7. When K is small, lowering R would improve the performance with a smaller FLOPs reduction ratio. In contrast, when K is large, adjusting R has minimal impact on the overall performance. This observation further proves that in deep layers, there is high redundancy in image tokens.
+
+![](images/75c2c1719c89c6e02209a5c9facff85249be02377963a504a6b1caa08c499178.jpg)
+
+![](images/644959a66154395aaa07b031e17f76e1a5396a13ee718b3ea2099fdf333eca2c.jpg)  
+Figure 7: Ablation study on filtering layer $K$ and filtering ratio R in FastV. Experiments are conducted with LLaVA1.5-13B on OCR-VQA task. When K is small, lowering R would improve the performance with a smaller FLOPs reduction ratio. In contrast, when K is large, changing R has minimal impact on the overall performance.
+
+Training with Less Tokens. FastV reduces computational requirements (FLOPs) by pruning tokens during the inference stage. An alternative approach for token reduction involves training the LVLM at a lower resolution. To facilitate a fair comparison, we retrained two LLaVA1.5-7B models, adhering to the original pretraining and supervised finetuning proto-
+
+cols. The sole modification in the second model’s training process was the incorporation of an average pooling layer (with a stride of 2) following the Clip encoder, leading to a $5 0 \%$ reduction in image tokens during training. A comparison between lines (a) and (b) in Table 7 reveals that reducing the input resolution directly during training results in diminished performance. Conversely, FastV manages to decrease the number of image tokens without compromising performance, showcasing its efficiency in balancing computational savings with model efficacy.
+
+Pruning Token Strategy. FastV strategically reduces the number of image tokens during the inference phase of LVLMs, motivated by our observation that image tokens exhibit the lowest attention efficiency relative to other types of input tokens. In experiments detailed in lines (d) and (f) of the study, we specifically pruned tokens that were not related to images, such as system prompts and instruction tokens. This selective pruning resulted in significant performance declines, even when only a minimal number of non-image tokens were removed. We also compare randomly drop visual tokens instead of dropping by attention rank, as shown in line (c). It resulted in declined results compared with origin FastV (b). These findings underscore the distinct roles that visual and textual tokens play within LVLMs. It highlights FastV’s effectiveness in precisely targeting image tokens for reduction, thereby optimizing performance without compromising the model’s overall functionality.
+
+In our previous observation about attention efficiency, we find out that the system prompt takes up of most attention even if they carry the least semantic information in the context. We conduct another experiment by directly prune the first half tokens of the system prompt. Comparing line (d) and (e), we can find that the head tokens in the system prompt have dominant effect on the model performance. Our findings also align with StreamingLLM Xiao et al. (2023) where they find that the first 4 tokens in LLM play the most important role during inference. However, direcly applying the same sparse attention pattern as StreamingLLM would lead to a substantial degradation in LVLM’s performance as shown in line (g) of Table 7. This suggests a fundamental difference in how image tokens, as opposed to text tokens, contribute to the information processing within LLMs.
+
+# 6 Conclusion
+
+In this paper, we propose FastV, a plug-and-play inference cost optimization method for Large Vision-Language Models. Our insight for FastV arises from our observation that the attention computation over visual tokens is of extreme inefficiency in the deep layers of popular LVLMs though they take up a large portion of input tokens. FastV prunes out the unnecessary visual tokens according to the attention score ranking, which results in significant inference cost reduction without sacrificing performance.
+
+# References
+
+Harsh Agrawal, Peter Anderson, Karan Desai, Yufei Wang, Xinlei Chen, Rishabh Jain, Mark Johnson, Dhruv Batra, Devi Parikh, and Stefan Lee. nocaps: novel object captioning at scale. In 2019 IEEE/CVF International Conference on Computer Vision, ICCV 2019, Seoul, Korea (South), October 27 - November 2, 2019, pp. 8947–8956, 2019.   
+Jinze Bai, Shuai Bai, Shusheng Yang, Shijie Wang, Sinan Tan, Peng Wang, Junyang Lin, Chang Zhou, and Jingren Zhou. Qwen-vl: A frontier large vision-language model with versatile abilities. ArXiv preprint, abs/2308.12966, 2023.   
+Rohan Bavishi, Erich Elsen, Curtis Hawthorne, Maxwell Nye, Augustus Odena, Arushi Somani, and Sagnak Ta ˘ s¸ırlar. Introducing our multimodal models, 2023. URL https: //www.adept.ai/blog/fuyu-8b.   
+Qingqing Cao, Bhargavi Paranjape, and Hannaneh Hajishirzi. Pumer: Pruning and merging tokens for efficient vision language models, 2023. URL https://arxiv.org/abs/2305. 17530.   
+Liang Chen, Yichi Zhang, Shuhuai Ren, Haozhe Zhao, Zefan Cai, Yuchi Wang, Peiyi Wang, Tianyu Liu, and Baobao Chang. Towards end-to-end embodied decision making via multi-modal large language model: Explorations with gpt4-vision and beyond. ArXiv, 2023.   
+Liang Chen, Yichi Zhang, Shuhuai Ren, Haozhe Zhao, Zefan Cai, Yuchi Wang, Peiyi Wang, Xiangdi Meng, Tianyu Liu, and Baobao Chang. Pca-bench: Evaluating multimodal large language models in perception-cognition-action chain. 2024.   
+Tri Dao. Flashattention-2: Faster attention with better parallelism and work partitioning, 2023.   
+Tri Dao, Daniel Y. Fu, Stefano Ermon, Atri Rudra, and Christopher Re. Flashattention: Fast ´ and memory-efficient exact attention with io-awareness, 2022.   
+Danny Driess, Fei Xia, Mehdi S. M. Sajjadi, Corey Lynch, Aakanksha Chowdhery, Brian Ichter, Ayzaan Wahid, Jonathan Tompson, Quan Vuong, Tianhe Yu, Wenlong Huang, Yevgen Chebotar, Pierre Sermanet, Daniel Duckworth, Sergey Levine, Vincent Vanhoucke, Karol Hausman, Marc Toussaint, Klaus Greff, Andy Zeng, Igor Mordatch, and Pete Florence. Palm-e: An embodied multimodal language model. volume abs/2303.03378, 2023.   
+Chaoyou Fu, Peixian Chen, Yunhang Shen, Yulei Qin, Mengdan Zhang, Xu Lin, Zhenyu Qiu, Wei Lin, Jinrui Yang, Xiawu Zheng, et al. Mme: A comprehensive evaluation benchmark for multimodal large language models. arXiv preprint arXiv:2306.13394, 2023.   
+Suyu Ge, Yunan Zhang, Liyuan Liu, Minjia Zhang, Jiawei Han, and Jianfeng Gao. Model tells you what to discard: Adaptive kv cache compression for llms, 2024.   
+Yunseok Jang, Yale Song, Youngjae Yu, Youngjin Kim, and Gunhee Kim. Tgif-qa: Toward spatio-temporal reasoning in visual question answering, 2017.   
+Dan Kondratyuk, Lijun Yu, Xiuye Gu, Jose Lezama, Jonathan Huang, Rachel Hornung, ´ Hartwig Adam, Hassan Akbari, Yair Alon, Vighnesh Birodkar, Yong Cheng, Ming-Chang Chiu, Josh Dillon, Irfan Essa, Agrim Gupta, Meera Hahn, Anja Hauth, David Hendon, Alonso Martinez, David Minnen, David Ross, Grant Schindler, Mikhail Sirotenko, Kihyuk Sohn, Krishna Somandepalli, Huisheng Wang, Jimmy Yan, Ming-Hsuan Yang, Xuan Yang, Bryan Seybold, and Lu Jiang. Videopoet: A large language model for zero-shot video generation, 2023.   
+Zhenglun Kong, Peiyan Dong, Xiaolong Ma, Xin Meng, Mengshu Sun, Wei Niu, Xuan Shen, Geng Yuan, Bin Ren, Minghai Qin, Hao Tang, and Yanzhi Wang. Spvit: Enabling faster vision transformers via soft token pruning, 2022. URL https://arxiv.org/abs/2112. 13890.
+
+Woosuk Kwon, Zhuohan Li, Siyuan Zhuang, Ying Sheng, Lianmin Zheng, Cody Hao Yu, Joseph E. Gonzalez, Hao Zhang, and Ion Stoica. Efficient memory management for large language model serving with pagedattention, 2023.   
+Bohao Li, Rui Wang, Guangzhi Wang, Yuying Ge, Yixiao Ge, and Ying Shan. Seed-bench: Benchmarking multimodal llms with generative comprehension, 2023a. URL https: //arxiv.org/abs/2307.16125.   
+Juncheng Li, Kaihang Pan, Zhiqi Ge, Minghe Gao, Hanwang Zhang, Wei Ji, Wenqiao Zhang, Tat-Seng Chua, Siliang Tang, and Yueting Zhuang. Empowering vision-language models to follow interleaved vision-language instructions. arXiv preprint arXiv:2308.04152, 2023b.   
+Junnan Li, Dongxu Li, Silvio Savarese, and Steven Hoi. Blip-2: Bootstrapping languageimage pre-training with frozen image encoders and large language models. ArXiv preprint, abs/2301.12597, 2023c.   
+Yanwei Li, Chengyao Wang, and Jiaya Jia. Llama-vid: An image is worth 2 tokens in large language models, 2023d.   
+Zhang Li, Biao Yang, Qiang Liu, Zhiyin Ma, Shuo Zhang, Jingxu Yang, Yabo Sun, Yuliang Liu, and Xiang Bai. Monkey: Image resolution and text label are important things for large multi-modal models. arXiv preprint arXiv:2311.06607, 2023e.   
+Youwei Liang, Chongjian Ge, Zhan Tong, Yibing Song, Jue Wang, and Pengtao Xie. Not all patches are what you need: Expediting vision transformers via token reorganizations, 2022. URL https://arxiv.org/abs/2202.07800.   
+Bin Lin, Bin Zhu, Yang Ye, Munan Ning, Peng Jin, and Li Yuan. Video-llava: Learning united visual representation by alignment before projection. arXiv preprint arXiv:2311.10122, 2023.   
+Hao Liu, Matei Zaharia, and Pieter Abbeel. Ring attention with blockwise transformers for near-infinite context, 2023a.   
+Hao Liu, Wilson Yan, Matei Zaharia, and Pieter Abbeel. World model on million-length video and language with ringattention, 2024a.   
+Haotian Liu, Chunyuan Li, Yuheng Li, and Yong Jae Lee. Improved baselines with visual instruction tuning, 2023b.   
+Haotian Liu, Chunyuan Li, Qingyang Wu, and Yong Jae Lee. Visual instruction tuning. ArXiv preprint, abs/2304.08485, 2023c.   
+Haotian Liu, Chunyuan Li, Yuheng Li, Bo Li, Yuanhan Zhang, Sheng Shen, and Yong Jae Lee. Llava-next: Improved reasoning, ocr, and world knowledge, January 2024b. URL https://llava-vl.github.io/blog/2024-01-30-llava-next/.   
+Jiasen Lu, Christopher Clark, Sangho Lee, Zichen Zhang, Savya Khosla, Ryan Marten, Derek Hoiem, and Aniruddha Kembhavi. Unified-io 2: Scaling autoregressive multimodal models with vision, language, audio, and action, 2023.   
+Pan Lu, Swaroop Mishra, Tanglin Xia, Liang Qiu, Kai-Wei Chang, Song-Chun Zhu, Oyvind Tafjord, Peter Clark, and Ashwin Kalyan. Learn to explain: Multimodal reasoning via thought chains for science question answering. In S. Koyejo, S. Mohamed, A. Agarwal, D. Belgrave, K. Cho, and A. Oh (eds.), Advances in Neural Information Processing Systems, volume 35, pp. 2507–2521. Curran Associates, Inc., 2022. URL https://proceedings.neurips.cc/paper_files/paper/2022/file/ 11332b6b6cf4485b84afadb1352d3a9a-Paper-Conference.pdf.   
+Muhammad Maaz, Hanoona Rasheed, Salman Khan, and Fahad Shahbaz Khan. Videochatgpt: Towards detailed video understanding via large vision and language models. arXiv:2306.05424, 2023.
+
+Anand Mishra, Shashank Shekhar, Ajeet Kumar Singh, and Anirban Chakraborty. Ocr-vqa: Visual question answering by reading text in images. In 2019 international conference on document analysis and recognition (ICDAR), pp. 947–952. IEEE, 2019.   
+OpenAI. Gpt-4v(ision) system card. 2023.   
+Bryan A Plummer, Liwei Wang, Chris M Cervantes, Juan C Caicedo, Julia Hockenmaier, and Svetlana Lazebnik. Flickr30k entities: Collecting region-to-phrase correspondences for richer image-to-sentence models. In Proceedings of the IEEE international conference on computer vision, pp. 2641–2649, 2015.   
+Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sastry, Amanda Askell, Pamela Mishkin, Jack Clark, Gretchen Krueger, and Ilya Sutskever. Learning transferable visual models from natural language supervision. In Marina Meila and Tong Zhang (eds.), Proceedings of the 38th International Conference on Machine Learning, ICML 2021, 18-24 July 2021, Virtual Event, volume 139 of Proceedings of Machine Learning Research, pp. 8748–8763, 2021.   
+Dustin Schwenk, Apoorv Khandelwal, Christopher Clark, Kenneth Marino, and Roozbeh Mottaghi. A-okvqa: A benchmark for visual question answering using world knowledge. In Computer Vision–ECCV 2022: 17th European Conference, Tel Aviv, Israel, October 23–27, 2022, Proceedings, Part VIII, pp. 146–162. Springer, 2022.   
+Gemini Team, Rohan Anil, Sebastian Borgeaud, Yonghui Wu, Jean-Baptiste Alayrac, Jiahui Yu, Radu Soricut, Johan Schalkwyk, Andrew M Dai, Anja Hauth, et al. Gemini: a family of highly capable multimodal models. arXiv preprint arXiv:2312.11805, 2023.   
+Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N. Gomez, Lukasz Kaiser, and Illia Polosukhin. Attention is all you need. In Isabelle Guyon, Ulrike von Luxburg, Samy Bengio, Hanna M. Wallach, Rob Fergus, S. V. N. Vishwanathan, and Roman Garnett (eds.), Advances in Neural Information Processing Systems 30: Annual Conference on Neural Information Processing Systems 2017, December 4-9, 2017, Long Beach, CA, USA, pp. 5998–6008, 2017.   
+Ramakrishna Vedantam, C. Lawrence Zitnick, and Devi Parikh. Cider: Consensus-based image description evaluation, 2015.   
+Junyang Wang, Haiyang Xu, Jiabo Ye, Ming Yan, Weizhou Shen, Ji Zhang, Fei Huang, and Jitao Sang. Mobile-agent: Autonomous multi-modal mobile device agent with visual perception, 2024.   
+Lean Wang, Lei Li, Damai Dai, Deli Chen, Hao Zhou, Fandong Meng, Jie Zhou, and Xu Sun. Label words are anchors: An information flow perspective for understanding in-context learning. In Houda Bouamor, Juan Pino, and Kalika Bali (eds.), Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing, pp. 9840–9855, Singapore, December 2023. Association for Computational Linguistics. doi: 10.18653/v1/2023. emnlp-main.609. URL https://aclanthology.org/2023.emnlp-main.609.   
+Guangxuan Xiao, Yuandong Tian, Beidi Chen, Song Han, and Mike Lewis. Efficient streaming language models with attention sinks. arXiv, 2023.   
+Yizhe Xiong, Hui Chen, Tianxiang Hao, Zijia Lin, Jungong Han, Yuesong Zhang, Guoxin Wang, Yongjun Bao, and Guiguang Ding. Pyra: Parallel yielding re-activation for traininginference efficient task adaptation, 2024. URL https://arxiv.org/abs/2403.09192.   
+Dejing Xu, Zhou Zhao, Jun Xiao, Fei Wu, Hanwang Zhang, Xiangnan He, and Yueting Zhuang. Video question answering via gradually refined attention over appearance and motion. In Proceedings of the 2017 ACM on Multimedia Conference, MM 2017, Mountain View, CA, USA, October 23-27, 2017, pp. 1645–1653, 2017a.   
+Dejing Xu, Zhou Zhao, Jun Xiao, Fei Wu, Hanwang Zhang, Xiangnan He, and Yueting Zhuang. Video question answering via gradually refined attention over appearance and motion. In ACM Multimedia, 2017b.
+
+Weihao Yu, Zhengyuan Yang, Linjie Li, Jianfeng Wang, Kevin Lin, Zicheng Liu, Xinchao Wang, and Lijuan Wang. Mm-vet: Evaluating large multimodal models for integrated capabilities, 2023. URL https://arxiv.org/abs/2308.02490.   
+Xiang Yue, Yuansheng Ni, Kai Zhang, Tianyu Zheng, Ruoqi Liu, Ge Zhang, Samuel Stevens, Dongfu Jiang, Weiming Ren, Yuxuan Sun, Cong Wei, Botao Yu, Ruibin Yuan, Renliang Sun, Ming Yin, Boyuan Zheng, Zhenzhu Yang, Yibo Liu, Wenhao Huang, Huan Sun, Yu Su, and Wenhu Chen. Mmmu: A massive multi-discipline multimodal understanding and reasoning benchmark for expert agi. arXiv preprint arXiv:2311.16502, 2023.   
+Haozhe Zhao, Zefan Cai, Shuzheng Si, Xiaojian Ma, Kaikai An, Liang Chen, Zixuan Liu, Sheng Wang, Wenjuan Han, and Baobao Chang. Mmicl: Empowering vision-language model with multi-modal in-context learning. ArXiv preprint, abs/2309.07915, 2023.   
+Boyuan Zheng, Boyu Gou, Jihyung Kil, Huan Sun, and Yu Su. Gpt-4v(ision) is a generalist web agent, if grounded, 2024.   
+Deyao Zhu, Jun Chen, Xiaoqian Shen, Xiang Li, and Mohamed Elhoseiny. Minigpt-4: Enhancing vision-language understanding with advanced large language models. ArXiv preprint, abs/2304.10592, 2023.
+
+# A Appendix
+
+# B Evaluation Tasks Description
+
+Image Captioning. Image captioning requires the model to generate a description for a given image. We choose Nocaps Agrawal et al. (2019) and Flickr30k Plummer et al. (2015) as benchmarks and report CIDEr score Vedantam et al. (2015) as metric. For image captioning tasks Nocaps and Flickr30k, we adopt prompt as “Describe the image in one sentence.”
+
+Visual Question Answering (VQA). VQA requires the model to generate an answer for a given image-question pair. We select the development set of A-OKVQA Schwenk et al. (2022) and the test set of OCR-VQA Mishra et al. (2019) as the benchmark and the report the multiple choice (MC) score of AOKVQA and Rouge-L score of OCR-VQA. For AOKVQA, we adopt the the multiple choice version of evaluation and use prompt as: “Analyse the image and choose the best answer for the following question: {question} Options: {options}. Output the letter of the correct answer.” For OCRVQA, we use the default question as prompt for each example as provided in the official dataset.
+
+Multimodal Reasoning. Compared with VQA, multimodal reasoning requires more advanced perception, knowledge and reasoning skills of the model, which are more suitable benchmarks to evaluate the integrated abilities of LVLMs. We choose MMMU and PCA-Bench Chen et al. (2024) as benchmarks. MMMU is a multimodal benchmark featuring multi-discipline tasks demanding college-level subject knowledge and reasoning skills. PCA-Bench is a complex embodied reasoning benchmark with error localization, which features three different domains including autonomous driving, robot and game. We report the multiple choice accuracy for the development set of MMMU and Perception, Cognition, Action, Genuine PCA scores for both the open and closed test set of PCA-Bench. We use the default prompts for each example as provided in the official dataset MMMU and PCA-Bench.
+
+Video Question Answering. Similar to VQA for single image, Video Question Answering requires the model to generate answer given a video-question pair. Current LVLMs usually deal with video question answering tasks by sampling multiple frames as input, resulting in longer image token sequences. We choose TGIF-QA Jang et al. (2017), MSVD-QA Xu et al. (2017b) and MSRVTT-QA Xu et al. (2017a) as benchmarks following the evaluation pipeline of Video-ChatGPT Maaz et al. (2023) and report the accuracy and chatgpt-score as metrics. We use the first 1K examples in each benchmark in our experiments due to the limited
+
+![](images/6bfdb0c04e49963f142c85e9e15ed8dd71aed90a6cd2bf1ad28e22a968c570d9.jpg)
+
+![](images/094d0de5517381c4f7542e43835b7ff86c2cdddb205975d4a83ea239587956ec.jpg)
+
+![](images/37f5c0453e11cd79b4d58ea57d3779862cb54119133c03561bfd8df136a26be9.jpg)
+
+![](images/eed6b2af5078076bce08673d1e1d8264b267e0e073bf8293bfc2e7f3f4f7b8de.jpg)
+
+![](images/dde92293b36f436e20450a8d58e94ec7fe97e8b5569c0d3419143db72a46623e.jpg)
+
+![](images/b27eb9a010e7bb8247bcd78df6b70232ddfffc2d79be85b3c4103ae5c78d4014.jpg)
+
+![](images/ed7a6db5cccdb3a998777c24650a7a73bbfbc21b2d673787d527adbf176c865d.jpg)
+
+![](images/250bb49c86d6f33df82c5e0a13985bb83c7d2e49f20a216457e5b35711514b14.jpg)
+
+![](images/33a54c51338606613560e9aa3e8c89602771d684f0abe0385d05d269b96befaa.jpg)
+
+![](images/db131646762c4cd90488bd32de5182dc2199912d66816d5db161d6a53a24710f.jpg)
+
+![](images/3cfdcd9dc5706f73ff8dec7c0890c772ae00e211f0be9baf23cec180c3431658.jpg)
+
+![](images/c56a3ed9ff1b5e9cc63924e17339e8bac18bcefba39dad59c837ad5367611dd3.jpg)
+
+![](images/18867e06f5bc25fe4fb2ff91db55392754c92b4925839aed5edead6c8fae39f3.jpg)
+
+![](images/8288062eaf9257b8aa5a553d6cdd463a8870f1eeea73b4e6bb387d6075c8e4fe.jpg)
+
+![](images/43cbfb9aeefdf1e0e4624f152bc4ce08dc25140d3945db6561ebb7df5f0dfa1c.jpg)
+
+![](images/34f46a3ee37121ab74f7043ddfeb4e09dae914a57e2a543a70312bacdec794a2.jpg)
+
+![](images/382e026ffa3d12c5a8241125ef020aba1c8103632c740b770103fae1e8430d00.jpg)
+
+![](images/bb3d4983fcd4569c44edce2f831909b81b41a89c9d7235b9b7d21627f6978bdd.jpg)
+
+![](images/bff096dc3cde2a5ec02df879fbc2900053b06afbe78e91a5413fbb2f8fcdce4d.jpg)
+
+![](images/4f6e51c559921dea10e66ba0cffbee4d38b9e3645d11835baa461940b7a1ebeb.jpg)
+
+![](images/65c43f99f6b1db05f46dfc3005fae76e5650513f5fce21342364c9efa09aae1f.jpg)
+
+![](images/6bffb140f74dbf8705f1952f1438716f33722bd3cc045d6adea962797027f547.jpg)
+
+![](images/225ebf73f609835f7dfb00c23cc4c7920e344ea5699d3ae14431f7845b681880.jpg)
+
+![](images/daf74a98888883540498484a10a2131da0191a1b16f581fab31920b4be9a7aa2.jpg)
+
+![](images/83f7c555e46a61845ee2ae0c4088ccffd72117dd119b2822a53cd202fc96f99a.jpg)
+
+![](images/631d41aa784410ec6a4d83aaed5ba33ac5ce391ed54c2754d90f80879699babc.jpg)
+
+![](images/572ffbba35b14a2b937e6cd4c67042c6cf0ba28e05f3106c2eb1cba32b7a826a.jpg)
+
+![](images/162bbb34d0bbd7c87256dea15e08886ae2baa1ec6819eb6f941c5cc50ed53771.jpg)
+
+![](images/85b30994baba55180768a66b99443ea0115a9276bcda7d7dd91aac390bb9317a.jpg)
+
+![](images/94e4db2c4e422b8f51c6ed628bb5e01b6a733b5b1b101cce70b8e2181b54ec9d.jpg)
+
+![](images/ac026a0c467a0b1aab9077b857c73634196255876fd95018f80791eb8c39d077.jpg)
+
+![](images/4aec80f0dfef7cc6d6dd050ad9543b6870db44e6214ba07bb14d0ad8c2a4dcaf.jpg)  
+Figure 8: Full Attention Maps of Each Layer of LLaVA.
+
+commercial API usage in evaluation. For all video QA tasks, we use the default question as the prompt as provided in Video-LLaVA, and use the same tool from Video-ChatGPT to conduct GPT evaluation.
+
+Fine-grained Benchmarks For the evaluation of the influence of FastV on LVLM performance, we incorporate four distinct Fine-grained benchmarks: MME Fu et al. (2023), Seed-Bench Li et al. (2023a), SciQA-IMG Lu et al. (2022), and MMVet Yu et al. (2023). MME offers a comprehensive evaluation of models’ perception and cognition abilities across a diverse set of tasks, focusing on intuitive and quantifiable analysis without extensive prompt engineering. SEED-Bench, on the other hand, evaluates generative comprehension across multiple dimensions, ensuring question relevance and quality through a mix of automated filtering and manual verification. While MME and SEED-Bench cover general abilities of LVLMs, SciQA-IMG and MMVet focus on the advanced aspects of multi-modal understanding. SciQA-IMG is a large-scale multimodal science question dataset annotated with detailed lectures and explanations. MMVet evaluates LVLMs on complex multimodal tasks, emphasizing multi-modal understanding and free-form answering capabilities, thus offering a comprehensive view of model performance.
