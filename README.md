@@ -11,6 +11,7 @@ Eason 的文献阅读仓库，按课题组织。
 
 | 论文 | 会议 | 方法特点 |
 |------|------|----------|
+| ⭐ [Survey](./MLLM-Token-Compression/[TechRxiv%202025]%20Survey-Token-Compression/) | TechRxiv 2025 | **综述** - Token 压缩方法全景 |
 | [FastV](./MLLM-Token-Compression/[ECCV%202024]%20FastV/) | ECCV 2024 | 第2层后固定剪枝，简单高效 |
 | [PyramidDrop](./MLLM-Token-Compression/[CVPR%202025]%20PyramidDrop/) | CVPR 2025 | 金字塔式渐进剪枝 |
 | [SparseVLM](./MLLM-Token-Compression/[ICML%202025]%20SparseVLM/) | ICML 2025 | 文本引导 + Token回收 |
