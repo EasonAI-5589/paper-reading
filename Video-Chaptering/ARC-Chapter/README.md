@@ -105,7 +105,10 @@ ARC-Chapter
 
 ## 附件
 
-完整论文解析（含图片）:
+### 📄 论文 PDF
+- **[ARC-Chapter.pdf](./ARC-Chapter.pdf)** ← 直接打开对照阅读
+
+### 📁 完整解析
 ```
 ./2511.14349-ec960086-4710-41e0-98a4-fdb14f73ae01/
 ├── full.md          # 完整 Markdown (85KB)
@@ -113,6 +116,14 @@ ARC-Chapter
 ├── *.pdf            # 原始 PDF (8.6MB)
 └── *.json           # 解析元数据
 ```
+
+### 🔧 VSCode PDF 标注工具
+
+在 VSCode 扩展商店安装:
+1. **vscode-pdf** (`tomoki1207.pdf`) - 基础 PDF 预览
+2. **pdf-annotate** - PDF 标注 + Markdown 笔记导出
+
+安装后可直接在 VSCode 中打开 PDF 对照阅读和标注。
 
 ---
 
