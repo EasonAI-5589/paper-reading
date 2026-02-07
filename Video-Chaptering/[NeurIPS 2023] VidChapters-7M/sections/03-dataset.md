@@ -121,7 +121,14 @@ The most represented video category (in YouTube's glossary) is HowTo & Style, ma
 - A speech sentence lasts **3.9 seconds** (vs 142.0 seconds for chapters) 
 - A speech sentence contains **11.5 words** (vs 5.4 words for chapters)
 
-> 💡 **关键洞察 ⭐**: ASR 和 Chapter 差距巨大！
+> 💡 **ASR 是什么？**
+> **ASR = Automatic Speech Recognition (自动语音识别)**
+> - 就是把视频里的**人声转成文字**
+> - 例如：视频里有人说 "今天我们来做番茄炒蛋"，ASR 就输出这句话的文字版
+> - 常用工具：Whisper、YouTube 自动字幕
+> - ASR 输出的是**逐句的语音转录**，非常细碎（平均 4 秒一句）
+>
+> **关键洞察 ⭐**: ASR 和 Chapter 差距巨大！
 > - 数量：270 句 vs 8 章 = **32 倍压缩**
 > - 时长：4 秒 vs 142 秒 = **36 倍聚合**
 > - 这说明 Chapter 是高度抽象的语义总结，不能简单从 ASR 映射
