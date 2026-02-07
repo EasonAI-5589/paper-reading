@@ -54,6 +54,9 @@ We curate videos across a wide range of domains, including: Educational lectures
 
 > 💡 **3.2 要点预览**: 如何从粗标注生成细粒度层级标注？关键是多模态提取 + LLM 推理
 
+![Figure 2](../images/7d0a7673bdb7eb96f5e60643c9caa12daa61973ebd44332eaf9c3f1d85aad89b.jpg)
+*Figure 2: 自动标注流水线总览。从视频帧提取视觉描述（含 OCR），从音频提取 ASR 转录，时间对齐后交错成统一的多模态文本，再由 LLM 生成结构化章节和时间戳对齐的描述。*
+
 To generate high-quality video chaptering annotations, we design an automated annotation pipeline that leverages both multimodal content extraction and large language model (LLM)-based reasoning. Considering efficiency and cost, we avoid directly using multimodal large language models (MLLMs) for video annotation.
 
 > 💡 **设计思路**: 
@@ -115,6 +118,10 @@ Building upon the verified structured chapter information, we further prompt the
 ### 3.3 Dataset Statistics
 
 > 💡 **3.3 要点预览**: VidAtlas 数据集的规模和分布
+
+![Figure 3a](../images/1b7c1b8ef6fafd82a0a18353bce84609a09d854b3f87d8137cbea99ff341d56d.jpg)
+![Figure 3b](../images/e1f81fe4389926f34fc44623f159b83692ce57b41b43e0088738d0c83f9d8ec7.jpg)
+*Figure 3: VidAtlas 数据集统计。(a) 视频时长（上）和章节时长（下）分布；(b) 视频主题分布。*
 
 | 统计项 | 数值 |
 |--------|------|

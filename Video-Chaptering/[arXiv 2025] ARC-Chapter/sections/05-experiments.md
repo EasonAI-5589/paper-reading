@@ -95,6 +95,16 @@ We further evaluate the transferability by finetuning ARC-Chapter on downstream 
 
 #### 5.4.1 Scaling Property (数据规模)
 
+![Figure 6a](../images/89880f9c26de69cb32ca9e476ea6b2aa86964afd52693bb66a0d4d4483fd233f.jpg)
+![Figure 6b](../images/a7a6eae0edb311f90140521d9188198795aa7ab1c96b70462eb029cccc538790.jpg)
+![Figure 6c](../images/3d5b90daa5bf2d6ffad6d3759f14f3d6d27ab0c58c729ad0187e930731a55813.jpg)
+![Figure 6d](../images/9a39b73ab3b3c1289ce32ec8ef4ef5c6a56ceaa378d57c5f3445425c4e50c986.jpg)
+![Figure 6e](../images/22b5cc432ab9decf7b04f4675235449c0d8ead6153b848f921e295f69703c608.jpg)
+![Figure 6f](../images/26cc2644aa2e83d5d6e6e02aa43993b5262b0dbae06b4279e6fb3146bebb9206.jpg)
+![Figure 6g](../images/bc05303ff15ebaa765967b4583afdc41b2d4124ee0360be0a353b314c0b71f1f.jpg)
+![Figure 6h](../images/bed5b1d54b7b30c3aca679f2cb6df8b3b49ac30c8ab48d60241ae096a30300a6.jpg)
+*Figure 6: ARC-Chapter 数据 Scaling 特性。在 VidChapter（采样子集）和 VidAtlas 测试集上，随训练样本比例增加，各指标（F1、tIoU、SODA、CIDEr）持续提升。*
+
 | 训练数据量 | F1 | SODA |
 |-----------|-----|------|
 | 100K | 52.1 | 24.1 |
@@ -144,6 +154,13 @@ We further evaluate the transferability by finetuning ARC-Chapter on downstream 
 ---
 
 ### 5.5 Qualitative Visualization
+
+![Figure 7](../images/457f769d7e132046e6fa62de4c1adf38022eb7cd4aa2257c090936363dd12df3.jpg)
+![Figure 7 (cont.)](../images/f5330556369a4a4834e2f85e0fae16b253a3fa8d41a249557c60eb85bca21c31.jpg)
+*Figure 7: 英文视频（金融/加密货币）上的定性结果。*
+
+![Figure 8](../images/4edeeac21150742bb9508b95043f8c227cd3a3c4130b7d316990b19fb64fe550.jpg)
+*Figure 8: 中文视频（稳定币讨论）上的定性结果。*
 
 The model successfully handles complex multi-topic transitions, long-range temporal dependencies, and hierarchical content structures.
 

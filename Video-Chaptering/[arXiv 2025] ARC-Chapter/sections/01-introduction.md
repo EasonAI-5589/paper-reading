@@ -34,6 +34,9 @@ Despite notable advances in segmenting short videos (usually within five minutes
 
 We introduce ARC-Chapter, a comprehensive framework designed to address the unique challenges of long-form video structuring. As illustrated in Fig. 1, ARC-Chapter enables the segmentation of lengthy videos into navigable chapters and generates hierarchical summaries that capture both coarse and fine-grained content structure.
 
+![Figure 1](../images/2a72d77e0c5249282bb10f53b978aa4515a296d1a978577042ce495ecc54ccfb.jpg)
+*Figure 1: ARC-Chapter 模型能力展示。给定一个视频，模型生成三层结构化输出：1) Short Title - 简短标题；2) Structural Chapter - 包含重写标题、摘要和详细介绍的结构化标注；3) Timestamp-Aligned Video Description - 与精确时间边界对齐的细粒度描述。*
+
 > 💡 **ARC-Chapter 解决方案**:
 > ```
 > 输入: 小时级长视频
@@ -51,14 +54,19 @@ We introduce ARC-Chapter, a comprehensive framework designed to address the uniq
 
 **First**, we advance the scalability of video chaptering by developing the first large-scale model trained on one million long videos, totaling 400,000 hours of content. This dataset is fifty times larger than those used in previous studies, allowing our model to generalize across diverse video domains and formats.
 
-> 💡 **贡献1: 数据规模**
-> | 对比 | 之前 (VidChapters-7M) | ARC-Chapter |
-> |------|----------------------|-------------|
+> 💡 **贡献1: 数据规模 (VidAtlas 数据集)**
+> 
+> ⚠️ 注意区分：ARC-Chapter 是**模型**，它构建的数据集叫 **VidAtlas**。
+> 
+> | 对比 | VidChapters-7M (NeurIPS 2023) | **VidAtlas (本文数据集)** |
+> |------|-------------------------------|--------------------------|
+> | 论文性质 | 数据集论文 | 模型论文的配套数据集 |
 > | 视频数 | ~800K | **1M+** |
 > | 总时长 | ~8K 小时 | **400K 小时** |
+> | 标注层级 | 单层 (短标题) | 多层 (标题→章节→摘要) |
 > | 相对规模 | 1x | **50x** |
 >
-> → 首个百万级长视频章节模型
+> → 在 VidAtlas 上训练出首个百万级长视频章节**模型** ARC-Chapter
 
 **Second**, we propose a semi-automatic annotation pipeline for hierarchical summaries, which leverages easily accessible human-annotated coarse labels. This pipeline integrates automatic speech recognition (ASR) derived transcripts with timestamped visual elements, enabling a holistic and multimodal understanding of video content.
 

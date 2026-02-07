@@ -10,6 +10,9 @@
 
 > 💡 **4.1 要点预览**: ARC-Chapter 的模型架构是什么？怎么处理视频和ASR输入？
 
+![Figure 4](../images/02c2243528c120860794a2198f238a6c1bbd52ae51d8740bb6ae570866500cdd.jpg)
+*Figure 4: 模型架构总览。输入包括任务 Prompt、采样视频帧和带时间戳的 ASR 转录。视频帧经 frozen vision encoder 编码，与 Prompt 和 ASR 文本一起送入可训练的 MLLM，生成多种格式的章节输出。*
+
 We leverage **Qwen2.5-VL-7B** as our base model, enhancing its capabilities to process and structure video content into chapters.
 
 > 💡 **Base Model**: Qwen2.5-VL-7B
@@ -165,6 +168,10 @@ To enable a single model to perform well under various deployment conditions, we
 ### 4.3 Evaluation Metrics
 
 > 💡 **4.3 要点预览**: 为什么需要新指标 GRACE？SODA 有什么问题？
+
+![Figure 5a](../images/9e9046bb318c9f0d8c01d47f9d0020e26b722adf04856fbc933b388d92abcecb.jpg)
+![Figure 5b](../images/c03b9e3cad324ba021c2e18608ca4632e00221e396ddee1ae7818a63f5964c41.jpg)
+*Figure 5: SODA (one-to-one) vs GRACE (many-to-one) 匹配策略对比。One-to-one 会遗漏 p₂ 和 g₂ 等重要事件，many-to-one 则能全面考虑所有预测和 GT 事件。*
 
 We observe that the primary metrics such as **SODA**, originally developed for dense video captioning, are **not well-suited** for the video chaptering task.
 
