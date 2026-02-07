@@ -92,6 +92,24 @@ In this Section, we present the results of models on VidChapters-7M for the full
 > - 最后用 F-measure 惩罚冗余
 > ```
 >
+> ---
+>
+> **四、所有指标都是越高越好！**
+>
+> | 指标 | 范围 | 方向 | 备注 |
+> |------|------|------|------|
+> | SODA | 0-100 | ↑ 越高越好 | 本文最高 11.4 |
+> | BLEU | 0-100 | ↑ 越高越好 | |
+> | CIDEr | 0-∞ | ↑ 越高越好 | 可以超过100 |
+> | METEOR | 0-100 | ↑ 越高越好 | |
+> | ROUGE-L | 0-100 | ↑ 越高越好 | |
+> | R@Ks | 0-100 | ↑ 越高越好 | 召回率 |
+> | P@Ks | 0-100 | ↑ 越高越好 | 精确率 |
+>
+> **没有"越低越好"的指标**，这些都是衡量"做得多好"的正向指标。
+>
+> ---
+>
 > **总结**：看论文结果时，**主要看 SODA (S)**，其次看 CIDEr (C)。时间定位看 R@0.5。
 
 **Implementation details.** Unless stated otherwise, for all models, we use the speech transcripts (ASR) and visual features extracted as explained in Section 3.2. By default, each model is taken from the corresponding official implementation, and all model hyper-parameters are set according to the original papers. We use the Adam optimizer [39] for training and select the final model based on the best validation performance. Our experiments are run on 8 NVIDIA A100 80GB GPUs. More details are included in Appendix Section D.
