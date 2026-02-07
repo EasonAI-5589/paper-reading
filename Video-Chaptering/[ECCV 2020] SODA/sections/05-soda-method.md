@@ -4,11 +4,11 @@
 
 ### 原文
 
-To determine the matching between generated and reference captions, we regard the matching as a combinatorial optimization problem: finding one-to-one matching between the captions that maximizes the sum of the IoU by considering temporal ordering. Following the current evaluation framework, we also use the threshold τ for the matching; we define cost C_{i,j} between a reference caption g_i and a generated caption p_j based on the IoU as follows:
+To determine the matching between generated and reference captions, we regard the matching as a combinatorial optimization problem: finding one-to-one matching between the captions that maximizes the sum of the IoU by considering temporal ordering. Following the current evaluation framework, we also use the threshold $\tau$ for the matching; we define cost $C_{i,j}$ between a reference caption $g_i$ and a generated caption $p_j$ based on the IoU as follows:
 
 $$C_{i,j} = \begin{cases} \text{IoU}(g_i, p_j) & \text{if } \text{IoU}(g_i, p_j) \geq \tau \\ 0 & \text{otherwise} \end{cases}$$
 
-Then, we sort the captions based on temporal ordering, that is, in the order of the beginning time of their proposals, by utilizing function s(·), and define S[i][j], which stores the maximum score of optimal matching between 1st to i-th generated captions and the 1st to j-th reference truth captions, as follows:
+Then, we sort the captions based on temporal ordering, that is, in the order of the beginning time of their proposals, by utilizing function $s(\cdot)$, and define $S[i][j]$, which stores the maximum score of optimal matching between 1st to $i$-th generated captions and the 1st to $j$-th reference truth captions, as follows:
 
 **Initialization:**
 $$S[i][0] = 0 \quad (0 \leq i \leq |\mathcal{P}|)$$
@@ -17,7 +17,24 @@ $$S[0][j] = 0 \quad (0 \leq j \leq |\mathcal{G}|)$$
 **Recurrence:**
 $$S[i][j] = \max \begin{cases} S[i-1][j] & \text{(skip } p_i \text{)} \\ S[i-1][j-1] + C_{i,j} & \text{(match } p_i, g_j \text{)} \\ S[i][j-1] & \text{(skip } g_j \text{)} \end{cases}$$
 
-Figure 4 shows an example process to obtain the optimal matching for the example given in Figure 1, with τ = 0. After filling out table S by dynamic programming, S[4][5] stores the optimal matching score, 2.7. Thus, we can obtain the optimal matching between g_k and p_ℓ by tracing the path, from [4,5] to [0,0]. In the example, the optimal matching is (g_1, p_1), (g_3, p_2), (g_4, p_4).
+Figure 4 shows an example process to obtain the optimal matching for the example given in Figure 1, with $\tau = 0$. After filling out table $S$ by dynamic programming, $S[4][5]$ stores the optimal matching score, 2.7. Thus, we can obtain the optimal matching between $g_k$ and $p_\ell$ by tracing the path, from [4,5] to [0,0]. In the example, the optimal matching is $(g_1, p_1), (g_3, p_2), (g_4, p_4)$.
+
+### 译文
+
+为了确定生成描述与参考描述之间的匹配，我们将匹配视为一个组合优化问题：通过考虑时序顺序，找到最大化 IoU 之和的一对一匹配。遵循当前评估框架，我们也使用阈值 $\tau$ 进行匹配；我们基于 IoU 定义参考描述 $g_i$ 和生成描述 $p_j$ 之间的代价 $C_{i,j}$ 如下：
+
+$$C_{i,j} = \begin{cases} \text{IoU}(g_i, p_j) & \text{如果 } \text{IoU}(g_i, p_j) \geq \tau \\ 0 & \text{否则} \end{cases}$$
+
+然后，我们通过利用函数 $s(\cdot)$ 按时序顺序（即按提案开始时间的顺序）对描述进行排序，并定义 $S[i][j]$，它存储第 1 到第 $i$ 个生成描述与第 1 到第 $j$ 个参考真值描述之间最优匹配的最大分数，如下：
+
+**初始化：**
+$$S[i][0] = 0 \quad (0 \leq i \leq |\mathcal{P}|)$$
+$$S[0][j] = 0 \quad (0 \leq j \leq |\mathcal{G}|)$$
+
+**递推：**
+$$S[i][j] = \max \begin{cases} S[i-1][j] & \text{(跳过 } p_i \text{)} \\ S[i-1][j-1] + C_{i,j} & \text{(匹配 } p_i, g_j \text{)} \\ S[i][j-1] & \text{(跳过 } g_j \text{)} \end{cases}$$
+
+图 4 显示了对于图 1 中给出的示例，在 $\tau = 0$ 时获得最优匹配的过程示例。通过动态规划填写表 $S$ 后，$S[4][5]$ 存储最优匹配分数 2.7。因此，我们可以通过从 [4,5] 到 [0,0] 回溯路径来获得 $g_k$ 和 $p_\ell$ 之间的最优匹配。在示例中，最优匹配是 $(g_1, p_1), (g_3, p_2), (g_4, p_4)$。
 
 ---
 
@@ -69,6 +86,20 @@ $$\text{Recall}(\mathcal{G}, \mathcal{P}) = \frac{\sum_{g \in \mathcal{G}} f(g, 
 
 When systems generate too many captions, Precision scores tend to be low, while Recall scores tend to be high. Thus, the systems cannot obtain good F-measure scores. When systems generate too few captions, they also cannot obtain good F-measure scores since they tend to receive good Precision scores but poor Recall scores.
 
+### 译文
+
+为了对过多或过少的描述给出低分，METEOR 分数之和应该通过考虑生成描述和参考描述的数量来归一化。因此，我们提出了一个基于 F 值的评估指标如下：
+
+$$\text{F-measure}(\mathcal{G}, \mathcal{P}) = \frac{2 \times \text{Precision} \times \text{Recall}}{\text{Precision} + \text{Recall}}$$
+
+这里，精确率和召回率基于最优匹配定义如下：
+
+$$\text{Precision}(\mathcal{G}, \mathcal{P}) = \frac{\sum_{g \in \mathcal{G}} f(g, p_{a(g)})}{|\mathcal{P}|}$$
+
+$$\text{Recall}(\mathcal{G}, \mathcal{P}) = \frac{\sum_{g \in \mathcal{G}} f(g, p_{a(g)})}{|\mathcal{G}|}$$
+
+当系统生成过多描述时，精确率分数往往较低，而召回率分数往往较高。因此，系统无法获得好的 F 值分数。当系统生成过少描述时，它们也无法获得好的 F 值分数，因为它们往往获得好的精确率分数但召回率分数较差。
+
 ---
 
 ### 理解与批注
@@ -94,11 +125,19 @@ When systems generate too many captions, Precision scores tend to be low, while 
 
 ### 原文
 
-In evaluating video story descriptions, the IoU plays an important role. Even if METEOR scores between generated and reference captions are perfect, they make no sense if the IoU between the captions is zero. However, in the current evaluation framework, the IoU is utilized only for determining the matching between the captions. Thus, the IoU does not directly affect the sum of METEOR scores. To reflect the IoU more directly to evaluation scores, we propose an alternative of the cost in Equation (4):
+In evaluating video story descriptions, the IoU plays an important role. Even if METEOR scores between generated and reference captions are perfect, they make no sense if the IoU between the captions is zero. However, in the current evaluation framework, the IoU is utilized only for determining the matching between the captions. Thus, the IoU does not directly affect the sum of METEOR scores. To reflect the IoU more directly to evaluation scores, we propose an alternative of the cost:
 
 $$C_{i,j} = \text{IoU}(g_i, p_j) \times f(g_i, p_j)$$
 
 By utilizing this cost, even if the METEOR score is high, the evaluation score can be lowered when the IoU score is low.
+
+### 译文
+
+在评估视频故事描述时，IoU 起着重要作用。即使生成描述和参考描述之间的 METEOR 分数是完美的，如果描述之间的 IoU 为零，它们也没有意义。然而，在当前评估框架中，IoU 仅用于确定描述之间的匹配。因此，IoU 不直接影响 METEOR 分数之和。为了更直接地将 IoU 反映到评估分数中，我们提出了一种替代代价：
+
+$$C_{i,j} = \text{IoU}(g_i, p_j) \times f(g_i, p_j)$$
+
+通过使用这个代价，即使 METEOR 分数很高，当 IoU 分数较低时，评估分数也可以降低。
 
 ---
 

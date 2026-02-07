@@ -6,6 +6,12 @@ In this paper, we demonstrated that the current evaluation framework, which is t
 
 Evaluation results obtained on the ActivityNet Captions dataset showed that we can detect inadequate captions and too many or too few captions by utilizing SODA, which cannot be detected by using the current evaluation framework. Furthermore, we demonstrated that SODA gives lower scores to captions with incorrect ordering and inconsistent story descriptions, than the current evaluation framework. We also showed that SODA is superior to the current framework in detecting appropriate captions and in detecting captions with incorrect temporal order via manual evaluation.
 
+## 译文
+
+在本文中，我们证明了当前评估框架（即 ActivityNet Challenge 中使用的官方评估框架）不足以评估视频故事描述系统的性能。然后，我们提出了一种新的评估框架——面向故事的密集视频描述评估框架（SODA），以执行更好的评估。为了在考虑时序顺序的情况下匹配生成描述和参考描述，SODA 首先使用动态规划找到最大化 IoU 之和的最优匹配。然后，它基于匹配对的 METEOR 分数计算 F 值。
+
+在 ActivityNet Captions 数据集上获得的评估结果表明，我们可以使用 SODA 检测不充分的描述以及过多或过少的描述，而使用当前评估框架无法检测到这些。此外，我们证明了 SODA 对顺序不正确和故事描述不一致的描述给出比当前评估框架更低的分数。我们还通过人工评估表明，SODA 在检测合适的描述和检测时序顺序不正确的描述方面优于当前框架。
+
 ---
 
 ## 理解与批注
