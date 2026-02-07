@@ -26,8 +26,9 @@ In this Section, we present the results of models on VidChapters-7M for the full
 > | **C (CIDEr)** | 关键词匹配，稀有词加分 | 标题质量 |
 > | **M (METEOR)** | 同义词也算对 | 标题质量 |
 > | **B1-B4 (BLEU)** | 数重叠词 | 标题质量 |
-> | **R@Ks** | 起点误差在K秒内 | 时间定位 |
-> | **R@0.5 / P@0.5** | IoU ≥ 0.5 算对 | 时间定位 |
+> | **R@5s / R@3s** | 起点误差在5秒/3秒内 | 时间定位 (起点) |
+> | **R@0.5** | Recall: IoU≥0.5的章节占GT的比例 | 时间定位 (找全了多少) |
+> | **P@0.5** | Precision: IoU≥0.5的章节占预测的比例 | 时间定位 (找准了多少) |
 >
 > **IoU 是什么？** Intersection over Union = 交集 ÷ 并集
 > ```
@@ -38,6 +39,23 @@ In this Section, we present the results of models on VidChapters-7M for the full
 > 
 > IoU = 交集 / 并集 = 重叠部分 / 总覆盖范围
 > IoU ≥ 0.5 意思是"至少重叠一半"才算预测对了
+> ```
+>
+> **Recall vs Precision 区别**:
+> ```
+> 例子：GT 有 4 个章节，模型预测了 5 个章节，其中 3 个 IoU≥0.5
+> 
+> Recall@0.5 = 找对的 / GT总数 = 3/4 = 75%
+>              → 问的是"GT里的章节，你找到了多少？"
+>              → 漏掉1个 → 召回不完整
+> 
+> Precision@0.5 = 找对的 / 预测总数 = 3/5 = 60%  
+>              → 问的是"你预测的章节，有多少是对的？"
+>              → 多预测2个错的 → 精度下降
+> 
+> 简单记忆：
+> - Recall (召回率): 该找的找全了吗？
+> - Precision (精确率): 找的都对吗？
 > ```
 >
 > ---
