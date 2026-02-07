@@ -55,6 +55,34 @@ We describe below how we process the previously obtained user-chaptered videos t
 **ASR extraction.** We observed that most user-chaptered videos contain speech. Hence, for all videos, we extract speech transcripts aligned in time with the video content (ASR) by applying the Whisper-Large-V2 model [73] on the audio track, using faster-whisper [40] backend for computational efficiency. We found that the Whisper model provides higher-quality ASR compared to the YouTube API ASR service on several data samples from VidChapters-7M. We further use WhisperX [6] to derive accurate word-level timestamps which we use to segment the speech transcript into sentences. For example, the Whisper-Large-V2 model extracts speech segments like "Right, we're gonna do the Synthetics Dirty Race. No we're not. [...] So we're gonna put two t-shirts and two pairs of jeans in the" with timestamps 20.478s and 50.465s, and the corresponding first sentence output by WhisperX is "Right, we're gonna do the Synthetics Dirty Race." with timestamps 20.538s and 29.26s.
 
 > 💡 **ASR 处理链**: Whisper-Large-V2 (转录) → faster-whisper (加速) → WhisperX (词级时间戳 → 句子切分)。比 YouTube 自带的 ASR 质量更高。
+>
+> **例子详解 (大白话版)**:
+> ```
+> 原始视频：有人在说话，从第20秒说到第50秒
+> 
+> ┌─ Whisper 第一遍处理 ─────────────────────────────────┐
+> │ 输出: "好，我们要做合成纤维脏衣测试。不对不是这个。   │
+> │       [中间省略]...我们要放两件T恤和两条牛仔裤进去"  │
+> │ 时间: 20.478s ~ 50.465s (一整坨30秒)                │
+> │ 问题: 没法精确定位每句话在视频哪个时刻说的           │
+> └─────────────────────────────────────────────────────┘
+>                          ↓
+> ┌─ WhisperX 第二遍处理 ──────────────────────────────┐
+> │ 拆成独立句子 + 精确时间:                            │
+> │ 第一句: "好，我们要做合成纤维脏衣测试。"            │
+> │ 时间: 20.538s ~ 29.26s ✅                          │
+> │                                                    │
+> │ 意义: 现在每句话都能跟对应视频画面精确对齐了        │
+> └────────────────────────────────────────────────────┘
+> ```
+> 
+> **Whisper vs WhisperX 关系**:
+> | 工具 | 功能 | 输出 |
+> |------|------|------|
+> | Whisper-Large-V2 | 语音→文字 (ASR) | 整段起止时间 |
+> | WhisperX | 句子切分 + 词级时间戳 | 每句精确时间 |
+> 
+> → 不是替代关系，是**串联使用**。WhisperX 依赖 Whisper 输出，强项是时间对齐和切分。
 
 **Visual feature extraction.** Training end-to-end deep learning models from RGB inputs on minutes-long videos is computationally expensive. Hence we extract visual features with CLIP ViT-L/14 backbone [20, 72] at resolution 224×224 pixels and 1 FPS. This model has been trained to map images to text descriptions with a contrastive loss on 400M Web-scraped image-text pairs. For reproducibility, we publicly release the resulting speech transcripts and the code for extracting visual features.
 
