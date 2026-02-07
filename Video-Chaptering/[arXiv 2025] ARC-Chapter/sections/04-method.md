@@ -1,307 +1,293 @@
 # 4. ARC-Chapter Method
 
-## 📄 原文逐段解析
+> 来源: ARC-Chapter (arXiv 2025)
 
 ---
 
-## 4.1 Overall Framework
+## 📄 原文
 
-### 4.1.1 Base Model
+### 4.1 Overall Framework
 
-> We leverage **Qwen2.5-VL-7B** as our base model, enhancing its capabilities to process and structure video content into chapters.
->
-> ==Base Model：Qwen2.5-VL-7B==
+> 💡 **4.1 要点预览**: ARC-Chapter 的模型架构是什么？怎么处理视频和ASR输入？
 
-### 4.1.2 三种输入
+We leverage **Qwen2.5-VL-7B** as our base model, enhancing its capabilities to process and structure video content into chapters.
 
-> The model unifies three inputs:
-> 1. An **instruction prompt** that specifies the task of input modalities and output schema
-> 2. A sequence of **sampled video frames** that provide appearance, layout and on-screen text (including subtitles)
-> 3. A **timestamp-aligned ASR transcript** from audio
->
-> ==三输入：Prompt + Video Frames + ASR Transcript==
+> 💡 **Base Model**: Qwen2.5-VL-7B
+> - Qwen 是阿里的开源多模态大模型
+> - 7B 参数量，能处理视觉+文本
 
-> While both the video and ASR transcript inputs are optional, the model requires at least one modality to be provided.
->
-> ==Video 和 ASR 可选，但至少提供一个==
+The model unifies three inputs:
+1. An **instruction prompt** that specifies the task of input modalities and output schema
+2. A sequence of **sampled video frames** that provide appearance, layout and on-screen text (including subtitles)
+3. A **timestamp-aligned ASR transcript** from audio
 
-### 4.1.3 编码方式
-
-> Frames are embedded with **Qwen2.5-VL vision encoder** and translated into visual tokens, while ASR transcript is tokenized as plain text with explicit timestamps.
->
-> ==Vision Encoder 编码帧 → visual tokens；ASR 直接 tokenize==
-
-> The **vision encoder is kept frozen** and the language model is instruction tuned on VidAtlas to specialize in video chaptering.
->
-> ==Vision Encoder 冻结，只微调 LLM==
-
----
-
-### 4.1.4 Prompt Design
-
-> To handle the diverse requirements of different inputs and outputs of the model, we design a set of **18 distinct prompt templates**.
->
-> ==18 种 Prompt 模板==
-
-**三个维度：**
-
-| 维度 | 选项 |
-|------|------|
-| **Language** | English / Chinese |
-| **Input Modality** | ASR-only / Video-only / ASR+Video |
-| **Output Format** | Short Titles / Structural Chapters / Video Descriptions |
-
-> This allows for ablation studies and adaptation to scenarios where one modality may be absent or noisy.
->
-> ==灵活适配：某个模态缺失或有噪声时可用==
-
----
-
-### 4.1.5 Video Input 处理
-
-> To balance temporal coverage and context budget, we follow the setup of Qwen2.5-VL and **cap the visual stream at 768 frames** sampled at up to 1 fps.
->
-> ==最多 768 帧，采样率 ≤1 fps==
-
-**采样策略：**
-| 视频时长 | 采样策略 |
-|----------|----------|
-| < 12.8 分钟 | 1 fps |
-| ≥ 12.8 分钟 | 均匀降采样到 768 帧 |
-
-> The sampling strategy retains coarse global coverage for hour-long content, ensuring sufficient representation to capture the high-level semantic shifts necessary for the chaptering task.
->
-> ==策略目的：保留粗粒度全局覆盖，捕捉高层语义转换==
-
-**动态 Token 分配：**
-
-> Since the model context length is shared across modalities, we **dynamically adjust the per-frame token allowance** according to the input of ASR transcript.
->
-> ==根据 ASR 输入动态调整每帧的 token 数==
-
-| 输入模式 | 帧分辨率 | 原因 |
-|----------|----------|------|
-| Video-only | 高分辨率 | 保留 OCR、字幕等细节 |
-| Video+ASR | 低分辨率 | 给 ASR 留 context 空间 |
-
-**时间戳增强：**
-
-> To enhance temporal awareness, we randomly **overlay timestamps onto the video frames**, making the model more sensitive to the video timeline.
->
-> ==随机在帧上叠加时间戳 → 增强时间感知==
-
----
-
-### 4.1.6 ASR Input 处理
-
-**为什么用文本而非音频特征？**
-
-> Although integrating raw audio features or learned audio embeddings from pretrained ASR models (e.g. Whisper) is attractive, it presents severe scalability challenges for long-form video.
->
-> ==问题：原始音频特征可扩展性差==
-
-**具体数字：**
-
-> Whisper-style audio encoder produces **50 audio tokens per second**, a 60-minute audio therefore produces **180k tokens**, far exceeding feasible LLM context budgets.
->
-> ==60分钟音频 → 180k tokens，超出 LLM context 限制==
-
-> Furthermore, synchronizing fixed-rate audio features with dynamically sampled video frames poses an additional alignment problem.
->
-> ==同步问题：固定速率音频 vs 动态采样视频帧==
-
-**解决方案：**
-
-> To address these practical constraints, we opt to use **ASR transcripts as a highly effective proxy** for the audio modality.
->
-> ==用 ASR 文本替代原始音频==
-
-> Text is significantly more information-dense. Therefore, the ASR transcript of a long audio segment occupies far fewer tokens than its raw feature representation.
->
-> ==文本信息密度更高，tokens 更少==
-
-**具体实现：**
-
-> We use **Whisper-large-v3** to generate timestamped ASR transcripts. The model provides sentence-level segments with corresponding start timestamps.
->
-> ==Whisper-large-v3，句子级分段==
-
-> We formulate the ASR text and timestamp of each segment as:
+> 💡 **三种输入**:
 > ```
-> start time (hh:mm:ss): <ASR text>
+> ┌─────────────────────────────────────────┐
+> │  Instruction Prompt                     │
+> │  "Generate chapters for this video..."  │
+> ├─────────────────────────────────────────┤
+> │  Video Frames (可选)                    │
+> │  [帧1] [帧2] [帧3] ... [帧N]            │
+> ├─────────────────────────────────────────┤
+> │  ASR Transcript (可选)                  │
+> │  "00:00:00: Hello everyone..."          │
+> │  "00:00:05: Today we will..."           │
+> └─────────────────────────────────────────┘
+> ```
+> Video 和 ASR 至少要有一个
+
+Frames are embedded with **Qwen2.5-VL vision encoder** and translated into visual tokens, while ASR transcript is tokenized as plain text with explicit timestamps. The **vision encoder is kept frozen** and the language model is instruction tuned on VidAtlas to specialize in video chaptering.
+
+> 💡 **编码方式**:
+> | 输入 | 编码方式 | 训练时 |
+> |------|----------|--------|
+> | Video Frames | Vision Encoder → Visual Tokens | **冻结** |
+> | ASR Text | Tokenizer → Text Tokens | 随 LLM 训练 |
+> | LLM | Qwen2.5-7B | **全参数微调** |
+
+---
+
+**Prompt Design**
+
+To handle the diverse requirements of different inputs and outputs of the model, we design a set of **18 distinct prompt templates**.
+
+> 💡 **18 种 Prompt 模板** (3×3×2):
+> | 维度 | 选项 |
+> |------|------|
+> | 语言 | English / Chinese |
+> | 输入模态 | ASR-only / Video-only / ASR+Video |
+> | 输出格式 | Short Titles / Structural Chapters / Video Descriptions |
+>
+> 这样设计可以：
+> - 做 ablation 研究
+> - 适应某个模态缺失的场景
+
+---
+
+**Video Input 处理**
+
+To balance temporal coverage and context budget, we follow the setup of Qwen2.5-VL and **cap the visual stream at 768 frames** sampled at up to 1 fps.
+
+> 💡 **视频采样策略**:
+> ```
+> 视频时长 < 12.8 分钟:
+>     采样率 = 1 fps
+>     
+> 视频时长 ≥ 12.8 分钟:
+>     均匀降采样到 768 帧
+>     例如: 60分钟视频 → 768帧 ≈ 0.21 fps
 > ```
 >
-> ==格式：`时间戳: ASR文本`==
+> 目的：保留粗粒度全局覆盖，捕捉高层语义转换
+
+Since the model context length is shared across modalities, we **dynamically adjust the per-frame token allowance** according to the input of ASR transcript.
+
+> 💡 **动态分辨率调整**:
+> | 输入模式 | 帧分辨率 | 原因 |
+> |----------|----------|------|
+> | Video-only | 高分辨率 | 需要 OCR、字幕等细节 |
+> | Video+ASR | 低分辨率 | 给 ASR 留 context 空间 |
+
+To enhance temporal awareness, we randomly **overlay timestamps onto the video frames**, making the model more sensitive to the video timeline.
+
+> 💡 **时间戳增强**: 随机在帧上叠加时间戳
+> - 让模型学会关注"视频进度"
+> - 增强时间感知能力
 
 ---
 
-## 4.2 Training Strategy
+**ASR Input 处理**
 
-### 4.2.1 Training Objective
+Although integrating raw audio features or learned audio embeddings from pretrained ASR models (e.g. Whisper) is attractive, it presents severe scalability challenges for long-form video.
 
-> We perform **supervised instruction tuning** on VidAtlas and VidChapter-7M using all prompt templates.
->
-> ==SFT on VidAtlas + VidChapter-7M==
+Whisper-style audio encoder produces **50 audio tokens per second**, a 60-minute audio therefore produces **180k tokens**, far exceeding feasible LLM context budgets.
 
-> The training objective is the standard **autoregressive next-token prediction loss** over the target sequence.
->
-> ==标准自回归 next-token loss==
+> 💡 **为什么用 ASR 文本而非原始音频？**
+> ```
+> 原始音频问题:
+> - Whisper 输出 50 tokens/秒
+> - 60 分钟 = 180K tokens
+> - 远超 LLM context 限制 (通常 32K-128K)
+> 
+> ASR 文本优势:
+> - 信息密度高
+> - Token 数少很多
+> - 容易与视频帧对齐
+> ```
 
-**公式：**
-$$\mathcal{L} = -\sum_{i=1}^{n} \log P(y_i | y_{<n}, X_{prompt}, X_{video}, X_{asr})$$
+We use **Whisper-large-v3** to generate timestamped ASR transcripts. The model provides sentence-level segments with corresponding start timestamps.
 
-> During training, the **vision encoder is frozen** to enable a larger context length, while **all parameters of the large language model are optimized**.
->
-> ==Vision Encoder 冻结，LLM 全参数优化==
-
----
-
-### 4.2.2 Adaptive Modality Dropping
-
-> To enable a single model to perform well under various deployment conditions, we adopt an **adaptive modality dropping strategy** during training.
->
-> ==训练时随机丢弃模态 → 单模型适应多场景==
-
-**三种配置：**
-| 配置 | 输入 | 目的 |
-|------|------|------|
-| Video + ASR | 两者都有 | 完整多模态 |
-| Video-only | 仅视频 | 处理无 ASR 场景 |
-| ASR-only | 仅 ASR | 处理无视频场景 |
-
-> This strategy **prevents the model from becoming overly reliant on a single modality** and ensures it develops a comprehensive understanding from all available input modalities.
->
-> ==避免模型过度依赖单一模态==
-
-> Consequently, a single trained model can be deployed to handle videos under various conditions during inference.
->
-> ==单一模型适应多种推理场景==
+> 💡 **ASR 格式**: `时间戳: 文本`
+> ```
+> 00:00:00: Hello everyone, welcome to my channel.
+> 00:00:05: Today we will learn how to cook eggs.
+> 00:00:12: First, let's prepare the ingredients.
+> ```
 
 ---
 
-## 4.3 Evaluation Metrics
+### 4.2 Training Strategy
 
-### 4.3.1 现有指标的问题
+> 💡 **4.2 要点预览**: 怎么训练模型？有什么特殊技巧？
 
-> We observe that the primary metrics such as **SODA**, originally developed for dense video captioning, are **not well-suited** for the video chaptering task.
->
-> ==SODA 不适合章节任务==
+We perform **supervised instruction tuning** on VidAtlas and VidChapter-7M using all prompt templates. The training objective is the standard **autoregressive next-token prediction loss** over the target sequence.
 
-**问题1：一对一匹配**
-
-> While SODA enforces a **one-to-one matching** between predicted and ground-truth events to suppress redundancy in overlapping event detection, video chaptering requires segmenting videos into sequential, **non-overlapping chapters**.
->
-> ==SODA 用于检测重叠事件，但章节是连续非重叠的==
-
-**问题2：粒度歧义**
-
-> Chaptering annotations often exhibit **granularity ambiguity**: different annotators may segment the same video at varying levels of detail.
->
-> ==不同标注者可能用不同粒度标注同一视频==
-
-> - Some may annotate **coarse-grained chapters** (e.g., by day in a travel vlog)
-> - Others may provide **fine-grained chapters** (e.g., by each visited site within a day)
->
-> ==例：旅行 vlog 可以按"天"或按"景点"划分==
-
-> This results in multiple valid annotation granularities for the same content.
->
-> ==同一内容可能有多种有效的粒度==
+> 💡 **训练设置**:
+> - **数据**: VidAtlas + VidChapters-7M
+> - **方法**: Supervised Fine-Tuning (SFT)
+> - **损失函数**: 标准 autoregressive next-token loss
+> - **Vision Encoder**: 冻结
+> - **LLM**: 全参数优化
 
 ---
 
-### 4.3.2 GRACE 指标
+**Adaptive Modality Dropping**
 
-> We propose **GRACE**, a metric tailored for video chaptering. It introduces a **many-to-one (set-to-one) matching paradigm**.
+To enable a single model to perform well under various deployment conditions, we adopt an **adaptive modality dropping strategy** during training.
+
+> 💡 **模态丢弃策略**:
+> ```
+> 训练时随机选择三种配置之一:
+> 
+> 配置1: Video + ASR (完整多模态)
+> 配置2: Video-only  (模拟没有语音的场景)
+> 配置3: ASR-only    (模拟没有视频的场景)
+> ```
 >
-> ==GRACE = 多对一匹配范式==
-
-**核心思想：**
-
-> Each ground-truth (predicted) chapter can be matched with **a set of** predicted (ground-truth) chapters.
->
-> ==一个 GT 章节可以匹配多个预测章节，反之亦然==
-
-**公式：**
-
-$$\text{GRACE} = \sum_{(P_i, G_i) \in M(P,G)} \varphi(P_i, G_i) \cdot \text{BERTScore}(P_i, G_i)$$
-
-$$\varphi(P_i, G_i) = \frac{1}{|P_i||G_i|} \sum_{p \in P_i, g \in G_i} \text{IOU}(p, g)$$
-
-**约束条件：**
-- $P_i \cap P_j = \emptyset$ （预测组不重叠）
-- $\cup(P_i) = P$ （覆盖所有预测）
-- $G_i \cap G_j = \emptyset$ （GT组不重叠）
-- $\cup(G_i) = G$ （覆盖所有GT）
-- $\min(|P_i|, |G_i|) = 1$ （至少一侧是单个章节）
-
-**最优匹配：**
-
-> We adopt the **dynamic time warping algorithm (DTW)** to achieve the optimal matching $M(P,G)$, with IOU between two chapters being used as the matching criteria.
->
-> ==用 DTW 动态规划找最优匹配==
+> **好处**:
+> - 单一模型适应多种推理场景
+> - 避免模型过度依赖某一模态
+> - 提高鲁棒性
 
 ---
 
-### 4.3.3 GRACE 优势
+### 4.3 Evaluation Metrics
 
-| 优势 | 说明 |
+> 💡 **4.3 要点预览**: 为什么需要新指标 GRACE？SODA 有什么问题？
+
+We observe that the primary metrics such as **SODA**, originally developed for dense video captioning, are **not well-suited** for the video chaptering task.
+
+> 💡 **SODA 的问题**:
+>
+> **问题1: 一对一匹配太严格**
+> ```
+> SODA 要求: 1个预测 ↔ 1个GT
+> 
+> 但章节任务中:
+> - 模型可能把1个GT章节细分成2个 (更细的粒度)
+> - 这不一定是"错误"，而是"粒度不同"
+> 
+> SODA 会把这算作错误，不合理!
+> ```
+>
+> **问题2: 粒度歧义**
+> ```
+> 同一个旅行视频:
+> 
+> 标注者A (粗粒度):     标注者B (细粒度):
+> ├── Day 1             ├── Day 1 Morning
+> ├── Day 2             ├── Day 1 Afternoon
+> └── Day 3             ├── Day 1 Evening
+>                       ├── Day 2 Morning
+>                       └── ...
+>                       
+> 两种都是"正确的"！
+> ```
+
+---
+
+**GRACE 指标**
+
+We propose **GRACE**, a metric tailored for video chaptering. It introduces a **many-to-one (set-to-one) matching paradigm**.
+
+> 💡 **GRACE 核心思想: Many-to-One 匹配**
+> ```
+> SODA (one-to-one):
+>   预测1 ←→ GT1
+>   预测2 ←→ GT2
+>   预测3 ←→ ???  ← 算错误
+>   
+> GRACE (many-to-one):
+>   {预测1, 预测2} ←→ GT1  ← 允许多个预测对应1个GT
+>   预测3 ←→ GT2
+>   
+>   如果预测1+预测2的时间范围 ≈ GT1的范围
+>   → 认为是"更细粒度的划分"，不算错误
+> ```
+
+Each ground-truth (predicted) chapter can be matched with **a set of** predicted (ground-truth) chapters.
+
+We adopt the **dynamic time warping algorithm (DTW)** to achieve the optimal matching.
+
+> 💡 **GRACE 计算步骤**:
+> 1. 用 DTW 找最优的 many-to-one 匹配
+> 2. 对每对匹配计算 IoU (时间重叠度)
+> 3. 对每对匹配计算 BERTScore (语义相似度)
+> 4. 加权求和得到最终分数
+>
+> **GRACE = Σ IoU × BERTScore**
+
+> 💡 **GRACE vs SODA 对比**:
+> | 维度 | SODA | GRACE |
+> |------|------|-------|
+> | 匹配方式 | one-to-one | **many-to-one** |
+> | 粒度容忍 | 不容忍 | **容忍粒度差异** |
+> | 语义评估 | METEOR | **BERTScore** |
+> | 适用场景 | Dense captioning | **Video chaptering** |
+
+---
+
+### 4.4 Reinforcement Learning with GRPO
+
+> 💡 **4.4 要点预览**: 除了 SFT，还用了强化学习进一步提升
+
+We further improve our model via reinforcement learning (RL). Unlike standard RLHF pipelines which require a separately trained reward model, we adopt **GRPO (Group Relative Policy Optimization)**.
+
+> 💡 **GRPO 是什么？**
+> - 一种强化学习方法
+> - 不需要单独训练 reward model
+> - 直接用评价指标 (F1, SODA) 作为 reward
+
+The reward function is designed to encourage both **high segmentation quality (F1)** and **high captioning quality (SODA)**.
+
+> 💡 **Reward 函数**:
+> ```
+> Reward = F1 + SODA
+> 
+> F1: 评估时间分割质量 (边界准不准)
+> SODA: 评估标题生成质量 (标题好不好)
+> ```
+
+---
+
+## 💡 Section 4 总结
+
+### ARC-Chapter 模型架构
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  输入                                                   │
+│  ├── Prompt: "Generate chapters..."                    │
+│  ├── Video: [帧1, 帧2, ..., 帧768] (≤1fps)             │
+│  └── ASR: "00:00:00: Hello..." (Whisper-v3)           │
+│                    ↓                                    │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │  Qwen2.5-VL-7B                                   │   │
+│  │  ├── Vision Encoder (冻结)                       │   │
+│  │  └── LLM (全参数微调)                            │   │
+│  └─────────────────────────────────────────────────┘   │
+│                    ↓                                    │
+│  输出: "<0:00> Introduction <2:30> Setup <5:00>..."    │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 关键设计决策
+
+| 决策 | 原因 |
 |------|------|
-| **粒度鲁棒** | 不同标注风格都能公平评估 |
-| **语义保真** | 奖励捕获完整内容的模型 |
-| **人类对齐** | 更符合人类对章节边界的判断 |
-
----
-
-## 4.4 Reinforcement Learning with GRPO
-
-### 4.4.1 动机
-
-> While supervised fine-tuning (SFT) achieves strong performance, the standard cross-entropy loss **does not directly optimize** for the primary objective of video chaptering: **temporal accuracy**.
->
-> ==SFT 的交叉熵 loss 无法直接优化时间准确性==
-
-> To further enhance the model's temporal localization capabilities, we introduce a subsequent reinforcement learning phase using the **GRPO algorithm**.
->
-> ==引入 GRPO 强化学习优化时间定位==
-
-### 4.4.2 奖励函数
-
-> We leverage our proposed GRACE metric. However, to specifically sharpen the model's ability to predict accurate timestamps, we formulate a **simplified, temporal-only reward** by **omitting the semantic BERTscore** component.
->
-> ==奖励函数 = GRACE 的时间部分（去掉 BERTScore）==
-
-$$R = \sum_{(P_i, G_i) \in M(P,G)} \varphi(P_i, G_i)$$
-
-> This reward directly reflects the quality of the temporal segmentation.
->
-> ==直接反映时间分割质量==
-
-### 4.4.3 训练设置
-
-| 设置项 | 值 | 原因 |
-|--------|-----|------|
-| 输入模态 | **仅 Video** | 强化视觉推理能力 |
-| 训练数据 | **90k 视频**（中英混合） | 多样性 |
-| 输出格式 | 三种全覆盖 | 全面优化 |
-| 初始化 | SFT best model | 保留语言能力 |
-| KL 系数 | **0.01** | 防止偏离 SFT 太远 |
-
-> The KL divergence coefficient is set to 0.01 to ensure that the policy does not stray far from the robust language generation capabilities learned during SFT, thereby balancing temporal refinement with descriptive quality.
->
-> ==KL 正则化：平衡时间优化和语言质量==
-
----
-
-## 💡 Key Takeaways
-
-1. **架构**：Qwen2.5-VL-7B，冻结 Vision Encoder，微调 LLM
-2. **输入处理**：768 帧上限，ASR 用文本（避免 180k tokens 爆炸）
-3. **Prompt 设计**：18 种模板，覆盖语言×模态×输出格式
-4. **训练策略**：SFT + Adaptive Modality Dropping + GRPO
-5. **GRACE 指标**：多对一匹配，DTW 找最优，解决粒度歧义
-6. **GRPO**：仅优化时间准确性，KL=0.01 防止语言退化
-
----
-
-*[返回论文目录](../README.md)*
+| 用 ASR 文本而非原始音频 | Token 数少，可扩展 |
+| 冻结 Vision Encoder | 保留更长 context |
+| Modality Dropping | 单模型适应多场景 |
+| GRACE 指标 | 容忍粒度差异 |
+| GRPO 强化学习 | 进一步提升 |

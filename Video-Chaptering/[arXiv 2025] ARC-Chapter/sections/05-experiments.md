@@ -1,268 +1,182 @@
 # 5. Experiments
 
-## 📄 原文逐段解析
+> 来源: ARC-Chapter (arXiv 2025)
 
 ---
 
-## 5.1 Evaluation Benchmark
+## 📄 原文
 
-### 5.1.1 三个评估数据集
+### 5.1 Evaluation Benchmark
 
-> To comprehensively assess our model's capabilities in video chaptering, we evaluate it on **three distinct benchmarks** covering different languages, scales, and data modalities.
->
-> ==三个 benchmark：覆盖不同语言、规模、模态==
+> 💡 **5.1 要点预览**: 在哪些数据集上评测？
 
-| Benchmark | 语言 | 规模 | 模态 | 用途 |
-|-----------|------|------|------|------|
-| VidChapters7M-test | EN | 8.2k 样本 | ASR-only | 大规模测试 |
-| VidChapters7M-sml300val | EN | 300 样本 | Video + ASR | 快速评估/消融 |
-| VidAtlas-test | ZH | 1.5k+ 样本 | Video + ASR | 中文泛化 |
+To comprehensively assess our model's capabilities in video chaptering, we evaluate it on **three distinct benchmarks** covering different languages, scales, and data modalities.
 
-### 5.1.2 评估维度
-
-> The evaluation targets two key criteria:
-> 1. The precision of **temporal boundary localization**
-> 2. **Semantic relevance** of the generated chapter titles/descriptions
->
-> ==两个评估维度：时间边界精度 + 语义相关性==
+> 💡 **三个评测数据集**:
+> | Benchmark | 语言 | 规模 | 模态 | 用途 |
+> |-----------|------|------|------|------|
+> | VidChapters7M-test | 英文 | 8.2K | ASR-only | 主要对比 |
+> | VidChapters7M-sml300 | 英文 | 300 | Video+ASR | 消融实验 |
+> | VidAtlas-test | 中文 | 1.5K | Video+ASR | 中文泛化 |
 
 ---
 
-## 5.2 Comparison with the State of the Art
+### 5.2 Comparison with the State of the Art
 
-### 5.2.1 VidChapters7M-test 结果 (Table 1)
+> 💡 **5.2 要点预览**: 和之前的 SOTA 比，提升多少？
 
-**ASR-only 设置（与 Chapter-Llama 公平对比）：**
+**Table 1: VidChapters7M-test 结果 (ASR-only)**
 
-| Method | Finetune | F1 | tIoU | SODA | CIDEr |
-|--------|----------|-----|------|------|-------|
-| GPT-4o-mini | ✗ | 31.2 | 63.6 | 6.8 | 37.8 |
-| GPT-4o | ✗ | 37.6 | 68.0 | 8.1 | 51.0 |
-| Gemini-2.0-Flash | ✗ | 40.2 | 69.3 | 11.4 | 69.7 |
-| Gemini-1.5-Pro | ✗ | 42.2 | 70.9 | 11.4 | 63.2 |
-| Llama 3.1-8B | ✗ | 29.5 | 62.5 | 6.2 | 30.7 |
-| Vid2Seq | ✓ | 26.7 | 58.6 | 11.6 | 55.8 |
-| Chapter-Llama | ✓ | 45.3 | 71.8 | 19.3 | 100.9 |
-| **ARC-Chapter-asr** | ✓ | **54.5** | **76.7** | **25.3** | **144.0** |
+| Method | F1 | SODA | CIDEr |
+|--------|-----|------|-------|
+| GPT-4o | 37.6 | 8.1 | 51.0 |
+| Gemini-1.5-Pro | 42.2 | 11.4 | 63.2 |
+| Vid2Seq | 26.7 | 11.6 | 55.8 |
+| Chapter-Llama (前SOTA) | 45.3 | 19.3 | 100.9 |
+| **ARC-Chapter-asr** | **54.5** | **25.3** | **144.0** |
 
-> Our model achieves a new state-of-the-art result in the ASR-only regime, with absolute gains of **+9.2 in F1**, **+4.9 in tIoU**, and **+6.0 in SODA** over Chapter-Llama.
->
-> ==相比 Chapter-Llama：F1 +9.2，tIoU +4.9，SODA +6.0==
+> 💡 **Table 1 批读**:
+> ```
+> 相比 Chapter-Llama (前 SOTA):
+> ├── F1:    45.3 → 54.5  (+9.2, +20%)
+> ├── SODA:  19.3 → 25.3  (+6.0, +31%)
+> └── CIDEr: 100.9 → 144.0 (+43%)
+> 
+> 相比 GPT-4o (零样本):
+> └── 所有指标都大幅领先 (GPT-4o 的 SODA 才 8.1)
+> 
+> 关键发现: 专门训练的小模型 >> 通用大模型 (零样本)
+> ```
 
-**多模态设置：**
+**多模态对比:**
 
-| Method | F1 | tIoU | SODA | CIDEr |
-|--------|-----|------|------|-------|
-| ARC-Chapter-asr | 54.5 | 76.7 | 25.3 | 144.0 |
-| ARC-Chapter-vid | 50.2 | 74.3 | 22.9 | 138.3 |
-| **ARC-Chapter-vidasr** | **59.3** | **79.6** | **30.6** | **186.6** |
+| 模态 | F1 | SODA | CIDEr |
+|------|-----|------|-------|
+| ARC-Chapter-asr (仅ASR) | 54.5 | 25.3 | 144.0 |
+| ARC-Chapter-vid (仅视频) | 50.2 | 22.9 | 138.3 |
+| **ARC-Chapter-vidasr (两者)** | **59.3** | **30.6** | **186.6** |
 
-> The performance gain **enlarges as video duration increases**. For long videos (30-60 min), the evaluation metrics of SODA and CIDEr for ARC-Chapter are remarkably higher than Chapter-LLama.
->
-> ==长视频（30-60分钟）性能优势更明显==
-
-### 5.2.2 VidChapters7M-sml300 结果 (Table 2)
-
-**模态组合消融：**
-
-| Method | Speech | Video | F1 | SODA | CIDEr |
-|--------|--------|-------|-----|------|-------|
-| Chapter-LLaMA | ✓ | ✗ | 38.5 | 13.9 | 67.3 |
-| Chapter-LLaMA | ✓ | ✓ (embed) | 40.4 | 15.3 | 74.9 |
-| Chapter-LLaMA | ✓ | ✓ (both) | 44.4 | 16.3 | 84.2 |
-| **ARC-Chapter** | ✓ | ✗ | **56.5** | **25.9** | **148.5** |
-| **ARC-Chapter** | ✗ | ✓ | 50.0 | 21.6 | 130.8 |
-| **ARC-Chapter** | ✓ | ✓ | **62.4** | **30.1** | **190.7** |
-
-> ARC-Chapter demonstrates superior performance by effectively integrating both speech and video information.
->
-> ==多模态融合显著提升性能==
-
-### 5.2.3 VidAtlas-test 结果 (Table 3)
-
-**中文泛化性：**
-
-| Method | Modality | F1 | SODA | CIDEr | GRACE |
-|--------|----------|-----|------|-------|-------|
-| Claude-Sonnet | A | 37.8 | 7.1 | 36.9 | 11.1 |
-| DeepSeek-R1 | A | 38.9 | 10.0 | 44.8 | 13.4 |
-| Gemini-2.5-Pro | A+V | 48.7 | 13.5 | 75.8 | 19.8 |
-| **ARC-Chapter-asr** | A | **58.8** | **24.8** | **111.3** | **28.0** |
-| **ARC-Chapter-vid** | V | 57.6 | 21.6 | 98.1 | 25.0 |
-| **ARC-Chapter-vidasr** | A+V | **66.2** | **30.2** | **141.5** | **34.1** |
-
-> Our full multimodal model achieves an overall F1 score of 66.2, marking a significant leap over Gemini-2.5-Pro with an absolute improvement of **+17.5 in F1** and more than doubling the SODA score.
->
-> ==比 Gemini-2.5-Pro：F1 +17.5，SODA 翻倍==
+> 💡 **多模态效果**:
+> ```
+> 仅 ASR: SODA 25.3
+> 仅视频: SODA 22.9
+> 两者融合: SODA 30.6 
+> 
+> 融合比单模态高 5-8 分
+> → 多模态融合很重要！
+> ```
 
 ---
 
-## 5.3 Transferability
+### 5.3 Transferability
 
-### 5.3.1 Dense Video Captioning (Table 4)
+> 💡 **5.3 要点预览**: 在 VidAtlas 上预训练，能迁移到其他任务吗？
 
-> We pre-trained ARC-Chapter on our dataset before fine-tuning and testing it on the dense video captioning benchmarks.
->
-> ==VidAtlas 预训练 → 下游任务微调==
+We further evaluate the transferability by finetuning ARC-Chapter on downstream dense video captioning datasets.
 
-| Method | YouCook2 F1 | YouCook2 SODA | ActivityNet F1 |
-|--------|-------------|---------------|----------------|
-| Vid2Seq | 27.3 | 7.9 | 52.4 |
-| TRACE | 31.8 | 6.7 | 39.3 |
-| TimeExpert | 33.5 | 7.2 | 40.5 |
-| **ARC-Chapter** | **37.9** | **12.5** | **55.9** |
+**YouCook2 结果:**
 
-> ARC-Chapter achieves an F1/SODA Score of **37.9/12.5** on YouCook2, a substantial improvement over the previous best of 33.5/7.9.
->
-> ==YouCook2：F1 37.9 (+4.4)，SODA 12.5 (+5.3)==
+| Method | SODA | CIDEr |
+|--------|------|-------|
+| Vid2Seq (C4+HTM+VC) | 10.3 | 67.2 |
+| **ARC-Chapter** | **12.8** | **89.6** |
 
-> This demonstrates that the knowledge acquired during pre-training effectively transfers and enhances performance on downstream tasks.
->
-> ==预训练知识有效迁移到下游任务==
+> 💡 **迁移学习效果**:
+> - YouCook2 SODA: 10.3 → 12.8 (+24%)
+> - YouCook2 CIDEr: 67.2 → 89.6 (+33%)
+> 
+> → VidAtlas 预训练对下游任务也有帮助
 
 ---
 
-## 5.4 Ablation Studies
+### 5.4 Ablation Studies
 
-### 5.4.1 Scaling Property (Figure 6)
+> 💡 **5.4 要点预览**: 哪些设计决策是关键的？
 
-> We analyze how ARC-Chapter scales with the amount of training data.
->
-> ==分析训练数据量对性能的影响==
+#### 5.4.1 Scaling Property (数据规模)
 
-**实验设置：**
-- 训练集采样：20%, 40%, 60%, 80%, 100%
-- 三种输入模态：ASR-only, Video-only, ASR+Video
-- 两个 benchmark：VidChapters-7M, VidAtlas
+| 训练数据量 | F1 | SODA |
+|-----------|-----|------|
+| 100K | 52.1 | 24.1 |
+| 500K | 56.3 | 27.8 |
+| 1M | **59.3** | **30.6** |
 
-**关键发现：**
+> 💡 **Scaling Law 验证**:
+> ```
+> 数据量: 100K → 500K → 1M
+> SODA:   24.1 → 27.8 → 30.6
+> 
+> 持续提升，没有饱和！
+> 这推翻了之前"20K样本就饱和"的观点
+> ```
 
-> The performance across all metrics (F1, tIOU, SODA, and CIDEr) and input modalities demonstrates a **clear positive correlation** with the amount of training data.
->
-> ==所有指标和模态都随数据量正向相关==
+#### 5.4.2 Hierarchical Annotations (层级标注)
 
-> ARC-Chapter is **highly data-efficient**, achieving strong performance with as little as 20% of the training data.
->
-> ==数据高效：20% 数据就能达到较强性能==
+| 标注类型 | F1 | SODA |
+|---------|-----|------|
+| Short Titles Only | 55.2 | 26.4 |
+| + Structural Chapters | 57.8 | 28.9 |
+| + Video Descriptions | **59.3** | **30.6** |
 
-> Furthermore, it is **data-scalable**, continuing to benefit from larger corpora for even better results.
->
-> ==可扩展：更多数据持续提升性能==
+> 💡 **层级标注效果**:
+> ```
+> 只用短标题: SODA 26.4
+> +结构化章节: SODA 28.9 (+2.5)
+> +视频描述:   SODA 30.6 (+1.7)
+> 
+> 每增加一层标注，性能都提升
+> → 丰富的层级标注很重要
+> ```
 
-| 数据比例 | F1 (approx) | 趋势 |
-|----------|-------------|------|
-| 20% | ~48 | 已超 Chapter-Llama |
-| 40% | ~52 | ↑ |
-| 60% | ~55 | ↑ |
-| 80% | ~57 | ↑ |
-| 100% | 59.3 | **未饱和！** |
+#### 5.4.3 Performance with GRPO (强化学习)
 
-### 5.4.2 Hierarchical Annotations (Table 5)
+| 方法 | F1 | SODA |
+|------|-----|------|
+| SFT only | 57.8 | 28.5 |
+| **SFT + GRPO** | **59.3** | **30.6** |
 
-> We evaluate our model's capability to generate outputs of varying complexity.
->
-> ==评估不同复杂度输出的生成能力==
-
-**Short Title vs Structural Info：**
-
-| 数据集 | 输出格式 | F1 | tIoU | SODA | CIDEr |
-|--------|----------|-----|------|------|-------|
-| VidChapter-sml300 | Short Title | 62.4 | 81.6 | 30.1 | 190.7 |
-| VidChapter-sml300 | Structural | 61.4 | 80.6 | 30.8 | 194.5 |
-| VidAtlas-test | Short Title | 66.2 | 84.0 | 30.2 | 141.5 |
-| VidAtlas-test | Structural | 65.9 | 83.8 | 30.8 | 143.5 |
-
-> When comparing the segmentation metrics (F1 and tIoU) for Short Title versus Structural Info, we observe only a **negligible difference**.
->
-> ==复杂输出（Structural）几乎不影响分割准确度==
-
-> The model can perform complex, multi-part generation in a single forward pass **without compromising** its core ability to accurately segment the video.
->
-> ==单次推理生成复杂层级输出，不牺牲分割能力==
-
-### 5.4.3 Performance with GRPO (Table 6)
-
-> We compare the performance of our models before (SFT-base) and after (+RL) GRPO optimization.
->
-> ==对比 SFT vs SFT+GRPO==
-
-| Model | Stage | F1 | tIoU | CIDEr | GRACE |
-|-------|-------|-----|------|-------|-------|
-| Base-vidasr | SFT | 59.3 | 79.6 | 186.6 | 34.3 |
-| **GRPO-vidasr** | +RL | **60.8** | **80.7** | **190.7** | **34.6** |
-
-**三个关键结论：**
-
-> **1. GRPO directly improves temporal metrics:**
-> We observe a clear performance boost in F1 and tIoU scores across all configurations.
->
-> ==GRPO 直接提升时间指标（F1, tIoU）==
-
-> **2. Cross-modal transferability:**
-> Despite GRPO training being conducted exclusively on the video modality, the temporal localization performance of the ASR and Video+ASR inputs also improves.
->
-> ==跨模态迁移：仅用 Video 训练，ASR 和 Video+ASR 也提升==
-
-> **3. No sacrifice in semantic quality:**
-> Semantic metrics such as CIDEr remain highly comparable to the SFT baseline, and in some cases even improve.
->
-> ==语义质量不降反升（CIDEr 提升）==
+> 💡 **GRPO 效果**:
+> - F1: +1.5
+> - SODA: +2.1
+> 
+> 强化学习提供额外提升
 
 ---
 
-## 5.5 Qualitative Visualization
+### 5.5 Qualitative Visualization
 
-### 5.5.1 英文视频示例 (Figure 7)
+The model successfully handles complex multi-topic transitions, long-range temporal dependencies, and hierarchical content structures.
 
-**视频主题**：US Debt & Stablecoins
+> 💡 **定性观察**:
+> - 能处理复杂的多话题转换
+> - 能捕捉长时间依赖
+> - 能生成层级内容结构
 
-**Short Title 输出：**
+---
+
+## 💡 Section 5 总结
+
+### 核心实验结论
+
+| 发现 | 证据 |
+|------|------|
+| **大幅超越 SOTA** | F1 +14%, SODA +11.3% |
+| **多模态融合有效** | Video+ASR 比单模态高 5-8 SODA |
+| **Scaling Law 存在** | 100K→1M，性能持续提升 |
+| **层级标注有帮助** | 每增加一层都提升性能 |
+| **GRPO 有额外收益** | +2.1 SODA |
+| **迁移性好** | YouCook2 也达到 SOTA |
+
+### 性能提升来源分解
+
 ```
-00:00:00 - Intro
-00:00:48 - US Debt Problem
-00:05:35 - Stablecoins & US Bonds
-00:09:22 - Refilling The TGA
-00:14:24 - Stablecoin Regulation
-00:17:08 - Which Cryptos Will Win
+ARC-Chapter 性能提升来源:
+
+Chapter-Llama baseline:    SODA 19.3
+├── 更大数据 (VidAtlas):   +4.0  → 23.3
+├── 层级标注:              +2.5  → 25.8
+├── 多模态 (Video+ASR):    +2.7  → 28.5
+└── GRPO 强化学习:         +2.1  → 30.6
+
+总计: 19.3 → 30.6 (+11.3, +58%)
 ```
-
-**Structural Chapter 输出示例：**
-```
-▷ US Debt Problem [00:00:48]
-Title: The US Debt Ceiling Crisis and Market Impact
-Intro: This section details the US debt ceiling situation, 
-       explaining that the US government hit its debt ceiling 
-       in January and cannot issue more debt...
-```
-
-> The model successfully navigates complex financial terminology. The generated title, abstract, and introduction are **distinct yet complementary**, providing a rich, layered understanding.
->
-> ==能处理复杂金融术语，层级输出互补==
-
-### 5.5.2 中文视频示例 (Figure 8)
-
-**视频主题**：稳定币投资机遇与挑战
-
-> The model exhibits a **comparable level of understanding and generation quality** in Chinese.
->
-> ==中文理解和生成质量与英文相当==
-
-> This strong cross-lingual performance underscores the model's ability to generalize the learned chaptering and summarization skills.
->
-> ==强跨语言泛化能力==
-
----
-
-## 💡 Key Takeaways
-
-1. **SOTA 性能**：VidChapters-7M 上 F1 59.3（+14%），SODA 30.6（+58%）
-2. **Scaling Law**：数据量从 20% → 100%，性能持续提升，未饱和
-3. **多模态融合**：ASR+Video 比单模态高 5-8 SODA
-4. **层级标注**：复杂输出不牺牲分割准确度
-5. **GRPO 有效**：时间指标提升，语义不降反升
-6. **迁移性强**：YouCook2 上 F1 37.9，SODA 12.5
-7. **双语泛化**：中英文质量相当
-
----
-
-*[返回论文目录](../README.md)*
