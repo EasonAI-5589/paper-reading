@@ -114,11 +114,25 @@ SODA 被广泛用于 Video Chapter Generation 任务：
 
 ---
 
+## 📖 分章阅读
+
+| Section | 内容 |
+|---------|------|
+| [00-abstract](sections/00-abstract.md) | 摘要 |
+| [01-introduction](sections/01-introduction.md) | 引言 & 问题动机 |
+| [02-related-work](sections/02-related-work.md) | 相关工作 |
+| [03-current-framework](sections/03-current-framework.md) | 现有评测框架 |
+| [04-problems](sections/04-problems.md) | ⚠️ 现有框架的问题 |
+| [05-soda-method](sections/05-soda-method.md) | ✨ SODA 方法 (核心) |
+| [06-experiments](sections/06-experiments.md) | 实验结果 |
+| [07-conclusion](sections/07-conclusion.md) | 结论 & 个人理解 |
+
 ## 📂 文件结构
 
 ```
 [ECCV 2020] SODA/
-├── README.md           # 本文件
+├── README.md           # 本文件 (入口)
+├── sections/           # 分章节阅读
 ├── full.md             # MinerU 解析的完整论文
 ├── paper.pdf           # 原始 PDF
 ├── content_list.json   # 结构化内容

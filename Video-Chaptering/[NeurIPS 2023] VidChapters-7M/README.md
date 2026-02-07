@@ -79,11 +79,23 @@
 
 ---
 
+## 📖 分章阅读
+
+| Section | 内容 |
+|---------|------|
+| [00-abstract](sections/00-abstract.md) | 摘要 |
+| [01-introduction](sections/01-introduction.md) | 引言 & 动机 |
+| [02-related-work](sections/02-related-work.md) | 相关工作 |
+| [03-dataset](sections/03-dataset.md) | 数据集构建 |
+| [04-experiments](sections/04-experiments.md) | 实验 |
+| [05-conclusion](sections/05-conclusion.md) | 结论 |
+
 ## 📂 文件结构
 
 ```
 VidChapters-7M/
-├── README.md           # 本文件
+├── README.md           # 本文件 (入口)
+├── sections/           # 分章节阅读
 ├── full.md             # MinerU 解析的完整论文
 ├── paper.pdf           # 原始 PDF
 ├── content_list.json   # 结构化内容
