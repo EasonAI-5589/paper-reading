@@ -135,6 +135,81 @@ In this Section, we present the results of models on VidChapters-7M for the full
 > ---
 >
 > **总结**：看论文结果时，**主要看 SODA (S)**，其次看 CIDEr (C)。时间定位看 R@0.5。
+>
+> ---
+>
+> **评测流程：模型是怎么跑出这些分数的？**
+>
+> ```
+> 整体流程：
+> 
+> 1️⃣ 准备测试集
+>    VidChapters-7M 的 8.2K 测试视频，每个都有 Ground Truth (GT) 章节
+>    
+>    例如某个视频的 GT：
+>    ┌─────────────────────────────────────┐
+>    │ 0:00  "Introduction"                │
+>    │ 2:30  "Ingredients"                 │
+>    │ 5:00  "Cooking Process"             │
+>    │ 8:30  "Final Plating"               │
+>    └─────────────────────────────────────┘
+> 
+> 2️⃣ 模型预测
+>    把视频喂给模型（如 Vid2Seq），模型输出预测的章节
+>    
+>    模型预测结果（可能不完美）：
+>    ┌─────────────────────────────────────┐
+>    │ 0:05  "Intro"                       │  ← 时间差5秒，标题简化了
+>    │ 2:45  "Preparing Ingredients"       │  ← 时间差15秒
+>    │ 5:30  "Cooking"                     │  ← 标题更短
+>    │ 9:00  "Serving"                     │  ← 标题不同但意思接近
+>    │ 10:00 "Outro"                       │  ← 多预测了一个！
+>    └─────────────────────────────────────┘
+> 
+> 3️⃣ 匹配预测和GT
+>    先把预测的章节和 GT 章节配对（用时间 IoU 或最近距离）
+>    
+>    匹配结果：
+>    预测              ←→    GT
+>    "Intro"           ←→    "Introduction"        ✓ 匹配
+>    "Preparing..."    ←→    "Ingredients"         ✓ 匹配
+>    "Cooking"         ←→    "Cooking Process"     ✓ 匹配
+>    "Serving"         ←→    "Final Plating"       ✓ 匹配
+>    "Outro"           ←→    ???                   ✗ 多余的，没有GT对应
+> 
+> 4️⃣ 计算指标
+>    
+>    📊 文本指标（对匹配上的章节，比较标题文字）：
+>    ├── BLEU: "Intro" vs "Introduction" → 部分重叠 → 有分
+>    ├── CIDEr: "Cooking" vs "Cooking Process" → 关键词匹配 → 高分
+>    └── METEOR: "Serving" vs "Final Plating" → 语义相近 → 有分
+>    
+>    📊 时间指标（比较时间边界）：
+>    ├── R@5s: 预测0:05 vs GT 0:00 → 差5秒 → 刚好达标 ✓
+>    ├── R@3s: 差5秒 > 3秒 → 不达标 ✗
+>    └── IoU: 计算时间段重叠率
+>    
+>    📊 SODA（整体评估）：
+>    ├── 找最优匹配（4对匹配成功）
+>    ├── 计算匹配对的 METEOR 分数
+>    ├── 多预测了1个"Outro" → F-measure 惩罚
+>    └── 最终得分
+> 
+> 5️⃣ 汇总所有测试视频
+>    对 8.2K 个测试视频都做上述流程，然后取平均值
+>    
+>    最终报告：SODA=11.4, CIDEr=55.7, R@0.5=48.2, ...
+> ```
+>
+> **简化版理解**：
+> ```
+> 模型做的事：看视频 → 输出 [(时间1,标题1), (时间2,标题2), ...]
+> 评测做的事：拿模型输出 vs 人工标注，算"有多像"
+> 
+> - 标题像不像？→ BLEU, CIDEr, METEOR
+> - 时间准不准？→ R@Ks, IoU
+> - 整体好不好？→ SODA
+> ```
 
 **Implementation details.** Unless stated otherwise, for all models, we use the speech transcripts (ASR) and visual features extracted as explained in Section 3.2. By default, each model is taken from the corresponding official implementation, and all model hyper-parameters are set according to the original papers. We use the Adam optimizer [39] for training and select the final model based on the best validation performance. Our experiments are run on 8 NVIDIA A100 80GB GPUs. More details are included in Appendix Section D.
 
