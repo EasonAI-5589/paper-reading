@@ -18,17 +18,81 @@ In this Section, we present the results of models on VidChapters-7M for the full
 
 **Evaluation metrics.** To evaluate the quality of the generated chapter titles (without their positions), we use standard metrics used for visual captioning: BLEU [70] (B), CIDEr [95] (C), METEOR [7] (M) and ROUGE-L [56] (RL). To evaluate video chapter generation as a whole, including the locations of the generated chapters, we follow standard protocols used for dense video captioning, given the similar nature of the two tasks. We use the standard evaluation tool [42] which calculates matched pairs between generated events and the ground truth across IoU thresholds of {0.3, 0.5, 0.7, 0.9}, and compute captioning metrics over the matched pairs. However, these metrics do not take into account the story of the video and give high scores to methods generating many redundant chapters. Hence for an overall evaluation, we also use SODA_c [22] (S) which first tries to find a temporally optimal matching between generated and reference chapters to capture the story of a video, then computes METEOR scores for the matching and derives F-measure scores from the METEOR scores to penalize redundant chapters. To separately evaluate chapter localization, we report the recall (R@Ks, R@K) and the precision (P@Ks, P@K) across various thresholds in terms of the distance to the ground-truth start time or IoU with the ground-truth start-end window. We also report the average recall (R) and average precision (P) across IoU thresholds of {0.3, 0.5, 0.7, 0.9}.
 
-> 💡 **评价指标速查**:
-> | 指标 | 全称 | 评价什么 | 特点 |
-> |------|------|----------|------|
-> | **S (SODA)** | Story-aware Dense captioning | 整体质量 | ⭐ 最重要，惩罚冗余 |
-> | **B1-B4** | BLEU 1-4 gram | 标题文本 | n-gram 匹配 |
-> | **C** | CIDEr | 标题文本 | TF-IDF 加权 |
-> | **M** | METEOR | 标题文本 | 同义词+词干 |
-> | **R@Ks** | Recall@K秒 | 时间定位 | 起点在K秒内 |
-> | **P@K** | Precision@IoU=K | 时间定位 | IoU 阈值 |
-> 
-> **关键**: SODA 是唯一考虑"视频故事线"的指标，会惩罚生成太多重复章节。
+> 💡 **评价指标详解**:
+>
+> 指标分两大类：**文本质量指标**（评价标题写得好不好）和 **时间定位指标**（评价时间找得准不准）
+>
+> ---
+>
+> **一、文本质量指标（评价章节标题）**
+>
+> | 指标 | 全称 | 大白话解释 | 例子 |
+> |------|------|-----------|------|
+> | **BLEU** | Bilingual Evaluation Understudy | 数"重叠词"有多少 | 预测"炒鸡蛋教程" vs GT"鸡蛋炒法" → 重叠词"鸡蛋"，BLEU有分 |
+> | **CIDEr** | Consensus-based Image Description Evaluation | 数重叠词，但**稀有词加分更多** | "番茄"比"的"更重要，因为"的"到处都有 |
+> | **METEOR** | Metric for Evaluation of Translation with Explicit Ordering | 考虑**同义词和词干** | "cooking"和"cook"算匹配，"film"和"movie"也算 |
+> | **ROUGE-L** | Recall-Oriented Understudy for Gisting Evaluation | 找**最长公共子序列** | 顺序也重要，不只是词袋匹配 |
+>
+> ```
+> 例子：
+> GT 标题: "Making scrambled eggs"
+> 预测标题: "How to cook eggs"
+>
+> BLEU: "eggs" 重叠 → 有分
+> CIDEr: "eggs" 是关键词，加权高 → 分更高
+> METEOR: "cook" ≈ "making" (同义) → 额外加分
+> ROUGE-L: 最长公共子序列 "eggs" → 有分
+> ```
+>
+> ---
+>
+> **二、时间定位指标（评价章节边界）**
+>
+> | 指标 | 含义 | 大白话解释 |
+> |------|------|-----------|
+> | **R@5s** | Recall @ 5秒 | 预测的起点和真实起点**差距在5秒内**，算找对了 |
+> | **R@3s** | Recall @ 3秒 | 更严格，要求差距在3秒内 |
+> | **R@0.5** | Recall @ IoU=0.5 | 预测时间段和真实时间段的**重叠率≥50%** |
+> | **R@0.7** | Recall @ IoU=0.7 | 更严格，重叠率要≥70% |
+> | **P@Ks** | Precision | 同上，但从精确率角度算 |
+>
+> ```
+> 例子：IoU (Intersection over Union) 怎么算？
+>
+> GT 时间段:     |████████████|        (0:00 - 2:00)
+> 预测时间段:        |████████████████|  (0:30 - 3:00)
+>                    |████████|         ← 重叠部分 (0:30 - 2:00) = 1.5分钟
+>                |████████████████████| ← 并集 (0:00 - 3:00) = 3分钟
+>
+> IoU = 重叠 / 并集 = 1.5 / 3 = 0.5
+> → R@0.5 ✅ (≥0.5)
+> → R@0.7 ❌ (<0.7)
+> ```
+>
+> ---
+>
+> **三、最重要的指标：SODA ⭐**
+>
+> | 特点 | 解释 |
+> |------|------|
+> | **考虑故事线** | 不只看单个章节对不对，看整体顺序是否合理 |
+> | **惩罚冗余** | 生成10个重复章节？扣分！ |
+> | **一对多匹配** | GT有3章，你预测5章，会找最优匹配再算分 |
+>
+> ```
+> 为什么 SODA 最重要？
+>
+> 普通指标的问题：
+> - 模型生成100个章节，总有几个能蒙对 → 高分！
+> - 但用户体验很差（太多冗余）
+>
+> SODA 的解决方案：
+> - 先做"最优匹配"（匈牙利算法）
+> - 多余的章节不参与计分
+> - 最后用 F-measure 惩罚冗余
+> ```
+>
+> **总结**：看论文结果时，**主要看 SODA (S)**，其次看 CIDEr (C)。时间定位看 R@0.5。
 
 **Implementation details.** Unless stated otherwise, for all models, we use the speech transcripts (ASR) and visual features extracted as explained in Section 3.2. By default, each model is taken from the corresponding official implementation, and all model hyper-parameters are set according to the original papers. We use the Adam optimizer [39] for training and select the final model based on the best validation performance. Our experiments are run on 8 NVIDIA A100 80GB GPUs. More details are included in Appendix Section D.
 
