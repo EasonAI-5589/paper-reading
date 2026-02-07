@@ -202,7 +202,7 @@ In this Section, we study the task of video chapter generation that requires tem
 
 **Models.** For the video chapter segmentation subtask, we evaluate two zero-shot approaches (i.e., that are not trained on VidChapters-7M): speech text tiling [32], which detects subtopic shifts based on the analysis of lexical co-occurrence patterns, and a visual scene change detection algorithm [92] based on the sum of absolute differences. To derive zero-shot baselines for the full video chapter generation task, we combine text tiling and shot detection with various alternatives that can generate text given text or visual input: a random baseline that predicts a random speech sentence spoken inside the predicted boundaries, LLaMA-7B [93] (prompted to summarize the speech transcript spoken inside the predicted boundaries) and BLIP-2 [51] (prompted to describe the middle video frame of the predicted segment). Finally, we also train and evaluate two state-of-the-art end-to-end dense video captioning models on VidChapters-7M: PDVC [101] which consists of a visual-only DETR-style [11] architecture and Vid2Seq [114] which is a multi-modal sequence-to-sequence model pretrained on the C4 text corpus [74] and on narrated videos with ASR (e.g., YT-Temporal-1B [118]). For Vid2Seq, we also report zero-shot results after pretraining on narrated videos without finetuning on VidChapters-7M.
 
-> 💡 **Baseline 方法总结**:
+> 💡 **Baseline 方法速查**:
 > | 方法 | 分割 | 标题生成 | 特点 |
 > |------|------|----------|------|
 > | Text tiling + Random | 语音主题切换 | 随机选句子 | 最简单 baseline |
@@ -210,6 +210,100 @@ In this Section, we study the task of video chapter generation that requires tem
 > | Shot detect + BLIP-2 | 镜头切换 | 图像描述 | 纯视觉方案 |
 > | PDVC | 端到端 | 端到端 | DETR 风格，纯视觉 |
 > | Vid2Seq | 端到端 | 端到端 | T5 + 多模态，⭐最强 |
+>
+> ---
+>
+> **详细解释每个方法**：
+>
+> **1️⃣ Text Tiling (文本分块) — 分割方法**
+> ```
+> 原理：分析 ASR 转录文本，找"话题切换点"
+> 
+> 怎么找？看相邻句子的"词汇重叠度"
+> - 如果连续几句都在说"鸡蛋、打散、搅拌" → 同一话题
+> - 突然变成"锅、油、加热" → 话题切换！在这里切一刀
+> 
+> 例子：
+> "首先打鸡蛋。把鸡蛋打散。加点盐搅拌均匀。"  ← 话题A
+>                    ↓ 词汇突然变化
+> "现在热锅。倒入食用油。等油热了..."          ← 话题B
+>                    ↑ 在这里切分
+> ```
+>
+> **2️⃣ Shot Detection (镜头检测) — 分割方法**
+> ```
+> 原理：分析视频画面，找"镜头切换点"
+> 
+> 怎么找？比较相邻帧的像素差异
+> - 如果连续帧画面相似 → 同一镜头
+> - 突然画面大变 → 镜头切换！在这里切一刀
+> 
+> 例子：
+> [厨房特写] [厨房特写] [厨房特写]  ← 同一镜头
+>                    ↓ 画面突变
+> [食材全景] [食材全景]              ← 新镜头
+>            ↑ 在这里切分
+> 
+> 问题：镜头切换 ≠ 章节切换（一个章节可能有很多镜头）
+> ```
+>
+> **3️⃣ 标题生成方法对比**
+> ```
+> Random: 从该时间段的 ASR 里随机挑一句当标题
+>         → 结果很差，因为口语句子不适合当标题
+> 
+> LLaMA:  把该时间段的 ASR 喂给 LLM，让它"总结"
+>         → 问题：LLM 生成的是"描述"，不是"标题"
+>         → 例如生成 "The video shows how to cook eggs" 
+>           而不是简洁的 "Cooking Eggs"
+> 
+> BLIP-2: 取该时间段中间那一帧，让图像模型描述
+>         → 问题：一帧画面信息太少，且是"描述"不是"标题"
+> ```
+>
+> **4️⃣ PDVC (Parallel Decoding for Video Captioning)**
+> ```
+> 类型：端到端模型（同时做分割+生成）
+> 架构：DETR 风格（目标检测的思路）
+> 输入：只用视觉特征
+> 
+> 工作原理：
+> 视频帧 → CNN提取特征 → Transformer → 同时输出多个(时间,标题)
+> 
+> 特点：
+> ✅ 端到端，不需要分步
+> ❌ 只用视觉，不用语音 → 效果受限
+> ```
+>
+> **5️⃣ Vid2Seq (Video to Sequence) ⭐ 最强方法**
+> ```
+> 类型：端到端模型
+> 架构：T5 (文本生成模型) + 多模态输入
+> 输入：视觉特征 + ASR 文本
+> 
+> 工作原理：
+> ┌─────────────────────────────────────┐
+> │  视频帧 → CLIP 提取视觉特征         │
+> │     +                               │
+> │  音频 → Whisper 提取 ASR 文本       │
+> │     ↓                               │
+> │  拼接成一个长序列                    │
+> │     ↓                               │
+> │  T5 模型 (seq2seq)                  │
+> │     ↓                               │
+> │  输出: "0:00 Intro 2:30 Setup 5:00 Demo..."
+> └─────────────────────────────────────┘
+> 
+> 预训练数据：
+> - C4: 大规模文本语料（学语言能力）
+> - HowTo100M: 教学视频+ASR（学视频理解）
+> - VidChapters-7M: 章节数据（学章节生成）
+> 
+> 为什么最强？
+> ✅ 多模态：同时用视觉+语音
+> ✅ 预训练：在大量数据上学过
+> ✅ 端到端：一个模型搞定分割+生成
+> ```
 
 **Implementation details.** We use the text tiling implementation from the NLTK library [9] which tokenizes the text into pseudosentences of size 50. We use the shot detection software from the FFMPEG library [92] with a confidence threshold of 0.7. For BLIP-2, we use the 3.4B-parameter variant with FLAN-T5-XL [106] and CLIP ViT-L/14 [20, 72]. We reimplement Vid2Seq [114] (originally released in Jax) in PyTorch, use T5-Base pretrained on C4 [74] for initialization and pretrain Vid2Seq on HowTo100M [64]. More details are included in Appendix Section D.
 
