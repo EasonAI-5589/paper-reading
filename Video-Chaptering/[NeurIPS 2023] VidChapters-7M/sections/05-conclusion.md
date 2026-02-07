@@ -6,160 +6,126 @@
 
 ## 📄 原文
 
-We introduced VidChapters-7M, a large-scale dataset of 817K user-chaptered videos, with over 7M chapters scraped from the Web. We used this dataset to benchmark simple baselines and strong video-text models on the tasks of video chapter generation, video chapter generation given ground-truth boundaries, and video chapter grounding. 
-
-We showed that these tasks are far from being solved, demonstrating the value of VidChapters-7M for video understanding research. We further showed that video chapter generation models pretrained on VidChapters-7M transfer well to dense video captioning benchmarks, largely improving state of the art.
+In this work, we presented VidChapters-7M, a large-scale dataset of user-chaptered videos. Furthermore, we evaluated a variety of baselines on the tasks of video chapter generation with and without ground-truth boundaries and video chapter grounding. Finally, we investigated the potential of VidChapters-7M for pretraining video-language models and demonstrated improved performance on the dense video captioning tasks. VidChapters-7M thus provides a new resource to the research community that can be used both as a benchmark for the video chapter generation tasks and as a powerful means for pretraining generic video-language models.
 
 ### Limitations
 
-1. **Visual features are pre-extracted** at 1 FPS resolution → prevents the model from operating on the original video directly
+As it is derived from YT-Temporal-180M, VidChapters-7M inherits the biases in the distribution of video categories reflected in this dataset.
 
-2. **User-annotated chapters can be noisy** → 3% of videos have chapter titles unrelated to video content; others have titles only related to video structure (step 1, step 2...)
+### Societal Impacts
 
-3. **Tasks are not fully solved** → need better models
-
-### Broader Impacts
-
-**Positive:**
-- Help users navigate long videos more efficiently
-- Improve accessibility for people with hearing/visual impairments
-
-**Negative:**
-- Dataset may contain harmful content (we flag but don't remove NSFW/toxic content)
-- Biases in the data (92.9% English, gender imbalance)
+The development of video chapter generation models might facilitate potentially harmful downstream applications, e.g., video surveillance. Moreover, models trained on VidChapters-7M might reflect biases present in videos from YouTube. It is important to keep this in mind when deploying, analysing and building upon these models.
 
 ---
 
 ## 💡 理解
 
-### 核心要点
-- [x] **主要贡献**: 首个大规模视频章节数据集 + 三个任务 benchmark
-- [x] **关键发现**: 任务远未解决，SOTA Vid2Seq 只有 11.4 SODA
-- [x] **迁移价值**: 预训练后在 dense captioning 上大幅提升
-- [x] **诚实局限**: 承认 1 FPS、噪声、任务未解决等问题
-
-### 论文贡献总结
-
-| 贡献类型 | 具体内容 | 影响 |
-|---------|---------|------|
-| **数据集** | 817K 视频, 7M 章节 | 填补数据空白 |
-| **任务定义** | 3 个任务 + 评估协议 | 建立 benchmark |
-| **Baseline** | Vid2Seq, PDVC 等 | 提供对比基线 |
-| **分析** | 模态重要性、迁移学习 | 指导后续研究 |
-
-### 局限性深入分析
-
-#### 1. 1 FPS 视觉特征
-```
-问题:
-┌─────────────────────────────────────┐
-│  预提取 CLIP 特征 @ 1 FPS           │
-│  → 无法端到端训练                    │
-│  → 可能丢失快速变化的视觉信息        │
-└─────────────────────────────────────┘
-
-影响:
-- 章节边界可能不够精确
-- 无法利用高帧率视觉细节
-
-后续工作方向:
-- 端到端训练 (如 Chapter-Llama)
-- 动态帧采样
-```
-
-#### 2. 标注噪声
-```
-噪声来源:
-┌─────────────────────────────────────┐
-│  3% 完全无关 (spam, 占位符)          │
-│  14% 仅结构信息 (Step 1, Part 2)    │
-│  → 共 17% 低质量标注                 │
-└─────────────────────────────────────┘
-
-影响:
-- 训练时引入噪声
-- 评估时可能不公平
-
-后续工作方向:
-- 自动质量过滤
-- 数据清洗
-```
-
-#### 3. 任务未解决
-```
-SOTA 性能:
-- Video Chapter Generation: SODA = 11.4 (满分 ~100?)
-- 人类表现: 未知
-
-差距分析:
-- 长视频理解能力不足
-- 多模态融合不够好
-- 时序建模有待改进
-```
-
-### 后续工作方向 (基于局限性)
-
-| 方向 | 解决什么问题 | 代表工作 |
-|------|-------------|---------|
-| 端到端训练 | 1 FPS 局限 | Chapter-Llama (CVPR 2025) |
-| LLM 方法 | 长上下文理解 | Chapter-Llama |
-| 更好的视觉编码 | Visual 弱 | ARC-Chapter (2025) |
-| 数据清洗 | 标注噪声 | - |
-| 新评估指标 | SODA 局限 | GRACE (ARC-Chapter) |
-
-### 社会影响分析
-
-**正面影响:**
-```
-┌─────────────────────────────────────┐
-│  ✅ 提升长视频可访问性               │
-│  ✅ 帮助听障/视障用户                │
-│  ✅ 节省用户浏览时间                 │
-│  ✅ 支持视频搜索引擎                 │
-└─────────────────────────────────────┘
-```
-
-**负面影响/风险:**
-```
-┌─────────────────────────────────────┐
-│  ⚠️ 数据偏差 (92.9% 英语)           │
-│  ⚠️ 性别偏差 (男性词 2x 女性词)      │
-│  ⚠️ 可能包含有害内容                 │
-│  ⚠️ 可能被用于监控/审查              │
-└─────────────────────────────────────┘
-```
-
-### 这篇论文的历史地位
+### 核心贡献总结
 
 ```
-2023 年之前: 无大规模视频章节数据集
-     ↓
-2023 NeurIPS: VidChapters-7M 发布
-     ↓
-     ├── 2024: YTSEG (多粒度)
-     ├── 2025 CVPR: Chapter-Llama (LLM 方法, F1: 45.3)
-     └── 2025 arXiv: ARC-Chapter (SOTA, F1: 59.3)
-
-两年内性能提升: F1 25.0 → 59.3 (+137%)
+┌─────────────────────────────────────────────────────────────┐
+│                    VidChapters-7M 贡献                       │
+├─────────────────────────────────────────────────────────────┤
+│  📊 数据集                                                   │
+│  ├── 817K 视频, 7M 章节                                     │
+│  ├── 用户主动标注，高质量语义                               │
+│  ├── 97.3% 含 ASR，支持多模态研究                           │
+│  └── 83% 章节与内容相关                                     │
+├─────────────────────────────────────────────────────────────┤
+│  🎯 任务定义                                                 │
+│  ├── Task 1: Video Chapter Generation (完整任务)            │
+│  ├── Task 2: Chapter Title Generation (给边界)              │
+│  └── Task 3: Video Chapter Grounding (给标题)               │
+├─────────────────────────────────────────────────────────────┤
+│  📈 方法评测                                                 │
+│  ├── Zero-shot: Text Tiling, Shot Detection, LLaMA, BLIP-2  │
+│  ├── Trained: PDVC, Vid2Seq, Moment-DETR                    │
+│  └── Speech+Visual > Speech > Visual                        │
+├─────────────────────────────────────────────────────────────┤
+│  🚀 迁移学习                                                 │
+│  ├── YouCook2: +14 CIDEr                                    │
+│  ├── ViTT: +6 CIDEr                                         │
+│  └── 首个 zero-shot dense captioning 探索                   │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### 我的总结
+### 局限性分析
 
-**这篇论文的核心价值:**
-1. **开创性数据集**: 第一个大规模开源视频章节数据集
-2. **任务定义**: 明确定义了 3 个子任务
-3. **Benchmark**: 为后续研究提供了对比基线
-4. **洞察**: Speech > Visual 的发现指导后续工作
+| 局限 | 详细说明 | 潜在影响 |
+|------|---------|----------|
+| **数据偏见** | 继承 YT-Temporal-180M 的类别分布 | HowTo & Style 过多 (17%) |
+| **语言偏见** | 93% 英语 | 其他语言表现可能差 |
+| **性别偏见** | 男性词汇占比高 | 模型可能有性别倾向 |
+| **平台偏见** | 仅 YouTube 数据 | 不代表所有视频平台 |
 
-**局限但诚实:**
-- 论文坦诚承认 1 FPS、噪声、未解决等问题
-- 这些局限为后续工作指明了方向
+### 社会影响警示
 
-**后续工作验证了价值:**
-- Chapter-Llama, ARC-Chapter 都基于此数据集
-- 证明了数据集的持续影响力
+```
+⚠️ 潜在风险
+├── 监控应用: 自动分析长时间监控视频
+├── 隐私问题: 识别视频中的个人活动
+├── 偏见放大: 继承训练数据的偏见
+└── 版权问题: 自动分析受版权保护的内容
 
-### 我的疑问
-- [x] 为什么不用更高帧率？→ 计算成本太高，长视频处理困难
-- [x] 人类在这个任务上表现如何？→ 论文没有报告，但应该远高于机器
-- [x] 这个任务的"天花板"在哪？→ 可能受限于标注本身的主观性，不同人可能有不同的章节划分
+✅ 建议措施
+├── 部署前进行偏见审计
+├── 限制高风险应用
+├── 标注 NSFW/toxic 内容
+└── 开放数据促进研究透明
+```
+
+### 这篇论文开启了什么研究方向？
+
+1. **Video Chaptering 作为独立任务**
+   - 不同于 Dense Captioning
+   - 更符合用户需求（导航而非理解）
+
+2. **用户生成标注的价值**
+   - 无需昂贵人工标注
+   - 规模化获取高质量数据
+
+3. **多模态融合的必要性**
+   - Speech 比 Visual 重要 2x
+   - 最佳性能需要两者结合
+
+4. **预训练数据的 Scaling Law**
+   - 更多章节数据 → 更好的迁移效果
+
+### 后续工作方向
+
+根据论文局限和实验结果，可能的后续研究方向：
+
+1. **多模态 Grounding 模型**
+   - Moment-DETR 只支持视觉
+   - 需要支持 Speech + Visual 的定位模型
+
+2. **更强的 LLM 集成**
+   - LLaMA 直接用失败
+   - 需要更好的 prompt engineering 或 finetuning
+
+3. **跨语言/跨平台泛化**
+   - 当前主要是英语/YouTube
+   - 探索其他语言和平台
+
+4. **更细粒度的章节生成**
+   - 当前任务只生成一级章节
+   - 可以探索层级结构
+
+### 我的总体评价
+
+**优点:**
+- ✅ 数据集规模大、质量高
+- ✅ 任务定义清晰、有实用价值
+- ✅ 实验全面、消融充分
+- ✅ 迁移学习验证了预训练价值
+
+**不足:**
+- ⚠️ 只使用 CLIP 特征，没有端到端训练
+- ⚠️ Grounding 任务没有多模态探索
+- ⚠️ 缺少人类评估
+
+**对我 Apple 面试的启示:**
+- Video Chaptering 是一个**未充分探索**的任务
+- 语音模态**非常重要**，甚至比视觉更重要
+- 用户生成标注是**可扩展的数据来源**
+- **SODA 比 CIDEr 更适合**评估有序事件
