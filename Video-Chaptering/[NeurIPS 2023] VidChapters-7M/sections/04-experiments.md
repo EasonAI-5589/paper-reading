@@ -276,33 +276,73 @@ In this Section, we study the task of video chapter generation that requires tem
 > ```
 >
 > **5️⃣ Vid2Seq (Video to Sequence) ⭐ 最强方法**
+>
+> **名字含义**: Vid2Seq = Video to Sequence = 视频 → 序列
+> - 输入：一整个视频
+> - 输出：一串文字序列，包含时间戳和标题
+>
+> **它是什么？**
 > ```
-> 类型：端到端模型
-> 架构：T5 (文本生成模型) + 多模态输入
-> 输入：视觉特征 + ASR 文本
+> Vid2Seq 是 Google 在 2023 年提出的视频理解模型。
 > 
-> 工作原理：
-> ┌─────────────────────────────────────┐
-> │  视频帧 → CLIP 提取视觉特征         │
-> │     +                               │
-> │  音频 → Whisper 提取 ASR 文本       │
-> │     ↓                               │
-> │  拼接成一个长序列                    │
-> │     ↓                               │
-> │  T5 模型 (seq2seq)                  │
-> │     ↓                               │
-> │  输出: "0:00 Intro 2:30 Setup 5:00 Demo..."
-> └─────────────────────────────────────┘
+> 核心思想：把"视频章节生成"当作"翻译"任务
+> - 机器翻译：英文句子 → 中文句子
+> - Vid2Seq：视频内容 → "时间+标题"序列
 > 
-> 预训练数据：
-> - C4: 大规模文本语料（学语言能力）
-> - HowTo100M: 教学视频+ASR（学视频理解）
-> - VidChapters-7M: 章节数据（学章节生成）
+> 输出长这样：
+> "<0:00> Introduction <2:30> Ingredients <5:00> Cooking <8:30> Plating"
+>    ↑         ↑          ↑        ↑
+>  时间戳    标题      时间戳    标题
+> ```
+>
+> **架构解释**:
+> ```
+> Vid2Seq 基于 T5 模型
 > 
-> 为什么最强？
-> ✅ 多模态：同时用视觉+语音
-> ✅ 预训练：在大量数据上学过
-> ✅ 端到端：一个模型搞定分割+生成
+> T5 是什么？
+> - Google 的文本生成模型 (Text-to-Text Transfer Transformer)
+> - 把所有 NLP 任务都当作"文本→文本"
+> - 例如：翻译、摘要、问答，都是输入文本→输出文本
+> 
+> Vid2Seq 的改进：
+> - 在 T5 基础上，加入视频理解能力
+> - 输入不只是文本，还有视频帧特征
+> ```
+>
+> **工作流程**：
+> ```
+> ┌─────────────────────────────────────────────────────┐
+> │  输入                                               │
+> │  ├── 视频帧 → CLIP 提取特征 → [v1, v2, v3, ...]    │
+> │  └── 音频 → Whisper 提取 ASR → "Hello, today..."   │
+> │                     ↓                               │
+> │  拼接成一个长序列: [v1, v2, ..., "Hello", "today"] │
+> │                     ↓                               │
+> │  T5 Encoder (理解输入)                             │
+> │                     ↓                               │
+> │  T5 Decoder (生成输出)                             │
+> │                     ↓                               │
+> │  输出: "<0:00> Intro <2:30> Setup <5:00> Demo"     │
+> └─────────────────────────────────────────────────────┘
+> ```
+>
+> **预训练数据**：
+> | 数据 | 规模 | 学到什么 |
+> |------|------|----------|
+> | C4 | 大规模文本 | 语言理解和生成能力 |
+> | HowTo100M | 1M 教学视频 | 视频+ASR 对齐 |
+> | VidChapters-7M | 817K 视频 | 章节分割+标题生成 |
+>
+> **为什么 Vid2Seq 最强？**
+> ```
+> ✅ 多模态：同时用视觉+语音（而 PDVC 只用视觉）
+> ✅ 预训练充分：C4 + HowTo100M + VidChapters-7M
+> ✅ 端到端：一个模型同时做分割+生成（不需要分步）
+> ✅ 灵活：可以只用语音、只用视觉、或两者一起用
+> 
+> 实验证明：
+> - Vid2Seq (语音) > PDVC (视觉)
+> - Vid2Seq (语音+视觉) > Vid2Seq (语音)
 > ```
 
 **Implementation details.** We use the text tiling implementation from the NLTK library [9] which tokenizes the text into pseudosentences of size 50. We use the shot detection software from the FFMPEG library [92] with a confidence threshold of 0.7. For BLIP-2, we use the 3.4B-parameter variant with FLAN-T5-XL [106] and CLIP ViT-L/14 [20, 72]. We reimplement Vid2Seq [114] (originally released in Jax) in PyTorch, use T5-Base pretrained on C4 [74] for initialization and pretrain Vid2Seq on HowTo100M [64]. More details are included in Appendix Section D.
