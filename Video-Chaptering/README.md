@@ -18,10 +18,10 @@
 
 | 论文 | 会议 | 年份 | 贡献 | 链接 |
 |------|------|------|------|------|
-| [ARC-Chapter](./ARC-Chapter/) | arXiv | 2025.11 | **最新 SOTA**, GRACE 指标, VidAtlas 数据集 | [arxiv](https://arxiv.org/abs/2511.14349) · [项目](https://arcchapter.github.io/) |
-| Chapter-Llama | CVPR | 2025.03 | 小时级视频章节, LLM 文本域方法 | [arxiv](https://arxiv.org/abs/2504.00072) · [项目](https://imagine.enpc.fr/~lucas.ventura/chapter-llama/) |
+| [ARC-Chapter](./[arXiv%202025]%20ARC-Chapter/) | arXiv | 2025.11 | **最新 SOTA**, GRACE 指标, VidAtlas 数据集 | [arxiv](https://arxiv.org/abs/2511.14349) · [项目](https://arcchapter.github.io/) |
+| [Chapter-Llama](./[CVPR%202025]%20Chapter-Llama/) | CVPR | 2025.03 | 小时级视频章节, LLM 文本域方法 | [arxiv](https://arxiv.org/abs/2504.00072) · [项目](https://imagine.enpc.fr/~lucas.ventura/chapter-llama/) |
 | YTSEG | EACL | 2024 | YouTube 章节分割, 多粒度 benchmark | [arxiv](https://arxiv.org/abs/2402.17279) |
-| [VidChapters-7M](./VidChapters-7M/) | NeurIPS | 2023 | **THE benchmark** (817K 视频, 7M 章节) + Baseline | [arxiv](https://arxiv.org/abs/2309.13952) · [项目](https://antoyang.github.io/vidchapters.html) |
+| [VidChapters-7M](./[NeurIPS%202023]%20VidChapters-7M/) | NeurIPS | 2023 | **THE benchmark** (817K 视频, 7M 章节) + Baseline | [arxiv](https://arxiv.org/abs/2309.13952) · [项目](https://antoyang.github.io/vidchapters.html) |
 
 ---
 
