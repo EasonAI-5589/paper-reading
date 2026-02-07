@@ -129,9 +129,24 @@ The most represented video category (in YouTube's glossary) is HowTo & Style, ma
 > - ASR 输出的是**逐句的语音转录**，非常细碎（平均 4 秒一句）
 >
 > **关键洞察 ⭐**: ASR 和 Chapter 差距巨大！
-> - 数量：270 句 vs 8 章 = **32 倍压缩**
-> - 时长：4 秒 vs 142 秒 = **36 倍聚合**
-> - 这说明 Chapter 是高度抽象的语义总结，不能简单从 ASR 映射
+> 
+> | 对比 | ASR (语音转录) | Chapter (章节) |
+> |------|---------------|----------------|
+> | 数量 | 270 句/视频 | 8 章/视频 |
+> | 单条时长 | **4 秒** (细碎) | **142 秒** (粗粒度) |
+> | 词数 | 11.5 词/句 | 5.4 词/章 |
+> 
+> **一句话理解**: Chapter 是 ASR 的**浓缩版**——把 32 句细碎的语音转录，压缩成 1 个简洁的章节标题。
+> 
+> 例如：
+> ```
+> ASR (30句): "好，我们开始。" "首先拿出鸡蛋。" "然后打散。" 
+>             "加点盐。" "热锅。" "倒油。" ... (省略24句)
+>                           ↓ 浓缩
+> Chapter (1个): "食材准备与炒蛋"
+> ```
+> 
+> → 这说明 Chapter 是高度抽象的语义总结，不能简单从 ASR 映射，需要模型学会"总结"
 
 **Biases.** Using the langdetect language detection tool, we find that 92.9%/93.9% of total videos in VidChapters-7M have their chapter titles/ASR in English. However, as shown in Figure 3 (bottom right), the distribution of chapter languages includes a long tail of languages, e.g., 13 languages appear in more than 1K videos of VidChapters-7M. We also use GenBit to measure gender bias in the chapters and ASR. We observe that the percentage of female/male/non-binary gendered words is 19.7%/39.7%/40.7% for the chapters, and 11.6%/35.6%/52.8% for the ASR.
 
