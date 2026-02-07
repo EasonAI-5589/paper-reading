@@ -1,0 +1,1595 @@
+[
+    {
+        "type": "text",
+        "text": "DivPrune: Diversity-based Visual Token Pruning for Large Multimodal Models ",
+        "text_level": 1,
+        "bbox": [
+            106,
+            130,
+            898,
+            152
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Saeed Ranjbar Alvar, Gursimran Singh†, Mohammad Akbari†, Yong Zhang Huawei Technologies Canada Co., Ltd. ",
+        "bbox": [
+            200,
+            179,
+            795,
+            215
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "{saeed.ranjbar.alvar1, gursimran.singh1, mohammad.akbari, yong.zhang3}@huawei.com ",
+        "bbox": [
+            140,
+            219,
+            854,
+            233
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Abstract ",
+        "text_level": 1,
+        "bbox": [
+            251,
+            268,
+            325,
+            285
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Large Multimodal Models (LMMs) have emerged as powerful models capable of understanding various data modalities, including text, images, and videos. LMMs encode both text and visual data into tokens that are then combined and processed by an integrated Large Language Model (LLM). Including visual tokens substantially increases the total token count, often by thousands. The increased input length for LLM significantly raises the complexity of inference, resulting in high latency in LMMs. To address this issue, token pruning methods, which remove part of the visual tokens, are proposed. The existing token pruning methods either require extensive calibration and fine-tuning or rely on suboptimal importance metrics which results in increased redundancy among the retained tokens. In this paper, we first formulate token pruning as Max-Min Diversity Problem (MMDP) where the goal is to select a subset such that the diversity among the selected tokens is maximized. Then, we solve the MMDP to obtain the selected subset and prune the rest. The proposed method, DivPrune, reduces redundancy and achieves the highest diversity of the selected tokens. By ensuring high diversity, the selected tokens better represent the original tokens, enabling effective performance even at high pruning ratios without requiring fine-tuning. Extensive experiments with various LMMs show that DivPrune achieves state-of-the-art accuracy over 16 image- and video-language datasets. Additionally, DivPrune reduces both the end-to-end latency and GPU memory usage for the tested models. The code is available here⋄. ",
+        "bbox": [
+            93,
+            300,
+            482,
+            722
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "1. Introduction ",
+        "text_level": 1,
+        "bbox": [
+            94,
+            750,
+            220,
+            766
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Following the success of Large Language Models (LLMs) in language understanding [1, 6, 43], Large Multimodal Models (LMMs) [21, 24, 25, 55] have emerged to handle diverse data types like images and video, by leveraging the foundational capabilities of LLMs. Typically, LMMs encode text and visual modalities into tokens, also known as embeddings. These tokens are then combined and processed by an integrated LLM. The inclusion of visual tokens significantly increases the total number of tokens, often adding thousands to the combined set. Since the running time and memory requirements scale quadratically with input size [7, 8, 17, 41], the addition of visual tokens can substantially raise the running time for LMMs. Hence, many of these models often struggle to meet the demands of lowlatency applications, particularly in resource-constrained environments [49]. ",
+        "bbox": [
+            93,
+            775,
+            482,
+            864
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "image",
+        "img_path": "images/5d4ca29a6241cf8a1e634fde44bd1e735c6d126d1529b06b734ee2a996ef2350.jpg",
+        "image_caption": [
+            "Figure 1. Comparison of different visual token pruning methods across various pruning ratios for LLaVA 1.5-7B. The y-axis is the performance averaged on COCO (CIDEr), OKVQA (Acc), POPE (F1), and MMBench (Acc). The $\\mathbf { X } ^ { }$ -axis is the TFLOP ratio of the model after token pruning compared to the original model before pruning. The proposed method significantly outperforms all baselines. Note that, unlike other methods, FitPrune uses an additional calibration step to prune tokens. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            544,
+            273,
+            875,
+            462
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            516,
+            607,
+            903,
+            757
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Previous research [4, 38, 50] has demonstrated that there is a high degree of redundancy in the visual information processed by LMMs. As a result, visual token pruning has emerged as a promising solution to address the computational complexity challenges faced by LMMs. Specifically, previous research has demonstrated that reducing the number of visual tokens by $50 \\%$ [4] to $9 5 \\%$ [38] can significantly enhance the inference speed of LMMs. ",
+        "bbox": [
+            516,
+            761,
+            903,
+            882
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "While promising, token pruning methods have certain shortcomings. For example, the works in [3, 19, 23, 50] require calibration or finetuning for each model which is costly and time-consuming to implement. FastV [4] and PruMerge [38] use attention scores to identify less important tokens for pruning. However, it is shown that using attention scores is not optimal, as some important tokens are overlooked [23]. Additionally, attention-based pruning tends to retain tokens that are similar to each other, leading to redundancy. At high compression ratio, this redundancy prevents the selection of a sufficient number of unique tokens to accurately represent the original tokens. In line with this observation, our findings indicate that pruning a large portion of visual tokens using these methods, without subsequent fine-tuning, results in a significant drop in the performance of LMMs across various tasks (Fig. 1). ",
+        "bbox": [
+            535,
+            886,
+            903,
+            900
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "† Authors have equal contributions. ⋄ https://github.com/vbdi/divprune ",
+        "bbox": [
+            117,
+            876,
+            302,
+            898
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            22,
+            270,
+            60,
+            707
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            93,
+            92,
+            482,
+            318
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "To address the above-mentioned issues, we formulate token pruning as a Max-Min Diversity Problem (MMDP) [37]. In an MMDP, the objective is to select a subset of elements such that the diversity among them is maximized. We apply this concept to token pruning, which we call DivPrune, aiming to maximize the diversity of the selected tokens by increasing the minimum distance between them. By ensuring high diversity, DivPrune captures a broader range of visual tokens, making it inherently more robust compared to attention-based methods that focus only on token importance scores. Increasing the diversity also helps ensure that the selected tokens better represent the original set of tokens, enabling effective performance even at high pruning ratios without the need for fine-tuning. ",
+        "bbox": [
+            93,
+            320,
+            482,
+            530
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "DivPrune also offers practical advantages that make it a highly useful solution in real-world scenarios. DivPrune is a plug-and-play solution that can be used without requiring offline optimization with a calibration set, or fine-tuning of the model, which are often time-consuming and computationally expensive. DivPrune is applicable to LMMs with any LLM architecture and vision encoder. Additionally, DivPrune is compatible with inference optimization techniques, such as KV caching, resulting in practical speedup in real-world applications. In summary, our major contributions are as follows: ",
+        "bbox": [
+            93,
+            532,
+            482,
+            696
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "• We introduce DivPrune, a token pruning method based on MMDP that maximizes diversity among visual tokens, effectively reducing redundancy and ensuring a highly representative subset.   \n• DivPrune is a training-free, calibration-data-free, plugand-play solution that can be seamlessly integrated with off-the-shelf LMMs.   \n• We conduct evaluations using 16 datasets on imageand video-language models with image and video understanding tasks. DivPrune achieves state-of-the-art performance, with noticeable gains under extreme pruning (i.e., ratio $\\geq 8 0 \\%$ ).   \n• DivPrune reduces GPU memory usage and inference la",
+        "bbox": [
+            93,
+            704,
+            482,
+            901
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "tency while maintaining comparable accuracy compared to the original model across most datasets. ",
+        "bbox": [
+            529,
+            92,
+            905,
+            121
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "2. Related Works ",
+        "text_level": 1,
+        "bbox": [
+            516,
+            136,
+            661,
+            151
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "2.1. Large Multimodal Models (LMMs) ",
+        "text_level": 1,
+        "bbox": [
+            517,
+            160,
+            820,
+            176
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "LMMs handle diverse data types, including text, audio, image, and, video [5, 21, 24, 25, 32, 42, 55]. This work focuses on open-source LMMs that support language and visual inputs. These LMMs can be categorized into two types: image-based and video-based LMMs. The imagebased LMMs [24, 25] address image-language understanding tasks, like image captioning, visual question answering, and image reasoning. On the other hand, video-based LMMs are geared towards video understanding [21, 55] tasks, like video captioning, video summarization, and video question answering. ",
+        "bbox": [
+            516,
+            184,
+            903,
+            349
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "2.2. Efficient LMMs ",
+        "text_level": 1,
+        "bbox": [
+            516,
+            359,
+            671,
+            376
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Several techniques are proposed to improve inference efficiency specifically for LMMs. The first technique is to change the model architecture in LMMs. For example, [35] proposed to replace transformer-based LLMs with Mamba model [13]. [52, 56] retrained LMMs with small scale LLMs to improve their efficiency. [48] used knowledge distillation to train a small LMM. In addition to changing the architecture, it is shown in [39] that skipping some blocks or layers within LMMs can improve the inference speed without damaging the model’s performance. Furthermore, efficient decoding techniques such as speculative decoding are proposed to make LMM inference more efficient [11]. ",
+        "bbox": [
+            516,
+            383,
+            903,
+            564
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "2.3. Visual Token Pruning ",
+        "text_level": 1,
+        "bbox": [
+            517,
+            574,
+            717,
+            590
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Visual token pruning methods are proposed to reduce the inference complexity for LMMs. The first group of methods uses attention scores to prune tokens [4, 38]. PruMerge [38] introduces a token pruning method for the vision encoder where the visual tokens are clustered and merged based on their attention sparsity. In addition, FastV [4] prunes tokens within a specific layer of the LLM based on the magnitude of attention scores in an earlier layer. It is shown that pruning tokens based on attention scores are not optimal [14, 23], especially at higher pruning ratios. ",
+        "bbox": [
+            516,
+            598,
+            903,
+            750
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Calibration-based methods offer another line of work, where pruning layers and/or ratios are determined by analyzing the LLM outputs for a calibration dataset [23, 50]. For example, FitPrune [50] calculates a pruning recipe based on the observed attention divergence before and after pruning. VTW [23] argues that visual tokens can be entirely removed after a certain layer within LLM. The layer to remove the visual tokens is chosen using a calibration dataset. These methods rely on calibration datasets and require custom calibration for each LMM, which can be costly and ",
+        "bbox": [
+            516,
+            750,
+            903,
+            900
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "image",
+        "img_path": "images/d4a555a2315535d9b90784a997208386cbe2e52f45b97ef7de143897b1ebf6fd.jpg",
+        "image_caption": [
+            "Figure 2. An overview of the LMM architecture, with DivPrune applied to visual tokens. The blocks on the right-hand side illustrate the steps of the method. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            96,
+            90,
+            480,
+            285
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "cumbersome for new models. ",
+        "bbox": [
+            94,
+            356,
+            287,
+            369
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Some previous works proposed token pruning with the need for fine-tuning. ${ \\bf M } ^ { 3 }$ [3] applies model fine-tuning to produce nested visual token representations at multiple granularities, allowing users to select token lengths dynamically during inference. In [19], a projector layer trained using a large-scale dataset is proposed that packs finer detailed information into compact token representations. These methods need significant computational resources for training, limiting their use across various scenarios. ",
+        "bbox": [
+            93,
+            371,
+            482,
+            506
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "3. Proposed Method ",
+        "text_level": 1,
+        "bbox": [
+            93,
+            518,
+            263,
+            536
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "In this section, we briefly discuss how LMMs work. Then, the token pruning problem is defined, followed by a detailed presentation of the proposed method. ",
+        "bbox": [
+            93,
+            545,
+            482,
+            590
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "3.1. Large Multimodal Models (LMMs) ",
+        "text_level": 1,
+        "bbox": [
+            93,
+            599,
+            397,
+            616
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "An LMM typically processes a pair of inputs, denoted as $( T , V )$ , where $T$ is the text input and $V$ is the visual input such as image or video. The text input is mapped to $N$ textual tokens $\\mathbf { E _ { t } } = \\{ t _ { 1 } , \\ldots , t _ { N } \\}$ using a text encoder. Similarly, the visual input is processed by a corresponding vision encoder. Specifically, it takes visual information $V$ as input and outputs image features, that are further converted to $M$ (generally $M \\gg N$ ) vision tokens $\\mathbf { E _ { v } } = \\{ v _ { 1 } , \\dots , v _ { M } \\}$ using a projector layer (Fig. 2). ",
+        "bbox": [
+            93,
+            622,
+            482,
+            758
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "The textual tokens and visual tokens are then combined to be fed to an LLM to generate the prediction in an autoregressive manner. Specifically, $\\hat { N }$ output tokens ${ \\textbf { Y } } =$ $\\{ y _ { 1 } , \\dotsc , y _ { \\hat { N } } \\}$ are generated as follows: ",
+        "bbox": [
+            93,
+            760,
+            480,
+            820
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "img_path": "images/8862568020e529b328361af8a27600398e06a3bccd17a6bee7c1fe190e4fc562.jpg",
+        "text": "$$\nP ( y _ { 1 } , . . . , y _ { \\hat { N } } \\mid \\mathbf { E _ { t } } , \\mathbf { E _ { v } } ) = \\prod _ { i = 1 } ^ { \\hat { N } } P ( y _ { i } \\mid y _ { < i } , \\mathbf { E _ { t } } , \\mathbf { E _ { v } } ) ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            106,
+            829,
+            449,
+            876
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "where $P ( \\ u )$ is the conditional probability obtained at the ",
+        "bbox": [
+            93,
+            885,
+            482,
+            901
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "output of the LLM. ",
+        "bbox": [
+            516,
+            92,
+            643,
+            106
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "3.2. Token Pruning ",
+        "text_level": 1,
+        "bbox": [
+            516,
+            113,
+            665,
+            130
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Reducing the number of input tokens in an integrated LLM within LMMs helps to lower memory usage and inference latency. Since visual tokens tend to have more redundancy, they are generally selected for pruning. ",
+        "bbox": [
+            516,
+            137,
+            905,
+            198
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "In this context, the problem of token pruning can be defined as follows: given a set of visual tokens $\\mathbf { E _ { v } }$ with $| { \\bf E } _ { \\bf v } | = M$ and the subset size $\\tilde { M }$ $( \\tilde { M } < M )$ , the goal is to select a subset, $\\tilde { \\mathbf { E } } _ { \\mathbf { v } }$ , while preserving key information necessary for accurate predictions. To mathematically formulate the token pruning problem, we define a mapping function $f$ , which maps the original set of visual tokens, $\\mathbf { E _ { v } }$ , to a subset, $\\tilde { \\mathbf { E } } _ { \\mathbf { v } } = \\{ \\tilde { v } _ { 1 } , \\hdots , \\tilde { v } _ { \\tilde { M } } \\}$ , where $| \\tilde { \\mathbf { E } } _ { \\mathbf { v } } | = \\tilde { M }$ . The objective is to identify a mapping function $f$ that minimizes the difference in the model’s output before and after pruning while ensuring the reduced set still captures the essential information from the original set: ",
+        "bbox": [
+            516,
+            199,
+            905,
+            377
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "img_path": "images/948f6056d3cdd340cbc584762098a8e0eb538fdfdde4fe968abb5bf4aa6c755f.jpg",
+        "text": "$$\n\\begin{array} { r l r } & { } & { \\mathrm { F i n d : } \\quad f : { \\bf E } _ { v }  \\tilde { { \\bf E } } _ { \\bf v } } \\\\ & { } & { \\mathrm { O b j e c t i v e : } \\quad \\underset { f } { \\operatorname* { m i n } } \\mathcal { L } \\big ( \\mathcal { P } , \\tilde { \\mathcal { P } } \\big ) } \\\\ & { } & { \\mathrm { S u b j e c t : } \\quad \\mathrm { | \\tilde { \\bf E } _ { v } | = \\tilde { M } , } } \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            617,
+            383,
+            802,
+            455
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "where $\\begin{array} { r c l c r c l } { \\mathcal { P } } & { = } & { \\displaystyle { P ( y _ { 1 } , \\ldots , y _ { \\hat { N } } } } & { \\mid } & { \\mathbf { E _ { t } } , \\mathbf { E _ { v } } ) } \\end{array}$ and $\\begin{array} { r l } { \\tilde { \\mathcal P } } & { { } = } \\end{array}$ $P ( y _ { 1 } , . . . , y _ { \\hat { N } } \\mid \\mathbf { E _ { t } } , f ( \\mathbf { E _ { v } } ) )$ . Here, $\\mathcal { L }$ represents a loss function that measures the difference in the model’s output with and without pruning, and $\\tilde { M }$ indicates the number of retained tokens. Next, we propose a novel diversity-based solution for the introduced token pruning problem. ",
+        "bbox": [
+            516,
+            462,
+            905,
+            553
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "3.3. DivPrune: Method Overview ",
+        "text_level": 1,
+        "bbox": [
+            517,
+            560,
+            772,
+            577
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "We proposed a diversity-based token pruning method by reformulating the problem in (2) to select a subset of $\\tilde { M }$ elements that maximizes the diversity, thereby reducing redundancy. Specifically, we define token pruning as Max–Min Diversity Problem (MMDP) [34] where the goal is to find the set $\\tilde { \\mathbf { E } } _ { \\mathbf { v } }$ among all possible sets with $\\tilde { M }$ samples in $\\mathbf { E _ { v } }$ that has the maximum minimum distance between its elements. So, MMDP is defined as: ",
+        "bbox": [
+            516,
+            584,
+            905,
+            705
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "img_path": "images/98d270a3c8ae467af911e9b6868da9ed7095aeb6f890a4442769bd34c0328f1d.jpg",
+        "text": "$$\n\\mathrm { F i n d ~ } \\tilde { \\mathbf { E } } _ { \\mathbf { v } } = \\arg \\operatorname* { m a x } \\left[ \\operatorname* { m i n } _ { \\gamma , \\omega \\in S } \\left( d ( \\gamma , \\omega ) \\right) : \\forall S \\subset \\mathbf { E } _ { \\mathbf { v } } \\right] ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            531,
+            709,
+            867,
+            744
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "where $S$ is an arbitrary set in $\\mathbf { E _ { v } }$ with $\\tilde { M }$ elements and $( \\gamma , \\omega )$ are arbitrary elements in $S$ . The distance is measured by $d ( . , . )$ which is defined using the cosine distance as follows: ",
+        "bbox": [
+            516,
+            752,
+            903,
+            811
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "img_path": "images/abc1f24788cb1700d14584f23ee8f7e260461431e3c4f7c23c25acbea54718fc.jpg",
+        "text": "$$\nd ( \\gamma , \\omega ) = 1 - \\frac { \\gamma \\cdot \\omega } { \\| \\gamma \\| \\| \\omega \\| } .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            629,
+            808,
+            792,
+            838
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "A solution for the MMDP problem in (3) is a subset of $\\mathbf { E _ { v } }$ that maximizes diversity by minimizing redundancy between elements. In the literature, several solutions including exact and heuristic methods are proposed to solve the ",
+        "bbox": [
+            516,
+            840,
+            903,
+            900
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "1 $\\tilde { M }$ : subset size; $\\mathbf { E _ { v } }$ : visual tokens; $\\tilde { \\mathbf { E } } _ { \\mathbf { v } }$ : selected subset 2 Initialize $\\tilde { \\bf E } _ { \\bf v } = [ ]$ and $\\mathbf { R } = \\mathbf { E } _ { \\mathbf { v } }$ 3 // First stage: add the first token 4 $D = [ ]$ initialize the distance array 5 for $_ { i }$ in R do $\\begin{array} { r } {  \\begin{array} { c } { { \\bf { 6 } } } \\\\ { { \\bf { 7 } } } \\\\ { { \\bf { 8 } } } \\\\ { { \\bf { \\Psi } } } \\\\ { { \\bf { 9 } } } \\\\ { { \\bf { 1 0 } } } \\end{array} | \\begin{array} { c } { { d _ { m i n } = + i n f } } \\\\ { { \\bf { f o r } } { \\bf { \\Psi } } { j i n } { \\bf { R } } { \\bf { d 0 } } } \\\\ { { \\bf { \\Psi } } } \\\\ { { \\bf { d } } { d _ { m i n } } = { d ( i , j ) } } \\end{array} \\{ { d _ { m i n } } \\} { \\bf { t h e n } } } \\\\ { { \\bf { 9 } } } \\\\ { { \\bf { 1 0 } } { \\bf { \\Psi } } { k } = { \\bf { R } } [ { \\bf { a r g } } \\operatorname* { m a x } { \\bf { \\Psi } } ( { \\bf { D } } ) ] } \\\\ { { \\bf { 1 1 } } \\mathrm { { ~ m o v e } } k \\mathrm { f r o m } { \\bf { R } } \\mathrm { t o } \\tilde { \\bf { E } } _ { \\bf { v } } } \\end{array}$ 12 $/ /$ Second stage: iteratively add the subsequent tokens 13 while $| \\tilde { \\mathbf { E } } _ { \\mathbf { v } } | < \\tilde { M }$ do 14 $D = [ ]$ initialize the distance array 15 for $_ { i }$ in R do 16 $d _ { m i n } = + i n f$ 17 for j in E˜v do 18 If $d ( i , j ) \\leq d _ { m i n }$ then $d _ { m i n } = d ( i , j )$ 19 Add $d _ { m i n }$ to $D$ 20 k = R[arg max (D)] 21 move $k$ from R to $\\tilde { \\mathbf { E } } _ { \\mathbf { v } }$ 22 Return E˜v ",
+        "bbox": [
+            84,
+            113,
+            434,
+            450
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "MMDP problem [31, 37]. Since the number of tokens is generally limited (e.g., 576 in LLaVA 1.5 [24]) and the solvers are not generally designed for GPU acceleration, we obtain exact solution for the problem. Notably, the overhead of the selection process using GPU is negligible compared to the computations within the LLM. Detailed steps of the proposed method is summarized in Algorithm 1. Once the selected tokens are identified, the remaining visual tokens are discarded. The selected tokens along with the textual tokens are passed to the LLM. ",
+        "bbox": [
+            93,
+            488,
+            482,
+            637
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "As shown in Algorithm 1, the proposed method has two stages after the initialization. The selected subset, $\\tilde { \\mathbf { E } } _ { \\mathbf { v } }$ , is initialized as empty, and the candidate list $\\mathbf { R }$ is initialized with all the visual tokens. In the first stage, the first token of the selected subset is chosen based on the pairwise distance between the tokens of the candidate list. Then, the chosen token is moved from the candidate list to the selected list. In the second stage, similar to the first stage, the pairwise distance of the tokens in $\\tilde { \\mathbf { E } } _ { \\mathbf { v } }$ and the tokens in $\\mathbf { R }$ is used to add samples to $\\tilde { \\mathbf { E } } _ { \\mathbf { v } }$ iteratively. Finally, once the number of tokens in $\\tilde { \\mathbf { E } } _ { \\mathbf { v } }$ reaches the specified subset size, the selection procedure is terminated and the $\\tilde { \\mathbf { E } } _ { \\mathbf { v } }$ is returned. To avoid repeated distance calculations over iterations a distance matrix is initially calculated by one matrix multiplication. ",
+        "bbox": [
+            93,
+            642,
+            482,
+            852
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "The proposed method can also be applied to the features (i.e., hidden states) in the intermediate layers of the LLM. In this case, our method is not applied to the visual tokens, but to the features corresponding to the visual tokens obtained from a decoder layer to select a subset before feeding them to the subsequent layers. In either case, our method obtains the highest diversity for the selected elements. Ablation studies are provided in the next section to analyze the effect of pruning different elements at different layers. ",
+        "bbox": [
+            93,
+            856,
+            482,
+            900
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            516,
+            92,
+            905,
+            181
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "4. Experiments ",
+        "text_level": 1,
+        "bbox": [
+            516,
+            194,
+            643,
+            212
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "In this section, we present a comprehensive analysis comparing the performance of our method and previous works across various settings, tasks, and datasets. Insights into the proposed method are also provided through illustrative examples. Moreover, the efficiency of DivPrune along with ablation study are provided. ",
+        "bbox": [
+            516,
+            220,
+            905,
+            310
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "4.1. Experimental Settings ",
+        "text_level": 1,
+        "bbox": [
+            517,
+            319,
+            720,
+            335
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Baselines and Models: We consider five baselines, namely, FastV [4], PruMerge [38], VTW [23], FitPrune [50] and ${ \\bf { M } } ^ { 3 }$ [3]. Among these, we consider FastV, PruMerge, and VTW as our main competitors as they are plug-and-play and do not rely on any further costly finetuning or calibration process. However, for the sake of completeness, we also report performance comparison with respect to one finetuning-based $( \\mathbf { M } ^ { 3 } )$ and one calibration-based (FitPrune) methods. Note that, VTW, by default, requires calibration to determine the best layer for a given task. However, doing that does not allow us to set a specific TFLOP ratio, complicating the comparison. Hence, whenever required we disable the calibration of VTW to select the layer that matches the FLOP requirement of a particular experiment. ",
+        "bbox": [
+            516,
+            343,
+            905,
+            553
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "We test DivPrune and the baselines with popular LMMs namely LLaVA 1.5-7B $[ 2 4 ] ^ { 1 }$ , LLaVA 1.5-13B $[ 2 4 ] ^ { 2 }$ LLaVA $1 . 6 \\mathrm { - } 7 \\mathbf { B } ^ { 3 }$ (also known as LLaVA-NeXT [25]), and LLaVANeXT-Video-7B $[ 5 5 ] ^ { 4 }$ to demonstrate the generality of DivPrune. For each tested model and task, we report only the relevant subset of baseline that is applicable to that specific model and task, alongside our results. ",
+        "bbox": [
+            516,
+            555,
+            903,
+            659
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "All the tested LMMs used CLIP vision encoder [36]. LLaVA 1.5 model uses 576 visual tokens to represent images. LLaVA 1.6 converts each image into a varying number of patches, resulting in 3-5 times more visual tokens compared to LLaVA 1.5. LLaVA-NeXT-Video uses 144 tokens to process each frame. For all the experiments with LLaVA-NeXT-Video we used a total of 8 frames resulting in 1152 tokens for the processed frames. ",
+        "bbox": [
+            516,
+            660,
+            903,
+            780
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Datasets, Tasks, and Metrics: We selected a comprehensive set of common tasks and datasets aimed at multimodal reasoning and understanding. Specifically, we chose 11 image-language and 5 video-language datasets. ",
+        "bbox": [
+            516,
+            781,
+            903,
+            842
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "discarded",
+        "text": "1https://huggingface.co/liuhaotian/llava-v1.5-7B 2https://huggingface.co/liuhaotian/llava-v1.5-13b 3https://huggingface.co/liuhaotian/llava-v1.6-vicuna-7b 4https://huggingface.co/lmms-lab/LLaVA-NeXT-Video-7B-DPO ",
+        "bbox": [
+            532,
+            849,
+            874,
+            900
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "discarded",
+        "text": "Algorithm 1: Proposed Token Pruning Method ",
+        "bbox": [
+            102,
+            94,
+            415,
+            109
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "These datasets encompass a wide range of tasks, including captioning, multiple-choice Question Answering (QA), and open-ended QA based on text and image/video inputs. Consistent with prior works, CIDEr score [45] is used for evaluating captioning tasks, and Exact Match (EM), Accuracy (Acc), F1, Perception Score (P-score) [9] and GPTassisted [10] score are used for QA tasks. Furthermore, Wu-Palmer similarity (WUPS) score [46] and GPT-assisted score [10] is used for open-ended QA. For all task performance metrics used in this paper, higher values indicate better performance. For the reported time and memory, lower values indicate better results. Further details regarding the datasets, tasks, and metrics are provided in the supplementary material. ",
+        "bbox": [
+            93,
+            92,
+            482,
+            301
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Following the earlier works in [4, 23, 50], we report the computational requirement, measured in TFLOPs, for DivPrune and the baselines. Various configurations including different pruning ratios at different layers are examined to obtain different working TFLOPs for our method and the baselines. The reported TFLOP ratio is the TFLOP of the model with pruned tokens relative to the original model’s TFLOP with no pruning. This ratio is estimated as [4]: ",
+        "bbox": [
+            93,
+            303,
+            482,
+            424
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "img_path": "images/aaa1e6a7ef80738bb05c938a0383838d220b13df9f1f07cd0b49b3f1a385748e.jpg",
+        "text": "$$\n\\frac { K \\times ( 4 \\mu d ^ { 2 } - 2 \\mu ^ { 2 } d + 2 \\mu d m ) + ( T - K ) \\times ( 4 \\tilde { \\mu } d ^ { 2 } - 2 \\tilde { \\mu } ^ { 2 } d + 2 \\tilde { \\mu } d m ) } { T \\times ( 4 \\mu d ^ { 2 } - 2 \\mu ^ { 2 } d + 2 \\mu d m ) } ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            106,
+            434,
+            449,
+            460
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "where $T$ is the total transformer-based decoder layers. $\\mu = N + M$ is the total sequence length before pruning, $\\tilde { \\mu } = N + \\tilde { M }$ is the sequence length after pruning, $d$ is the hidden state size of the layer, and $m$ is the intermediate size of feed-forward network module. Depending on the TFLOP ratio requirement set by a particular experiment, we adjust the pruning hyperparameters of all baselines to match that requirement. However, some baselines do not support fine-grained adjustments like our approach does. In these cases, we choose the smallest available TFLOP ratio that exceeds the requirement set by an experiment, which might give these baselines a slight advantage over our method. ",
+        "bbox": [
+            93,
+            472,
+            482,
+            651
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "We used ${ 8 \\times \\vee 1 0 0 }$ GPUs with 32GB VRAM for all the experiments in this paper. Additionally, we used the lmmsevals package [54] for running these benchmarks for all the baselines and models. All results are obtained with a batch size of 1. For the metrics that require ChatGPT API access, the model is set to “gpt-4o-mini”. ",
+        "bbox": [
+            93,
+            654,
+            482,
+            743
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "4.2. Insights ",
+        "text_level": 1,
+        "bbox": [
+            93,
+            755,
+            187,
+            770
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "We provide visualizations comparing DivPrune with importance-based token pruning methods using LLaVA 1.5- 7B and the SeedBench dataset [18]. Detailed analysis across different models and datasets is provided in the following subsections. ",
+        "bbox": [
+            94,
+            779,
+            482,
+            854
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "The visual tokens in LLaVa 1.5 model are 4096- dimensional vectors. The t-SNE method [44] is utilized to project the visual tokens in $\\mathbf { E _ { v } }$ from a high dimensional to a 2D space. The corresponding visualization for a sample input data is shown in Fig. 3-(a) using light Pruple points. Then, DivPrune is applied to select $10 \\%$ of the visual tokens (i.e., pruning $90 \\%$ ). Additionally, FastV, as an importance-based token pruning method, which utilizes attention scores, is employed to prune with the same ratio. The selected subsets using DivPrune and FastV are shown with different markers in Fig. 3-(a). More examples are provided in the supplementary materials. ",
+        "bbox": [
+            93,
+            856,
+            480,
+            900
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            516,
+            90,
+            903,
+            227
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "As the example in Fig. 3-(a) shows, the proposed method selects points from all the clusters that appeared in the projected space whereas FastV does not choose any samples from the upper cluster. So, our method achieves a better representation of the original points by including samples from all clusters. In addition, the FastV method selects many tokens that are very close to each other which increases redundancy among the selected set. On the other hand, our method reduces redundancy by pruning the closely similar tokens. ",
+        "bbox": [
+            516,
+            228,
+            903,
+            377
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "image",
+        "img_path": "images/4afc43ceb1e35eb69f2a97bedd3231e0fe4ba5b91ba871f31507c3c10f8e9bd8.jpg",
+        "image_caption": [
+            "Figure 3. (a) t-SNE visualization of visual tokens for the original model, our method, and FastV. (b) Histogram of the Max-Min distance between the selected tokens over the SeedBench dataset. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            531,
+            402,
+            890,
+            843
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "table",
+        "img_path": "images/ebe9e508f333c386954bce790177a3728f8761a036d93ac60ad38fb6b62fee3b.jpg",
+        "table_caption": [],
+        "table_footnote": [
+            "Table 1. Comparison results of our method and different baselines on image-language understanding datasets. •: Finetuning is used, $\\triangle$ Calibration dataset is used. $\\mathbf { O u r s } ^ { \\ast }$ : Our method matching the PruMerge selection ratio. "
+        ],
+        "table_body": "<table><tr><td></td><td>Method</td><td>TFLOP (ratio %)</td><td>COCO CIDEr</td><td>Flickr CIDEr</td><td>GQA EM</td><td>MMB Acc</td><td>MME P-score</td><td>MMMU Acc</td><td>Nocaps CIDEr</td><td>OKVQA EM</td><td>POPE F1</td><td>SQA EM</td><td>SEEDB Acc</td></tr><tr><td rowspan=\"9\">2</td><td>Original</td><td>3.228 (100.00)</td><td>1.10</td><td>0.75</td><td>61.96</td><td>64.09</td><td>1506</td><td>36.44</td><td>1.06</td><td>53.39</td><td>85.84</td><td>69.41</td><td>66.17</td></tr><tr><td>VTW [23]</td><td>0.603 (18.46)</td><td>0.05</td><td>0.03</td><td>38.94</td><td>21.31</td><td>681</td><td>32.60</td><td>0.03</td><td>18.64</td><td>25.35</td><td>65.29</td><td>36.13</td></tr><tr><td> FastV 4]</td><td>0.514 (15.69)</td><td>0.06</td><td>0.03</td><td>38.73</td><td>20.62</td><td>696</td><td>32.00</td><td>0.04</td><td>18.32</td><td>32.84</td><td>65.15</td><td>35.69</td></tr><tr><td>Ours</td><td>0.512 (15.63)</td><td>0.96</td><td>0.62</td><td>56.85</td><td>59.19</td><td>1328</td><td>35.89</td><td>0.92</td><td>46.98</td><td>86.02</td><td>68.27</td><td>59.47</td></tr><tr><td>PruMerge [38]</td><td>Variable</td><td>0.77</td><td>0.50</td><td>51.30</td><td>54.47</td><td>1259</td><td>35.11</td><td>0.73</td><td>41.74</td><td>66.89</td><td>68.91</td><td>53.26</td></tr><tr><td>Ours*</td><td>Variable</td><td>0.91</td><td>0.56</td><td>55.25</td><td>58.16</td><td>1330</td><td>35.44</td><td>0.87</td><td>44.38</td><td>83.06</td><td>67.87</td><td>57.88</td></tr><tr><td>FitPrune2 [50]</td><td>0.513 (15.65)</td><td>0.90</td><td>0.56</td><td>52.39</td><td>57.65</td><td>1197</td><td>36.00</td><td>0.86</td><td>42.53</td><td>60.89</td><td>68.02</td><td>54.84</td></tr><tr><td>M 3(3}</td><td>0.512 (15.63)</td><td>1.00</td><td>0.67</td><td>60.81</td><td>65.81</td><td>1391</td><td>31.80</td><td>0.95</td><td>55.12</td><td>86.33</td><td>64.65</td><td>64.93</td></tr><tr><td>PruMerge-LoRA</td><td>Variable</td><td>0.96</td><td>0.63</td><td>55.96</td><td>59.88</td><td>1334</td><td>34.89</td><td>0.90</td><td>47.99</td><td>77.13</td><td>68.32</td><td>57.93</td></tr><tr><td rowspan=\"4\"></td><td>Original</td><td>6.281 (100.00)</td><td>1.16</td><td>0.80</td><td>63.33</td><td>68.64</td><td>1522</td><td>35.67</td><td>1.09</td><td>58.28</td><td>85.99</td><td>72.88</td><td>66.82</td></tr><tr><td>VTW [23]</td><td>1.030 (16.16)</td><td>0.08</td><td>0.05</td><td>39.71</td><td>21.91</td><td>622</td><td>32.10</td><td>0.05</td><td>22.49</td><td>0.40</td><td>66.24</td><td>38.59</td></tr><tr><td>FastV [4]</td><td>1.003 (15.73)</td><td>0.38</td><td>0.18</td><td>44.98</td><td>37.80</td><td>942</td><td>35.11</td><td>0.33</td><td>32.14</td><td>30.02</td><td>69.96</td><td>44.95</td></tr><tr><td>Ours</td><td>1.002 (15.71)</td><td>1.00</td><td>0.66</td><td>57.29</td><td>63.40</td><td>1407</td><td>34.89</td><td>0.95</td><td>53.29</td><td>83.43</td><td>72.34</td><td>62.04</td></tr><tr><td rowspan=\"2\">20</td><td>PruMerge2 [38]</td><td>Variable</td><td>0.80</td><td>0.53</td><td>52.01</td><td>58.93</td><td>1256</td><td>36.56</td><td>0.77</td><td>49.15</td><td>64.36</td><td>72.53</td><td>56.10</td></tr><tr><td>Ours*</td><td>Variable</td><td>0.94</td><td>0.59</td><td>56.09</td><td>61.77</td><td>1344</td><td>34.89</td><td>0.91</td><td>50.86</td><td>79.60</td><td>71.34</td><td>60.00</td></tr><tr><td></td><td>Original</td><td>11.849 (100.00)</td><td>1.00</td><td>0.68</td><td>64.28</td><td>67.01</td><td>1520</td><td>36.44</td><td>0.88</td><td>44.20</td><td>86.38</td><td>70.15</td><td>70.16</td></tr><tr><td></td><td>VTW [23]</td><td>1.318 (11.23)</td><td>0.06</td><td>0.03</td><td>38.62</td><td>19.76</td><td>606</td><td>31.30</td><td>0.03</td><td>8.66</td><td>7.13</td><td>65.74</td><td>37.48</td></tr><tr><td></td><td>FastV [4]</td><td>1.327 (11.30)</td><td>0.06</td><td>0.03</td><td>38.79</td><td>20.36</td><td>619</td><td>32.56</td><td>0.04</td><td>8.80</td><td>7.78</td><td>65.49</td><td>37.62</td></tr><tr><td>20</td><td>Ours</td><td>1.266 (10.79)</td><td>0.89</td><td>0.61</td><td>58.69</td><td>63.49</td><td>1362</td><td>37.11</td><td>0.76</td><td>41.92</td><td>82.97</td><td>68.57</td><td>64.11</td></tr><tr><td></td><td>$M$ ^a3}</td><td>1.266 (10.79)</td><td>1.01</td><td>0.67</td><td>62.97</td><td>69.16</td><td>1490</td><td>35.00</td><td>0.85</td><td>57.49</td><td>87.44</td><td>69.51</td><td>68.49</td></tr></table>",
+        "bbox": [
+            93,
+            88,
+            903,
+            382
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "In addition, the max-min distance (Eq. 3) for the selected subset of tokens is computed using 1000 randomly data samples from the SeedBench dataset and the histogram of the computed values is shown in Fig. 3-(b). As the plot indicates, the proposed method selects a subset where samples have a higher minimum pair-wise distance compared to the FastV method. Hence, our method achieves higher diversity among the selected tokens that have less redundancy compared to the ones chosen using FastV. We analyze the effect of the reduced diversity on task performance in the following sections. ",
+        "bbox": [
+            93,
+            436,
+            480,
+            602
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "4.3. Image-Language Understanding ",
+        "text_level": 1,
+        "bbox": [
+            96,
+            617,
+            375,
+            632
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "In this section, we compare DivPrune against baselines across various image-language understanding tasks, including open- and closed-ended QA, visual reasoning, and image captioning. Specifically, ScienceQA-IMG (SQA) [27], POPE [20], MME [9], MMB [26], GQA [16], MMMU [53], Flicker30k [33], SeedBench (SEEDB) [18], Nocaps [2], OKVQA [30], and COCO-2017 [22] are used. ",
+        "bbox": [
+            93,
+            642,
+            480,
+            747
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "In the first experiment, summarized in Tab. 1, we analyze an extreme compression scenario for three imagebased LMMs by fixing the TFLOP ratio at approximately $15 \\%$ , wherever the baseline allows configuration to a fixed TFLOP ratio. Since PruMerge does not allow fixing the TFLOP ratio, we configure our approach (Ours\\*) to match the variable pruning corresponding to PruMerge for a fair comparison. In the top section of the table, we compare the results of various baselines for LLaVa 1.5-7B. Specifically, the baselines supporting LLaVA 1.5 are grouped into three categories: plug-and-play methods, those with a variable TFLOP ratio, and those requiring a calibration dataset or involving fine-tuning the LMMs. Among the plug-andplay methods, which are the focus of this work, our approach significantly outperforms both the VTW and FastV baselines across all datasets. This result holds despite using lower TFLOPs, clearly demonstrating the advantage of our method in this scenario. For instance, when DivPrune is used, the performance of LLaVA 1.5-7b decreases by $5 . 1 \\%$ on the GQA dataset and $4 . 9 \\%$ on the MMB dataset. In contrast, the VTW and FastV methods result in performance drops of at least $2 3 . 0 \\%$ and $4 2 . 8 \\%$ on these datasets, respectively. The performance gap between DivPrune and the baseline methods is even more pronounced in image captioning tasks. For example, the CIDEr score on the COCO dataset drops by approximately $9 5 \\%$ with VTW and FastV, but only by $12 . 7 \\%$ with DivPrune. Additionally, DivPrune, compared to the original model, shows less than a $2 \\%$ performance drop on the MMMU and SQA datasets and slightly enhances the original model’s performance on the POPE dataset while reducing the TLOP ratio by $8 4 . 4 \\%$ . It is shown that removing redundant tokens in some datasets can improve the original model’s performance [4]. ",
+        "bbox": [
+            93,
+            750,
+            480,
+            900
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            516,
+            438,
+            905,
+            782
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Next, in the variable scenario, the pruning ratio is determined dynamically. To ensure a fair comparison, we matched the pruning ratio with that of the PruMerge baseline, assuming the average sequence length for calculating the average TFLOPs across each dataset. As indicated by the results, our approach consistently outperforms PruMerge across all benchmarks, except one. Further, for the baseline with calibration, we observe that our approach outperforms the FitPrune approach on nearly all datasets by up to $2 5 . 1 \\%$ , despite not using any calibration dataset. Finally, compared to baselines involving fine-tuning, our method achieves comparable or superior performance without requiring any fine-tuning. ",
+        "bbox": [
+            516,
+            795,
+            903,
+            900
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "table",
+        "img_path": "images/1ad9753e256636aa062e7c31362dfabf882267e8209ffe86a632588c49d26c5e.jpg",
+        "table_caption": [],
+        "table_footnote": [
+            "Table 2. Comparison results of our method and baselines on LLaVA-NeXT-Video-7B across video-language understanding datasets. "
+        ],
+        "table_body": "<table><tr><td></td><td>TFLOPs (ratio %)</td><td>ActivityNet Score/Acc</td><td>SeedBench Acc</td><td>VChatGPT Score</td><td>NextQA WUPS</td><td>EgoSch. Acc</td><td>Max GPU mem (GB)</td><td>Prefill Time (sec)</td><td>E2E Latency (sec)</td></tr><tr><td>Original</td><td>6.539 (100)</td><td>2.67 / 48.10</td><td>38.7</td><td>2.16</td><td>26.05</td><td>41.8</td><td>14.06</td><td>0.330</td><td>4.37</td></tr><tr><td>VTW [23]</td><td>1.124 (16.97)</td><td>1.61 / 26.84</td><td>29.39</td><td>1.19</td><td>18.66</td><td>25.42</td><td>13.63</td><td>0.150</td><td>3.43</td></tr><tr><td>FastV [4]</td><td>0.943 (14.20)</td><td>1.95 / 33.91</td><td>32.98</td><td>1.44</td><td>22.51</td><td>29.14</td><td>13.57</td><td>0.150</td><td>3.63</td></tr><tr><td>Ours</td><td>0.937 (14.10)</td><td>2.56 / 45.90</td><td>37.00</td><td>1.92</td><td>24.48</td><td>39.76</td><td>13.51</td><td>0.161</td><td>3.39</td></tr></table>",
+        "bbox": [
+            133,
+            89,
+            856,
+            175
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            93,
+            214,
+            482,
+            304
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "The above experiment is repeated with LLaVa 1.5-13B model and the results are shown in the middle part of Tab. 1. The baselines that support this model are FastV, VTW, and PruMerge. As shown in the table, DivPrune outperforms the corresponding baselines in both plug-and-play and variable scenarios almost on all the tested datasets. For example, on the POPE dataset, DivPrune outperforms VTW, FastV, and PruMerge with F1 score improvements of $83 \\%$ , $5 3 . 4 \\%$ , and $1 5 . 2 \\%$ , respectively. Additionally, on the MMB dataset, DivPrune achieves higher accuracy rates of $4 1 . 5 \\%$ , $2 5 . 6 \\%$ , and $2 . 8 \\%$ compared to VTW, FastV, and PruMerge, respectively. This demonstrates that DivPrune generalizes effectively across models with varying numbers of parameters. ",
+        "bbox": [
+            93,
+            308,
+            482,
+            502
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "In the bottom part of Tab. 1, the results corresponding to LLaVA 1.6-7B model are shown. We used the same pruning ratio as for LLava 1.5. However, the lower TFLOP ratio is due to the large number of visual tokens in LLaVA 1.6. The results indicate that the performance of the model drops significantly when baseline pruning methods are applied. For example, the F1 score on the POPE dataset drops by $79 \\%$ with the baselines as compared to the original model, whereas the drop with DivPrune is only $3 . 4 \\%$ . DivPrune also maintains competitive performance compared to the original model across various datasets. Specifically, DivPrune shows only $3 . 5 \\%$ , $2 . 3 \\% , 3 . 4 \\% , 1 . 6 \\%$ drop in accuracy compared to the original model on the MMB, OKVQA, POPE, and SQA datasets, respectively, while reducing the TFLOP by $89 \\%$ . The results also demonstrate that pruning visual tokens with DivPrune enhances the original model’s performance on the MMMU task. These results show that DivPrune generalizes across different models. Qualitative examples as well as results with additional datasets are provided in the supplementary materials. ",
+        "bbox": [
+            93,
+            506,
+            482,
+            808
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Furthermore, we show the comparison of different baselines and our method across various TFLOP ratios. We plot the results in Fig. 1 where the y-axis represents average performance on four datasets, namely, COCO (CIDEr), OKVQA (Acc), POPE (F1), and MMBench (Acc). The range of the performance metric for all datasets is between ",
+        "bbox": [
+            93,
+            810,
+            480,
+            900
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "0 and 1, except for the CIDEr metric, which has a maximum reported value of 1.10. On the $\\mathbf { X }$ -axis, we only show the high compression scenario (TFLOP ratio $\\leq 4 5 \\%$ ). As shown in the figure, our method significantly outperforms all the baselines, particularly in high compression scenarios $( \\mathrm { T F L O P } \\leq 2 5 \\% )$ ). Further, we notice a steep drop in performance of all baselines as the TFLOP ratio $ 1 0$ , while our method falls more gracefully. This results in an increasing performance gap between our approach and the baselines at extreme compression levels. For higher TFLOP ratios almost all converge toward the original performance, with FitPrune slightly outperforming our approach by an insignificant margin. It is important to note that, unlike our method, FitPrune relies on a calibration dataset to prune tokens. ",
+        "bbox": [
+            516,
+            214,
+            903,
+            424
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "4.4. Video-Language Understanding ",
+        "text_level": 1,
+        "bbox": [
+            517,
+            436,
+            795,
+            453
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "In this section, LLaVA-NeXT-Video-7B [25], a video-based LMM is used to analyze the performance of the proposed method on various video-language understanding tasks. Specifically, we evaluate DivPrune using five datasets, namely, ActivityNet [51], SeedBench [18], VideoChatGPT (temporal) [28], NextQA [47], and EgoSchema [29]. FastV and VTW methods are chosen as the baselines. We tested DivPrune using the same pruning ratio as in the image understanding experiments. However, due to the higher number of visual tokens in the LLaVA-NeXT-Video model, this pruning ratio results in lower TFLOPs ratio. For the baselines, we match their TFLOPs with ours by selecting the smallest available TFLOP ratio that exceeds the TFLOPs of our method. The results for the original model, DivPrune, and the baselines are given in Tab. 2. As shown in the table, DivPrune outperforms both FastV and VTW by a significant margin. Specifically, DivPrune achieves upto $12 \\%$ higher accuracy than FastV and upto $19 \\%$ better than VTW on Video QA datasets including ActivityNet, SeedBench, and EgoSchema. DivPrune also outperforms both baselines on open-ended QA such as VideoChatGPT and NextQA by achieving higher GPT-assisted and WUPS scores. ",
+        "bbox": [
+            516,
+            462,
+            903,
+            792
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Furthermore, our method achieves performance that is highly competitive compared to the original model without pruning despite using only $1 4 . 1 \\%$ of the original model’s TFLOPs. This demonstrates the robustness of DivPrune, as it effectively generalizes to video LMMs. Notably, the performance gap between DivPrune and the original model without pruning narrows as the number of visual tokens increases, indicating that DivPrune is more effective for the models with larger visual contexts. ",
+        "bbox": [
+            516,
+            795,
+            905,
+            900
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "table",
+        "img_path": "images/d60fcac2aa2b3dc5760ffffd0279348e2396b49a32f80100995d4dac61e10db3.jpg",
+        "table_caption": [],
+        "table_footnote": [
+            "Table 3. Ablation study on applying DivPrune at different layers. "
+        ],
+        "table_body": "<table><tr><td></td><td>TFLOP (ratio %)</td><td>MMB Acc</td><td>MMMU Acc</td><td>POPE F1</td><td>SQA EM</td><td>Avg</td></tr><tr><td>Layer 0 (Ours)</td><td>19.61</td><td>59.19</td><td>35.89</td><td>86.02</td><td>68.27</td><td>62.34</td></tr><tr><td>Layer 1</td><td>19.65</td><td>59.02</td><td>34.89</td><td>80.67</td><td>67.18</td><td>60.44</td></tr><tr><td>Layer 2</td><td>19.70</td><td>54.90</td><td>34.22</td><td>69.27</td><td>69.56</td><td>56.99</td></tr><tr><td>Layer 3</td><td>19.80</td><td>23.97</td><td>32.67</td><td>31.82</td><td>65.94</td><td>38.60</td></tr></table>",
+        "bbox": [
+            93,
+            88,
+            480,
+            170
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            93,
+            212,
+            480,
+            241
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "4.5. Efficiency Analysis ",
+        "text_level": 1,
+        "bbox": [
+            94,
+            253,
+            271,
+            268
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "In this section, we analyze the efficiency of the proposed method using memory usage (i.e., max allocated memory), prefill time, and end-to-end latency (E2E). For this experiment, VideoChatGPT dataset with 499 samples is used to obtain the average time and memory usage for LLaVANeXT-Video-7B model. The results are summarized on the right side of Tab. 2. The obtained results are compared against the original model, as well as the FastV and VTW baselines. As shown in the table, our approach requires approximately 400MB less memory than the original model, with memory usage comparable to the baselines. In terms of prefill and E2E time, our approach is about $55 \\%$ and $22 \\%$ faster, respectively, compared to the original model. When compared to the baselines, our prefill time is approximately $6 \\mathrm {- } 7 \\%$ longer, while the E2E time is $1 - 7 \\%$ shorter. The slight increase in prefill time for our method compared to the baselines is due to the distance calculations (See Section 3.3), which are performed only once during the prefill stage. In contrast, for baselines, the corresponding calculations for token pruning need to be done at each decoding step, resulting in longer E2E time. ",
+        "bbox": [
+            93,
+            276,
+            482,
+            593
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "4.6. Ablation Study ",
+        "text_level": 1,
+        "bbox": [
+            93,
+            604,
+            241,
+            619
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "In this section, we conduct an ablation study to analyze the impact of modifying various core components of our method. The ablation experiments are conducted with the LLaVA 1.5-7B model. First, we show the effect of pruning tokens inside the LLM in Tab. 3 using 5 datasets. By default, in our method, visual tokens are pruned before being passed to the first decoder layer in the LLM, which we refer to as ’Layer 0’. We also tested ’Layer 1’ where the first layer is processed without pruning and the pruning is performed afterward. We further extended this approach by allowing tokens to pass through the first few layers unpruned and then pruning them after specific layers. As shown in the table, for a fixed TFLOP ratio of $1 9 . 6 1 \\%$ , pruning done by our method at layer 0 achieves higher task accuracies compared to pruning at layers 1, 2, and 3 of the LLM. ",
+        "bbox": [
+            93,
+            630,
+            482,
+            853
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Furthermore, in Tab. 4, we provide an analysis of using alternative diversity measures for token pruning. The first three rows show the impact of choosing different distance measures to quantify the similarity among tokens. It can be seen that all three similarity measures, cosine, $\\ell _ { 1 }$ , and $\\ell _ { 2 }$ perform comparably, with cosine (default setting) performing slightly better. This suggests that the choice of similarity measure does not significantly impact DivPrune’s overall performance. ",
+        "bbox": [
+            93,
+            856,
+            480,
+            900
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "table",
+        "img_path": "images/de0f73530d9c17ad6ec17d81916230ba8816e691788cd568061d7fbce7825714.jpg",
+        "table_caption": [
+            "Table 4. Ablation on using various diversity measures. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td></td><td>TFLOP (ratio %)</td><td>MMB Acc</td><td>MMMU Acc</td><td>POPE F1</td><td>SQA EM</td><td>Avg</td></tr><tr><td>Cosine (Ours)</td><td>19.61</td><td>59.19</td><td>35.89</td><td>86.02</td><td>68.27</td><td>62.34</td></tr><tr><td>l1</td><td>19.61</td><td>59.71</td><td>34.67</td><td>85.40</td><td>67.97</td><td>61.94</td></tr><tr><td>∂2</td><td>19.61</td><td>59.97</td><td>35.00</td><td>85.64</td><td>68.27</td><td>62.22</td></tr><tr><td>Random</td><td>19.61</td><td>52.66</td><td>34.56</td><td>72.78</td><td>66.63</td><td>56.66</td></tr><tr><td>Min-Max</td><td>19.61</td><td>38.57</td><td>33.11</td><td>49.26</td><td>65.20</td><td>46.53</td></tr></table>",
+        "bbox": [
+            514,
+            88,
+            901,
+            193
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            516,
+            236,
+            905,
+            325
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "The last two rows in Tab. 4 show the effect of choosing alternative strategies of token selection other than the proposed Max-Min diversity-based solution (3). We tested random pruning as well as the Min-Max strategy where the maximum distance between the selected samples is minimized. The Min-Max strategy enforces high redundancy among the selected samples, resulting in reduced diversity. As results in the bottom part of Tab. 4 reveal that any deviation from our proposed selection strategy results in suboptimal performance. Specifically, the Min-Max strategy performs the worst, showing approximately $1 5 . 8 \\%$ lower performance compared to ours. This decline is due to the Min-Max approach selecting tokens that are highly similar to each other, resulting in less diversity among the selected visual tokens. Random selection provides some degree of diversity, but it performs $5 . 6 \\%$ worse than the proposed method because it cannot guarantee maximum diversity. This proves that redundancy of visual tokens leads to poor performance and diversity maximization is needed for optimal performance, corroborating the utility and need of the proposed diversity maximization in Eq. (3). ",
+        "bbox": [
+            516,
+            328,
+            903,
+            643
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "5. Conclusion ",
+        "text_level": 1,
+        "bbox": [
+            516,
+            661,
+            630,
+            679
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "In this paper, we proposed a token pruning method based on a max-min diversity problem, called DivPrune. In the proposed method, maximum diversity is achieved among the selected tokens, resulting in reduced redundancy. By ensuring high diversity, the selected tokens provide a more representative subset of the original tokens, enabling effective performance even at high pruning ratios without requiring fine-tuning. Extensive experiments were conducted with multiple LMMs on image and video understanding tasks across 16 datasets. The results show that DivPrune achieves state-of-the-art accuracy on the tested datasets. DivPrune generalizes well to different model sizes and architectures, while also improving memory consumption and end-to-end latency for the tested LMMs. ",
+        "bbox": [
+            516,
+            689,
+            903,
+            898
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Supplementary Material ",
+        "text_level": 1,
+        "bbox": [
+            94,
+            89,
+            302,
+            107
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "A. Datasets, Tasks, and Metrics ",
+        "text_level": 1,
+        "bbox": [
+            94,
+            119,
+            356,
+            137
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "We briefly introduce the 11 image-language and 5 videolanguage datasets used in the experiments of the main manuscript. In addition, the system prompt (instruction) used to get output results for each dataset is given. The details of datasets used for image-language and videolanguage understanding tasks are presented in Tab. 6. Furthermore, the details on 3 extra datasets used for our new experiments in the supplementary material are provided. ",
+        "bbox": [
+            93,
+            150,
+            482,
+            271
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "As shown in the table, diverse range of tasks including image captioning, visual reasoning, open-ended visual question answering, closed-ended visual question answering, and multiple-choice visual question answering are used to evaluate the performance of the visual token pruning methods compared with ours. Note that the system prompts are the default prompts provided in the lmms-evals evaluation package [54]. ",
+        "bbox": [
+            93,
+            276,
+            482,
+            396
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "B. More Examples for Insights ",
+        "text_level": 1,
+        "bbox": [
+            94,
+            424,
+            349,
+            440
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "In Fig. 3 of the main manuscript, DivPrune and an importance-based token pruning method (i.e., FastV [4]) are compared using (a) t-SNE visualization for a sample input’s visual tokens and (b) a histogram of the max-min distance between the selected tokens across 1000 data samples from SeedBench dataset [18]. In this section, additional examples from SeedBench and GQA datasets [16] are respectively provided in Fig. 5-(a)-(b) and Fig. 5-(c)-(f). ",
+        "bbox": [
+            93,
+            453,
+            482,
+            574
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "As shown in Fig. 5-(a)-(b), similar to the observation in the main manuscript, the majority of the selected tokens using FastV method are densely clustered near each other, whereas the tokens selected using DivPrune are more widely separated. As a result, the redundancy among the selected tokens decreases. In addition, unlike DivPrune, FastV does not include any tokens from the top clusters. Hence, DivPrune achieve a better representation for the original set of tokens. ",
+        "bbox": [
+            93,
+            579,
+            482,
+            714
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Further examples using GQA dataset are provided in Fig. 5-(a)-(e). Inline with earlier observation, Divprune reduces redundancy and achieves better representation compared to importance-based token pruning when applied to GQA dataset. To verify this behavior over multiple dataset samples, the max-min distance among the selected visual tokens is obtained using 1000 randomly selected samples from the GQA. The histogram of the obtained max-min values for DivPrune and FastV is shown Fig. 5-(f). The histogram also verifies that our method achieves higher maxmin distance values, thereby reducing redundancy for the tested samples of the dataset. ",
+        "bbox": [
+            93,
+            719,
+            482,
+            900
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "image",
+        "img_path": "images/4fc544eb0479a378ab844c6c939d1049abb157b0d5a80d788765179628f30cef.jpg",
+        "image_caption": [
+            "Figure 4. Comparison of different visual token pruning methods across various pruning ratios for LLaVA 1.5-13B. The y-axis is the performance averaged on COCO (CIDEr), OKVQA (Acc), POPE (F1), and MMBench (Acc). The x-axis is the TFLOP ratio of the model after token pruning compared to the original model before pruning. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            529,
+            97,
+            888,
+            304
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "C. Results with Additional Datasets ",
+        "text_level": 1,
+        "bbox": [
+            517,
+            439,
+            813,
+            457
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "In addition to the datasets tested in the main manuscript, we evaluate the proposed method and the baselines with LLaVA 1.5-7b model on more visual question answering datasets: TextVQA [40], VizWiz [15], and VQAv2 [12]. The details corresponding to each dataset are included in Tab. 6. The same hyperparameters used for results in Tab. 1 of the main manuscript are applied to both our method and the baselines. The results for the proposed method and the baselines are summarized in Tab. 5. The TFLOPs are calculated for each dataset, and the average TFLOP and ratio are given in the TFLOP column of the table. VTW, FastV, and ours are the 3 training-free and calibration-free methods. As the results indicate, our method outperforms VTW and FastV on TextVQA, VizWiz, and VQAv2 datasets by $\\approx$ $27 \\%$ , $7 \\%$ , and $29 \\%$ , respectively. ",
+        "bbox": [
+            516,
+            468,
+            905,
+            664
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "table",
+        "img_path": "images/aac42cf7273d4092981ea8ccd364389c42f5b009719062d30eb2399d2eff3b31.jpg",
+        "table_caption": [
+            "Table 5. Comparison results of our method and baselines on three additional datasets. •: Finetuning is used, $\\bigtriangleup$ : Calibration dataset is used. $\\mathbf { O u r s } ^ { * }$ : Our method matching the PruMerge selection ratio. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td></td><td>Method</td><td>TFLOP (ratio %)</td><td>TextVQA EM</td><td>VizWiz EM</td><td>VQAv2 EM</td></tr><tr><td rowspan=\"5\">20</td><td>Original</td><td>3.13 (100.00)</td><td>46.08</td><td>54.24</td><td>76.65</td></tr><tr><td>VTW [23]</td><td>0.507 (16.20)</td><td>8.22</td><td>50.13</td><td>42.13</td></tr><tr><td>FastV [4]</td><td>0.418 (13.35)</td><td>8.21</td><td>50.48</td><td>41.71</td></tr><tr><td>Ours PruMerge [38]</td><td>0.416 (13.29) Variable</td><td>35.97 37.70</td><td>57.41 56.31</td><td>71.55 65.01</td></tr><tr><td>Ours*</td><td>Variable</td><td>35.00</td><td>57.43</td><td>69.59</td></tr><tr><td></td><td>FitPrune2 [50] M3• 3}</td><td>0.417 (13.32) 0.416 (13.29)</td><td>30.10 44.31</td><td>54.62 52.98</td><td>64.86 75.87</td></tr></table>",
+        "bbox": [
+            516,
+            693,
+            901,
+            829
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "table",
+        "img_path": "images/c4e1ba8b8df0944ad7dc11c768bd6ba2481f5febfe56b4341ea30ddc29a2ad35.jpg",
+        "table_caption": [
+            "Table 6. Details of the datasets, the corresponding tasks, metrics, and prompts used in our experiments. CE-VQA: Closed-Ended Visual Question Answering, OE-VQA: Open-Ended Visual Question Answering, MC-VQA: Multiple-Choice Visual Question Answering. ∗: Only the main sentence from the prompt is shown here. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td></td><td>Dataset</td><td>Task</td><td>Metric</td><td>System Prompt</td></tr><tr><td rowspan=\"12\">20</td><td>COCO-2017 [22]</td><td>Image Captioning</td><td>CIDEr</td><td>Provide a one-sentence caption for the provided image.</td></tr><tr><td>Flicker30k [33]</td><td>Image Captioning</td><td>CIDEr</td><td>Provide a one-sentence caption for the provided image.</td></tr><tr><td>GQA [16]</td><td>CE-VQA</td><td>Eaxct Match</td><td>Answer the question using a single word or phrase.</td></tr><tr><td>MMBench [26]</td><td>MC-VQA</td><td>Accuracy</td><td>Answer with the option&#x27;s letter from the given choices directly.</td></tr><tr><td>MME [9]</td><td>CE-VQA</td><td>Perception Score</td><td>Answer the question using a single word or phrase.</td></tr><tr><td>MMU [53]</td><td>CE-VQA and OE-VQA</td><td>Accuracy</td><td>Answer with the option&#x27;s letter from the given choices directly, OR Answer the question using a single word or phrase.</td></tr><tr><td>Nocaps [2]</td><td>Image Captioning</td><td>CIDEr</td><td>Provide a one-sentence caption for the provided image</td></tr><tr><td>OKVQA [30]</td><td>Visual Reasoning</td><td>Exact Match</td><td>When the provided information is insufficient, respond with &#x27;Unanswerable&#x27;.</td></tr><tr><td>POPE [20]</td><td>CE-VQA</td><td>F1 Score</td><td>Answer the question using a single word or phrase. Answer the question using a single word or phrase.</td></tr><tr><td>ScienceQA-Image [27]</td><td>Visual reasoning</td><td>Exact Match</td><td>Answer with the option&#x27;s letter from the given choices directly.</td></tr><tr><td>SeedBench-Image [18]</td><td>MC-VQA</td><td>Accuracy</td><td>Answer with the option&#x27;s letter from the given choices directly.</td></tr><tr><td>TextVQA [40]</td><td>CE-VQA</td><td>Exact Match</td><td>Answer the question using a single word or phrase.</td></tr><tr><td>VizWiz [15]</td><td>CE-VQA</td><td>Exact Match</td><td>When the provided information is insufficient, respond with &#x27;Unanswerable&#x27;.</td></tr><tr><td>VQAv2 [12]</td><td>CE-VQA</td><td>Exact Match</td><td>Answer the question using a single word or phrase. Answer the question using a single word or phrase.</td></tr><tr><td rowspan=\"5\">VicnueT-0</td><td>ActivityNet [51]</td><td>CE-VQA</td><td>Accuracy/</td><td>Answer the question using a single word or phrase.</td></tr><tr><td>SeedBench-Video [18]</td><td>MC-VQA</td><td>GPT-Assisted score Accuracy</td><td>Answer with the option&#x27;s letter from the given choices directly.</td></tr><tr><td>VideoChatGPT-temporal [28]</td><td>OE-VQA</td><td>GPT-Assisted-score</td><td>Evaluate the temporal accuracy of the prediction compared to the answer.*</td></tr><tr><td>NextQA [47]</td><td>CE-VQA</td><td>WUPS</td><td>Answer a question using a short phrase or sentence.</td></tr><tr><td>EgoSchema [29]</td><td>MC-VQA</td><td>Accuracy</td><td>Answer with the option&#x27;s letter from the given choices directly.</td></tr></table>",
+        "bbox": [
+            96,
+            88,
+            901,
+            393
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            93,
+            473,
+            480,
+            502
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "In the case of dynamic pruning scenario, we matched the pruning ratio with that of the PruMerge baseline [38]. The comparison of our results with PruMerge reveals that our method achieves higher accuracy on VizWiz and VQAv2 datasets. Compared to FitPrune [50], which uses calibration datasets to optimize the procedure of token pruning, we achieve higher task performance on all the datasets. Finally, compared to the fine-tuning-based ${ \\bf M } ^ { 3 }$ [3] method, our performance is worse on TextVQA, comparable on VQAv2, and better on VizWiz dataset. DivPrune achieves better results compared to the original model on VizWiz dataset. Visual token pruning has been shown to improve the original model’s performance for some datasets [4]. Overall, the results shown in the table are inline with the results reported in the manuscript. This proves that DivPrune outperforms baselines on a diverse range of tasks and datasets. ",
+        "bbox": [
+            93,
+            505,
+            482,
+            744
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "C.1. Different TFLOPs for the 13b Model ",
+        "text_level": 1,
+        "bbox": [
+            93,
+            756,
+            413,
+            771
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "In the main manuscript, we showed the performance of baselines and our method across various TFLOP ratios for LLaVA 1.5-7b model. In this section, we present the results with LLaVA 1.5-13b model. The results are shown in Fig. 4 where the y-axis represents average performance on four datasets, namely, COCO (CIDEr), OKVQA (Acc), POPE (F1), and MMBench (Acc). For all datasets, the performance metric spans from 0 to 1, with the exception of the ",
+        "bbox": [
+            93,
+            780,
+            482,
+            900
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "CIDEr metric, which can reach a peak value of 1.16 for the tested model. On the $\\mathbf { X }$ -axis, we only show the high compression scenario (TFLOP ratio $\\leq 4 0 \\%$ ). As shown in the figure, our method significantly outperforms all the baselines, particularly in high compression scenarios (TFLOP $\\leq 2 5 \\% )$ . Furthermore, the gap between our approach and the baselines increases at extreme compression levels. For higher TFLOP ratios almost all methods converge toward the original performance. The pruning ratio and calibration samples for the FitPrune are not provided for the 13b model, unlike the 7b model, hence it is excluded from the baselines. ",
+        "bbox": [
+            516,
+            473,
+            905,
+            637
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "D. Qualitative Results ",
+        "text_level": 1,
+        "bbox": [
+            517,
+            660,
+            699,
+            678
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "In this section, we present some qualitative results comparing the proposed method with the relevant baselines. Given the significant improvement of our method over the baselines on image captioning tasks, we provide 3 examples for image captioning using COCO [22] dataset in Fig. 6. For all the examples, the prompt, ground truth (GT) caption, and the LLaVA 1.5-7B model’s output are given for reference. The model’s output when our pruning method and baselines are applied is also shown for each example. We follow the experimental settings used to obtain the results in Tab. 1 of the main manuscript. The results show that using DivPrune (our method) enables the model to produce descriptions that closely align with the original model’s output, which is very similar to the ground truth, while only using $12 \\%$ TFLOP compared to the original model. In contrast, FastV and VTW generate irrelevant captions for the given images with the same TFLOP ratio. ",
+        "bbox": [
+            516,
+            689,
+            905,
+            900
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "image",
+        "img_path": "images/0c42ef2378298f665807624c9f87e95548248a109adbdc23131131e40c9d658b.jpg",
+        "image_caption": [
+            "Figure 5. (a)-(b) t-SNE visualization of visual tokens using SeedBench samples, (c)-(e) t-SNE visualization of visual tokens using GQA samples, (f) Histogram of the Max-Min distance between the selected tokens over the GQA dataset. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            114,
+            88,
+            900,
+            834
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            93,
+            92,
+            482,
+            135
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "We also provide qualitative examples for a VQA task. Specifically, the output of LLaVA 1.5-7B model for sample images and questions from OKVQA [30] dataset, along with the ground truth and the corresponding prompt are shown in Fig. 7. As the figure illustrates, the output of the model when DivPrune is applied matches the ground truth. However, when FastV or VTW method are used, the model either generates incorrect responses or indicates that insufficient information is provided. ",
+        "bbox": [
+            93,
+            137,
+            482,
+            272
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "E. Hyper-Parameters of Baselines ",
+        "text_level": 1,
+        "bbox": [
+            94,
+            285,
+            375,
+            303
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "In the main paper, TFLOP ratio and values are reported for DivPrune and the baselines. In this section, we provide the details on the hyperparameters specific to these methods. For DivPrune, the pruning ratio is set to $9 0 . 2 \\%$ . For FastV with 7B models $K \\ : = \\ : 3$ and $R \\ : = \\ : 0 . 0 0 1$ , and with 13B models $K = 3$ , $R = 0 . 0 2 3$ are used. For VTW, we use $K = 4$ for LLaVA 1.5 models and $K = 3$ for LLaVA 1.6 model. For $M ^ { 3 }$ , $S$ is set to 56, and for FitPrune pruning ratio is set to $90 \\%$ . ",
+        "bbox": [
+            93,
+            310,
+            482,
+            446
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "image",
+        "img_path": "images/c3ae7e170be9e53d0c9071c89a697fe27730d983798a4bc38d9a1a8d4bd81409.jpg",
+        "image_caption": [],
+        "image_footnote": [],
+        "bbox": [
+            137,
+            104,
+            486,
+            284
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Prompt: Provide a one-sentence caption for the provided image.   \nGT caption: A bathroom with a bath tub near windows.   \nOriginal Model: A bathroom with a large bathtub and a window.   \nFastV: A person is standing in front of a white wall.   \nVTW: A person is standing in front of a painting of a forest.   \nOurs: A bathroom with a large window and a bathtub. ",
+        "bbox": [
+            498,
+            106,
+            843,
+            227
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "image",
+        "img_path": "images/5460de59a4287de0f07636b2725cc12665c9a974a1421c9d27ebbfed2dfac578.jpg",
+        "image_caption": [
+            "Figure 6. Visual examples for image captioning task, comparing the model outputs using the baselines and the proposed method. Colors in text are used for better readability. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            130,
+            308,
+            867,
+            820
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "image",
+        "img_path": "images/cc0ece77412cf027d35fd185e2d29890179a4e530b314f61963f33806d3aeed8.jpg",
+        "image_caption": [
+            "Figure 7. Visual examples for visual question answering task, comparing the model outputs using baselines and the proposed methods. Colors in text are used for better readability. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            129,
+            79,
+            874,
+            824
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "References ",
+        "text_level": 1,
+        "bbox": [
+            93,
+            90,
+            186,
+            106
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "[1] Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ahmad, Ilge Akkaya, Florencia Leoni Aleman, Diogo Almeida, Janko Altenschmidt, Sam Altman, Shyamal Anadkat, et al. Gpt-4 technical report. arXiv preprint arXiv:2303.08774,   \n2023. 1 [2] Harsh Agrawal, Karan Desai, Yufei Wang, Xinlei Chen, Rishabh Jain, Mark Johnson, Dhruv Batra, Devi Parikh, Stefan Lee, and Peter Anderson. nocaps: novel object captioning at scale. In Proceedings of the IEEE International Conference on Computer Vision, pages 8948–8957, 2019. 6, 10 [3] Mu Cai, Jianwei Yang, Jianfeng Gao, and Yong Jae Lee. Matryoshka multimodal models. Proceedings of the International Conference on Learning Representation, 2025. 2, 3,   \n4, 6, 9, 10 [4] Liang Chen, Haozhe Zhao, Tianyu Liu, Shuai Bai, Junyang Lin, Chang Zhou, and Baobao Chang. An image is worth 1/2 tokens after layer 2: Plug-and-play inference acceleration for large vision-language models. In European Conference on Computer Vision (ECCV), 2024. 1, 2, 4, 5, 6, 7, 9, 10 [5] Zesen Cheng, Sicong Leng, Hang Zhang, Yifei Xin, Xin Li, Guanzheng Chen, Yongxin Zhu, Wenqi Zhang, Ziyang Luo, Deli Zhao, et al. Videollama 2: Advancing spatialtemporal modeling and audio understanding in video-llms. arXiv preprint arXiv:2406.07476, 2024. 2 [6] Wei-Lin Chiang, Zhuohan Li, Zi Lin, Ying Sheng, Zhanghao Wu, Hao Zhang, Lianmin Zheng, Siyuan Zhuang, Yonghao Zhuang, Joseph E Gonzalez, et al. Vicuna: An open-source chatbot impressing gpt-4 with $9 0 \\% *$ chatgpt quality. See https://vicuna. lmsys. org (accessed 14 April 2023), 2(3):6,   \n2023. 1 [7] Krzysztof Choromanski, Valerii Likhosherstov, David Dohan, Xingyou Song, Andreea Gane, Tamas Sarlos, Peter Hawkins, Jared Davis, Afroz Mohiuddin, Lukasz Kaiser, et al. Rethinking attention with performers. arXiv preprint arXiv:2009.14794, 2020. 1 [8] Tri Dao, Dan Fu, Stefano Ermon, Atri Rudra, and Christopher Re. Flashattention: Fast and memory-efficient exact at- ´ tention with io-awareness. Advances in Neural Information Processing Systems, 35:16344–16359, 2022. 1 [9] Chaoyou Fu, Peixian Chen, Yunhang Shen, Yulei Qin, Mengdan Zhang, Xu Lin, Jinrui Yang, Xiawu Zheng, Ke Li, Xing Sun, et al. Mme: A comprehensive evaluation benchmark for multimodal large language models. arXiv preprint arXiv:2306.13394, 2023. 5, 6, 10 [10] Jinlan Fu, See-Kiong Ng, Zhengbao Jiang, and Pengfei Liu. Gptscore: Evaluate as you desire, 2023. 5 [11] Mukul Gagrani, Raghavv Goel, Wonseok Jeon, Junyoung Park, Mingu Lee, and Christopher Lott. On speculative decoding for multimodal large language models. arXiv preprint arXiv:2404.08856, 2024. 2 [12] Yash Goyal, Tejas Khot, Douglas Summers-Stay, Dhruv Batra, and Devi Parikh. Making the V in VQA matter: Elevating the role of image understanding in Visual Question Answering. In Conference on Computer Vision and Pattern Recognition (CVPR), 2017. 9, 10   \n[13] Albert Gu and Tri Dao. Mamba: Linear-time sequence modeling with selective state spaces. arXiv preprint arXiv:2312.00752, 2023. 2   \n[14] Zhiyu Guo, Hidetaka Kamigaito, and Taro Watanabe. Attention score is not all you need for token importance indicator in kv cache reduction: Value also matters. arXiv preprint arXiv:2406.12335, 2024. 2   \n[15] Danna Gurari, Qing Li, Abigale J Stangl, Anhong Guo, Chi Lin, Kristen Grauman, Jiebo Luo, and Jeffrey P Bigham. Vizwiz grand challenge: Answering visual questions from blind people. In Proceedings of the IEEE conference on computer vision and pattern recognition, pages 3608–3617, 2018. 9, 10   \n[16] Drew A Hudson and Christopher D Manning. Gqa: A new dataset for real-world visual reasoning and compositional question answering. Conference on Computer Vision and Pattern Recognition (CVPR), 2019. 6, 9, 10   \n[17] Angelos Katharopoulos, Apoorv Vyas, Nikolaos Pappas, and Franc¸ois Fleuret. Transformers are rnns: Fast autoregressive transformers with linear attention. In International conference on machine learning, pages 5156–5165. PMLR, 2020.   \n[18] Bohao Li, Rui Wang, Guangzhi Wang, Yuying Ge, Yixiao Ge, and Ying Shan. Seed-bench: Benchmarking multimodal llms with generative comprehension. arXiv preprint arXiv:2307.16125, 2023. 5, 6, 7, 9, 10   \n[19] Wentong Li, Yuqian Yuan, Jian Liu, Dongqi Tang, Song Wang, Jianke Zhu, and Lei Zhang. Tokenpacker: Efficient visual projector for multimodal llm. arXiv preprint arXiv:2407.02392, 2024. 2, 3   \n[20] Yifan Li, Yifan Du, Kun Zhou, Jinpeng Wang, Wayne Xin Zhao, and Ji-Rong Wen. Evaluating object hallucination in large vision-language models. arXiv preprint arXiv:2305.10355, 2023. 6, 10   \n[21] Bin Lin, Yang Ye, Bin Zhu, Jiaxi Cui, Munan Ning, Peng Jin, and Li Yuan. Video-llava: Learning united visual representation by alignment before projection. CoRR, abs/2311.10122, 2023. 1, 2   \n[22] Tsung-Yi Lin, Michael Maire, Serge Belongie, Lubomir Bourdev, Ross Girshick, James Hays, Pietro Perona, Deva Ramanan, C. Lawrence Zitnick, and Piotr Dollar. Microsoft ´ coco: Common objects in context, 2015. 6, 10   \n[23] Zhihang Lin, Mingbao Lin, Luxi Lin, and Rongrong Ji. Boosting multimodal large language models with visual tokens withdrawal for rapid inference. arXiv preprint arXiv:2405.05803, 2024. 2, 4, 5, 6, 7, 9   \n[24] Haotian Liu, Chunyuan Li, Qingyang Wu, and Yong Jae Lee. Visual instruction tuning. In NeurIPS, 2023. 1, 2, 4   \n[25] Haotian Liu, Chunyuan Li, Yuheng Li, Bo Li, Yuanhan Zhang, Sheng Shen, and Yong Jae Lee. Llava-next: Improved reasoning, ocr, and world knowledge, 2024. 1, 2, 4, 7   \n[26] Yuan Liu, Haodong Duan, Yuanhan Zhang, Bo Li, Songyang Zhang, Wangbo Zhao, Yike Yuan, Jiaqi Wang, Conghui He, Ziwei Liu, et al. Mmbench: Is your multi-modal model an all-around player? In European Conference on Computer Vision, pages 216–233. Springer, 2025. 6, 10   \n[27] Pan Lu, Swaroop Mishra, Tony Xia, Liang Qiu, Kai-Wei Chang, Song-Chun Zhu, Oyvind Tafjord, Peter Clark, and Ashwin Kalyan. Learn to explain: Multimodal reasoning via thought chains for science question answering, 2022. 6, 10   \n[28] Muhammad Maaz, Hanoona Rasheed, Salman Khan, and Fahad Shahbaz Khan. Video-chatgpt: Towards detailed video understanding via large vision and language models. In Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (ACL 2024), 2024. 7, 10   \n[29] Karttikeya Mangalam, Raiymbek Akshulakov, and Jitendra Malik. Egoschema: A diagnostic benchmark for very longform video language understanding, 2023. 7, 10   \n[30] Kenneth Marino, Mohammad Rastegari, Ali Farhadi, and Roozbeh Mottaghi. Ok-vqa: A visual question answering benchmark requiring external knowledge. In Conference on Computer Vision and Pattern Recognition (CVPR), 2019. 6, 10, 12   \n[31] Rafael Mart´ı, Anna Mart´ınez-Gavara, Sergio Perez-Pel´ o, and´ Jesus S ´ anchez-Oro. A review on discrete diversity and dis- ´ persion maximization from an or perspective. European Journal of Operational Research, 299(3):795–813, 2022. 4   \n[32] OpenAI. Hello gpt-4o, 2024. https://openai.com/ index/hello-gpt-4o/ [Accessed: (Nov 2024)]. 2   \n[33] Bryan A. Plummer, Liwei Wang, Christopher M. Cervantes, Juan C. Caicedo, Julia Hockenmaier, and Svetlana Lazebnik. Flickr30k entities: Collecting region-to-phrase correspondences for richer image-to-sentence models. IJCV, 123 (1):74–93, 2017. 6, 10   \n[34] Daniel Cosmin Porumbel, Jin-Kao Hao, and Fred Glover. A simple and effective algorithm for the maxmin diversity problem. Annals of Operations Research, 186:275–293, 2011. 3   \n[35] Yanyuan Qiao, Zheng Yu, Longteng Guo, Sihan Chen, Zijia Zhao, Mingzhen Sun, Qi Wu, and Jing Liu. Vl-mamba: Exploring state space models for multimodal learning. arXiv preprint arXiv:2403.13600, 2024. 2   \n[36] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sastry, Amanda Askell, Pamela Mishkin, Jack Clark, et al. Learning transferable visual models from natural language supervision. In International conference on machine learning, pages 8748–8763. PMLR, 2021. 4   \n[37] Mauricio GC Resende, Rafael Mart´ı, Micael Gallego, and Abraham Duarte. Grasp and path relinking for the max–min diversity problem. Computers & Operations Research, 37 (3):498–508, 2010. 2, 4   \n[38] Yuzhang Shang, Mu Cai, Bingxin Xu, Yong Jae Lee, and Yan Yan. Llava-prumerge: Adaptive token reduction for efficient large multimodal models. arXiv preprint arXiv:2403.15388, 2024. 1, 2, 4, 6, 9, 10   \n[39] Mustafa Shukor and Matthieu Cord. Skipping computations in multimodal llms. arXiv preprint arXiv:2410.09454, 2024. 2   \n[40] Amanpreet Singh, Vivek Natarjan, Meet Shah, Yu Jiang, Xinlei Chen, Devi Parikh, and Marcus Rohrbach. Towards vqa models that can read. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition, pages   \n[41] Sainbayar Sukhbaatar, Edouard Grave, Piotr Bojanowski, and Armand Joulin. Adaptive attention span in transformers. arXiv preprint arXiv:1905.07799, 2019. 1   \n[42] Gemini Team, Petko Georgiev, Ving Ian Lei, Ryan Burnell, Libin Bai, Anmol Gulati, Garrett Tanzer, Damien Vincent, Zhufeng Pan, Shibo Wang, et al. Gemini 1.5: Unlocking multimodal understanding across millions of tokens of context. arXiv preprint arXiv:2403.05530, 2024. 2   \n[43] Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier Martinet, Marie-Anne Lachaux, Timothee Lacroix, Baptiste ´ Roziere, Naman Goyal, Eric Hambro, Faisal Azhar, et al. \\` Llama: Open and efficient foundation language models. arXiv preprint arXiv:2302.13971, 2023. 1   \n[44] Laurens Van der Maaten and Geoffrey Hinton. Visualizing data using t-sne. Journal of machine learning research, 9 (11), 2008. 5   \n[45] Ramakrishna Vedantam, C. Lawrence Zitnick, and Devi Parikh. Cider: Consensus-based image description evaluation. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR), 2015. 5   \n[46] Zhibiao Wu and Martha Palmer. Verb semantics and lexical selection. arXiv preprint cmp-lg/9406033, 1994. 5   \n[47] Junbin Xiao, Xindi Shang, Angela Yao, and Tat-Seng Chua. Next-qa: Next phase of question-answering to explaining temporal actions. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), pages 9777–9786, 2021. 7, 10   \n[48] Shilin Xu, Xiangtai Li, Haobo Yuan, Lu Qi, Yunhai Tong, and Ming-Hsuan Yang. Llavadi: What matters for multimodal large language models distillation. arXiv preprint arXiv:2407.19409, 2024. 2   \n[49] Yuan Yao, Tianyu Yu, Ao Zhang, Chongyi Wang, Junbo Cui, Hongji Zhu, Tianchi Cai, Haoyu Li, Weilin Zhao, Zhihui He, et al. Minicpm-v: A gpt-4v level mllm on your phone. arXiv preprint arXiv:2408.01800, 2024. 1   \n[50] Weihao Ye, Qiong Wu, Wenhao Lin, and Yiyi Zhou. Fit and prune: Fast and training-free visual token pruning for multi-modal large language models. arXiv preprint arXiv:2409.10197, 2024. 1, 2, 4, 5, 6, 9, 10   \n[51] Zhou Yu, Dejing Xu, Jun Yu, Ting Yu, Zhou Zhao, Yueting Zhuang, and Dacheng Tao. Activitynet-qa: A dataset for understanding complex web videos via question answering. In AAAI, pages 9127–9134, 2019. 7, 10   \n[52] Zhengqing Yuan, Zhaoxu Li, Weiran Huang, Yanfang Ye, and Lichao Sun. Tinygpt-v: Efficient multimodal large language model via small backbones. arXiv preprint arXiv:2312.16862, 2023. 2   \n[53] Xiang Yue, Yuansheng Ni, Kai Zhang, Tianyu Zheng, Ruoqi Liu, Ge Zhang, Samuel Stevens, Dongfu Jiang, Weiming Ren, Yuxuan Sun, Cong Wei, Botao Yu, Ruibin Yuan, Renliang Sun, Ming Yin, Boyuan Zheng, Zhenzhu Yang, Yibo Liu, Wenhao Huang, Huan Sun, Yu Su, and Wenhu Chen. Mmmu: A massive multi-discipline multimodal understanding and reasoning benchmark for expert agi. In Proceedings of CVPR, 2024. 6, 10   \n[54] Kaichen Zhang, Bo Li, Peiyuan Zhang, Fanyi Pu, Joshua Adrian Cahyono, Kairui Hu, Shuai Liu, Yuanhan Zhang, Jingkang Yang, Chunyuan Li, and Ziwei Liu. Lmmseval: Reality check on the evaluation of large multimodal models, 2024. 5, 9   \n[55] Yuanhan Zhang, Bo Li, haotian Liu, Yong jae Lee, Liangke Gui, Di Fu, Jiashi Feng, Ziwei Liu, and Chunyuan Li. Llavanext: A strong zero-shot video understanding model, 2024. 1, 2, 4   \n[56] Baichuan Zhou, Ying Hu, Xi Weng, Junlong Jia, Jie Luo, Xien Liu, Ji Wu, and Lei Huang. Tinyllava: A framework of small-scale large multimodal models. arXiv preprint arXiv:2402.14289, 2024. 2 ",
+        "bbox": [
+            99,
+            102,
+            482,
+            896
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            516,
+            88,
+            905,
+            895
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            91,
+            88,
+            482,
+            890
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            516,
+            73,
+            905,
+            898
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            93,
+            92,
+            483,
+            246
+        ],
+        "page_idx": 16
+    }
+]
