@@ -18,7 +18,20 @@ In this Section, we present the results of models on VidChapters-7M for the full
 
 **Evaluation metrics.** To evaluate the quality of the generated chapter titles (without their positions), we use standard metrics used for visual captioning: BLEU [70] (B), CIDEr [95] (C), METEOR [7] (M) and ROUGE-L [56] (RL). To evaluate video chapter generation as a whole, including the locations of the generated chapters, we follow standard protocols used for dense video captioning, given the similar nature of the two tasks. We use the standard evaluation tool [42] which calculates matched pairs between generated events and the ground truth across IoU thresholds of {0.3, 0.5, 0.7, 0.9}, and compute captioning metrics over the matched pairs. However, these metrics do not take into account the story of the video and give high scores to methods generating many redundant chapters. Hence for an overall evaluation, we also use SODA_c [22] (S) which first tries to find a temporally optimal matching between generated and reference chapters to capture the story of a video, then computes METEOR scores for the matching and derives F-measure scores from the METEOR scores to penalize redundant chapters. To separately evaluate chapter localization, we report the recall (R@Ks, R@K) and the precision (P@Ks, P@K) across various thresholds in terms of the distance to the ground-truth start time or IoU with the ground-truth start-end window. We also report the average recall (R) and average precision (P) across IoU thresholds of {0.3, 0.5, 0.7, 0.9}.
 
-> 💡 **评价指标详解**:
+> 💡 **评价指标速查表** (都是越高越好 ↑):
+>
+> | 指标 | 一句话解释 | 评价什么 |
+> |------|-----------|----------|
+> | **S (SODA)** ⭐ | 考虑故事线+惩罚冗余 | 整体质量 (最重要) |
+> | **C (CIDEr)** | 关键词匹配，稀有词加分 | 标题质量 |
+> | **M (METEOR)** | 同义词也算对 | 标题质量 |
+> | **B1-B4 (BLEU)** | 数重叠词 | 标题质量 |
+> | **R@Ks** | 起点误差在K秒内 | 时间定位 |
+> | **P@K / R@K** | 时间段重叠率≥K | 时间定位 |
+>
+> ---
+>
+> **详细解释** (可跳过，需要时再看):
 >
 > 指标分两大类：**文本质量指标**（评价标题写得好不好）和 **时间定位指标**（评价时间找得准不准）
 >
