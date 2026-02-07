@@ -8,13 +8,13 @@
 
 In this work, we presented VidChapters-7M, a large-scale dataset of user-chaptered videos. Furthermore, we evaluated a variety of baselines on the tasks of video chapter generation with and without ground-truth boundaries and video chapter grounding. Finally, we investigated the potential of VidChapters-7M for pretraining video-language models and demonstrated improved performance on the dense video captioning tasks. VidChapters-7M thus provides a new resource to the research community that can be used both as a benchmark for the video chapter generation tasks and as a powerful means for pretraining generic video-language models.
 
-### Limitations
+**Limitations.** As it is derived from YT-Temporal-180M [117], VidChapters-7M inherits the biases in the distribution of video categories reflected in this dataset.
 
-As it is derived from YT-Temporal-180M, VidChapters-7M inherits the biases in the distribution of video categories reflected in this dataset.
+**Societal Impacts.** The development of video chapter generation models might facilitate potentially harmful downstream applications, e.g., video surveillance. Moreover, models trained on VidChapters-7M might reflect biases present in videos from YouTube. It is important to keep this in mind when deploying, analysing and building upon these models.
 
-### Societal Impacts
+### Acknowledgements
 
-The development of video chapter generation models might facilitate potentially harmful downstream applications, e.g., video surveillance. Moreover, models trained on VidChapters-7M might reflect biases present in videos from YouTube. It is important to keep this in mind when deploying, analysing and building upon these models.
+This work was granted access to the HPC resources of IDRIS under the allocation 2023-A0131011670 made by GENCI. The work was funded by Antoine Yang's Google PhD fellowship, the French government under management of Agence Nationale de la Recherche as part of the "Investissements d'avenir" program, reference ANR-19-P3IA-0001 (PRAIRIE 3IA Institute), the Louis Vuitton ENS Chair on Artificial Intelligence, the European Regional Development Fund under project IMPACT (reg. no. CZ.02.1.01/0.0/0.0/15 003/0000468). We thank Jack Hessel and Rémi Lacroix for helping with collecting the dataset, and Antoine Miech for interesting discussions.
 
 ---
 
@@ -51,81 +51,58 @@ The development of video chapter generation models might facilitate potentially 
 
 ### 局限性分析
 
-| 局限 | 详细说明 | 潜在影响 |
-|------|---------|----------|
-| **数据偏见** | 继承 YT-Temporal-180M 的类别分布 | HowTo & Style 过多 (17%) |
-| **语言偏见** | 93% 英语 | 其他语言表现可能差 |
-| **性别偏见** | 男性词汇占比高 | 模型可能有性别倾向 |
-| **平台偏见** | 仅 YouTube 数据 | 不代表所有视频平台 |
+| 局限性 | 影响 | 缓解方案 |
+|--------|------|----------|
+| 视频类别偏差 | 继承自 YT-Temporal-180M | 后续可针对性采集 |
+| 1 FPS 采样 | 快速动作可能丢失 | 提高采样率但增加计算 |
+| 英语为主 (93%) | 多语言泛化有限 | 多语言数据扩展 |
+| 17% 噪声 | 14% 结构标题 + 3% 无关 | 数据清洗或鲁棒训练 |
 
-### 社会影响警示
+### 社会影响考量
+
+**潜在风险：**
+- 🔴 视频监控：自动章节生成可能被用于大规模视频分析
+- 🔴 偏见传播：YouTube 视频的固有偏见可能被模型学习
+
+**缓解措施：**
+- 部署前进行偏见审计
+- 限制敏感场景的应用
+- 公开数据集供学术研究
+
+### 历史地位
 
 ```
-⚠️ 潜在风险
-├── 监控应用: 自动分析长时间监控视频
-├── 隐私问题: 识别视频中的个人活动
-├── 偏见放大: 继承训练数据的偏见
-└── 版权问题: 自动分析受版权保护的内容
-
-✅ 建议措施
-├── 部署前进行偏见审计
-├── 限制高风险应用
-├── 标注 NSFW/toxic 内容
-└── 开放数据促进研究透明
+Video Chapter Generation 领域发展
+├── 2019: HowTo100M (ASR only)
+├── 2022: ChapterGen (10K, 未开源)
+├── 2023: VidChapters-7M ⭐ 里程碑
+│         ├── 首个大规模开源数据集
+│         ├── 定义标准任务和评测
+│         └── 证明迁移学习价值
+├── 2024: Chapter-Llama (基于此)
+└── 2025: ARC-Chapter (基于此，SOTA)
 ```
 
-### 这篇论文开启了什么研究方向？
+### 对后续研究的启示
 
-1. **Video Chaptering 作为独立任务**
-   - 不同于 Dense Captioning
-   - 更符合用户需求（导航而非理解）
+1. **数据获取**: 用户生成内容是可扩展的高质量数据源
+2. **任务设计**: 区分 Generation/Title/Grounding 三个子任务很有价值
+3. **多模态融合**: Speech + Visual 比单模态效果好 2x
+4. **预训练范式**: Chapter 数据对 dense captioning 有很强迁移能力
 
-2. **用户生成标注的价值**
-   - 无需昂贵人工标注
-   - 规模化获取高质量数据
+### 开放问题 (后续研究方向)
 
-3. **多模态融合的必要性**
-   - Speech 比 Visual 重要 2x
-   - 最佳性能需要两者结合
+- [x] 如何处理非英语视频？→ 多语言 ASR + 翻译 pipeline，或多语言预训练
+- [x] 如何提高时间边界精度？→ 更高帧率采样、音频边界检测、多模态融合
+- [x] 能否做到实时章节生成？→ 需要流式处理架构，当前方法均为离线
+- [x] 如何评估生成章节的"实用性"？→ 用户研究、导航效率测试、A/B 实验
 
-4. **预训练数据的 Scaling Law**
-   - 更多章节数据 → 更好的迁移效果
+### 我的总结
 
-### 后续工作方向
+VidChapters-7M 是 video chaptering 领域的**奠基性工作**，通过巧妙利用 YouTube 用户标注，构建了大规模高质量数据集。论文的核心洞察是：
 
-根据论文局限和实验结果，可能的后续研究方向：
+> **Speech 比 Visual 更重要** (75% 章节依赖语音)
+> **ASR ≠ Chapters** (粒度差 32 倍)
+> **任务远未解决** (SODA 仅 11.4)
 
-1. **多模态 Grounding 模型**
-   - Moment-DETR 只支持视觉
-   - 需要支持 Speech + Visual 的定位模型
-
-2. **更强的 LLM 集成**
-   - LLaMA 直接用失败
-   - 需要更好的 prompt engineering 或 finetuning
-
-3. **跨语言/跨平台泛化**
-   - 当前主要是英语/YouTube
-   - 探索其他语言和平台
-
-4. **更细粒度的章节生成**
-   - 当前任务只生成一级章节
-   - 可以探索层级结构
-
-### 我的总体评价
-
-**优点:**
-- ✅ 数据集规模大、质量高
-- ✅ 任务定义清晰、有实用价值
-- ✅ 实验全面、消融充分
-- ✅ 迁移学习验证了预训练价值
-
-**不足:**
-- ⚠️ 只使用 CLIP 特征，没有端到端训练
-- ⚠️ Grounding 任务没有多模态探索
-- ⚠️ 缺少人类评估
-
-**对我 Apple 面试的启示:**
-- Video Chaptering 是一个**未充分探索**的任务
-- 语音模态**非常重要**，甚至比视觉更重要
-- 用户生成标注是**可扩展的数据来源**
-- **SODA 比 CIDEr 更适合**评估有序事件
+这为后续 Chapter-Llama、ARC-Chapter 等工作奠定了基础。

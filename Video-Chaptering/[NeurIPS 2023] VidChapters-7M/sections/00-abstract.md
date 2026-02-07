@@ -59,5 +59,5 @@ We benchmark both simple baselines and state-of-the-art video-language models fo
 
 ### 我的疑问
 - [x] 为什么用户会主动标注章节？→ YouTube 2020 年推出章节功能，创作者为了提升观看体验会主动添加
-- [ ] 爬取的章节质量如何保证？→ Section 3.3 会详细分析
-- [ ] 三个任务难度排序？→ Task 1 > Task 3 > Task 2
+- [x] 爬取的章节质量如何保证？→ Section 3.3 详细分析：83% 与内容相关，14% 结构性标题，3% 无关
+- [x] 三个任务难度排序？→ Task 1 (Full) > Task 3 (Grounding) > Task 2 (GT-Boundary)
