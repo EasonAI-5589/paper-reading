@@ -22,6 +22,7 @@
 | [Chapter-Llama](./[CVPR%202025]%20Chapter-Llama/) | CVPR | 2025.03 | 小时级视频章节, LLM 文本域方法 | [arxiv](https://arxiv.org/abs/2504.00072) · [项目](https://imagine.enpc.fr/~lucas.ventura/chapter-llama/) |
 | YTSEG | EACL | 2024 | YouTube 章节分割, 多粒度 benchmark | [arxiv](https://arxiv.org/abs/2402.17279) |
 | [VidChapters-7M](./[NeurIPS%202023]%20VidChapters-7M/) | NeurIPS | 2023 | **THE benchmark** (817K 视频, 7M 章节) + Baseline | [arxiv](https://arxiv.org/abs/2309.13952) · [项目](https://antoyang.github.io/vidchapters.html) |
+| [SODA](./[ECCV%202020]%20SODA/) | ECCV | 2020 | **评估指标**, 考虑故事性的评估框架 | [arxiv](https://arxiv.org/abs/2005.03954) · [代码](https://github.com/fujiso/SODA) |
 
 ---
 

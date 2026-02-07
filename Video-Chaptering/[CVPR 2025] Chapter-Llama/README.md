@@ -1,150 +1,152 @@
-# Chapter-Llama: Efficient Chaptering in Hour-Long Videos with LLMs
+# Chapter-Llama
 
-> **CVPR 2025**
-
-📄 **Paper**: [arxiv:2504.00072](https://arxiv.org/abs/2504.00072)  
-🌐 **Project**: https://imagine.enpc.fr/~lucas.ventura/chapter-llama/  
-💻 **Code**: https://github.com/antoyang/chapter-llama
+**会议/期刊**: CVPR 2025
+**作者**: [待填写]
+**链接**: [arXiv / OpenAccess]
 
 ---
 
-## 📌 核心贡献
+## 一句话总结
 
-1. **纯文本域方法**: 把视频转换成文本 (ASR + Frame Captions)，利用 LLM 长上下文能力
-2. **Speech-guided Frame Selection**: 用 ASR 内容指导关键帧采样，避免穷举所有帧
-3. **单次处理 1 小时视频**: 高效扩展到小时级长视频
-4. **大幅超越 SOTA**: F1 45.3 vs 26.7 (VidChapters-7M)
+[待填写]
 
 ---
 
-## 🏗️ 方法架构
+## 目录
 
-```
-Video + Audio
-    ↓
-┌───────────────────────────────────┐
-│  1. Speech-based Frame Selection  │
-│     - ASR 提取语音转录             │
-│     - 训练 speech-only LLM        │
-│     - 在预测边界处采样关键帧        │
-└───────────────────────────────────┘
-    ↓
-┌───────────────────────────────────┐
-│  2. Frame Captioning              │
-│     - MiniCPM-V 生成图像描述       │
-│     - 仅对选中的关键帧处理          │
-└───────────────────────────────────┘
-    ↓
-┌───────────────────────────────────┐
-│  3. LLM Chaptering               │
-│     - Llama-3.1-8B + LoRA        │
-│     - 输入: ASR + Captions + 时间戳 │
-│     - 输出: 章节边界 + 标题        │
-└───────────────────────────────────┘
-```
-
----
-
-## 📊 性能对比 (VidChapters-7M)
-
-| 方法 | F1 ↑ | tIoU ↑ | SODA ↑ | CIDEr ↑ |
-|------|------|--------|--------|---------|
-| Vid2Seq (baseline) | 26.7 | 58.6 | 11.6 | 55.8 |
-| **Chapter-Llama** | **45.3** | **71.8** | **19.3** | **100.9** |
-| 提升 | +70% | +23% | +66% | +81% |
-
-### 按视频时长
-
-| 时长 | Vid2Seq F1 | Chapter-Llama F1 |
-|------|------------|------------------|
-| Short (0-15min) | 33.4 | 45.5 |
-| Medium (15-30min) | 19.0 | 46.7 |
-| Long (30-60min) | 16.7 | 41.3 |
-
-> 💡 **关键发现**: 长视频提升更大！
-
----
-
-## 🔑 关键技术
-
-### 1. Speech-based Frame Selection
-- 问题：1 FPS 采样 → 3,960 tokens/min (太长)
-- 方案：先用 speech-only LLM 预测边界，只在边界处采样帧
-- 效果：大幅减少需要 caption 的帧数
-
-### 2. 多模态融合
-```
-ASR:     "[00:05:23] Today we'll learn about machine learning..."
-Caption: "[00:05:23] A person standing in front of a whiteboard..."
-```
-- 时间戳格式: `HH:MM:SS`
-- 按时间交织排列 ASR 和 Caption
-
-### 3. 迭代预测 (长视频)
-- 训练时: 限制 15k tokens (~50 min)
-- 推理时: 分块处理，合并预测
-- 每块 ~25k tokens (~80 min)
+- [Abstract](sections/00-abstract.md)
+- [Chapter-Llama: Efficient Chaptering in Hour-Long Videos with LLMs](sections/01-chapter-llama-efficient-chaptering-in-hour-long-vi.md)
+- [Abstract](sections/02-abstract.md)
+- [1. Introduction](sections/03-introduction.md)
+- [2. Related Work](sections/04-related-work.md)
+- [3. Chapter-Llama: LLM-based Video Chaptering](sections/05-chapter-llama-llm-based-video-chaptering.md)
+- [4. Experiments](sections/06-experiments.md)
+- [4.1. Data and evaluation](sections/07-data-and-evaluation.md)
+- [4.2. Comparison with the state of the art](sections/08-comparison-with-the-state-of-the-art.md)
+- [4.3. Ablation studies](sections/09-ablation-studies.md)
+- [4.4. Iterative prediction on longer videos](sections/10-iterative-prediction-on-longer-videos.md)
+- [5. Conclusions](sections/11-conclusions.md)
+- [References](sections/12-references.md)
+- [APPENDIX](sections/13-appendix.md)
+- [A. Implementation Details 13](sections/14-a-implementation-details-13.md)
+- [B. Data Analysis and Statistics 14](sections/15-b-data-analysis-and-statistics-14.md)
+- [C. Additional Quantitative Results](sections/16-additional-quantitative-results.md)
+- [14](sections/17-.md)
+- [D. Additional Qualitative Analyses 18](sections/18-d-additional-qualitative-analyses-18.md)
+- [A. Implementation Details](sections/19-a-implementation-details.md)
+- [A.1. Finetuning the LLM](sections/20-a1-finetuning-the-llm.md)
+- [A.2. Prompt details](sections/21-a2-prompt-details.md)
+- [A.3. Training data format](sections/22-a3-training-data-format.md)
+- [A.4. Iterative prediction details](sections/23-a4-iterative-prediction-details.md)
+- [B. Data Analysis and Statistics](sections/24-b-data-analysis-and-statistics.md)
+- [B.1. Video duration distribution](sections/25-b1-video-duration-distribution.md)
+- [B.2. Video category distribution](sections/26-b2-video-category-distribution.md)
+- [B.3. Videos within 15k window token limit](sections/27-b3-videos-within-15k-window-token-limit.md)
+- [C. Additional Quantitative Results](sections/28-additional-quantitative-results.md)
+- [C.1. Predicting timestamps without chapter titles](sections/29-1-predicting-timestamps-without-chapter-titles.md)
+- [C.2. ASR timestamp representation](sections/30-2-asr-timestamp-representation.md)
+- [C.3. Modality prefixes](sections/31-3-modality-prefixes.md)
+- [C.4. Alternative frame selection strategies](sections/32-4-alternative-frame-selection-strategies.md)
+- [C.5. Training data size on the frame selection model](sections/33-5-training-data-size-on-the-frame-selection-model.md)
+- [C.6. Separate training data for frame selector and Chapter-Llama](sections/34-6-separate-training-data-for-frame-selector-and-ch.md)
+- [C.7. LLM variants](sections/35-7-llm-variants.md)
+- [C.8. LoRA rank](sections/36-8-lora-rank.md)
+- [C.9. Training on videos of various durations](sections/37-9-training-on-videos-of-various-durations.md)
+- [C.10. Oracle experiments with partial ground truth input](sections/38-10-oracle-experiments-with-partial-ground-truth-in.md)
+- [C.11. Performance on videos that have no speech](sections/39-11-performance-on-videos-that-have-no-speech.md)
+- [C.12. Full set of metrics](sections/40-12-full-set-of-metrics.md)
+- [C.13. Repetition analysis](sections/41-13-repetition-analysis.md)
+- [C.14. Accuracy of number of chapter predictions](sections/42-14-accuracy-of-number-of-chapter-predictions.md)
+- [D. Additional Qualitative Analyses](sections/43-d-additional-qualitative-analyses.md)
+- [D.1. Evaluation metrics](sections/44-d1-evaluation-metrics.md)
+- [D.2. Visualizing captions](sections/45-d2-visualizing-captions.md)
+- [D.3. Chapter-Llama prediction examples](sections/46-d3-chapter-llama-prediction-examples.md)
+- [Ground truth](sections/47-ground-truth.md)
+- [Frame selector(S: 49, C: 187)](sections/48-frame-selectors-49-c-187.md)
+- [Chapter-Llama(S: 54, C: 225)](sections/49-chapter-llamas-54-c-225.md)
+- [Captions](sections/50-captions.md)
+- [Ground truth](sections/51-ground-truth.md)
+- [Chapter-Llama(S:38, C:296)](sections/52-chapter-llamas38-c296.md)
 
 ---
 
-## 🧪 消融实验
+## 核心贡献
 
-### 模态贡献
-
-| ASR | Captions | F1 |
-|-----|----------|-----|
-| ✗ | ✓ | 39.1 |
-| ✓ | ✗ | 38.5 |
-| ✓ | ✓ | **42.6** |
-
-> 两种模态互补，缺一不可
-
-### 帧选择策略
-
-| 策略 | F1 |
-|------|-----|
-| 等距采样 | 38.7 |
-| Random | 38.8 |
-| Speech-guided | **42.6** |
+1. 
+2. 
+3. 
 
 ---
 
-## 📝 与其他方法对比
+## 阅读进度
 
-| 特点 | Vid2Seq | Chapter-Llama |
-|------|---------|---------------|
-| 输入 | 100 帧 (固定) | Speech-guided 采样 |
-| 模型 | T5 + CLIP | Llama-3.1-8B |
-| 视频长度 | 受限 | 小时级 |
-| 训练数据 | HowTo100M + VidChapters | 20k videos (2.5%) |
+- [ ] Abstract
+- [ ] Chapter-Llama: Efficient Chaptering in Hour-Long Videos with LLMs
+- [ ] Abstract
+- [ ] 1. Introduction
+- [ ] 2. Related Work
+- [ ] 3. Chapter-Llama: LLM-based Video Chaptering
+- [ ] 4. Experiments
+- [ ] 4.1. Data and evaluation
+- [ ] 4.2. Comparison with the state of the art
+- [ ] 4.3. Ablation studies
+- [ ] 4.4. Iterative prediction on longer videos
+- [ ] 5. Conclusions
+- [ ] References
+- [ ] APPENDIX
+- [ ] A. Implementation Details 13
+- [ ] B. Data Analysis and Statistics 14
+- [ ] C. Additional Quantitative Results
+- [ ] 14
+- [ ] D. Additional Qualitative Analyses 18
+- [ ] A. Implementation Details
+- [ ] A.1. Finetuning the LLM
+- [ ] A.2. Prompt details
+- [ ] A.3. Training data format
+- [ ] A.4. Iterative prediction details
+- [ ] B. Data Analysis and Statistics
+- [ ] B.1. Video duration distribution
+- [ ] B.2. Video category distribution
+- [ ] B.3. Videos within 15k window token limit
+- [ ] C. Additional Quantitative Results
+- [ ] C.1. Predicting timestamps without chapter titles
+- [ ] C.2. ASR timestamp representation
+- [ ] C.3. Modality prefixes
+- [ ] C.4. Alternative frame selection strategies
+- [ ] C.5. Training data size on the frame selection model
+- [ ] C.6. Separate training data for frame selector and Chapter-Llama
+- [ ] C.7. LLM variants
+- [ ] C.8. LoRA rank
+- [ ] C.9. Training on videos of various durations
+- [ ] C.10. Oracle experiments with partial ground truth input
+- [ ] C.11. Performance on videos that have no speech
+- [ ] C.12. Full set of metrics
+- [ ] C.13. Repetition analysis
+- [ ] C.14. Accuracy of number of chapter predictions
+- [ ] D. Additional Qualitative Analyses
+- [ ] D.1. Evaluation metrics
+- [ ] D.2. Visualizing captions
+- [ ] D.3. Chapter-Llama prediction examples
+- [ ] Ground truth
+- [ ] Frame selector(S: 49, C: 187)
+- [ ] Chapter-Llama(S: 54, C: 225)
+- [ ] Captions
+- [ ] Ground truth
+- [ ] Chapter-Llama(S:38, C:296)
 
 ---
 
-## 📂 文件结构
+## 笔记
 
-```
-[CVPR 2025] Chapter-Llama/
-├── README.md           # 本文件
-├── full.md             # MinerU 解析的完整论文
-├── paper.pdf           # 原始 PDF
-├── content_list.json   # 结构化内容
-├── layout.json         # 版面分析
-└── images/             # 论文图片
-```
+### 亮点
 
----
 
-## 📝 引用
+### 局限性
 
-```bibtex
-@inproceedings{ventura2025chapterllama,
-  title={Chapter-Llama: Efficient Chaptering in Hour-Long Videos with LLMs},
-  author={Ventura, Lucas and Yang, Antoine and Schmid, Cordelia and Varol, G{\"u}l},
-  booktitle={CVPR},
-  year={2025}
-}
-```
+
+### 与我的工作的关系
+
 
 ---
 
-*解析时间: 2026-02-07*
+*Generated by Paper Reader Skill*

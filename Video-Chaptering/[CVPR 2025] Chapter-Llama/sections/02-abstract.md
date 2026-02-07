@@ -1,0 +1,29 @@
+# Abstract
+
+> 来源: [CVPR 2025] Chapter-Llama
+
+---
+
+## 📄 原文
+
+We address the task of video chaptering, i.e., partitioning a long video timeline into semantic units and generating corresponding chapter titles. While relatively underexplored, automatic chaptering has the potential to enable efficient navigation and content retrieval in long-form videos. In this paper, we achieve strong chaptering performance on hour-long videos by efficiently addressing the problem in the text domain with our ‘Chapter-Llama’ framework. Specifically, we leverage a pretrained large language model (LLM) with large context window, and feed as input (i) speech transcripts and (ii) captions describing video frames, along with their respective timestamps. Given the inefficiency of exhaustively captioning all frames, we propose a lightweight speech-guided frame selection strategy based on speech transcript content, and experimentally demonstrate remarkable advantages. We train the LLM to output timestamps for the chapter boundaries, as well as free-form chapter titles. This simple yet powerful approach scales to processing one-hour long videos in a single forward pass. Our results demonstrate substantial improvements (e.g., 45.3 vs 26.7 F1 score) over the state of the art on the recent VidChapters-7M benchmark. To promote further research, we release our code and models at our project page.
+
+---
+
+## 💡 理解
+
+### 核心要点
+- [ ] 待填写
+
+### 关键公式/概念
+- 
+
+### 图表解读
+- 无图表
+
+### 我的疑问
+- [ ] 
+
+---
+
+*笔记生成时间: 自动生成，待完善*
