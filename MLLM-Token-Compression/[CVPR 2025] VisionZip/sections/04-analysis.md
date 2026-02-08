@@ -1,202 +1,134 @@
+[← 返回 README](../README.md)
+
 # 4. Analysis and Discussion
 
-> 来源: VisionZip (CVPR 2025)
+## 📌 预览
+分析部分回答三个问题：(1) 视觉 token 冗余的根本原因是什么？(2) 为什么 text-agnostic 的 VisionZip 反而优于 text-relevant 方法？(3) VisionZip 在实际部署中有什么优势？
 
 ---
 
-## 📄 原文
+## 4.1. Reasons of Redundancy in Visual Tokens
 
-> 💡 **Section 概览**: 这一节是论文的精华——解释**为什么冗余存在**（4.1）、**为什么 VisionZip 比 text-relevant 方法好**（4.2）、**VisionZip 的部署优势**（4.3）。
+> 💡 **4.1 要点预览**: 冗余的根源在于 Transformer 的 self-attention + softmax 机制——随着层深加深，信息自然"shortcut"聚集到少数 proxy tokens。
 
----
+### Visualization of the Redundancy
 
-### 4.1 Reasons of Redundancy in Visual Tokens
-
-> 💡 **4.1 要点预览**: 冗余的根本原因是 Transformer 的 self-attention + softmax 会把信息 "快捷" 集中到少数 proxy token。
-
-#### Visualization of the Redundancy
+Firstly, as shown in Fig. 5, we illustrate attention changes across layers. In early layers, attention is broadly distributed across the image, but by the middle layers, it suddenly converges onto a few tokens. With deeper layers, attention and information concentrate on a small set of dominant tokens, reaching peak concentration by the 23rd layer—used for visual token extraction for the LLM. Notably, attention is more dispersed in the final layer, as these tokens align with the CLIP text branch via contrastive loss, potentially limiting their representation of the original image. This is why VLM selects the second-to-last layer (-2 layer). Additional visualization results are in Appendix D.
 
 ![Figure 5](../images/ddfa944fff06638f7e39b5804b5f6753c9dec9e10007543dd1bfbec39bc3fb0c.jpg)
-*Figure 5: 不同层的 attention 分布。浅层分散，中间层突然集中，23 层（-2 层）达到峰值集中度。*
+*Figure 5. Visualization of attention distribution across layers*
 
 > 💡 **Figure 5 批读**:
-> ```
-> 层级变化:
-> ├── 浅层 (1-10):  attention 均匀分布在整张图
-> ├── 中间层 (10-15): attention 突然开始集中
-> ├── 23 层 (-2 层):  attention 高度集中于少数 token ⭐
-> └── 最后层 (24):    attention 又分散了
->     → 因为最后层要和 CLIP text branch 对齐 (contrastive loss)
->     → 所以 VLM 选 -2 层而不是最后层
-> ```
+> - 从浅层到深层，attention 从均匀分布逐渐聚集到少数 token
+> - 第 23 层（-2 层）达到最大集中度——这正是 VLM 取 visual tokens 的层
+> - 最后一层 attention 反而分散——因为 contrastive loss 要求与 text branch 对齐
+> - 这解释了为什么 VLM 不用最后一层
 
-#### Explanation
+---
 
-As layer depth increases, instead of aggregating knowledge from all tokens, the model tends to **"shortcut"** by concentrating information into a few proxy tokens. If a CLS token is present, knowledge may further concentrate into the CLS token.
+### Explanation
 
-> 💡 **批注**: 用大白话解释信息集中的机制：
-> ```
-> Softmax 的放大效应:
->
-> softmax(z_i) = e^{z_i} / Σ e^{z_j}
->
-> 其导数 = softmax(z_i) × (1 - softmax(z_i))
->
-> 这意味着:
-> ├── z 大 → 梯度大 → 训练时被进一步强化 → 更大
-> └── z 小 → 梯度小 → 训练时几乎不更新 → 更小
->
-> 结果: 马太效应！强者更强，弱者更弱
-> → 少数 token 的 attention 越来越高
-> → 多数 token 的 attention 越来越低
-> → 信息全集中到少数 "代理 token" (proxy tokens)
-> ```
-> 
-> 类似现象在 LLM 中叫 **"Attention Sink"** [52]，在语义分割中叫 **"Global Token"** [43]。
+Current vision encoders are based on a transformer architecture that aggregates information between tokens through self-attention. We think that as the layer depth increases, instead of aggregating knowledge from all tokens, the model tends to "shortcut" by concentrating information into a few proxy tokens. If a CLS token is present, the knowledge may further concentrate from these proxy tokens into the CLS token. Moreover, using the function softmax to compute the model's loss can intensify this effect. The derivative of this formula is as:
+
+![Equation: Softmax Derivative](../images/db1cf98113afe53cc69e3f82ba0f51d88ab90c9bbd800c56ba65b9547155fbe3.jpg)
+
+> 💡 **批注**: softmax 的梯度特性：
+> - 当 $z$ 大时，梯度 softmax(z)·(1-softmax(z)) 先增后减
+> - 当 $z$ 小时，梯度几乎为零——"穷者愈穷"
+> - 这形成正反馈循环：高 attention 的 token 获得更多梯度更新 → attention 更高 → ...
+> - 结果：信息不可避免地聚集到少数 token
+
+---
+
+We illustrated this function in Fig. 6 (a), when $z$ is large, the gradient becomes substantial in exponential rise, and when $z$ is small, the gradient is almost negligible. This function makes regions of low attention even lower and high-attention areas even more prominent, ultimately concentrating information into a few tokens. [52] identified a similar phenomenon in LLM inference, naming it "Attention Sink." [43] also observed a comparable effect in semantic segmentation, referring to it as the "global token."
 
 ![Figure 6](../images/4421a27332ed66d080b38b5b2d471b4c82794869e1bb89e303eb1e971d27755e.jpg)
-*Figure 6: (a) Softmax 导数的放大效应；(b) Feature misalignment — 关于"人"的信息不在人上面，而在路上的 proxy token。*
+*Figure 6. Reason of redundancy and feature misalignment*
 
 > 💡 **Figure 6 批读**:
-> ```
-> (a) Softmax 导数曲线:
-> ├── z < -2: 梯度 ≈ 0 (被忽略的 token 永远被忽略)
-> ├── z ≈ 0:  梯度最大 (transition zone)
-> └── z > 2:  梯度呈指数增长 (dominant token 被强化)
->
-> (b) Feature Misalignment 示例:
-> ├── 图中有一个人和一辆出租车
-> ├── 与 "人" 语义相关的 token 不在人身上！
-> └── 信息被集中到马路上的一个 proxy token ⭐
->     → 这就是为什么 text-relevant 方法会选错 token
-> ```
+> - **(a)** Softmax 梯度曲线：中间区域梯度最大，两端趋近零。这导致 attention 的"马太效应"
+> - **(b)** Feature misalignment 示例：与"person"最相关的 visual token 不在人身上，而在路面上（proxy token）
+> - 这个 misalignment 正是 text-relevant 方法失效的原因
 
 > 💡 **4.1 小结**:
-> - 冗余的根因: Softmax 的马太效应 → 信息集中到少数 proxy token
-> - Proxy token 的位置不一定在语义主体上（feature misalignment）
-> - 这是 Transformer 架构的固有特性，不是 bug
+> - 冗余是 Transformer + softmax 的固有属性，类似 LLM 中的 "Attention Sink"
+> - 信息聚集到 proxy tokens，这些 token 可能不在语义上对应的位置
 
 ---
 
-### 4.2 Why VisionZip Outperforms Previous Work?
+## 4.2. Why VisionZip Outperforms Previous Work?
 
-> 💡 **4.2 要点预览**: Text-relevant 方法（FastV, SparseVLM）因为 feature misalignment 会选错 token——选到的 "语义相关" token 实际信息量很少。
+> 💡 **4.2 要点预览**: Text-relevant 方法（FastV/SparseVLM）选的 token 看似与问题相关，但实际信息量不足——因为真正的信息在 proxy tokens 里。
 
-#### Text-Relevant Efficient VLM 的问题
+### Text-Relevant Efficient VLM
 
-FastV 和 SparseVLM 用 LLM 中 text-visual attention 来选择 token。看起来合理：选和问题最相关的 token。
+Existing sota methods for reducing visual redundancy to accelerate VLMs, such as FastV [6] and SparseVLM [65], primarily rely on the LLM to identify text-relevant visual token. Specifically, they feed all visual tokens into the LLM and use attention between text and visual tokens across LLM layers for selection.
 
-> 💡 **批注**: 但问题在于 **feature misalignment**！
-> ```
-> 问: "What is the person doing?"
->
-> Text-relevant 方法的思路:
-> ├── LLM 注意到 "person" 这个词
-> ├── 找与 person 语义最相关的 visual token
-> └── 选中人身上的 token → 但这些 token 信息量很少！
->     因为 vision encoder 已经把人的信息集中到路上的 proxy token 了
->
-> VisionZip 的思路:
-> ├── 直接用 CLS attention 选 dominant token
-> ├── Proxy token（信息量最大的）被优先选中
-> └── 虽然位置不在人上面，但包含了人的信息 ⭐
-> ```
+### Misalignment Due to the Pre-group Knowledge
 
-#### 验证实验
+While the text-relevant method appears promising, the visual tokens it selects often lack sufficient information. This limitation arises because the visual encoder aggregates visual information into a limited subset of high-attention tokens, leaving the remaining tokens with minimal informational content. As a result, tokens that should represent specific details are instead grouped into proxy tokens, losing their original in-context information. Furthermore, these proxy tokens tend to appear in peripheral or background areas rather than being positioned near the main subjects of the image. For instance, in Fig. 6 (b), the visual tokens most relevant to the person are not located on the person but are instead assigned to a proxy token situated on the road. This indicates that text-relevant methods often select tokens from elements like the man or the taxi, which actually contain significantly less informative content.
 
-**Table 5: Feature misalignment 定量验证 (TextVQA, SparseVLM 保留 64 tokens)**
+> 💡 **批注**: 这是本文最精彩的分析！
+> - Vision encoder 的 attention 机制把信息"聚"到少数 proxy token
+> - 这些 proxy token 位置往往在边缘/背景区域，不在主体上
+> - Text-relevant 方法选的是位置上与 text query 相关的 token → 但这些 token 信息已被抽走
+> - VisionZip 选的是 attention 最高的 token → 信息最密集的 token
 
-| 实验 | 输入 | 输出 | Accuracy | Δ |
-|------|------|------|----------|---|
-| Baseline | 576 → 64 | SparseVLM 选 64 | 51.1 | - |
-| Ex1: 去掉 top-50 dominant | 526 → 64 | SparseVLM 选 64 | 46.4 | -9.2% |
-| Ex2: 只给 top-128 | 128 → 64 | SparseVLM 选 64 | 52.5 | +2.7% |
+---
+
+To further verify this, we performed two experiments on the TextVQA benchmark with SparseVLM, retaining 64 tokens, as shown in Table 5. In Ex1, we first masked 50 out of 576 total tokens, selecting the 50 tokens with the highest attention according to the vision encoder. From the remaining 526 tokens, SparseVLM was used to select the final set. This approach reduced performance from 51.1 to 46.4, a drop of approximately 9%. In Ex2, instead of providing all 576 tokens, we only supplied the top 128 tokens selected by VisionZip to SparseVLM, which then filtered down to the final 64 tokens. This approach improved performance to 52.5, an increase of about 2.6%. These results further verify that the text-relevant visual tokens are misaligned with the tokens where the Vision Encoder aggregates knowledge.
+
+![Table 5](../images/dcf21e144d75394bb4c111ade1d2a0ba46f24ce2a6ff0942f1ee7750552b3a6a.jpg)
+*Table 5. Quantitative analysis for the feature misalignment*
 
 > 💡 **Table 5 批读**:
-> ```
-> Ex1: 先去掉 50 个 dominant token，再让 SparseVLM 选
-> → 性能暴跌 9.2%！
-> → 说明 dominant token 是信息的核心载体
->
-> Ex2: 只给 VisionZip 选出的 top-128，再让 SparseVLM 选 64
-> → 性能反而提升 2.7%！
-> → 说明 VisionZip 预筛的 token 质量更高
-> → SparseVLM 在高质量 token 池中选效果更好
->
-> 结论: Text-relevant 方法选的"语义相关"token
->       ≠ 信息量最大的 token
->       因为 vision encoder 的 feature misalignment
-> ```
-
-> 💡 **4.2 小结**: VisionZip 胜出的根本原因不是方法更复杂，而是 **理解了 vision encoder 的信息分布规律**——信息在 dominant/proxy token 上，不在语义对应位置上。
+> - **Ex1**: 先去掉 50 个 dominant tokens → SparseVLM 选剩下的 → 性能降 9%
+> - **Ex2**: 先用 VisionZip 选 128 个 → SparseVLM 从中选 64 → 性能升 2.7%
+> - 结论：如果把信息最密集的 token 去掉，text-relevant 方法选的其余 token 几乎没用
+> - 这是对 "feature misalignment" 最有力的实验证明
 
 ---
 
-### 4.3 The Advantage of the VisionZip
+## 4.3. The Advantage of the VisionZip
 
-> 💡 **4.3 要点预览**: VisionZip 的三大实际优势——兼容量化、13B > 7B、多轮对话。
+> 💡 **4.3 要点预览**: VisionZip 的三大部署优势：兼容量化、让 13B 比 7B 更快、支持多轮对话。
 
-#### Easy to Deployment
+### Easy to deployment
 
-| 配置 | Memory (Mb) | SQA Acc |
-|------|-------------|---------|
-| 7B-Full | 18,952 | 70.2 |
-| 13B-Full | 36,721 | 73.5 |
-| 13B-8bit + VisionZip | 16,632 | 70.8 |
-| 13B-4bit + VisionZip | 10,176 | 70.3 |
+Due to VisionZip directly reducing the visual tokens before projecting them into the LLM, rather than gradually reducing them during the LLM forward process, it avoids extensive computation and memory consumption in the LLM's shallow layers. As shown in Table 6, our method is compatible with existing quantization techniques, maintaining performance while minimizing memory usage. Furthermore, our method enables the 13B model to be faster and perform better than the 7B model. As shown in Table 7, our method significantly reduces the inference time of the 13B model, making it twice as fast as the vanilla 13B model and outperforming the vanilla 7B model in both performance and efficiency. Full results across 11 evaluation benchmarks are provided in Appendix B. Additionally, VisionZip is well-suited for integration with LLM acceleration optimization algorithms.
 
-> 💡 **批注**: 13B-4bit + VisionZip 只用 10GB 显存，性能和 7B-Full 持平！
-> → 在消费级 GPU (如 3090 24G) 上就能跑 13B 模型
-> → VisionZip + 量化 = 极致性价比部署方案
+![Table 6](../images/59e4c897e3f5426d0be77df47a98ddcb918bd6ded462676c991690b66f914296.jpg)
+*Table 6. Compatibility of VisionZip on various quantization levels for ScienceQA. † represents use of VisionZip.*
 
-| 模型 | Time | TextVQA |
-|------|------|---------|
-| 7B | 1,714s | 61.3 |
-| 13B | 2,516s | 64.3 |
-| 13B + VisionZip | 1,246s | 62.2 |
+![Table 7](../images/4ebb0142db1898925b82505b3def10221b58e157cb5007b8b03e4a16bdf743bd.jpg)
+*Table 7. VisionZip boosts the 13B model's performance and efficiency over the 7B model on TextVQA. † represents use of VisionZip.*
 
-> 💡 **批注**: 13B + VisionZip 比 7B 原版 **更快 (1246 vs 1714)** 且 **更好 (62.2 vs 61.3)**！这个结论对实际部署意义重大。
+> 💡 **Table 6 & 7 批读**:
+> - **Table 6**: 13B + VisionZip + 4bit 量化 → 只需 10176MB 显存（vs 7B-Full 的 18952MB），性能相当
+> - **Table 7**: 13B + VisionZip 用 1246s（vs 7B vanilla 1714s），更快且 TextVQA 精度更高
+> - 实际意义：用 VisionZip 可以在相同硬件上部署更大的模型
 
-#### Advantage on Multi-turn Conversations
+---
+
+### Advantage on multi-turn conversations
+
+To better support real-world applications, current VLMs store the previous answer in the KV cache to enable multi-turn conversations, reducing the need to reprocess prior dialogue. However, as shown in Figure 7, prior text-relevant methods are unsuitable for multi-turn conversations. This is because the visual tokens selected and stored in the KV cache are closely related to the previous question but lack relevance to the current dialogue, leading to poor performance in multi-turn scenarios. In contrast, our VisionZip selects the most informative visual tokens in a text-agnostic manner, making it more effective for multi-turn conversations.
 
 ![Figure 7](../images/47bc85538f716f7db69d04628922c9fac38dd1443ef96896c76442dd368bd1d7.jpg)
-*Figure 7: VisionZip vs text-relevant 方法在多轮对话中的对比。*
+*Figure 7. Example comparison of VisionZip and previous text-relevant method in multi-turn conversation*
 
 > 💡 **Figure 7 批读**:
-> ```
-> 多轮对话的问题:
->
-> Text-relevant 方法 (FastV/SparseVLM):
-> ├── Round 1: "What color is the car?" → 选了和 car 相关的 token
-> ├── 这些 token 被存入 KV cache
-> ├── Round 2: "What is the person doing?" → 新问题！
-> └── 但 KV cache 里存的是 car 相关的 token → 答不好！
->
-> VisionZip (text-agnostic):
-> ├── 选的是 dominant token（信息最丰富的）
-> ├── 不和任何特定问题绑定
-> └── 对任何后续问题都能回答 ⭐
-> ```
->
-> **大白话**: Text-relevant 方法像是针对第一个问题定制了一副眼镜，换个问题就看不清了。VisionZip 是配了一副通用眼镜，虽然不针对任何问题，但什么都能看到。
-
-> 💡 **4.3 小结**: VisionZip 的实际部署优势——兼容量化、让 13B 比 7B 更实用、多轮对话不掉分。
+> - **Text-relevant 方法的问题**: 第一轮对话选的 visual tokens 是与 Q1 相关的 → 存入 KV cache
+> - 第二轮问不同问题 Q2 → KV cache 里的 visual tokens 与 Q2 无关 → 回答质量骤降
+> - **VisionZip 的优势**: 选的 token 是全局信息最丰富的 → 对任何问题都有用 → 多轮对话稳定
+> - 这是 text-agnostic 设计的最大实际价值
 
 ---
 
-## 💡 Section 总结
+## 🔖 Section 总结
 
 ### 核心洞察
-1. **冗余原因**: Softmax 马太效应 → 信息集中到 proxy token → 大部分 token 冗余
-2. **Feature misalignment**: Proxy token 位置 ≠ 语义主体位置 → text-relevant 方法选错 token
-3. **VisionZip 胜出原因**: 直接选 dominant token（信息最集中的），不依赖 text-visual 语义对应
-4. **部署优势**: 兼容量化、13B+VisionZip > 7B、多轮对话天然支持
-
-### 与 text-aware 方法的核心对比
-| 维度 | VisionZip | FastV/SparseVLM |
-|------|-----------|-----------------|
-| 选 token 依据 | Vision encoder attention | LLM text-visual attention |
-| 是否受 misalignment 影响 | ❌ | ✅ (选到低信息量 token) |
-| 多轮对话 | ✅ | ❌ (KV cache 绑定旧问题) |
-| 量化兼容 | ✅ | 取决于实现 |
-| 压缩位置 | Encoder 端 | LLM 内部 |
+1. **冗余的根源**: Transformer self-attention + softmax 梯度特性 → 信息聚集到 proxy tokens（类似 Attention Sink）
+2. **Feature Misalignment**: Proxy tokens 位置在边缘/背景，不在语义主体上 → text-relevant 方法选错 token
+3. **VisionZip 的实际优势**: 兼容量化 / 13B 比 7B 快 / 多轮对话稳定
+4. **方法论启示**: 与其在 LLM 层面做 token pruning，不如在 vision encoder 层面选好 token

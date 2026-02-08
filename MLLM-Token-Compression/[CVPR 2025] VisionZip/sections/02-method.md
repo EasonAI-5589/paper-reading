@@ -1,213 +1,200 @@
+[← 返回 README](../README.md)
+
 # 2. VisionZip
 
-> 来源: VisionZip (CVPR 2025)
+## 📌 预览
+Method section 包含五个部分：VLM 架构与计算复杂度分析 → 冗余观测 → Dominant Token Selection + Contextual Token Merging → Efficient Tuning → 应用场景。
 
 ---
 
-## 📄 原文
+In this section, we first explain the importance of reducing the number of visual tokens to improve model efficiency in Sec. 2.1, and then present our observation of redundancy in Sec. 2.2. After that, we detail the training-free method in Sec. 2.3. Additionally, to help the model better adapt to variations in visual token length, we introduce Efficient Tuning in Sec. 2.4. Finally, we briefly discuss the widespread usage of VisionZip. The overall architecture is shown in Fig. 3.
 
-> 💡 **Section 概览**: 这是方法核心。先讲为什么减少视觉 token 能提效（2.1），再讲冗余观察（2.2），然后是两步压缩方法（2.3），最后是高效微调（2.4）和使用场景（2.5）。
-
----
-
-### 2.1 Preliminary
-
-> 💡 **2.1 要点预览**: VLM 的三件套架构和计算复杂度分析——为什么减少 $n_{\text{img}}$ 最有效？
-
-**Architecture of VLM.** VLM 由三部分组成：visual encoder → modality projector → LLM。Visual encoder（如 CLIP）将图像转成 visual tokens，projector 对齐到 LLM 的 embedding space，LLM 融合视觉+文本信息生成回答。
-
-**Computation Complexity.** Total FLOPs = $T \times (4nd^2 + 2n^2d + 2ndm)$
-
-其中 $T$ 是 transformer 层数，$n$ 是序列长度，$d$ 是 hidden dim，$m$ 是 FFN intermediate size。
-
-> 💡 **批注**: 关键是 $n^2$ 项！序列长度 $n = n_{\text{sys}} + n_{\text{img}} + n_{\text{question}}$，而 $n_{\text{img}}$ 通常是其他两项之和的 **20 倍**。
-> ```
-> 大白话: FLOPs 和序列长度的关系：
-> ├── 线性项: 4nd² + 2ndm  → 减 token 线性省算力
-> └── 二次项: 2n²d         → 减 token 二次方省算力 ⭐
->
-> 例: n_img 从 2880 减到 160（减 18 倍）
-> → 二次项省 ~18² = 324 倍！
-> ```
-
-> 💡 **2.1 小结**: 减少 $n_{\text{img}}$ 是提升 VLM 效率的最有效途径，因为 self-attention 的计算量与序列长度平方成正比。
+> 💡 **Section 概览**: 这段是 Section 2 的路线图。核心贡献在 2.3（token selection + merging），2.4 的 efficient tuning 是锦上添花。
 
 ---
 
-### 2.2 Redundancy Observation
+## 2.1. Preliminary
 
-> 💡 **2.2 要点预览**: 实验证明 CLIP/SigLIP 输出的视觉 token 绝大部分冗余——attention 集中在少数 token 上。
+> 💡 **2.1 要点预览**: 建立 VLM 计算复杂度的数学框架，论证为什么减少视觉 token 数是关键。
 
-In popular VLMs like LLaVA and MiniGemini, the number of vision tokens far exceeds that of text tokens. We randomly sampled one image and visualized the attention of each token from the Vision Encoder's **-2 layer** (the selected layer for obtaining input visual tokens in most VLMs).
+**Architecture of VLM.** The VLM architectures generally consist of three components: a visual encoder, a modality projector, and a LLM. The visual encoder, typically a pre-trained image encoder like CLIP's vision model, converts input images into visual tokens. The projector module aligns these visual tokens with the LLM's word embedding space, enabling the LLM to process visual data effectively. The LLM then integrates the aligned visual and textual information to generate responses.
 
-> 💡 **批注**: 为什么是 -2 层（倒数第二层）？
-> - 最后一层的 token 要和 CLIP text branch 做 contrastive loss 对齐，特征可能 "失真"
-> - -2 层更好地保留了图像本身的信息
-> - 这是 LLaVA 系列的标准选择
-
-As shown in Fig. 2, both CLIP and SigLIP exhibit an attention pattern concentrated on a limited number of tokens, while the majority receive minimal attention. We analyze the distribution on TextVQA validation set — most visual tokens receive very low attention with weights close to zero.
-
-> 💡 **批注**: 这个观察是 VisionZip 方法的基石。关键发现：
-> 1. **少数 token 聚集了大部分 attention**（dominant tokens）
-> 2. **多数 token attention ≈ 0**（冗余 tokens）
-> 3. 这个现象在 CLIP 和 SigLIP 中都存在（普遍性）
-> 4. 在不同图片上也一致（鲁棒性）
-
-> 💡 **2.2 小结**: Vision encoder 自身的 self-attention 机制导致信息高度集中于少数 token，这为 text-agnostic 的 token 压缩提供了理论基础。
+> 💡 **批注**: 标准 VLM 三件套：Vision Encoder + Projector + LLM。VisionZip 作用在 Encoder 和 Projector 之间。
 
 ---
 
-### 2.3 Informative Visual Token Zip
+**Computation Complexity.** Evaluating the computational complexity of VLMs requires examining key components such as the self-attention mechanism and the feed-forward network (FFN). The total floating-point operations (FLOPs) can be expressed as:
 
-> 💡 **2.3 要点预览**: VisionZip 的核心两步法——先选 dominant tokens（[CLS] attention），再合并 contextual tokens（key similarity）。
+![Equation: Total FLOPs](../images/502b9180fd16995ceb874e74a7ce234452b7b5fe0b7869f1caae8753da66dda7.jpg)
+
+where $T$ is the number of transformer layers, $n$ is the sequence length, $d$ is the hidden dimension size, and $m$ represents the intermediate size of the FFN.
+
+> 💡 **批注**: FLOPs 公式中，$4nd^2$ 是 FFN 项（与 $n$ 线性），$2n^2d$ 是 self-attention 项（与 $n$ 二次方）。当 $n$ 很大时，二次项主导——这就是为什么减少 $n_{img}$ 如此重要。
+
+---
 
 ![Figure 3](../images/6813a4b5e049b90da83f37c32c42fa59124ecac14490cf4851e38665e375b398.jpg)
-*Figure 3: VisionZip 框架。用 attention score 选 dominant tokens，用 similarity 合并 contextual tokens。*
+*Figure 3. Framework of VisionZip. VisionZip selects dominant tokens that aggregate substantial information based on visual token attention scores. Remaining tokens are merged based on semantic similarity to produce contextual tokens. VisionZip is a training-free method significantly reduces the number of image tokens, accelerating inference while maintaining performance. With efficient fine-tuning of the projector, even better results can be achieved with minimal performance loss compared to using the full token.*
 
 > 💡 **Figure 3 批读**:
-> ```
-> 输入: Vision Encoder 输出的全量 visual tokens (e.g., 576)
->       ↓
-> Step 1: Dominant Token Selection
-> ├── 有 CLS token (CLIP): 用 CLS 对各 token 的 attention score
-> ├── 无 CLS token (SigLIP): 用各 token 被其他 token attend 的平均值
-> └── 选 Top-K 个 attention 最高的 → dominant tokens
->       ↓
-> Step 2: Contextual Token Merging
-> ├── 剩余 token 均匀分成 target 和 merge 两组
-> ├── 用 Key 向量的点积计算 similarity
-> ├── 每个 merge token 分配给最相似的 target
-> └── 平均合并 → contextual tokens
->       ↓
-> 输出: dominant tokens + contextual tokens → Projector → LLM
-> ```
+> - 左侧：Vision Encoder 输出的 attention map，红色高亮区域是 dominant tokens
+> - 中间：两步流程——(1) Select dominant tokens (2) Merge remaining → contextual tokens
+> - 右侧：dominant + contextual tokens 拼接后送入 Projector → LLM
+> - 关键：整个过程发生在 LLM **之前**，所以 LLM 收到的 token 数大幅减少
 
-#### Dominant Token Selection
+---
 
-We evaluate the importance of each visual token by examining its attention scores within the vision encoder:
+This equation shows that computational complexity is strongly influenced by the sequence length $n$. In typical VLM tasks, the sequence length is defined as $n = n_{sys} + n_{img} + n_{question}$, with $n_{img}$ often being much larger than the other two, sometimes by a factor of 20. Thus, reducing $n_{img}$ is essential for improving the efficiency of VLMs.
 
-$$S_h = \text{Softmax}\left(\frac{Q_h K_h^\top}{\sqrt{D_h}}\right)$$
+> 💡 **批注**: $n_{img}$ 占序列长度的绝对大头（20倍于文本）。减少 $n_{img}$ 是效率优化的最大杠杆。
 
-Averaging across heads yields $S_{\text{avg}} \in \mathbb{R}^{B \times \text{SeqLen} \times \text{SeqLen}}$.
+> 💡 **2.1 小结**:
+> - VLM 计算量与序列长度 $n$ 强相关（attention 部分是二次方）
+> - $n_{img}$ 远大于 $n_{sys}$ 和 $n_{question}$，是优化重点
 
-**For CLIP (has CLS token):** Use CLS token's attention scores to select top-K tokens.
+---
 
-**For SigLIP (no CLS token):** Calculate average attention each token receives from all others.
+## 2.2. Redundancy Observation
 
-> 💡 **批注**: 为什么用 [CLS] 的 attention？
-> ```
-> CLS token 的设计目的就是聚合全图信息
-> → CLS 关注哪些 token = 这些 token 包含最多信息
-> → 直接用 CLS attention 排序就行，简单暴力有效
-> ```
-> 对于没有 CLS 的 SigLIP，退而求其次用 "被其他 token 平均关注度" 来代替，思路一致。
+> 💡 **2.2 要点预览**: 用实验证明视觉 token 冗余的普遍性——大部分 token 几乎不被关注。
+
+In popular Vision Language Models like LLaVA and MiniGemini, the number of vision tokens far exceeds that of text tokens, consuming substantial computational resources. To assess whether all these tokens are necessary, we conducted a pilot study on the visual tokens generated by commonly used vision encoders, CLIP and SigLIP.
+
+Specifically, we randomly sampled one image and visualized the attention of each token from the Vision Encoder's -2 layer, which is the selected layer for obtaining input visual tokens in most VLMs, such as the LLaVA. As shown in Fig. 2, both CLIP and SigLIP exhibit an attention pattern concentrated on a limited number of tokens, while the majority of visual tokens receive minimal attention. Furthermore, to demonstrate that the attention focusing on only a few tokens is a normal phenomenon, we analyze the distribution of attention weights on the TextVQA validation set. As shown in Fig. 2, most visual tokens receive very low attention, with weights close to zero, while only a few tokens hold higher attention weights. To show this phenomenon's prevalence, we include more visualizations in Appendix D.1.
+
+> 💡 **批注**: 为什么用 -2 层？因为大多数 VLM（如 LLaVA）取的就是 vision encoder 倒数第二层的输出作为 visual tokens。最后一层因为要和 CLIP text branch 对齐（contrastive loss），反而不是最好的视觉表示。
+
+---
+
+Based on this observation, we find that most visual tokens with low attention weights contribute little information and add significant redundancy. Only a few visual tokens aggregate a substantial amount of information and merit focused attention; we refer to these as the **dominant visual tokens**. Therefore, to reduce redundancy, we focus on selecting the most informative tokens—such as the dominant visual tokens—while discarding less informative ones to reduce the overall token count.
+
+> 💡 **批注**: "Dominant visual tokens"是本文的核心概念——少数聚集了大量信息的 token。
+
+> 💡 **2.2 小结**:
+> - Vision encoder 的 attention 呈极度长尾分布
+> - 绝大多数 token 的 attention 接近零，是冗余的
+> - 少数 dominant tokens 聚集了几乎所有信息
+
+---
+
+## 2.3. Informative Visual Token Zip
+
+> 💡 **2.3 要点预览**: VisionZip 的核心算法——两步走：(1) 选 dominant tokens (2) 合并剩余 tokens 为 contextual tokens。
+
+### Dominant Token Selection
+
+To reduce redundancy by retaining only the most informative visual tokens and discarding less significant ones, the main challenge is identifying which tokens contribute most to the model's performance. We evaluate the importance of each visual token by examining its attention scores within the vision encoder. Specifically, we calculate the attention score as Eq. 1,
+
+![Equation 1: Attention Score](../images/5e08d35e91583a9fc77f21846b505b850b9b2d0962f3c6f8dac418a97930b960.jpg)
+
+where $S_h$ is the attention score of each head, $D_h$ is the head dimension, and $Q_h$ and $K_h$ represent query and key, respectively. Averaging across the head dimension, yields an aggregated attention matrix Savg ∈ RB×SeqLen×SeqLen, reflecting how each token attends to others.
+
+> 💡 **批注**: 标准的 scaled dot-product attention。关键操作是跨 head 维度求平均得到 Savg。
+
+---
+
+For models with a CLS token, such as CLIP, which aggregates information from the entire image, we leverage the CLS token's attention scores to identify key visual tokens. As shown in Algorithm 1, we select the tokens most attended to by the CLS token, as these typically contain the most relevant information. For models without a CLS token, such as SigLIP, we calculate the average attention each token receives from all others in the sequence. Tokens with higher average attention are considered more significant and retained. We provide the details of it in Appendix A.2.
+
+> 💡 **批注**: 两种策略：
+> - **有 CLS token (CLIP)**: 用 CLS 对其他 token 的 attention 排序 → 选 top-K
+> - **无 CLS token (SigLIP)**: 用所有 token 对每个 token 的平均 attention → 选 top-K
+
+---
 
 ![Algorithm 1](../images/e24e3002f75ca359334523473c2b57c8bf923ed18d67363ef2236f23726de908.jpg)
-*Algorithm 1: Dominant Token Selection 伪代码*
+*Algorithm 1: Pseudocode for Dominant Token Selection. cat: concatenation; filter: select the tokens based on the index.*
 
-> 💡 **Algorithm 1 批读**: 核心就 3 步——拿 attention → 取 CLS 那行 → topk 选 token。非常简洁。
+> 💡 **Algorithm 1 批读**:
+> - 输入：vision_tower 的 attention 输出（来自 SELECT_LAYER，通常是 -2 层）
+> - 核心步骤：从 CLS token 的 attention 行中取 top-K index → 用 index 筛选 token
+> - 非常简洁的实现，几行代码搞定
 
-#### Contextual Token Merging
+---
 
-Although dominant tokens contain most visual information, we merge remaining tokens to avoid losing small but potentially important details.
+This process allows us to efficiently identify and retain the dominant visual tokens, as shown in Fig. 3, these tokens contain almost all attention and aggregate substantial information of the total tokens.
 
-> 💡 **批注**: Token merging 的思路借鉴了 ToMe (Token Merging)。关键设计：
-> ```
-> 1. 为什么用 Key 向量计算 similarity？
->    → Key 在 self-attention 中本来就是 "我包含什么信息" 的摘要
->    → 两个 Key 相似 = 两个 token 信息相似 → 可以合并
->
-> 2. 为什么 uniform split？
->    → 均匀采样保证空间覆盖
->    → 避免合并后信息分布不均
->
-> 3. 合并方式: 简单平均
->    → 简单有效，没搞复杂的加权
-> ```
+### Contextual Tokens Merging
 
-**Algorithm 2 伪代码**:
-```python
-remaining = vanilla_tokens.mask(dominant_tokens)  # 去掉 dominant
-targets, merge = uniform_split(remaining, M)       # 均匀分成两组
-similarity = bmm(merge.K, targets.K.T)             # Key 相似度
-assign_idx = similarity.argmax(dim=2)              # 每个 merge → 最相似的 target
-context_tokens = avg_merge(assign_idx, targets, merge)  # 平均合并
+Although we have selected dominant tokens by evaluating their significance, and these dominant tokens contain most visual information, we merge the remaining tokens to avoid losing any small but potentially important information. Specifically, during self-attention calculation, the keys (K) already summarize the information contained in each token. Therefore, as shown in Algorithm 2, we first uniformly split the non-dominant tokens into target and merge tokens. We then use a similarity metric, such as the dot product, to identify the keys containing similar information. Finally, we merge the tokens that contain the most similar information, creating contextual tokens. As shown in Fig. 3, these contextual tokens serve as highly informative tokens, containing the figure's semantic similarity information.
+
+> 💡 **批注**: Contextual Token Merging 的核心思路：
+> 1. 从剩余 token 中均匀采样 M 个作为 target
+> 2. 用 Key 向量的相似度把其他 token 分配到最近的 target
+> 3. 按分配关系做平均合并
+> 
+> 这类似 ToMe (Token Merging) 的思想，但这里用在 VLM 的 vision encoder 输出上。
+
+---
+
+**Algorithm 2: Pseudocode for Contextual Tokens Merging.**
+
 ```
+# Remove dominant tokens
+remaining = vanilla_tokens.mask(dominant_tokens)
+# Split into target and merge tokens
+# M represents the desired number of contextual tokens
+targets, merge = uniform_split(remaining, M)
+# Compute similarity based on the key values
+similarity = bmm(to_merge.K, targets.K.transpose(1, 2))
+# Assign each merge token to the most similar target
+assign_idx = similarity.argmax(dim=2)
+# Merge by averaging
+context_tokens = avg_merge(assign_idx, targets, merge)
+```
+
+*uniform_split: Uniformly sample the target tokens, and the rest are the merge tokens; avg_merge: Average merge the tokens based on the assigned indices.*
+
+> 💡 **Algorithm 2 批读**:
+> - 用 Key 向量做相似度计算（不用 Value），因为 Key 天然编码了 token 的信息摘要
+> - 合并方式是简单的平均，计算开销极低
+> - 最终：dominant_tokens + context_tokens 拼接成最终的 visual tokens
 
 > 💡 **2.3 小结**:
-> - Dominant selection: [CLS] attention → Top-K → 信息密度最高的 token
-> - Contextual merging: Key similarity → 合并冗余 token → 保留细节
-> - 整个过程在 vision encoder 端完成，不需要 LLM 参与
-> - Token 数量配比（以 LLaVA-1.5 保留 64 token 为例）：54 dominant + 10 contextual
+> - **Dominant Token Selection**: 基于 attention score 选最重要的 token（CLS attention 或 mean attention）
+> - **Contextual Token Merging**: 基于 Key 相似度合并剩余 token，保留细节信息
+> - 整个过程在 vision encoder 层面完成，LLM **之前**，因此直接减少 LLM 的输入长度
 
 ---
 
-### 2.4 Efficient Tuning
+## 2.4. Efficient Tuning
 
-> 💡 **2.4 要点预览**: token 数骤降导致轻微 misalignment，用极少数据微调 projector 即可修复。
+> 💡 **2.4 要点预览**: 可选的 30 分钟 projector fine-tuning，弥补 token 数量骤降带来的 misalignment。
 
-The reduction in visual tokens can lead to misalignment, as the VLM model originally trained on all full visual tokens may struggle to adapt to the sudden decrease.
+The Informative Visual Token Zip extracts highly informative tokens from the visual encoder and drops other tokens, thereby significantly reducing the token length input to the LLM, potentially by up to tenfold. However, this reduction in visual tokens can lead to a degree of misalignment, as the VLM model, originally trained on all full visual tokens, may struggle to adapt to the sudden decrease.
 
-We use minimal instruction tuning data to efficiently fine-tune the **multimodal projector** while keeping other components frozen.
+To bridge the gap between the visual and LLM spaces, we use minimal instruction tuning data to efficiently fine-tune the multimodal projector while keeping other components frozen, enhancing alignment between the vision and language spaces. Notably, the instruction tuning requires only 1/10 of the LLaVA-1.5 dataset and can be completed in just 30 minutes on 8 Nvidia A800 for LLaVA 1.5 7B. Notably, this process can also be implemented on 3090 GPUs, which is both resource-efficient and effective.
 
-> 💡 **批注**: 微调细节：
-> | 项目 | 值 |
-> |------|-----|
-> | 微调组件 | 仅 projector |
-> | 数据量 | 1/10 LLaVA-1.5 数据 |
-> | 时间 | 30 min on 8×A800 |
-> | 也可用 | 3090 GPU |
-> | 效果 | 64 token 时性能从 94.0% → 95.2% |
->
-> 这个成本几乎可以忽略不计，性价比极高。
-
-> 💡 **2.4 小结**: VisionZip‡ 通过极低成本的 projector 微调，弥补了 token 减少带来的 misalignment，是实际部署的推荐方式。
+> 💡 **批注**: Efficient Tuning 的关键设计：
+> - **只 tune projector**，其他组件冻结
+> - **数据量极少**：1/10 LLaVA-1.5 数据
+> - **时间极短**：30 min on 8×A800，3090 也能跑
+> - 本质上是让 projector 适应"更少但更精的" visual tokens
 
 ---
 
-### 2.5 Usage of VisionZip
+## 2.5. Usage of VisionZip
 
-> 💡 **2.5 要点预览**: VisionZip 的适用范围和独特优势。
+The VisionZip can adapt to multiple tasks, not only for image and video understanding in Vision-Language Models but also for multi-turn conversations that previous efficient VLMs could not handle. Additionally, VisionZip is easy to implement as it is text-agnostic, enabling compatibility with all existing LLM algorithms for acceleration. Furthermore, VisionZip can be seen as a plug-and-play method for vision encoders, which preserves over 90% of the original model's performance while saving 3 times runtime and memory. It can even allow a 13B VLM to achieve greater efficiency than a 7B VLM while maintaining superior performance. We will show more details in Sec. 4.3.
 
-VisionZip can adapt to multiple tasks:
-- Image and video understanding
-- Multi-turn conversations (previous efficient VLMs could not handle)
-- Compatible with all existing LLM acceleration algorithms
-- Plug-and-play for vision encoders
-- 13B VLM can be faster than 7B VLM
-
-> 💡 **批注**: VisionZip 的核心优势总结：
-> ```
-> 1. Text-agnostic → 多轮对话不掉分
-> 2. 在 encoder 端压缩 → LLM 端所有加速技术都兼容
-> 3. Plug-and-play → 不改模型结构
-> 4. 13B+VisionZip > 7B → 实际部署中可以用更大模型
-> ```
+> 💡 **批注**: VisionZip 的三大优势总结：
+> 1. **Multi-turn friendly**: text-agnostic → KV cache 中的 visual tokens 不依赖特定 question
+> 2. **兼容性强**: 可与量化、KV cache 压缩等所有 LLM 加速技术叠加
+> 3. **Plug-and-play**: 不改模型架构，直接插在 vision encoder 后面
 
 ---
 
-## 💡 Section 总结
+## 🔖 Section 总结
 
-### 方法流程图
-```
-Image → Vision Encoder (CLIP/SigLIP)
-         ↓ (-2 layer)
-    All visual tokens (576/2880)
-         ↓
-    ┌── Dominant Token Selection (CLS attention → Top-K)
-    │   └── e.g., 54 tokens
-    └── Contextual Token Merging (Key similarity → avg merge)
-        └── e.g., 10 tokens
-         ↓
-    Selected tokens (64) → Projector → LLM
-                            ↑
-                    (可选: 微调 projector 30min)
-```
+### 关键数字速查
+| 指标 | 数值 |
+|------|------|
+| LLaVA-1.5 配置 | 54 dominant + 10 contextual = 64 tokens |
+| Token 压缩比 | 最高 10× (576→64 或 2880→160) |
+| Efficient Tuning 数据 | 1/10 LLaVA-1.5 |
+| Efficient Tuning 时间 | 30 min (8×A800) |
 
-### 关键设计选择
-| 设计 | 选择 | 理由 |
-|------|------|------|
-| 重要性度量 | CLS attention | CLS 天然聚合全图信息 |
-| 合并度量 | Key 向量相似度 | Key 是信息内容的摘要 |
-| 压缩位置 | Vision encoder 端 | Text-agnostic, 效率更高 |
-| 微调目标 | 仅 projector | 成本极低, 效果显著 |
+### 核心洞察
+1. VisionZip 在 LLM **之前**减少 token——这是与 FastV/SparseVLM 最根本的区别
+2. Dominant tokens 选取基于 vision encoder 的 attention，而非 LLM 的 text-visual attention
+3. Contextual token merging 用 Key 向量相似度，计算开销极低
+4. Efficient tuning 只需极少资源即可弥补 misalignment
