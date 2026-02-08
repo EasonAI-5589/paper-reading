@@ -15,6 +15,9 @@ A significant challenge in developing strong video chaptering models is the scar
 
 ## 3.1 Data Curation
 
+![Figure 2](../images/7d0a7673bdb7eb96f5e60643c9caa12daa61973ebd44332eaf9c3f1d85aad89b.jpg)
+*Figure 2: 自动视频标注管线概览。从视频帧提取 visual captions (含 OCR)，从音频提取 ASR 转录，按时间对齐后合并为多模态转录文本。结合原始 chapter markers，由 LLM 生成结构化 chapter 和时间对齐的视频描述。*
+
 > 💡 **3.1 要点预览**: 数据从哪来？如何筛选？关键是利用视频平台上用户已有的 chapter markers。
 
 One of the key contributions of our work is the introduction of a new large-scale dataset, named VidAtlas, which is designed for the task of hierarchical video chaptering and summarization. Our primary goal is to construct a dataset that not only provides accurate chapter boundaries but also offers dense, multi-granularity textual descriptions for both individual chapters and the entire video.

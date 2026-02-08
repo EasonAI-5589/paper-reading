@@ -66,6 +66,9 @@ Our dataset, code and models are publicly available on our website [1].
 
 ---
 
+![Figure 1](../images/4a3cb6ce77e5c33483e082c5486a35ee29e772502c561d05f2e7e59f118c2701.jpg)
+*Figure 1: A video with user-annotated chapters in VidChapters-7M: the video is temporally segmented into chapters, which are annotated with a chapter title in free-form natural language.*
+
 ## 🔖 Section 总结
 
 ### 核心洞察

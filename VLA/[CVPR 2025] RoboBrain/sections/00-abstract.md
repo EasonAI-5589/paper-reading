@@ -14,10 +14,6 @@ Yuheng Ji, Huajie Tan, Jiayu Shi, Xiaoshuai Hao, Yuan Zhang, Hengyuan Zhang, Pen
 
 > 💡 **作者背景**: 来自北大、BAAI、中科院自动化所、港大等机构的联合团队。通讯作者 Shanghang Zhang（仉尚航）是北大计算机系教授，长期从事多模态学习和机器人领域研究。
 
-![](../images/82ad37a1378b1ec730894c6f36e09e1b3bf694a7e07c39ba0b21418e3ba6e99d.jpg)  
-Figure 1. Overview of RoboBrain. RoboBrain consists of three key robotic capabilities: planning capability, affordance perception, and trajectory prediction. RoboBrain outperforms previous MLLMs in robotics tasks. The bottom part shows the composition of RoboBrain's training data and provides a specific example of visual question answering from our proposed ShareRobot. Best viewed on screen.
-
-> 💡 **Figure 1 解读**: 这张总览图展示了 RoboBrain 的三大核心能力：(1) Planning — 将高层指令分解为子任务；(2) Affordance — 感知物体可交互区域；(3) Trajectory — 预测末端执行器运动轨迹。下半部分展示了训练数据组成和 ShareRobot 的 VQA 示例。这个 abstract-to-concrete 的渐进式框架是论文的核心设计理念。
 
 # Abstract
 

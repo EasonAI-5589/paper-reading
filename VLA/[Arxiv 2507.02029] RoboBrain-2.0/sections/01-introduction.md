@@ -90,6 +90,9 @@ To provide a comprehensive view of RoboBrain 2.0's architecture, training method
 
 ---
 
+![Figure 1](../images/a808da69c76bee61e7c520fa20705382a73db1fa534e82b58996e4ca135aa768.jpg)
+*Figure 1: Benchmark comparison across spatial and temporal reasoning. RoboBrain2.0-32B achieves best performance on both spatial and temporal reasoning benchmarks across BLINK-Spatial, RoboSpatial, RefSpatial-Bench, Where2Place, EgoPlan2 and Multi-Robot-Plan, outperforming prior open-source models and proprietary models.*
+
 ## 💡 Section 总结
 
 ### 关键数字速查

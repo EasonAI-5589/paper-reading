@@ -18,8 +18,6 @@ We introduce RoboBrain 2.0, our latest generation of embodied vision-language fo
 > - **32B 在空间和时间 benchmark 上超过开源和闭源模型**
 > - 通讯作者：仉尚航（Shanghang Zhang），北大计算机系教授
 
-![Figure 1](../images/a808da69c76bee61e7c520fa20705382a73db1fa534e82b58996e4ca135aa768.jpg)
-*Figure 1: Benchmark comparison across spatial and temporal reasoning. RoboBrain2.0-32B achieves best performance on both spatial and temporal reasoning benchmarks across BLINK-Spatial, RoboSpatial, RefSpatial-Bench, Where2Place, EgoPlan2 and Multi-Robot-Plan, outperforming prior open-source models and proprietary models.*
 
 > 💡 **Figure 1 批读**: 雷达图对比，展示 RoboBrain 2.0-32B 在 6 个 benchmark 上的全面领先：
 > ```

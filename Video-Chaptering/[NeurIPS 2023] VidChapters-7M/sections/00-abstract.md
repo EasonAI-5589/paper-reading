@@ -22,8 +22,6 @@ We benchmark both simple baselines and state-of-the-art video-language models fo
 
 > 💡 **关键发现**: 在 VidChapters-7M 上预训练后，迁移到 dense video captioning 任务表现优异，而且性能随预训练数据量增长而提升——这说明数据集的规模优势是实实在在的。
 
-![Figure 1](../images/4a3cb6ce77e5c33483e082c5486a35ee29e772502c561d05f2e7e59f118c2701.jpg)
-*Figure 1: A video with user-annotated chapters in VidChapters-7M: the video is temporally segmented into chapters, which are annotated with a chapter title in free-form natural language.*
 
 > 💡 **Figure 1 批读**:
 > - 展示了一个实际的 YouTube 视频章节示例

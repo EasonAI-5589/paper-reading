@@ -10,6 +10,9 @@
 
 ---
 
+![Figure 2](../images/d4a555a2315535d9b90784a997208386cbe2e52f45b97ef7de143897b1ebf6fd.jpg)
+*Figure 2: LMM 架构总览 + DivPrune 的应用位置。右侧展示了方法的具体步骤。*
+
 ### 3.1 Large Multimodal Models (LMMs)
 
 > 💡 **3.1 要点预览**: LMM 的数学表示——输入怎么变成 token，token 怎么生成输出。

@@ -68,8 +68,6 @@ Some previous works proposed token pruning with the need for fine-tuning. M³ [3
 
 ---
 
-![Figure 2](../images/d4a555a2315535d9b90784a997208386cbe2e52f45b97ef7de143897b1ebf6fd.jpg)
-*Figure 2: LMM 架构总览 + DivPrune 的应用位置。右侧展示了方法的具体步骤。*
 
 > 💡 **Figure 2 批读**:
 > ```
