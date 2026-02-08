@@ -6,160 +6,59 @@
 
 ## 📄 原文
 
-The exponential proliferation of long-form video content, including educational lectures, vlogs, live streams, and meeting recordings—poses significant challenges for automatic content understanding. Video chaptering has emerged as a promising solution, segmenting videos into navigable and semantically coherent chapters. This enables efficient content retrieval, summarization, and enhanced user interaction, which are critical for managing and consuming large-scale video data.
+The exponential proliferation of long-form video content, including educational lectures, vlogs, live streams, and meeting recordings—poses significant challenges for automatic content understanding. Video chaptering [35; 44] has emerged as a promising solution, segmenting videos into navigable and semantically coherent chapters. This enables efficient content retrieval, summarization, and enhanced user interaction, which are critical for managing and consuming large-scale video data.
 
-> 💡 **问题背景**:
-> - 长视频爆炸式增长：讲座、vlog、直播、会议录像
-> - **Video Chaptering** = 把视频分成可导航的、语义连贯的章节
-> - 价值：高效检索、自动摘要、提升用户体验
+> 💡 **Video Chaptering 任务定义**: 将长视频自动切分为语义连贯的"章节"，每个章节有时间边界和文本描述。应用场景包括内容检索、视频摘要、用户导航等。
 
-Despite notable advances in segmenting short videos (usually within five minutes) for tasks such as action segmentation, temporal event localization, and dense video captioning, the structuring of hour-long videos remains a formidable challenge.
-
-> 💡 **现状**: 短视频 (<5分钟) 已有进展，但**小时级长视频**仍是难题
-
-**First**, modeling sophisticated semantics across multimodal inputs, including visual and audio streams—over extended temporal horizons requires robust and scalable architectures.
-
-**Second**, the scarcity of large-scale datasets with fine-grained annotations hinders the development and evaluation of effective chaptering models.
-
-**Third**, existing evaluation metrics often fail to capture the semantic granularity of chapter boundaries, leading to suboptimal matching and similarity scoring between predicted and ground-truth segments.
+Despite notable advances in segmenting short videos (usually within five minutes) for tasks such as action segmentation [8; 22; 27; 32; 39], temporal event localization [16; 54], and dense video captioning [19; 38; 46], the structuring of hour-long videos remains a formidable challenge. First, modeling sophisticated semantics across multimodal inputs, including visual and audio streams—over extended temporal horizons requires robust and scalable architectures. Second, the scarcity of large-scale datasets with fine-grained annotations hinders the development and evaluation of effective chaptering models. Third, existing evaluation metrics [10; 19] often fail to capture the semantic granularity of chapter boundaries, leading to suboptimal matching and similarity scoring between predicted and ground-truth segments [10].
 
 > 💡 **三大挑战**:
-> | # | 挑战 | 说明 |
-> |---|------|------|
-> | 1 | **长时间多模态建模** | 视觉+音频，跨越几十分钟甚至几小时 |
-> | 2 | **缺乏大规模细粒度数据** | 现有数据集太小、标注太粗 |
-> | 3 | **评估指标不合理** | 无法捕捉章节边界的语义粒度 |
+> 1. **建模难度**: 小时级多模态（视觉+音频）语义理解需要可扩展的架构
+> 2. **数据匮乏**: 缺少大规模细粒度标注数据集
+> 3. **评估不足**: 现有指标（如 SODA）无法准确反映章节边界的语义粒度
+>
+> 这三个挑战分别对应了论文的三大贡献：大规模数据集、层级标注、GRACE 指标。
 
----
+In this technical report, we introduce ARC-Chapter, a comprehensive framework designed to address the unique challenges of long-form video structuring. As illustrated in Fig. 1, ARC-Chapter enables the segmentation of lengthy videos into navigable chapters and generates hierarchical summaries that capture both coarse and fine-grained content structure. Our work makes three primary contributions. First, we advance the scalability of video chaptering by developing the first large-scale model trained on one million long videos, totaling 400,000 hours of content. This dataset is fifty times larger than those used in previous studies [35], allowing our model to generalize across diverse video domains and formats. Second, we propose a semi-automatic annotation pipeline for hierarchical summaries, which leverages easily accessible human-annotated coarse labels. This pipeline integrates automatic speech recognition (ASR) derived transcripts with timestamped visual
 
-We introduce ARC-Chapter, a comprehensive framework designed to address the unique challenges of long-form video structuring. As illustrated in Fig. 1, ARC-Chapter enables the segmentation of lengthy videos into navigable chapters and generates hierarchical summaries that capture both coarse and fine-grained content structure.
+> 💡 **三大贡献对应**:
+> | 挑战 | 贡献 |
+> |------|------|
+> | 数据匮乏 | 百万级视频（400K 小时），50× 于前作 |
+> | 标注粗糙 | 半自动层级标注流水线（利用人工粗标注 + LLM 细化） |
+> | 评估不足 | GRACE 指标（下文详述） |
 
 ![Figure 1](../images/2a72d77e0c5249282bb10f53b978aa4515a296d1a978577042ce495ecc54ccfb.jpg)
-*Figure 1: ARC-Chapter 模型能力展示。给定一个视频，模型生成三层结构化输出：1) Short Title - 简短标题；2) Structural Chapter - 包含重写标题、摘要和详细介绍的结构化标注；3) Timestamp-Aligned Video Description - 与精确时间边界对齐的细粒度描述。*
+Figure 1 模型能力展示。给定视频，模型生成三级结构化输出：1) Short Title — 简洁章节标签；2) Structural Chapter — 包含重写标题、摘要和介绍的详细标注；3) Timestamp-Aligned Video Description — 与精确时间边界对齐的细粒度描述。
 
-> 💡 **ARC-Chapter 解决方案**:
+> 💡 **三级输出结构**:
 > ```
-> 输入: 小时级长视频
->        ↓
-> ARC-Chapter 框架
->        ↓
-> 输出: 可导航章节 + 层级摘要
->       ├── 粗粒度: 短标题 (如 "Introduction")
->       └── 细粒度: 长摘要 (如 "本章介绍了...")
+> Level 1: Short Title        → "Intro", "US Debt Problem"（简洁标签）
+> Level 2: Structural Chapter  → Title + Abstract + Introduction（结构化详细标注）
+> Level 3: Video Description   → 每段时间对应的细粒度叙述描述
 > ```
+> 这种层级设计满足不同粒度的用户需求：快速浏览用 Level 1，深度理解用 Level 2/3。
+
+elements, enabling a holistic and multimodal understanding of video content. Third, we introduce GRACE, a novel granularity-robust evaluation metric designed to address the semantic misalignment issues prevalent in existing chaptering benchmarks. GRACE provides a more accurate assessment of chapter boundary quality by accounting for varying levels of semantic granularity.
+
+Our extensive experiments demonstrate the effectiveness of ARC-Chapter, which establishes a new stateof-the-art on both Chinese and English long-form video chaptering benchmarks. Specifically, ARC-Chapter substantially outperforms previous methods on the VidChapters-7M test sets (e.g., CIDEr: 100.9→186.6; F1: 45.3→59.3; SODA: 19.3→30.6). We validate the importance of multimodality, showing that our full model surpasses video-only and audio-only variants by 7.7 and 5.3 points on SODA, respectively. Furthermore, pretraining on our large-scale dataset significantly enhances transferability, evidenced by notable performance gains on downstream tasks like YouCook2 and ActivityNet Captions. Crucially, our work is the first to identify a clear scaling law in video chaptering: model performance consistently improves with increased training data and label density. This finding refutes previous observations that performance saturates on smaller datasets ( $\sim$ 20k samples) [35] and suggests a promising direction for future research.
+
+> 💡 **关键实验结果汇总**:
+> - **VidChapters-7M**: CIDEr 100.9→186.6 (+85%), F1 45.3→59.3, SODA 19.3→30.6
+> - **多模态优势**: Video+ASR 比 Video-only 高 7.7 SODA，比 ASR-only 高 5.3 SODA
+> - **Scaling Law**: 性能随数据量持续提升，打破前作"20K 样本即饱和"的结论
+> - **迁移性**: YouCook2、ActivityNet Captions 也获得显著提升
+
+The remainder of this report is structured as follows: Section 2 reviews related works; Section 3 describes the dataset and annotation pipeline; Section 4 details our methodology and model architecture; Section 5 presents experimental results and analysis; Section 6 concludes.
 
 ---
 
-### 三大贡献
+## 💡 Section 总结
 
-**First**, we advance the scalability of video chaptering by developing the first large-scale model trained on one million long videos, totaling 400,000 hours of content. This dataset is fifty times larger than those used in previous studies, allowing our model to generalize across diverse video domains and formats.
+Introduction 清晰地建立了"问题→挑战→方案→贡献"的叙事逻辑：
 
-> 💡 **贡献1: 数据规模 (VidAtlas 数据集)**
-> 
-> ⚠️ 注意区分：ARC-Chapter 是**模型**，它构建的数据集叫 **VidAtlas**。
-> 
-> | 对比 | VidChapters-7M (NeurIPS 2023) | **VidAtlas (本文数据集)** |
-> |------|-------------------------------|--------------------------|
-> | 论文性质 | 数据集论文 | 模型论文的配套数据集 |
-> | 视频数 | ~800K | **1M+** |
-> | 总时长 | ~8K 小时 | **400K 小时** |
-> | 标注层级 | 单层 (短标题) | 多层 (标题→章节→摘要) |
-> | 相对规模 | 1x | **50x** |
->
-> → 在 VidAtlas 上训练出首个百万级长视频章节**模型** ARC-Chapter
-
-**Second**, we propose a semi-automatic annotation pipeline for hierarchical summaries, which leverages easily accessible human-annotated coarse labels. This pipeline integrates automatic speech recognition (ASR) derived transcripts with timestamped visual elements, enabling a holistic and multimodal understanding of video content.
-
-> 💡 **贡献2: 半自动层级标注**
-> ```
-> 人工粗标签 (用户自己标的章节标题)
->     +
-> ASR 转录文本
->     +
-> 视觉元素 (场景文字、画面描述)
->     ↓
-> 多层级标注:
-> ├── 短标题: "Cooking Eggs"
-> ├── 结构化章节: "0:00-2:30 | Preparing ingredients | ..."
-> └── 长摘要: "In this section, the chef demonstrates..."
-> ```
-
-**Third**, we introduce GRACE, a novel granularity-robust evaluation metric designed to address the semantic misalignment issues prevalent in existing chaptering benchmarks. GRACE provides a more accurate assessment of chapter boundary quality by accounting for varying levels of semantic granularity.
-
-> 💡 **贡献3: GRACE 指标**
-> 
-> SODA 的问题：one-to-one 匹配太严格
-> ```
-> 例子：GT 有 3 章，模型预测 5 章
-> 
-> SODA: 只能匹配 3 对，剩下 2 个算错误
->       → 惩罚过重
-> 
-> GRACE: 允许 many-to-one 匹配
->       → 如果 2 个预测章节都在 1 个 GT 章节范围内
->       → 算作"细粒度版本"而非"错误"
-> ```
-
----
-
-### 实验结果预览
-
-ARC-Chapter substantially outperforms previous methods on the VidChapters-7M test sets.
-
-> 💡 **性能对比**:
-> | 指标 | Chapter-Llama (前 SOTA) | ARC-Chapter | 提升 |
-> |------|------------------------|-------------|------|
-> | F1 | 45.3 | **59.3** | +31% |
-> | SODA | 19.3 | **30.6** | +58% |
-> | CIDEr | 100.9 | **186.6** | +85% |
-
-We validate the importance of multimodality, showing that our full model surpasses video-only and audio-only variants by 7.7 and 5.3 points on SODA, respectively.
-
-> 💡 **多模态重要性**:
-> | 模态 | SODA |
-> |------|------|
-> | Video only | 22.9 |
-> | ASR only | 25.3 |
-> | **Video + ASR** | **30.6** |
->
-> → 多模态比单模态高 5-8 分
-
----
-
-### Scaling Law 发现
-
-Crucially, our work is the first to identify a clear scaling law in video chaptering: model performance consistently improves with increased training data and label density. This finding refutes previous observations that performance saturates on smaller datasets (~20k samples) and suggests a promising direction for future research.
-
-> 💡 **Scaling Law (关键发现)**:
-> ```
-> 之前的观点：~20K 样本就饱和了，再多数据没用
->                    ↓
-> ARC-Chapter 证明：数据量↑ → 性能持续↑，没有饱和！
-> 
-> 训练数据:  100K → 500K → 1M
-> SODA:      24.1 → 27.8 → 30.6 (持续提升)
-> ```
-> 
-> → 这为未来研究指明方向：继续扩大数据规模！
-
----
-
-## 💡 Section 1 总结
-
-### 三大挑战 → 三大贡献
-
-| 挑战 | 贡献 |
-|------|------|
-| 长时间多模态建模 | Qwen2.5-VL-7B + ASR 融合 |
-| 缺乏大规模数据 | VidAtlas: 1M 视频, 400K 小时 |
-| 评估指标不合理 | GRACE: many-to-one + 语义相似度 |
-
-### ARC-Chapter vs VidChapters-7M (2023)
-
-| 维度 | VidChapters-7M | ARC-Chapter |
-|------|---------------|-------------|
-| 论文性质 | **数据集** 论文 | **方法** 论文 |
-| 数据规模 | 817K 视频 | 1M+ 视频 |
-| 标注层级 | 单层 (标题) | 多层 (标题→章节→摘要) |
-| 最佳 SODA | 11.4 (Vid2Seq) | **30.6** (ARC-Chapter) |
-| 贡献重点 | 定义任务、建立 baseline | 大幅提升性能、发现 Scaling Law |
+1. **问题定义**: 长视频内容爆炸 → 需要自动章节化
+2. **三个挑战**: 建模难、数据少、评估差
+3. **三个贡献**: 大数据集 VidAtlas、层级标注流水线、GRACE 指标
+4. **亮点发现**: 首次证明 video chaptering 存在 scaling law（数据越多性能越好），这对该领域的后续研究方向有重要指导意义
+5. **多模态很重要**: Video+ASR >> 单模态，说明视觉和语音信息是互补的

@@ -6,69 +6,54 @@
 
 ## 📄 原文
 
-**Video Understanding.** Recent advances in video understanding have been driven by large-scale pretraining and multimodal architectures. Models like CLIP, VideoCLIP, and Video-LLaMA have shown remarkable capabilities in understanding short video clips.
+Global Video Understanding. Early video understanding [1; 7; 13; 23; 26; 33; 37; 41; 42; 49; 52; 53; 57] research primarily targeted global comprehension tasks, such as video question answering, video captioning, and video classification. These methods treat entire videos as holistic units, extracting global representations to predict semantic labels or generate summaries. While effective for short videos, they often fail to capture complex temporal dynamics and hierarchical structures of long-form content [24; 30].
 
-> 💡 **视频理解进展**: CLIP/VideoCLIP/Video-LLaMA 在短视频理解上取得突破
+> 💡 **全局视频理解的局限**:
+> - 将视频视为整体单元，提取全局表示
+> - 适用于短视频（VideoQA、Video Captioning、分类）
+> - **问题**: 无法捕捉长视频的复杂时间动态和层级结构
 
-However, scaling these models to hour-long videos remains challenging due to memory constraints and the need to capture long-range temporal dependencies.
+![Figure 2](../images/7d0a7673bdb7eb96f5e60643c9caa12daa61973ebd44332eaf9c3f1d85aad89b.jpg)
+Figure 2 自动视频标注流水线概览。从视频帧中提取视觉描述（含 OCR），从音频中提取 ASR 文本，按时间戳对齐交错为统一的多模态文本，再由 LLM 生成结构化章节和时间对齐的视频描述。
 
-> 💡 **挑战**: 扩展到小时级长视频仍困难（内存限制 + 长程依赖）
+> 💡 **注意**: Figure 2 在论文 PDF 中出现在 Related Works 页面，但内容属于 Section 3（数据标注流水线）。这里保留原始位置。
 
-**Video Chaptering.** Video chaptering aims to segment long videos into semantically coherent chapters. VidChapters-7M introduced the first large-scale benchmark for this task. Chapter-Llama extended this work by leveraging large language models for improved chapter generation.
+Temporal Segmentation for Short Videos. To address the limitations of global approaches, recent works [14; 15; 17; 28; 30; 40; 47; 50; 56] have shifted towards modeling the temporal structure of videos. Datasets like ActivityNet Captions [19], Charades-STA [11], YouCook2 [55] and Breakfast [21] provide timestamped event annotations, enabling tasks such as temporal event localization, action segmentation, and dense video captioning. These approaches move beyond global representations to identify and describe fine-grained events and local temporal dependencies. However, most temporally-structured datasets [25; 48] are limited to short clips, typically under several minutes, and thus do not capture the challenges of ultra-long videos found in lectures, podcasts, or livestreams. The lack of large-scale, long-duration datasets with fine-grained temporal annotations remains a major bottleneck.
 
-> 💡 **Video Chaptering 发展**:
-> ```
-> 时间线:
-> ├── 2023: VidChapters-7M - 首个大规模 benchmark
-> ├── 2024: Chapter-Llama - 用 LLM 提升性能
-> └── 2025: ARC-Chapter - 更大数据 + 层级标注 + GRACE
-> ```
+> 💡 **短视频时序分割发展脉络**:
+> | 数据集 | 任务 | 视频时长 | 局限 |
+> |--------|------|----------|------|
+> | ActivityNet Captions | Dense Video Captioning | 数分钟 | 短 |
+> | Charades-STA | Temporal Grounding | ~30秒 | 短 |
+> | YouCook2 | Dense Captioning | ~5分钟 | 短 |
+> | Breakfast | Action Segmentation | ~2分钟 | 短 |
+>
+> **核心矛盾**: 这些数据集都在几分钟以内，无法涵盖讲座、播客等小时级视频的挑战。
 
-**Dense Video Captioning.** Related tasks include dense video captioning, which produces temporally localized descriptions for video events. Unlike chaptering, dense captioning typically focuses on overlapping events rather than sequential, non-overlapping chapters.
+Long-Form Video Structuring. A few efforts [35; 45] have explored the structuring of hour-long videos. The VidChapters-7M dataset [45] provides a large-scale benchmark for video chaptering, with millions of videos and annotated chapter boundaries, better reflecting real-world scenarios such as vlogs, podcasts, and meetings where long-term temporal reasoning is essential.
 
-> 💡 **Dense Captioning vs Chaptering**:
-> | 维度 | Dense Captioning | Video Chaptering |
-> |------|-----------------|------------------|
-> | 事件关系 | 可重叠 | **连续不重叠** |
-> | 覆盖范围 | 部分事件 | **整个视频** |
-> | 描述长度 | 完整句子 | **简短标题** |
-> | 评价指标 | SODA | SODA + **GRACE** |
+> 💡 **长视频结构化的前作**:
+> - **VidChapters-7M** (NeurIPS 2023): 首个大规模章节化基准，817K 视频
+> - **Chapter-LLaMA** (CVPR 2025): 基于 LLaMA 的章节化模型，在 VidChapters-7M 上训练
 
-**Video Summarization.** Video summarization creates condensed versions of videos. While related, it focuses on content selection rather than structural segmentation.
+Despite these advances, significant challenges remain. Existing chaptering models often rely on limited modalities, such as automatic speech recognition, are trained on small-scale datasets, and produce coarse, uninformative descriptions, which limits their scalability across diverse video domains. To address these issues, we propose a scalable, multimodal framework for long-form video chaptering, supported by a large-scale dataset with detailed chapter descriptions.
 
-> 💡 **Video Summarization vs Chaptering**:
-> - Summarization: 选择关键帧/片段，生成浓缩版
-> - Chaptering: 保留完整视频，添加导航结构
+> 💡 **现有方法的三大不足（ARC-Chapter 要解决的）**:
+> 1. **模态受限**: 大多只用 ASR（纯文本），忽略视觉信息
+> 2. **训练规模小**: 导致泛化能力差
+> 3. **描述粗糙**: 只有简短标题，缺乏详细内容描述
 
 ---
 
-## 💡 Section 2 总结
+## 💡 Section 总结
 
-### Video Chaptering 在相关任务中的定位
+Related Works 梳理了视频理解的三个发展阶段：
 
 ```
-视频内容理解任务谱系:
-
-├── 短视频理解 (<5min)
-│   ├── Action Recognition
-│   ├── Video Captioning
-│   └── Video QA
-│
-├── 长视频理解 (>5min)
-│   ├── Movie Understanding
-│   ├── Video Summarization
-│   └── Video Chaptering ⭐ (本文关注)
-│
-└── 时间定位任务
-    ├── Temporal Grounding
-    ├── Dense Video Captioning
-    └── Video Chaptering ⭐
+全局理解 (Global)     →    短视频时序分割     →    长视频结构化
+├── VideoQA              ├── Action Seg.          ├── VidChapters-7M
+├── Video Captioning     ├── Temporal Grounding   ├── Chapter-LLaMA
+└── Video Classification └── Dense Captioning     └── ARC-Chapter (本文)
 ```
 
-### ARC-Chapter 相对前作的改进
-
-| 前作 | 局限 | ARC-Chapter 改进 |
-|------|------|-----------------|
-| VidChapters-7M | 数据标注粗糙 | 层级标注 |
-| Chapter-Llama | 数据规模有限 | 50x 数据 |
-| SODA 指标 | 一对一匹配 | GRACE 指标 |
+**核心定位**: ARC-Chapter 填补了长视频结构化中"多模态 + 大规模 + 细粒度标注"的空白。现有方法要么只用 ASR，要么训练数据太少，要么输出太粗糙。
