@@ -7,11 +7,10 @@ RoboBrain 是一个基于 MLLM 的统一机器人操作模型，核心解决三�
 
 # RoboBrain: A Unified Brain Model for Robotic Manipulation from Abstract to Concrete
 
-Yuheng $\mathrm { J i ^ { 2 , 3 , 6 , * } }$ , Huajie Tan1,2,∗, Jiayu $\operatorname { S h i } ^ { 1 , 2 , * }$ , Xiaoshuai $\mathrm { H a o } ^ { 2 , * , \dagger }$ , Yuan Zhang1,2, Hengyuan Zhang1,2   
-Pengwei Wang2,†, Mengdi Zhao2, Yao $\mathrm { \ M u ^ { 5 } }$ , Pengju $\mathbf { A n } ^ { 1 , 2 }$ , Xinda Xue1,2, Qinghang $\mathrm { S u ^ { 2 , 4 } }$ , Huaihai Lyu2,3,6 Xiaolong Zheng3,6, Jiaming Liu1,2, Zhongyuan Wang2, Shanghang Zhang1,2,B   
+Yuheng Ji, Huajie Tan, Jiayu Shi, Xiaoshuai Hao, Yuan Zhang, Hengyuan Zhang, Pengwei Wang, Mengdi Zhao, Yao Mu, Pengju An, Xinda Xue, Qinghang Su, Huaihai Lyu, Xiaolong Zheng, Jiaming Liu, Zhongyuan Wang, **Shanghang Zhang** (通讯作者)   
 1 State Key Laboratory of Multimedia Information Processing, School of Computer Science, Peking University 2 Beijing Academy of Artificial Intelligence 3 Institute of Automation, Chinese Academy of Sciences 4 Institute of Information Engineering, Chinese Academy of Sciences 5 The University of Hong Kong 6 School of Artificial Intelligence, University of Chinese Academy of Sciences
 
-> 💡 **作者背景**: 来自北大、BAAI、中科院自动化所、港大等机构的联合团队。通讯作者 Shanghang Zhang（张珊珊）是北大计算机系教授，长期从事多模态学习和机器人领域研究。
+> 💡 **作者背景**: 来自北大、BAAI、中科院自动化所、港大等机构的联合团队。通讯作者 Shanghang Zhang（仉尚航）是北大计算机系教授，长期从事多模态学习和机器人领域研究。
 
 ![](../images/82ad37a1378b1ec730894c6f36e09e1b3bf694a7e07c39ba0b21418e3ba6e99d.jpg)  
 Figure 1. Overview of RoboBrain. RoboBrain consists of three key robotic capabilities: planning capability, affordance perception, and trajectory prediction. RoboBrain outperforms previous MLLMs in robotics tasks. The bottom part shows the composition of RoboBrain's training data and provides a specific example of visual question answering from our proposed ShareRobot. Best viewed on screen.

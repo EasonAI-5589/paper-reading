@@ -14,7 +14,7 @@ Section 5 包含实现细节、评测指标和实验结果。RoboBrain 在 RoboV
 
 ---
 
-During the entire training phase, we employed the Zero3 [71] distributed training strategy, conducting all experiments on a cluster of servers, each equipped with $8 \times \mathsf { A } 8 0 0$ GPUs. The training components for each stage, including image resolution settings, batch size, epochs, and learning rates, are provided in Tab. 1.
+During the entire training phase, we employed the Zero3 [71] distributed training strategy, conducting all experiments on a cluster of servers, each equipped with 8×A800 GPUs. The training components for each stage, including image resolution settings, batch size, epochs, and learning rates, are provided in Tab. 1.
 
 > 💡 **计算资源**: 使用 A800 GPU 集群 + DeepSpeed Zero3 分布式训练。从 Table 1 可知 Stage 3 用了 22×8=176 张 A800，训练成本相当高昂。所有 Stage 均只训练 1 个 epoch。
 
