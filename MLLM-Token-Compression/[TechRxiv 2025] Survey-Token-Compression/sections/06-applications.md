@@ -1,108 +1,54 @@
+[← 返回 README](../README.md)
+
 # 6. Application Scenarios
 
-> ==Token Compression 的实际应用场景==
+## 📌 预览
+Token compression 的实际应用场景：图像理解（医学影像、文档、遥感）、视频理解（具身 AI、流式视频、教学视频）、其他应用（减少幻觉）。
 
 ---
 
 ## 6.1 Image Understanding
 
-### Medical Image Processing
+**Medical Image Processing.** MLLMs must rapidly and accurately interpret clinical data, balancing efficiency and accuracy. Current models remain limited in handling high-resolution medical imaging. Token compression presents a promising avenue to improve both efficiency and effectiveness.
 
-> MLLMs must rapidly and accurately interpret clinical data. Current models remain limited in handling high-resolution medical imaging examination results.
->
-> ==医学影像：需要快速准确解读临床数据，当前模型在高分辨率医学图像上有限制==
+> 💡 **医学影像**: 高分辨率是刚需（CT/MRI 细节不能丢），但计算资源有限。Token compression 需要在"不丢关键细节"的前提下压缩 — 这对现有方法是重大挑战。
 
-**Token Compression 的价值：** 在保持准确性的同时提升效率，处理高分辨率医学图像。
+**Multi-page Document Understanding.** Models must process long documents and generate summaries or solutions. Inspired by high-resolution image processing, similar techniques [124], [148] can be applied to accelerate document understanding while managing longer inputs within limited context lengths.
 
-### Multi-page Document Understanding
+**Satellite and Remote Sensing Imagery.** Rich structural information at high resolutions, but deployment faces computational constraints. Recent studies [283], [284] have explored token compression strategies to handle higher-resolution inputs more efficiently.
 
-> Models must process long documents and generate concise summaries or meaningful solutions.
->
-> ==多页文档理解：处理长文档，生成摘要或解决方案==
-
-**借鉴高分辨率图像处理的经验：**
-- mPLUG-DocOwl2
-- mPLUG-Owl3
-
-### Satellite and Remote Sensing Imagery
-
-> These images typically contain rich structural information at high resolutions, yet practical deployments face computational resource constraints.
->
-> ==遥感图像：高分辨率 + 丰富结构信息 + 计算资源受限==
-
-**应用价值：** 使模型能够更高效地处理高分辨率输入，对工业部署至关重要。
+> 💡 **图像应用共性**: 都是"高分辨率 + 资源受限"的场景。Token compression 的价值在于在不牺牲关键信息的前提下降低计算开销。
 
 ---
 
 ## 6.2 Video Understanding
 
-### Embodied AI
+**Embodied AI.** Embodied agents/robots must respond in real time to visual input during continuous video perception. Token compression [74] addresses this by efficiently capturing spatial and temporal information for fine-grained video understanding while maintaining computational efficiency.
 
-> Embodied agents or robots must respond in real time to visual input during continuous video perception.
->
-> ==具身智能：机器人需要实时响应连续视频输入==
+**Streaming Video Understanding.** Models must process continuous video streams with real-time responses and minimal latency. Prior studies [57], [285]–[287] adopt token compression to address high temporal redundancy in dense video streams (1-10 FPS), store compact historical representations, and efficiently retrieve question-relevant KV caches.
 
-**关键能力：**
-- 高效捕获时空信息
-- 细粒度视频理解
-- 保持计算效率
+**Instructional Video Summary.** Applications such as meeting summarization and lecture keypoint extraction require efficient video understanding while preserving fine-grained details. Central idea: selective retention of informative tokens while discarding redundant ones.
 
-### Streaming Video Understanding
-
-> Models must process continuous video streams and deliver real-time responses with minimal latency.
->
-> ==流式视频理解：处理连续视频流，实时响应，最小延迟==
-
-**技术策略：**
-- 处理密集视频流的高时间冗余（1-10 FPS）
-- 通过 Memory 机制存储紧凑历史表示
-- 推理时高效检索相关 KV cache
-
-**代表作：** TimeChat-Online 等
-
-### Instructional Video Summary
-
-> Meeting summarization and lecture key-point extraction require efficient video understanding while preserving fine-grained details.
->
-> ==教学视频摘要：会议总结、讲座要点提取==
-
-**核心思想：** 选择性保留信息性 tokens，丢弃冗余 tokens。
+> 💡 **视频应用的核心需求**: 实时性（Embodied AI、Streaming）+ 长时记忆（长视频总结）。Token compression 在视频场景的价值远大于图像 — 因为时间维度带来了指数级更多的 tokens。
 
 ---
 
 ## 6.3 Other Applications
 
-### Attention Guidance
+Token pruning demonstrates considerable potential across diverse applications beyond image/video acceleration. A key advantage is guiding model attention toward the most relevant regions [288]. By filtering out background noise and irrelevant objects, models can allocate computational capacity to critical visual information. Prior studies [289], [290] have shown that this improved focus can **mitigate visual hallucinations**, where models generate text inconsistent with visual input.
 
-> A key advantage is its ability to guide model attention toward the most relevant image or video regions.
->
-> ==注意力引导：引导模型关注最相关的图像/视频区域==
-
-**效果：**
-- 过滤背景噪声和无关物体
-- 将计算能力分配给关键视觉信息
-- 提高对 prompt 的响应准确性
-
-### Mitigating Visual Hallucinations
-
-> Prior studies have shown that improved focus can mitigate visual hallucinations, where models generate text inconsistent with visual input.
->
-> ==减少视觉幻觉：通过选择性 token pruning，改善模型输出与视觉上下文的一致性==
+> 💡 **减少幻觉**: Token pruning 不仅是效率工具，还能提升质量！通过去除无关视觉信息，减少模型被噪声干扰产生幻觉的可能性。这是一个意外但重要的发现。
 
 ---
 
-## 💡 应用场景总结
+## 🔖 Section 总结
 
-| 场景 | 挑战 | Token Compression 价值 |
-|------|------|------------------------|
-| 医学影像 | 高分辨率 + 准确性要求 | 效率 + 准确性平衡 |
-| 文档理解 | 长文档 + 上下文限制 | 更长输入 + 更高效率 |
-| 遥感图像 | 高分辨率 + 资源受限 | 工业部署可行性 |
-| 具身智能 | 实时响应 + 连续视频 | 时空信息高效捕获 |
-| 流式视频 | 连续流 + 最小延迟 | 紧凑历史表示 + KV cache |
-| 视频摘要 | 长视频 + 细节保留 | 选择性 token 保留 |
-| 幻觉缓解 | 输出与视觉不一致 | 注意力聚焦关键区域 |
-
----
-
-*[返回论文目录](../README.md)*
+### 应用场景速查
+| 场景 | 核心需求 | 关键挑战 |
+|------|----------|----------|
+| 医学影像 | 高分辨率 + 实时 | 不能丢失诊断关键细节 |
+| 文档理解 | 长文档 + 多页 | 上下文长度限制 |
+| 遥感影像 | 大面积高分辨率 | 计算资源部署受限 |
+| 具身 AI | 实时响应 | 延迟极低要求 |
+| 流式视频 | 连续处理 + 实时 | 内存管理 + 时序保持 |
+| 减少幻觉 | 提升质量 | 选择"正确的"tokens |

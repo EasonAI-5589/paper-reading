@@ -1,98 +1,65 @@
+[← 返回 README](../README.md)
+
 # 7. Open Challenges and Future Work
+
+## 📌 预览
+四大未解决挑战：理论基础缺失、缺乏任务/内容自适应、实际任务性能下降、评估标准不完善。
 
 ---
 
 ## 7.1 Lack of Theoretical Understanding
 
-> Most existing approaches remain largely experience-driven and lack rigorous theoretical grounding. They often exhibit poor transferability across datasets, architectures, and modalities.
->
-> ==现有方法多是经验驱动，缺乏理论基础，跨数据集/架构/模态迁移差==
+Although token compression has achieved notable empirical success, most existing approaches remain largely experience-driven and lack rigorous theoretical grounding. Apart from a few works, such as DeCo [105] and DART [183], which analyze how compression influences representation learning within MLLMs, the majority of methods rely on heuristic intuition and limited empirical validation. Consequently, they often exhibit poor transferability across datasets, architectures, and modalities, as well as insufficient robustness under distribution shift.
 
-**核心问题：**
-> A key weakness lies in the absence of a principled theory of token importance. Current practices—such as ranking tokens by attention weights, pairwise similarity, or mutual information—lack causal or generalization-based justification.
->
-> ==缺乏 token 重要性的理论基础：attention/similarity/MI 只表示相关性，不能解释因果性和充分性==
+A key weakness lies in the absence of a principled theory of token importance. Current practices—such as ranking tokens by attention weights, pairwise similarity, or mutual information—lack causal or generalization-based justification. These metrics indicate correlation rather than necessity.
 
-**未来方向：**
-> By connecting token selection to sufficiency, causality, and robustness, future work can move beyond ad-hoc heuristics toward principled understanding.
->
-> ==将 token 选择与充分性、因果性、鲁棒性联系起来==
+> 💡 **理论空白**: 为什么某些 tokens 可以被安全删除？目前没有理论解释。Attention-based 排序只是"相关性"而非"因果必要性"。这意味着现有方法可能在某些分布上失效。未来需要从 sufficiency、causality、robustness 角度建立理论。
 
 ---
 
 ## 7.2 Lack of Task- and Content-Aware Adaptivity
 
-> Most existing token compression strategies operate in a task-agnostic and content-agnostic manner, applying a fixed compression ratio regardless of task type or visual complexity.
->
-> ==大多数方法是任务无关和内容无关的，固定压缩率不适应不同场景==
+Most existing strategies operate in a task-agnostic and content-agnostic manner, applying a fixed compression ratio regardless of task type or visual complexity. However, the granularity of information required varies substantially. As M3 [91] observed, for most benchmarks crafted from natural scenes (such as COCO), 9 tokens per image suffice. In contrast, dense visual perception tasks such as document understanding or OCR require 144-576 tokens per image.
 
-**关键发现 (M³)：**
-> For most benchmarks (especially natural scenes like COCO), can be handled well with only **9 tokens per image**. In contrast, dense visual perception tasks such as document understanding or OCR require **144~576 tokens per image**.
->
-> ==自然场景只需 ~9 tokens/图像，OCR/文档需要 144~576 tokens/图像！==
+> 💡 **自适应压缩的必要性**: 自然场景 9 tokens 就够，但 OCR 任务需要 144-576 tokens。固定压缩率不可能同时满足两者。VisionThink [190] 用 RL 让模型自主决定是否需要更高分辨率输入 — 这是一个有前景的方向。
 
-**问题：**
-- 简单任务保留冗余 tokens → 效率低
-- 复杂任务丢弃关键细节 → 性能降
-
-**未来方向：**
-> Future research should explore task- and content-aware compression, where the model dynamically determines the degree and manner of token reduction.
->
-> ==探索任务和内容感知的自适应压缩==
-
-**代表作探索：**
-- PAR, QG-VTC, VCM: 根据文本 query 或视觉内容复杂度调整
-- VisionThink: 强化学习决定是否需要高分辨率输入
+Future research should explore task- and content-aware compression, where the model dynamically determines the degree and manner of token reduction. VisionThink [190] proposes a reinforcement learning-based approach enabling autonomous decision on whether higher-resolution visual input is necessary.
 
 ---
 
 ## 7.3 Performance Degradation in Practical Tasks
 
-> Although many token compression methods demonstrate competitive results on general Visual QA tasks, this performance stability does not generalize well to real-world applications.
->
-> ==在通用 VQA 上表现好，但实际应用中性能下降严重==
+Although many token compression methods demonstrate competitive results on general Visual QA tasks, often maintaining comparable accuracy even when reducing visual tokens to 1/3 or 1/4, this performance stability does not generalize well to real-world applications. Tasks requiring fine-grained perception, such as OCR [293], [294], document understanding [295], and dense reasoning over structured visual layouts, tend to experience substantial accuracy drops after compression.
 
-**受影响的任务：**
-| 任务类型 | 问题 |
-|----------|------|
-| OCR | 文本识别准确性下降 |
-| Document Understanding | 结构化布局信息丢失 |
-| Dense Reasoning | 视觉布局的精细推理受损 |
-| Grounding | 定位精度降低 |
-
-> These scenarios demand precise localization, text recognition, and spatial reasoning—capabilities that are highly sensitive to token-level information loss.
->
-> ==这些任务需要精确定位、文本识别和空间推理，对 token 级信息丢失非常敏感==
+> 💡 **性能下降的本质**: Token compression 在 general VQA 上看起来很好（token 减到 1/3 还能保持精度），但这可能只是因为 VQA benchmark 本身不需要太多视觉信息。一旦到 OCR、文档理解等需要精细视觉信息的任务，压缩的危害就暴露了。这是当前方法"刷榜"的一个陷阱。
 
 ---
 
 ## 7.4 Limitations of Existing Evaluation
 
-> ==现有评估体系的局限性==
+Three key limitations in current evaluation practices:
 
-**问题：**
-1. **Benchmark 选择不统一**：各论文选不同 benchmark，难以公平比较
-2. **评估维度单一**：主要关注 Accuracy，忽略 Efficiency 的多维度
-3. **缺乏细粒度任务评估**：通用 VQA 掩盖了细粒度任务的性能问题
-4. **压缩率与位置的交互影响未充分研究**
+1. **Lack of systematic task categorization.** Benchmarks are grouped into broad categories, offering limited insight into how compression affects specific capabilities (e.g., spatial relation reasoning or object motion tracking) and content domains (e.g., table or chart interpretation).
 
-**未来方向：**
-- 建立统一的评估 protocol
-- 增加细粒度任务的 benchmark
-- 综合考虑 Efficiency 的多个维度（FLOPs, Latency, Memory）
-- 评估不同压缩位置的实际影响
+2. **Inefficient evaluation processes.** Current evaluations employ at least ten benchmarks with tens of thousands of examples. Many benchmarks exhibit substantial overlap in evaluation focus, leading to redundant assessments.
 
----
+3. **Absence of consistent evaluation standards.** The selection of benchmarks and metrics varies widely across studies, each emphasizing different strengths. This inconsistency hinders fair cross-method comparison.
 
-## 💡 挑战总结
-
-| # | 挑战 | 核心问题 | 未来方向 |
-|---|------|----------|----------|
-| 1 | 缺乏理论基础 | Token 重要性定义不清 | 因果性 + 充分性分析 |
-| 2 | 缺乏自适应 | 固定压缩率不适应场景变化 | 任务/内容感知的动态压缩 |
-| 3 | 细粒度任务性能下降 | OCR/文档/定位等任务受损 | 保留关键细节的压缩策略 |
-| 4 | 评估标准不统一 | 难以公平比较 | 统一 protocol + 细粒度 benchmark |
+> 💡 **评估标准问题**: 
+> - 缺乏细粒度能力拆解（"空间推理"和"运动追踪"被混在一起评）
+> - Benchmark 之间重叠多，10 个 benchmark 可能只测了 3 种能力
+> - 各方法选择性报告有利的 benchmark，难以公平比较
+> 
+> **启示**: 需要一个专门面向 token compression 的评测框架，包含细粒度能力维度和统一标准。
 
 ---
 
-*[返回论文目录](../README.md)*
+## 🔖 Section 总结
+
+### 四大挑战速查
+| 挑战 | 核心问题 | 未来方向 |
+|------|----------|----------|
+| 理论缺失 | 没有"为什么能压缩"的理论 | 因果分析、sufficiency 理论 |
+| 缺乏自适应 | 固定压缩率不适应不同任务 | Task-aware + Content-aware 动态压缩 |
+| 实际性能下降 | OCR/文档等细粒度任务掉点严重 | 任务特定的压缩策略 |
+| 评估不完善 | Benchmark 重叠、标准不一 | 统一评测框架 + 细粒度能力维度 |

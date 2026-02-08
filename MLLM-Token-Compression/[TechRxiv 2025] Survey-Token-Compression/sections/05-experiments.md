@@ -1,84 +1,69 @@
+[← 返回 README](../README.md)
+
 # 5. Benchmarks and Metrics
+
+## 📌 预览
+总结 token compression 研究中常用的评测 benchmark 和效率指标。
+
+---
 
 ## 5.1 Benchmarks
 
-### 图像理解 Benchmarks
+![Table 8: Summary of benchmarks](../pages/page-20.png)
+*Table 8: Summary of benchmarks widely-used in visual token pruning studies.*
 
-| Benchmark | 类型 | 指标 | 关注点 |
-|-----------|------|------|--------|
-| GQA-testdev | Open | Accuracy | General Image Perception |
-| VQA-v2-testdev | Open | Accuracy | General Image Perception |
-| VizWiz-val | Open | Accuracy | General Image Perception |
-| POPE | Y/N | F1-Score | General Image Perception |
-| TextVQA-val | Open | Accuracy | OCR |
-| ScienceQA-Image | MQA,Y/N | Accuracy | Knowledge |
-| MathVista-testmini | MQA,Open | Accuracy | Knowledge, Reasoning |
-| MathVerse-testmini | MQA,Open | Accuracy | Knowledge, Reasoning |
-| MMMU | MQA,Open | Accuracy | Knowledge, Reasoning |
-| MME | Y/N | Perception Score | Integrated |
-| MMBench-en-dev | MQA | Accuracy | Integrated |
-| MM-Vet | Open | GPT-Score | Integrated |
-| SeedBench-Image | MQA | Accuracy | Integrated |
-| LLaVA-BenchW | Open | GPT-Score | Integrated |
+> 💡 **Table 8 批读**: 
+> **图像 Benchmarks** 按能力分类：
+> - **General Perception**: GQA, VQA-v2, VizWiz, POPE — 基础视觉识别
+> - **OCR**: TextVQA — 图像中文字识别
+> - **Knowledge**: ScienceQA, MathVista, MathVerse, MMMU — 知识推理
+> - **Integrated**: MME, MMBench, MM-Vet, SeedBench, LLaVA-BenchW — 综合评测
+> 
+> **视频 Benchmarks**:
+> - **Temporal**: MVBench — 时序理解
+> - **Long Video**: EgoSchema, LongVideoBench, MLVU — 长视频理解
+> - **Integrated**: ActivityNet-QA, Next-QA, Video-ChatGPT, Video-MME — 综合
 
-**图像理解评估维度：**
-- **General Image Perception**: 基础视觉识别（物体、场景、属性、空间关系）
-- **OCR**: 文本识别和理解
-- **Knowledge**: 视觉感知 + 领域知识整合
-- **Reasoning**: 基于视觉内容的逻辑推理
-- **Integrated**: 综合多维度评估
+For image understanding benchmarks, the categories include:
+- **General Image Perception**: Evaluates basic visual recognition skills in natural images, such as identifying objects, scenes, attributes, and spatial relationships.
+- **Optical Character Recognition (OCR)**: Measures the ability to recognize and interpret textual content embedded in unstructured visual formats.
+- **Knowledge**: Assesses the integration of visual perception with domain-specific or general world knowledge across diverse disciplines.
+- **Reasoning**: Goes beyond perception, requiring logical inference and problem-solving based on visual content combined with specific prior knowledge.
+- **Integrated Image Understanding**: Provides a holistic evaluation by combining visual perception and reasoning tasks into a single benchmark.
 
-### 视频理解 Benchmarks
-
-| Benchmark | 类型 | 指标 | 关注点 |
-|-----------|------|------|--------|
-| ActivityNet-QA | Open | Accuracy, GPT-Score | Integrated |
-| MVBench | MQA | Accuracy | Temporal Understanding |
-| EgoSchema | MQA | Accuracy | Long Video |
-| LongVideoBench | MQA | Accuracy | Long Video, Integrated |
-| MLVU-dev | MQA,Open | Accuracy, GPT-Score | Long Video, Integrated |
-| Next-QA-MC | MQA | Accuracy | Integrated |
-| Video-ChatGPT | Open | GPT-Score | Integrated |
-| Video-MME | MQA | Accuracy | Integrated |
-
-**视频理解评估维度：**
-- **Temporal Understanding**: 时间动态（动作序列、运动模式、事件定位）
-- **Long Video Understanding**: 长视频处理和推理
-- **Integrated Video Understanding**: 视频感知 + 推理综合评估
+For video understanding benchmarks:
+- **Temporal Understanding**: Measures the ability to capture and interpret temporal dynamics, such as action sequences, motion patterns, and event localizations.
+- **Long Video Understanding**: Evaluates the capacity to process and reason over long-form videos, ranging from several to tens of minutes.
+- **Integrated Video Understanding**: Offers a holistic assessment of perception and reasoning skills in video contexts.
 
 ---
 
 ## 5.2 Metrics
 
-### 5.2.1 Effectiveness (效果)
+The evaluation of MLLM token compression methods primarily considers two perspectives: downstream task performance (effectiveness) and computational efficiency (efficiency).
 
-| 指标 | 说明 |
-|------|------|
-| **Accuracy** | 预测是否匹配 ground-truth |
-| **GPT-Score** | 开放式任务的 GPT 评分 |
+### 5.2.1 Effectiveness
 
-### 5.2.2 Efficiency (效率)
+Most benchmarks adopt **Accuracy** as the primary metric. For open-ended tasks without a single correct answer (e.g., image captioning), **GPT-Score** is employed.
 
-| 指标 | 说明 |
-|------|------|
-| **Token Retention Count/Ratio** | 压缩后保留的 token 数量/比例 |
-| **Prefilling/Decoding FLOPs** | 理论计算量 |
-| **Prefilling/Decoding Latency** | 实际耗时（依赖硬件） |
-| **Memory Usage** | 峰值内存占用 |
+### 5.2.2 Efficiency
 
-> Note: Identical retention levels do not guarantee equal inference latency, as factors such as compression position can significantly influence runtime.
->
-> ==注意：相同保留率 ≠ 相同推理延迟，压缩位置等因素影响实际运行时间==
+Efficiency can be evaluated from several complementary aspects:
 
----
+| 指标 | 描述 | 特点 |
+|------|------|------|
+| **Token Retention Count/Ratio** | 压缩后保留的 visual tokens 数量/比例 | 常用于方法对比，但相同保留率不保证相同延迟 |
+| **Prefilling/Decoding FLOPs** | 理论计算量（浮点运算次数） | 硬件无关 |
+| **Prefilling/Decoding Latency** | 实际墙钟时间 | 硬件相关 |
+| **Memory Usage** | 峰值显存占用 | 部署关键，token 压缩可减少 KV-cache 和中间表征的内存 |
 
-## 💡 Key Takeaways
-
-1. **图像评估**：综合评估需覆盖 Perception + OCR + Knowledge + Reasoning
-2. **视频评估**：时序理解和长视频处理是关键维度
-3. **效率指标**：Token 保留率只是参考，实际延迟需要测量
-4. **压缩位置影响**：同样压缩率，不同位置的实际效率不同
+> 💡 **评测陷阱**: 相同的 Token Retention Ratio 不代表相同的推理延迟！因为压缩位置不同（VE vs. LLM），实际加速效果完全不同。VE 处压缩收益最大（下游全加速），LLM 浅层压缩则浅层仍需处理全部 tokens。
 
 ---
 
-*[返回论文目录](../README.md)*
+## 🔖 Section 总结
+
+### 核心洞察
+1. **Benchmark 覆盖面**: 图像 14 个 + 视频 8 个常用 benchmark，但仍缺乏细粒度任务分类
+2. **效率指标多维**: FLOPs（理论）和 Latency（实际）可能不一致
+3. **Memory Usage 对部署至关重要**: 尤其在边缘设备和长视频场景
