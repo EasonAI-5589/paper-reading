@@ -44,23 +44,26 @@ Notably, for event segmentation ability, ARC-Chapter achieves an F1/SODA Score o
 
 We analyze how ARC-Chapter scales with the amount of training data. Concretely, we subsample the training set at $2 0 \%$ , $4 0 \%$ , $6 0 \%$ , $8 0 \%$ , and 100% and keep the model architecture and prompt templates fixed. We evaluate three inference modalities, i.e.ASR-only, Video-only, and ASR+Video, on two benchmarks: VidChapters-7M (sml300val) and a sampled subset of the VidAtlas-testset for efficiency. As illustrated in Fig. 6, the performance across all metrics (F1, tIOU, SODA, and CIDEr) and input modalities (ASR-only, Video-only, Video+ASR) demonstrates a clear positive correlation with the amount of training data. Specifically, the full multimodal model (Video+ASR) consistently achieves the best performance. ARC-Chapter is highly data-efficient, achieving strong performance with as little as $2 0 \%$ of the training data. Furthermore, it is data-scalable, continuing to benefit from larger corpora for even better results.
 
-![Figure 6a](../images/89880f9c26de69cb32ca9e476ea6b2aa86964afd52693bb66a0d4d4483fd233f.jpg)
+<table>
+<tr><td colspan="4" align="center"><b>VidChapters-7M (sml300val)</b></td></tr>
+<tr>
+<td><img src="../images/89880f9c26de69cb32ca9e476ea6b2aa86964afd52693bb66a0d4d4483fd233f.jpg" width="200"/></td>
+<td><img src="../images/a7a6eae0edb311f90140521d9188198795aa7ab1c96b70462eb029cccc538790.jpg" width="200"/></td>
+<td><img src="../images/3d5b90daa5bf2d6ffad6d3759f14f3d6d27ab0c58c729ad0187e930731a55813.jpg" width="200"/></td>
+<td><img src="../images/9a39b73ab3b3c1289ce32ec8ef4ef5c6a56ceaa378d57c5f3445425c4e50c986.jpg" width="200"/></td>
+</tr>
+<tr><td align="center">F1</td><td align="center">tIoU</td><td align="center">SODA</td><td align="center">CIDEr</td></tr>
+<tr><td colspan="4" align="center"><b>VidAtlas-test</b></td></tr>
+<tr>
+<td><img src="../images/22b5cc432ab9decf7b04f4675235449c0d8ead6153b848f921e295f69703c608.jpg" width="200"/></td>
+<td><img src="../images/26cc2644aa2e83d5d6e6e02aa43993b5262b0dbae06b4279e6fb3146bebb9206.jpg" width="200"/></td>
+<td><img src="../images/bc05303ff15ebaa765967b4583afdc41b2d4124ee0360be0a353b314c0b71f1f.jpg" width="200"/></td>
+<td><img src="../images/bed5b1d54b7b30c3aca679f2cb6df8b3b49ac30c8ab48d60241ae096a30300a6.jpg" width="200"/></td>
+</tr>
+<tr><td align="center">F1</td><td align="center">tIoU</td><td align="center">SODA</td><td align="center">CIDEr</td></tr>
+</table>
 
-![Figure 6b](../images/a7a6eae0edb311f90140521d9188198795aa7ab1c96b70462eb029cccc538790.jpg)
-
-![Figure 6c](../images/3d5b90daa5bf2d6ffad6d3759f14f3d6d27ab0c58c729ad0187e930731a55813.jpg)
-
-![Figure 6d](../images/9a39b73ab3b3c1289ce32ec8ef4ef5c6a56ceaa378d57c5f3445425c4e50c986.jpg)
-
-![Figure 6e](../images/22b5cc432ab9decf7b04f4675235449c0d8ead6153b848f921e295f69703c608.jpg)
-
-![Figure 6f](../images/26cc2644aa2e83d5d6e6e02aa43993b5262b0dbae06b4279e6fb3146bebb9206.jpg)
-
-![Figure 6g](../images/bc05303ff15ebaa765967b4583afdc41b2d4124ee0360be0a353b314c0b71f1f.jpg)
-
-![Figure 6h](../images/bed5b1d54b7b30c3aca679f2cb6df8b3b49ac30c8ab48d60241ae096a30300a6.jpg)
-
-*Figure 6: Data Scaling property of ARC-Chapter. We report the performance on VidChapter (a sampled subset) and VidAtlas test set with respect to different percentage of training samples.*
+*Figure 6: ARC-Chapter 的数据 Scaling 特性。上排: VidChapters-7M (sml300val)，下排: VidAtlas-test。随训练数据比例增加，各指标持续提升。*
 
 > 💡 **Figure 6 要点**: 经典的 data scaling 曲线。几个观察：(1) 20% 数据就能达到不错的性能，说明模型 data-efficient；(2) 性能随数据量持续增长且未见饱和，暗示更多数据还能带来进一步提升；(3) Video+ASR 在所有数据量下都优于单模态，双模态融合的增益稳定。这为未来扩大数据规模提供了信心。
 
