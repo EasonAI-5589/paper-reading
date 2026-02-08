@@ -1,76 +1,43 @@
+# 01 - Introduction
+
+## 📌 预览
+Introduction 部分阐述了 MLLM 在机器人操作中的局限性（缺乏 planning、affordance、trajectory 三大能力），引出 ShareRobot 数据集和 RoboBrain 模型的动机，并列出四点主要贡献。
+
+---
+
 # 1. Introduction
 
-> 来源: RoboBrain (CVPR 2025)
+Recent advancements in Multimodal Large Language Models (MLLMs) have significantly advanced the pursuit of Artificial General Intelligence (AGI). By leveraging extensive multimodal datasets sourced from the internet and employing self-supervised learning techniques, MLLMs demonstrate exceptional capabilities in visual perception and understanding human language instructions, excelling in tasks such as visual question answering [3, 15, 16], image captioning [28, 42, 45], and sentiment analysis [18, 21]. Despite significant progress in MLLMs, the exploration of their application in robotics remains in its early stages, highlighting a crucial area for further research and innovation.
+
+> 💡 **研究背景**: 开篇确立了 MLLM 在 AGI 追求中的进展，但指出其在机器人领域的应用仍处于早期阶段。这为后文引出机器人领域的具体挑战做了铺垫。
+
+Recent studies have examined the application of MLLMs in robotics, focusing on planning and subgoal decomposition [6, 31], action sequencing [8, 9], and replanning and feedback [49, 57, 98]. However, their effectiveness in robotic scenarios—particularly for long-horizon manipulation tasks—reveals significant limitations. These limitations stem from the current MLLMs' lack of three critical robotic capabilities: planning, affordance perception, and trajectory prediction, as illustrated in Fig. 1. For instance, consider a robotic arm tasked with lifting a teapot and pouring water into a cup. The MLLM should be capable of decomposing this task into sub-tasks, such as "approach the teapot and lift it", "move the teapot until the spout is positioned over the cup", and "tilt the teapot to pour". For each sub-task, such as "approach and grasp the teapot", the MLLM must utilize affordance perception to accurately identify the graspable regions of the teapot. Additionally, trajectory prediction is essential for determining the complete path from the starting point to the graspable part of the teapot. This challenge for existing MLLMs primarily arises from the scarcity of large-scale, fine-grained datasets specifically designed for robotic operation tasks.
+
+> 💡 **核心问题定义**: 通过 "提茶壶倒水" 这个具体例子，清晰地解释了三层能力的层次关系：
+> 1. **Planning（抽象层）**: 将 "倒水" 分解为多个子任务
+> 2. **Affordance（感知层）**: 识别茶壶的可抓取区域
+> 3. **Trajectory（执行层）**: 规划从起点到抓取点的完整路径
+> 
+> 这个 abstract → concrete 的渐进式分解是本文的核心 insight，也区别于之前只关注单一能力的工作。
+
+To empower the RoboBrain's core capabilities that transition from abstract instruction comprehension to concrete action expression. we first introduce ShareRobot, a largescale, fine-grained dataset specifically designed for robotic operation tasks. Specifically, we label multi-dimensional information such as task planning, object affordance, and end-effector trajectory. Building upon ShareRobot, we developed RoboBrain, an MLLM model based on the LLaVA [48] architecture, aimed at enhancing the perception and planning capabilities of robots in complex tasks. In the process of training RoboBrain, we meticulously designed the ratio of robotic data to general multi-modal data, implemented a multi-stage training strategy, and incorporated long videos and high-resolution images. This approach endowed RoboBrain with powerful visual information perception capabilities in robotic scenarios, supporting historical frame memory and high-definition image input, thereby further enhancing the ability in robotic manipulation planning. Extensive experimental results demonstrate that RoboBrain outperforms existing models across multiple robotic benchmarks, including RoboVQA [73] and OpenEQA [61], achieving state-of-the-art performance. Additionally, it shows competitive results in trajectory and affordance prediction accuracy. These findings validate the effectiveness of the proposed dataset and framework in enhancing robotic brain capabilities. In summary, the main contributions of this paper are as follows:
+
+> 💡 **解决方案概述**: 数据 + 模型双管齐下。训练中特别强调了机器人数据与通用数据的比例设计（后文实验显示 4:6 是最优比例），以及多阶段训练策略。支持长视频和高分辨率图像输入是实用性的关键。
+
+• We propose RoboBrain, a unified multimodal large language model designed for robotic manipulation, which facilitates more efficient task execution by transforming abstract instruction into concrete actions.   
+• We meticulously designed the ratio of robotic data to general multi-modal data, implemented a multi-stage training strategy, and incorporated long videos and highresolution images. This approach provided RoboBrain with historical frame memory and high-resolution image input, thereby further enhancing its capabilities in robotic manipulation planning.   
+• We introduce ShareRobot, a high-quality heterogeneous dataset that labels multi-dimensional information, including task planning, object affordance, and end-effector trajectory, effectively enhancing various robotic capabilities.   
+Comprehensive experimental results demonstrate that RoboBrain achieves state-of-the-art performance across various robotic benchmarks, highlighting its potential for real-world applications in robotics.
+
+> 💡 **贡献总结**:
+> 1. **RoboBrain 模型** — 统一的 MLLM，abstract → concrete
+> 2. **训练策略** — 数据配比 + 多阶段 + 长视频/高分辨率
+> 3. **ShareRobot 数据集** — 多维度标注（planning + affordance + trajectory）
+> 4. **SOTA 实验结果** — 多个机器人 benchmark 上最优
+> 
+> 注意：贡献表述中模型和训练策略分开列，但实际上是紧密耦合的。数据集作为独立贡献也说明了数据工程在这个领域的重要性。
 
 ---
 
-## 📄 原文
-
-> 💡 **Section 概览**: Introduction 讲了三件事：(1) MLLM 在机器人领域的局限性，(2) 三大核心能力的具体含义，(3) ShareRobot + RoboBrain 的解决思路。
-
-Recent advancements in Multimodal Large Language Models (MLLMs) have significantly advanced the pursuit of Artificial General Intelligence (AGI). By leveraging extensive multimodal datasets sourced from the internet and employing self-supervised learning techniques, MLLMs demonstrate exceptional capabilities in visual perception and understanding human language instructions, excelling in tasks such as visual question answering, image captioning, and sentiment analysis.
-
-> 💡 **背景**: MLLM 在通用视觉理解上很强，但...
-
-Despite significant progress in MLLMs, the exploration of their application in robotics remains in its early stages. Recent studies have examined the application of MLLMs in robotics, focusing on planning and subgoal decomposition, action sequencing, and replanning and feedback. However, their effectiveness in robotic scenarios—particularly for long-horizon manipulation tasks—reveals significant limitations.
-
-> 💡 **Gap**: 现有 MLLM 用于机器人时有三个缺陷：
-> 1. 不会拆任务（Planning）
-> 2. 不知道抓哪里（Affordance）
-> 3. 不知道怎么走过去（Trajectory）
->
-> **根本原因**: 缺乏大规模、细粒度的机器人操作数据集。这才是核心 bottleneck。
-
-For instance, consider a robotic arm tasked with lifting a teapot and pouring water into a cup. The MLLM should be capable of decomposing this task into sub-tasks, such as "approach the teapot and lift it", "move the teapot until the spout is positioned over the cup", and "tilt the teapot to pour". For each sub-task, the MLLM must utilize affordance perception to accurately identify the graspable regions of the teapot. Additionally, trajectory prediction is essential for determining the complete path from the starting point to the graspable part of the teapot.
-
-> 💡 **例子详解**:
-> ```
-> 任务: "倒茶"
-> 
-> Planning 层:
-> ├── Step 1: 靠近茶壶并拿起 ← 高层规划
-> ├── Step 2: 移到杯子上方
-> └── Step 3: 倾倒
-> 
-> Affordance 层 (Step 1):
-> └── 茶壶把手区域 → bounding box [l_x, l_y, r_x, r_y]
-> 
-> Trajectory 层 (Step 1):
-> └── 从当前位置到把手的 2D 路径 → [(x1,y1), (x2,y2), ...]
-> ```
-> 这个例子很好地展示了三层能力的级联关系。
-
----
-
-### Contributions
-
-> 💡 **贡献预览**:
-
-The main contributions are:
-
-1. **RoboBrain** — 统一的 MLLM，将抽象指令转化为具体动作（planning + affordance + trajectory 一站式）
-2. **训练策略** — 精心设计 robot data vs general data 比例（约 4:6），多阶段训练，支持长视频和高分辨率
-3. **ShareRobot 数据集** — 标注三维信息的高质量异构数据集
-4. **SOTA 结果** — 在 RoboVQA、OpenEQA 等多个 benchmark 上达到最优
-
-> 💡 **我的评价**:
-> - Contribution 1 和 3 是核心，模型架构本身并不新（就是 LLaVA + LoRA）
-> - 真正的创新在于 **数据**：从 Open X-Embodiment 精选 51K 实例 → 标注三维信息 → 生成 100 万 QA pairs
-> - 训练策略中 robot:general = 4:6 的比例是经过消融实验验证的，这个发现有实用价值
-
----
-
-## 💡 Section 总结
-
-### 关键信息
-| 项目 | 内容 |
-|------|------|
-| 核心问题 | MLLM 缺乏 planning/affordance/trajectory 三大机器人能力 |
-| 根因 | 缺乏大规模细粒度机器人数据集 |
-| 方案 | ShareRobot 数据集 + RoboBrain 多阶段训练 |
-| 架构 | LLaVA (SigLIP + MLP + Qwen2.5-7B) + A-LoRA + T-LoRA |
-
-### 关键洞察
-- 模型不新，**数据为王** — 整篇论文的核心贡献是 ShareRobot 数据集
-- "Abstract to Concrete" 的框架很直觉：先 plan → 再看哪能抓 → 再规划轨迹
-- 和 RT-2 等直接输出动作的方案不同，RoboBrain 走的是**显式中间表示**路线
+## 🔖 Section 总结
+Introduction 清晰地定义了 MLLM 在机器人操作中的三层能力缺口（planning → affordance → trajectory），并以 "abstract to concrete" 为主线，提出 ShareRobot 数据集和 RoboBrain 模型作为解决方案。核心 insight 是将机器人操作理解为从抽象指令到具体动作的层次化分解过程。
