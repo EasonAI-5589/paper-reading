@@ -89,12 +89,8 @@ Evaluation metrics can be divided into two aspects: (1) the accuracy of segmenta
 
 To address these challenges, we propose GRACE, a metric tailored for video chaptering. It introduces a many-to-one (set-to-one) matching paradigm, allowing each ground-truth (predicted) chapter to be matched with a set of predicted (ground-truth) chapters. As illustrated in Fig. 5, for each ground-truth chapter, GRACE evaluates the temporal overlap and semantic similarity between the chapter and its matched prediction set, using established language similarity metrics (e.g., BERTscore [51]) for textual comparison. Specifically, we aim to find a best many-to-one mapping $M$ which splits both ground-truth set $G$ and prediction set $P$ into several pairs of groups $\{ ( P _ { i } , G _ { i } ) \} _ { i = 1 } ^ { K }$ , followed by group-based similarity calculation:
 
-![Figure 5a](../images/9e9046bb318c9f0d8c01d47f9d0020e26b722adf04856fbc933b388d92abcecb.jpg)
-(a) One-to-One Matching: SODA
-
-![Figure 5b](../images/c03b9e3cad324ba021c2e18608ca4632e00221e396ddee1ae7818a63f5964c41.jpg)
-(b) Many-to-One Matching: GRACE
-Figure 5 SODA (one-to-one) 与 GRACE (many-to-one) 匹配策略对比。One-to-one 匹配可能遗漏重要事件（如 $p_2$ 和 $g_2$），而 many-to-one 策略考虑所有预测和 GT 事件，评估更鲁棒。
+![Figure 5](../images/figure5_full.jpg)
+*Figure 5: SODA (one-to-one) 与 GRACE (many-to-one) 匹配策略对比。One-to-one 匹配可能遗漏重要事件（如 $p_2$ 和 $g_2$），而 many-to-one 策略考虑所有预测和 GT 事件，评估更鲁棒。*
 
 $$
 \text{GRACE} = \sum_{(P_i, G_i) \in M(P, G)} \varphi(P_i, G_i) \cdot \text{BERTscore}(P_i, G_i) \tag{1}

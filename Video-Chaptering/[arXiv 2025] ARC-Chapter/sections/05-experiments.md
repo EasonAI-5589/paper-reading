@@ -44,25 +44,7 @@ Notably, for event segmentation ability, ARC-Chapter achieves an F1/SODA Score o
 
 We analyze how ARC-Chapter scales with the amount of training data. Concretely, we subsample the training set at $2 0 \%$ , $4 0 \%$ , $6 0 \%$ , $8 0 \%$ , and 100% and keep the model architecture and prompt templates fixed. We evaluate three inference modalities, i.e.ASR-only, Video-only, and ASR+Video, on two benchmarks: VidChapters-7M (sml300val) and a sampled subset of the VidAtlas-testset for efficiency. As illustrated in Fig. 6, the performance across all metrics (F1, tIOU, SODA, and CIDEr) and input modalities (ASR-only, Video-only, Video+ASR) demonstrates a clear positive correlation with the amount of training data. Specifically, the full multimodal model (Video+ASR) consistently achieves the best performance. ARC-Chapter is highly data-efficient, achieving strong performance with as little as $2 0 \%$ of the training data. Furthermore, it is data-scalable, continuing to benefit from larger corpora for even better results.
 
-<table>
-<tr><td colspan="4" align="center"><b>VidChapters-7M (sml300val)</b></td></tr>
-<tr>
-<td><img src="../images/89880f9c26de69cb32ca9e476ea6b2aa86964afd52693bb66a0d4d4483fd233f.jpg" width="200"/></td>
-<td><img src="../images/a7a6eae0edb311f90140521d9188198795aa7ab1c96b70462eb029cccc538790.jpg" width="200"/></td>
-<td><img src="../images/3d5b90daa5bf2d6ffad6d3759f14f3d6d27ab0c58c729ad0187e930731a55813.jpg" width="200"/></td>
-<td><img src="../images/9a39b73ab3b3c1289ce32ec8ef4ef5c6a56ceaa378d57c5f3445425c4e50c986.jpg" width="200"/></td>
-</tr>
-<tr><td align="center">F1</td><td align="center">tIoU</td><td align="center">SODA</td><td align="center">CIDEr</td></tr>
-<tr><td colspan="4" align="center"><b>VidAtlas-test</b></td></tr>
-<tr>
-<td><img src="../images/22b5cc432ab9decf7b04f4675235449c0d8ead6153b848f921e295f69703c608.jpg" width="200"/></td>
-<td><img src="../images/26cc2644aa2e83d5d6e6e02aa43993b5262b0dbae06b4279e6fb3146bebb9206.jpg" width="200"/></td>
-<td><img src="../images/bc05303ff15ebaa765967b4583afdc41b2d4124ee0360be0a353b314c0b71f1f.jpg" width="200"/></td>
-<td><img src="../images/bed5b1d54b7b30c3aca679f2cb6df8b3b49ac30c8ab48d60241ae096a30300a6.jpg" width="200"/></td>
-</tr>
-<tr><td align="center">F1</td><td align="center">tIoU</td><td align="center">SODA</td><td align="center">CIDEr</td></tr>
-</table>
-
+![Figure 6](../images/figure6_full.jpg)
 *Figure 6: ARC-Chapter 的数据 Scaling 特性。上排: VidChapters-7M (sml300val)，下排: VidAtlas-test。随训练数据比例增加，各指标持续提升。*
 
 > 💡 **Figure 6 要点**: 经典的 data scaling 曲线。几个观察：(1) 20% 数据就能达到不错的性能，说明模型 data-efficient；(2) 性能随数据量持续增长且未见饱和，暗示更多数据还能带来进一步提升；(3) Video+ASR 在所有数据量下都优于单模态，双模态融合的增益稳定。这为未来扩大数据规模提供了信心。
@@ -100,16 +82,14 @@ To provide a more intuitive understanding of our model's capabilities beyond qua
 
 Fig. 7 illustrates the model's performance on a challenging English video discussing US debt and the role of stablecoins. The topic is dense with financial terminology and complex arguments. Our model successfully navigates this complexity across all output formats. The Short Title accurately segments the video into logical thematic units, such as "Intro", "Stablecoin Regulation". The Video Description with Timestamp summarizes the video content for each chapter. More impressively, the Structural Chapters demonstrates the model's advanced capability for hierarchical chaptering. The generated title, abstract, and introduction for each chapter are distinct yet complementary, providing a rich, layered understanding of the content that mirrors human-authored summaries.
 
-![Figure 7](../images/457f769d7e132046e6fa62de4c1adf38022eb7cd4aa2257c090936363dd12df3.jpg)
-
+![Figure 7](../images/figure7_full.jpg)
 *Figure 7: Qualitative results on an English video about finance and cryptocurrency.*
 
 > 💡 **Figure 7 要点**: 英文金融视频的定性结果。模型能从 Short Title → Description → Structural Chapters 逐层生成，且每层信息互补不冗余。特别是 Structural Chapters 的 title/abstract/introduction 三级结构，模仿了人类撰写摘要的方式，非常适合长视频的内容导航。
 
 To showcase the multilingual performance of our model, Fig. 8 presents the results for a Chinese video on a similar topic. The model exhibits a comparable level of understanding and generation quality in Chinese. The generated Short Titles are precise. The detailed Description and Structural Chapters are fluent and contextually appropriate. This strong cross-lingual performance underscores the model's ability to generalize the learned chaptering and summarization skills, rather than merely memorizing patterns in a single language.
 
-![Figure 8](../images/f5330556369a4a4834e2f85e0fae16b253a3fa8d41a249557c60eb85bca21c31.jpg)
-
+![Figure 8](../images/figure8_full.jpg)
 *Figure 8: Qualitative results on a Chinese video discussing stablecoins.*
 
 > 💡 **Figure 8 要点**: 中文视频的定性结果。跨语言能力出色，中文输出流畅自然。与英文视频对比可以看出模型学到的是语言无关的视频结构理解能力，而非依赖特定语言的模式。

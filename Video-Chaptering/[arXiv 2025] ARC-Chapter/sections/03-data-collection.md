@@ -27,12 +27,8 @@ Filtering and Refinement. Starting with this initial collection, we apply severa
 > - **领域多样性**: 教育、DIY、评测、访谈、游戏、烹饪、纪录片等
 > - **目的**: 避免领域偏差，提升模型泛化能力
 
-![Figure 3a](../images/1b7c1b8ef6fafd82a0a18353bce84609a09d854b3f87d8137cbea99ff341d56d.jpg)
-(a) Duration distribution
-
-![Figure 3b](../images/e1f81fe4389926f34fc44623f159b83692ce57b41b43e0088738d0c83f9d8ec7.jpg)
-(b) Categories in dataset
-Figure 3 数据集统计：(a) VidAtlas 中视频时长（上）和章节时长（下）的分布。(b) VidAtlas 中视频主题分布。
+![Figure 3](../images/figure3_full.jpg)
+*Figure 3: 数据集统计：(a) VidAtlas 中视频时长（上）和章节时长（下）的分布。(b) VidAtlas 中视频主题分布。*
 
 > 💡 **数据统计要点**:
 > - 视频平均时长 16.8 分钟，章节平均时长 182 秒（~3 分钟）
