@@ -53,3 +53,16 @@ RoboBrain 2.5 在 RoboBrain 2.0 基础上新增两大核心能力——**精确 
 | RoboBrain | CVPR 2025 | 通用具身感知 + 推理 |
 | RoboBrain 2.0 | Arxiv 2507.02029 | 2D 空间 + 规划 + 闭环 |
 | **RoboBrain 2.5** | **Arxiv 2601.14352** | **+ 3D 空间推理 + 密集时间估计** |
+
+---
+
+## BibTeX
+
+```bibtex
+@article{tan2026robobrain25,
+  title={RoboBrain 2.5: Depth in Sight, Time in Mind},
+  author={Huajie Tan and Enshen Zhou and Zhiyu Li and Yijie Xu and Yuheng Ji and Xiansheng Chen and Cheng Chi and Peng Wang and Hao Jia and Yu Ao and others},
+  journal={arXiv preprint arXiv:2601.14352},
+  year={2026}
+}
+```

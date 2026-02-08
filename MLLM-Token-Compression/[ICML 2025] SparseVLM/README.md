@@ -58,3 +58,16 @@ SparseVLM 提出了首个 **text-guided + training-free** 的视觉 token 稀疏
     ↓
 输出（更少 token，更快推理）
 ```
+
+---
+
+## BibTeX
+
+```bibtex
+@inproceedings{zhang2024sparsevlm,
+  title={SparseVLM: Visual Token Sparsification for Efficient Vision-Language Model Inference},
+  author={Yuan Zhang and Chun-Kai Fan and Junpeng Ma and Wenzhao Zheng and Tao Huang and Kuan Cheng and Denis Gudovskiy and Tomoyuki Okuno and Yohei Nakata and Kurt Keutzer and Shanghang Zhang},
+  booktitle={Proceedings of the 42nd International Conference on Machine Learning (ICML)},
+  year={2025}
+}
+```

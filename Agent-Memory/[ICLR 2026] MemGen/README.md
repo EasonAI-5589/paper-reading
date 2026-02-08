@@ -32,3 +32,16 @@ MemGen 提出动态生成式隐式记忆框架：通过 RL 训练的 Memory Trig
 | §5 Experiments | [05-experiments.md](sections/05-experiments.md) | 主实验、泛化、持续学习、记忆层级分析 |
 | §6 Conclusion | [06-conclusion.md](sections/06-conclusion.md) | 总结与展望 |
 | Appendix | [07-appendix.md](sections/07-appendix.md) | 优化算法细节、超参数、额外实验、Latent Token 示例 |
+
+---
+
+## BibTeX
+
+```bibtex
+@inproceedings{zhang2025memgen,
+  title={MemGen: Weaving Generative Latent Memory for Self-Evolving Agents},
+  author={Guibin Zhang and Muxin Fu and Shuicheng Yan},
+  booktitle={International Conference on Learning Representations (ICLR)},
+  year={2026}
+}
+```

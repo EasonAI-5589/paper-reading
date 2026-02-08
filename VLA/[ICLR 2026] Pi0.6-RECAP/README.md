@@ -55,3 +55,16 @@ Post-training (per task):
   6. Retrain VF → recompute advantages → retrain VLA
   7. Repeat 5-6 for 1-2 iterations
 ```
+
+---
+
+## BibTeX
+
+```bibtex
+@inproceedings{physicalintelligence2025pistar06,
+  title={$\pi^{*}_{0.6}$: a VLA That Learns From Experience},
+  author={Physical Intelligence and Ali Amin and Ashwin Balakrishna and Kevin Black and Danny Driess and Michael Equi and Chelsea Finn and Lachy Groom and Karol Hausman and Brian Ichter and Sergey Levine and Karl Pertsch and Lucy Xiaoyang Shi and James Tanner and Quan Vuong and others},
+  booktitle={International Conference on Learning Representations (ICLR)},
+  year={2026}
+}
+```

@@ -58,3 +58,18 @@
                                               ↓
                                   章节边界 + 标题 (文本输出)
 ```
+
+---
+
+## BibTeX
+
+```bibtex
+@InProceedings{Ventura_2025_CVPR,
+  author={Ventura, Lucas and Yang, Antoine and Schmid, Cordelia and Varol, G\"{u}l},
+  title={Chapter-Llama: Efficient Chaptering in Hour-Long Videos with LLMs},
+  booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  month={June},
+  year={2025},
+  pages={18947--18958}
+}
+```

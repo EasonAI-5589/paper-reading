@@ -43,3 +43,16 @@ CDPruner 通过**行列式点过程（DPP）** 在指令条件下最大化视觉
 | Attention-based | FastV, PDrop | ❌ | ✅ | ❌ |
 | Similarity-based | DART, DivPrune | ✅ | ❌ | ✅ |
 | **CDPruner** | **本文** | **✅** | **✅** | **✅** |
+
+---
+
+## BibTeX
+
+```bibtex
+@inproceedings{zhang2025cdpruner,
+  title={Beyond Attention or Similarity: Maximizing Conditional Diversity for Token Pruning in MLLMs},
+  author={Qizhe Zhang and Mengzhen Liu and Lichen Li and Ming Lu and Yuan Zhang and Junwen Pan and Qi She and Shanghang Zhang},
+  booktitle={Advances in Neural Information Processing Systems (NeurIPS)},
+  year={2025}
+}
+```

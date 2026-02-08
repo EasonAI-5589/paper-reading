@@ -37,3 +37,16 @@
 | Image token 占输入比例 | ~64% |
 | 13B+FastV 延迟 vs 7B | 0.341s ≈ 0.344s |
 | 视频 token 数 (Video-LLaVA) | 2048 |
+
+---
+
+## BibTeX
+
+```bibtex
+@inproceedings{chen2024image,
+  title={An Image is Worth 1/2 Tokens After Layer 2: Plug-and-Play Inference Acceleration for Large Vision-Language Models},
+  author={Chen, Liang and Zhao, Haozhe and Liu, Tianyu and Bai, Shuai and Lin, Junyang and Zhou, Chang and Chang, Baobao},
+  booktitle={European Conference on Computer Vision (ECCV)},
+  year={2024}
+}
+```

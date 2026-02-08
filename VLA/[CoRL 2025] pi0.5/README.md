@@ -52,3 +52,18 @@
 | HL | High-Level | ✅ | ✅ | 子任务推理能力 |
 | WD | Web Data | ✅ | ✅ | 语义理解 + OOD 物体泛化 |
 | VI | Verbal Instruction | ❌ | ✅ | 高层策略演示 (仅 11% 但影响巨大) |
+
+---
+
+## BibTeX
+
+```bibtex
+@inproceedings{black2025pi05,
+  title={$\pi_{0.5}$: a Vision-Language-Action Model with Open-World Generalization},
+  author={Kevin Black and Noah Brown and Danny Driess and Adnan Esmail and Michael Equi and Chelsea Finn and Niccolo Fusai and Lachy Groom and Karol Hausman and Brian Ichter and others},
+  booktitle={Proceedings of the 9th Conference on Robot Learning (CoRL)},
+  volume={305},
+  pages={17--40},
+  year={2025}
+}
+```

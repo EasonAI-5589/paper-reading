@@ -39,3 +39,18 @@ VisionZip 通过选取 vision encoder 中少量高注意力"dominant tokens"并�
 | Video-LLaVA 2048→136 tokens | 93.2% 性能 (training-free) |
 | Efficient Tuning 耗时 | 30 min on 8×A800 |
 | Efficient Tuning 数据量 | 1/10 LLaVA-1.5 dataset |
+
+---
+
+## BibTeX
+
+```bibtex
+@InProceedings{Yang_2025_CVPR,
+  author={Yang, Senqiao and Chen, Yukang and Tian, Zhuotao and Wang, Chengyao and Li, Jingyao and Yu, Bei and Jia, Jiaya},
+  title={VisionZip: Longer is Better but Not Necessary in Vision Language Models},
+  booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  month={June},
+  year={2025},
+  pages={19792--19802}
+}
+```

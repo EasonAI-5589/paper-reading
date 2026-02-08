@@ -55,3 +55,18 @@ Input Image → Visual Encoder → 576 visual tokens
                                     ↓
               Output
 ```
+
+---
+
+## BibTeX
+
+```bibtex
+@misc{qian2026swiftvlm,
+  title={SwiftVLM: Efficient Vision-Language Model Inference via Cross-Layer Token Bypass},
+  author={Chen Qian and Xinran Yu and Danyang Li and Guoxuan Chi and Zheng Yang and Qiang Ma and Xin Miao},
+  year={2026},
+  eprint={2602.03134},
+  archivePrefix={arXiv},
+  primaryClass={cs.CV}
+}
+```

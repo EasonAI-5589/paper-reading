@@ -58,3 +58,18 @@
 ![Figure 1: Overview of agent memory taxonomy](images/59c7dcb89b84c5659faf913c40baa21d0d721fb0004a4a3bb8b6dfab62df4dc9.jpg)
 
 *Figure 1: Forms–Functions–Dynamics 三角分类总览。Memory artifacts 按其主要 form 和 function 定位，并映射了代表性系统。*
+
+---
+
+## BibTeX
+
+```bibtex
+@misc{hu2025memory,
+  title={Memory in the Age of AI Agents},
+  author={Zeyu Zhang and Zhongxiang Sun and Yutao Zhu and Hao Sun and Boci Peng and Zhenrong Cheng and Xuanbo Fan and Jiaxin Guo and Xinlei Yu and Zhenhong Zhou and Zewen Hu and Jiahao Huo and Junhao Wang and Yuwei Niu},
+  year={2025},
+  eprint={2512.13564},
+  archivePrefix={arXiv},
+  primaryClass={cs.AI}
+}
+```

@@ -58,3 +58,16 @@ Mem-T 提出层次化记忆架构（Working/Factual/Experiential/Raw）+ MoT-GRP
 - 记忆数据库无限增长的问题没有讨论（遗忘/压缩机制？）
 - Construction training 用的是 offline SFT 而非 on-policy RL，不是真正端到端
 - 8B 模型没有比 4B 更好，暗示可能存在记忆系统设计上的瓶颈
+
+---
+
+## BibTeX
+
+```bibtex
+@article{yue2026memt,
+  title={Mem-T: Densifying Rewards for Long-Horizon Memory Agents},
+  author={Yanwei Yue and Guibin Zhang and Boci Peng and Xuanbo Fan and Jiaxin Guo and Qiankun Li and Yan Zhang},
+  journal={arXiv preprint arXiv:2601.23014},
+  year={2026}
+}
+```

@@ -43,3 +43,16 @@
 | RM 模型规模 | 7B (超越 72B 开源模型) |
 | MM-DPO 默认超参 | $\beta_{\text{ori}}=0.1$, $w=0.5$, $k=0.5$ |
 | 训练硬件 | 32× H800 (80G) |
+
+---
+
+## BibTeX
+
+```bibtex
+@inproceedings{zhang2025mmrlhf,
+  title={MM-RLHF: The Next Step Forward in Multimodal LLM Alignment},
+  author={Yi-Fan Zhang and Tao Yu and Haochen Tian and Chaoyou Fu and Peiyan Li and Jianshu Zeng and Wulin Xie and Yang Shi and Huanyu Zhang and Junkang Wu and Xue Wang and Yibo Hu and Bin Wen and Fan Yang and Zhang Zhang and Tingting Gao and Di Zhang and Liang Wang and Rong Jin and Tieniu Tan},
+  booktitle={Proceedings of the 42nd International Conference on Machine Learning (ICML)},
+  year={2025}
+}
+```

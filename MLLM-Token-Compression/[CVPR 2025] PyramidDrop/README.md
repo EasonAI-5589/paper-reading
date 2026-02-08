@@ -38,3 +38,18 @@
 | 理论计算节省 | 53.2% |
 | 训练加速倍数 | 1.82× |
 | 推理加速倍数 | 2.22× |
+
+---
+
+## BibTeX
+
+```bibtex
+@misc{xing2024pyramiddrop,
+  title={PyramidDrop: Accelerating Your Large Vision-Language Models via Pyramid Visual Redundancy Reduction},
+  author={Long Xing and Qidong Huang and Xiaoyi Dong and Jiajie Lu and Pan Zhang and Yuhang Zang and Yuhang Cao and Conghui He and Jiaqi Wang and Feng Wu and Dahua Lin},
+  year={2024},
+  eprint={2410.17247},
+  archivePrefix={arXiv},
+  primaryClass={cs.CV}
+}
+```

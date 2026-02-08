@@ -36,3 +36,17 @@
 | RoboVQA BLEU-4 | 55.05（超第二名 18.75） |
 | Affordance AP | 27.1%（超 Qwen2-VL 14.6） |
 | Trajectory HD 降幅 | 94.2% |
+
+---
+
+## BibTeX
+
+```bibtex
+@inproceedings{ji2025robobrain,
+  title={RoboBrain: A Unified Brain Model for Robotic Manipulation from Abstract to Concrete},
+  author={Ji, Yuheng and Tan, Huajie and Shi, Jiayu and Hao, Xiaoshuai and Zhang, Yuan and Zhang, Hengyuan and Wang, Pengwei and Zhao, Mengdi and Mu, Yao and An, Pengju and Xue, Xinda and Su, Qinghang and Lyu, Huaihai and Zheng, Xiaolong and Liu, Jiaming and Wang, Zhongyuan and Zhang, Shanghang},
+  booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages={1724--1734},
+  year={2025}
+}
+```

@@ -38,3 +38,18 @@ RoboBrain 系列的第二代，从 LLaVA 换到 **Qwen2.5-VL** 底座，统一�
 | 底座模型 | Qwen2.5-VL |
 | 训练数据 | 通用 + Spatial + Temporal |
 | 超越 GPT-4o 的 benchmark 数 | 多个（32B） |
+
+---
+
+## BibTeX
+
+```bibtex
+@misc{cao2025robobrain2,
+  title={RoboBrain 2.0 Technical Report},
+  author={BAAI RoboBrain Team},
+  year={2025},
+  eprint={2507.02029},
+  archivePrefix={arXiv},
+  primaryClass={cs.RO}
+}
+```

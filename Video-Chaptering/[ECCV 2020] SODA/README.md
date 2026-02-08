@@ -51,3 +51,18 @@
 SODA:      按时间排序 → DP 最优匹配（一对一，保序）→ F-measure（除以 |P| 和 |G|）
                      ↓ 优势：考虑顺序，惩罚冗余/不足
 ```
+
+---
+
+## BibTeX
+
+```bibtex
+@inproceedings{fujita2020soda,
+  title={SODA: Story Oriented Dense Video Captioning Evaluation Framework},
+  author={Fujita, Soichiro and Hirao, Tsutomu and Kamigaito, Hidetaka and Okumura, Manabu and Nagata, Masaaki},
+  booktitle={European Conference on Computer Vision (ECCV)},
+  pages={517--531},
+  year={2020},
+  publisher={Springer}
+}
+```

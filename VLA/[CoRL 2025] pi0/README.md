@@ -42,3 +42,16 @@
 | 推理时间 | 73ms on-board (RTX 4090) |
 | 预训练步数 | 700k |
 | VLM backbone | PaliGemma 3B |
+
+---
+
+## BibTeX
+
+```bibtex
+@inproceedings{black2024pi0,
+  title={$\pi_0$: A Vision-Language-Action Flow Model for General Robot Control},
+  author={Kevin Black and Noah Brown and Danny Driess and Adnan Esmail and Michael Equi and Chelsea Finn and Niccolo Fusai and Lachy Groom and Karol Hausman and Brian Ichter and Szymon Jakubczak and Tim Jones and Liyiming Ke and Sergey Levine and Adrian Li-Bell and Mohith Mothukuri and Suraj Nair and Karl Pertsch and Lucy Xiaoyang Shi and James Tanner and Quan Vuong and Anna Walling and Haohuan Wang and Ury Zhilinsky},
+  booktitle={Proceedings of the 9th Conference on Robot Learning (CoRL)},
+  year={2025}
+}
+```

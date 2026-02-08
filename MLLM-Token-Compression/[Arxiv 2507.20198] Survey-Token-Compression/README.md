@@ -51,3 +51,16 @@
 | **Similarity** | 合并相似 token | 灵活 | 丢空间信息 | ToMe, DivPrune, HoliTom |
 | **Attention** | 注意力稀疏性剪枝 | 动态、可解释 | FlashAttention 不兼容 | FastV, PyramidDrop, VisionZip |
 | **Query** | 查询引导压缩 | 精准 task-aware | 不适合多轮对话 | Q-Former, LLaMA-VID, LLaVA-Mini |
+
+---
+
+## BibTeX
+
+```bibtex
+@article{shao2025survey,
+  title={A Survey of Token Compression for Efficient Multimodal Large Language Models},
+  author={Kele Shao and Keda Tao and Kejia Zhang and Sicheng Feng and Mu Cai and Yuzhang Shang and Haoxuan You and Can Qin and Yang Sui and Huan Wang},
+  journal={arXiv preprint arXiv:2507.20198},
+  year={2025}
+}
+```

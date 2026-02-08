@@ -59,3 +59,16 @@ Saliency(v) = CLS attention weight (layer -2)
 | VisionZip | ✅ (CLS attention) | ❌ | ✅ | 93.5% |
 | DivPrune | ❌ | ✅ (diversity) | ✅ | - |
 | **SCOPE** | ✅ (CLS attention) | ✅ (set-coverage) | ✅ | **96.0%** |
+
+---
+
+## BibTeX
+
+```bibtex
+@inproceedings{deng2025scope,
+  title={SCOPE: Saliency-Coverage Oriented Token Pruning for Efficient Multimodal LLMs},
+  author={Jinhong Deng and Wen Li and Joey Tianyi Zhou and Yang He},
+  booktitle={Advances in Neural Information Processing Systems (NeurIPS)},
+  year={2025}
+}
+```

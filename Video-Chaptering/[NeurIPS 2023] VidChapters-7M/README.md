@@ -40,3 +40,16 @@
 | YouCook2 CIDEr SOTA | 67.2 (+18.9) |
 | ViTT CIDEr SOTA | 50.0 (+6.5) |
 | 最佳 Chapter Gen SODA_c | 11.4 |
+
+---
+
+## BibTeX
+
+```bibtex
+@inproceedings{yang2023vidchapters,
+  title={VidChapters-7M: Video Chapters at Scale},
+  author={Antoine Yang and Arsha Nagrani and Ivan Laptev and Josef Sivic and Cordelia Schmid},
+  booktitle={Advances in Neural Information Processing Systems (NeurIPS)},
+  year={2023}
+}
+```

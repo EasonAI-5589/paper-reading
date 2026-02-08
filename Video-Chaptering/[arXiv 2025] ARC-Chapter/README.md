@@ -66,3 +66,18 @@
 - 只用了 7B 模型，scaling model size 的实验缺失
 - 标注管线的 LLM hallucination 问题没有讨论
 - GRACE 指标需要更多验证（与人类判断的相关性分析较少）
+
+---
+
+## BibTeX
+
+```bibtex
+@misc{pu2025arcchapter,
+  title={ARC-Chapter: Structuring Hour-Long Videos into Navigable Chapters and Hierarchical Summaries},
+  author={Junfu Pu and Teng Wang and Yixiao Ge and Yuying Ge and Chen Li and Ying Shan},
+  year={2025},
+  eprint={2511.14349},
+  archivePrefix={arXiv},
+  primaryClass={cs.CV}
+}
+```

@@ -48,3 +48,17 @@ Token Pruning as MMDP:
   距离: Cosine distance
   开销: 一次矩阵乘法（距离矩阵），可忽略
 ```
+
+---
+
+## BibTeX
+
+```bibtex
+@inproceedings{alvar2025divprune,
+  title={DivPrune: Diversity-based Visual Token Pruning for Large Multimodal Models},
+  author={Saeed Ranjbar Alvar and Gursimran Singh and Mohammad Akbari and Yong Zhang},
+  booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  pages={9392--9401},
+  year={2025}
+}
+```
