@@ -1,0 +1,3062 @@
+[
+    {
+        "type": "text",
+        "text": "Mem-T: Densifying Rewards for Long-Horizon Memory Agents ",
+        "text_level": 1,
+        "bbox": [
+            104,
+            89,
+            853,
+            143
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Yanwei $\\mathbf { Y u e } ^ { 1 , * }$ , Guibin Zhang2,∗, Boci Peng1, Xuanbo Fan1, Jiaxin Guo1, Qiankun $\\mathbf { L i } ^ { 3 \\dagger }$ , Yan Zhang1† ",
+        "bbox": [
+            104,
+            151,
+            779,
+            166
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "1Peking University 2National University of Singapore 3Nanyang Technological University # ywyue $2 5 @$ stu.pku.edu.cn, guibinz@u.nus.edu $^ *$ Equal Contribution ‡ Corresponding Author. § https://github.com/yanweiyue/Mem-T https://huggingface.co/EdwinYue/Mem-T-4B ",
+        "bbox": [
+            100,
+            171,
+            690,
+            210
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Abstract Memory agents, which depart from predefined memory-processing pipelines by endogenously managing the processing, storage, and retrieval of memories, have garnered increasing attention for their autonomy and adaptability. However, existing training paradigms remain constrained: agents often traverse long-horizon sequences of memory operations before receiving sparse and delayed rewards, which hinders truly end-to-end optimization of memory management policies. To address this limitation, we introduce Mem-T, an autonomous memory agent that interfaces with a lightweight hierarchical memory database to perform dynamic updates and multi-turn retrieval over streaming inputs. To effectively train long-horizon memory management capabilities, we further propose MoT-GRPO, a tree-guided reinforcement learning framework that transforms sparse terminal feedback into dense, step-wise supervision via memory operation tree backpropagation and hindsight credit assignment, thereby enabling the joint optimization of memory construction and retrieval. Extensive experiments demonstrate that Mem-T is $\\bullet$ high-performing, surpassing frameworks such as A-Mem and Mem0 by up to $1 4 . 9 2 \\%$ , and $\\otimes$ economical, operating on a favorable accuracy-efficiency Pareto frontier and reducing inference tokens per query by $\\sim 2 4 . 4 5 \\%$ relative to GAM without sacrificing performance. ",
+        "bbox": [
+            115,
+            239,
+            867,
+            476
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "1. Introduction ",
+        "text_level": 1,
+        "bbox": [
+            104,
+            508,
+            258,
+            525
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "As Large Language Models (LLMs) rapidly evolve into powerful AI agents, they have achieved significant success across various fields [Hong et al., 2024, Qian et al., 2025, Wu et al., 2023, Xu and Peng, 2025, Yang et al., 2025]. However, constrained by the finite context windows of foundation models, AI agents face inherent challenges with long-term inconsistency [Li et al., 2024, Liu et al., 2025] and context forgetting during extended multi-turn interactions [Ai et al., 2025, Liu et al., 2025]. As a promising frontier, memory systems dynamically construct and leverage ",
+        "bbox": [
+            100,
+            538,
+            400,
+            799
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "image",
+        "img_path": "images/a06f150353bc9cdb42b79a0cc71ba97cdc5bf1dd2ad3007626722f3f0d4e4b31.jpg",
+        "image_caption": [
+            "Figure 1 | The paradigm comparison between the previous trainable memory agent and Mem-T. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            421,
+            548,
+            890,
+            746
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "memories from historical interactions [Fang et al., 2025, Li et al., 2025], thereby sustaining temporal coherence and long-term intelligence beyond finite context windows [Ye et al., 2025b, Zhao et al., 2024], and have consequently emerged as a core component of modern agentic systems [Chhikara et al., 2025, Zhang et al., 2025]. ",
+        "bbox": [
+            102,
+            799,
+            897,
+            863
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Tracing the evolution of memory systems, early frameworks such as MemGPT [Packer et al., 2023], Mem0 [Chhikara et al., 2025], and A-Mem [Xu et al., 2025] predominantly rely on hand-crafted prompts and heuristic rules to guide frozen LLMs in populating predefined memory structures. As a result, their performance is inherently bounded by the base model’s instruction-following capacity and rigid human priors, often leading to suboptimal outcomes [Wu et al., 2025a, Xiong et al., 2025]. By contrast, recent approaches such as Memory-R1 [Yan et al., 2025b], Mem- $\\alpha$ [Wang et al., 2025], and MemTool [Lumer et al., 2025] employ reinforcement learning (e.g., GRPO [Shao et al., 2024]) to train LLMs into adaptive policies for dynamic memory curation and retrieval, commonly referred to as memory agents. This shift constitutes a fundamental paradigm change, recasting memory management from static instruction adherence into a problem of adaptive policy optimization [Hu et al., 2026b]. ",
+        "bbox": [
+            100,
+            871,
+            897,
+            903
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "NUS Nationgaal University NANYANG UNIVERSITY PEKING UNIVERSITY ",
+        "bbox": [
+            100,
+            39,
+            494,
+            73
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "2026-02-02 ",
+        "bbox": [
+            773,
+            59,
+            887,
+            74
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            25,
+            291,
+            63,
+            707
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            102,
+            101,
+            899,
+            246
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "However, current paradigms for training memory agents remain fundamentally constrained by temporal credit assignment [Pignatelli et al., 2024], i.e., the challenge of attributing sparse and delayed rewards to causative actions along long-horizon memory operation sequences. This limitation is particularly acute in memory-centric tasks, where agents may execute hundreds of memory operations across $\\sim 5 0 0$ turns within million-token contexts before receiving a binary 0/1 reward derived from sporadic QA accuracy signals [Tan et al., 2025, Wu et al., 2025a]. Existing approaches fail to bridge this gap, as they indiscriminately propagate the sparse terminal reward across all memory operations without dense supervision or process-level attribution [Wang et al., 2025, Yan et al., 2025b]. Consequently, this extreme sparsity impedes effective optimization of the full memory operation trajectory. To put it more formally: ",
+        "bbox": [
+            102,
+            254,
+            897,
+            414
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "How can we implement a fully trainable memory agent framework that jointly optimizes memory construction and retrieval, supervised with dense rewards and accurate process-level attribution? ",
+        "bbox": [
+            105,
+            426,
+            885,
+            458
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "To address this challenge, we introduce Mem-T, a streamlined hierarchical memory agent optimized under a process-supervised, attribution-centric training paradigm termed Memory Operation Treeguided GRPO (MoT-GRPO). Functionally, Mem-T integrates three core capabilities: (i) formation and (ii) evolution operations that maintain and refine the hierarchical memory database over dynamic information streams, and (iii) a retrieval operation that conducts multi-turn, autonomous search to provide accurate memory clues. To jointly optimize these components, MoT-GRPO employs a dualtrack training mechanism integrating memory retrieval and construction. To refine memory retrieval, it constructs multiple Memory operation Trees (MoT) to explore diverse trajectories, leveraging the branching topology to back-propagate sparse outcome rewards to intermediate nodes, thereby generating dense process-level signals and identifying critical search paths. To refine memory construction, the utility of the MoT is explicitly attributed back to source memory items via hindsight credit assignment, supervising the corresponding formation and evolution operations. This paradigm effectively mitigates reward sparsity and attribution ambiguity, rendering memory interactions both interpretable and learnable. Our contributions can be summarized as: ",
+        "bbox": [
+            102,
+            470,
+            897,
+            695
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "• Unified Memory Framework. We propose Mem-T, a streamlined memory management agent with a hierarchical architecture that integrates factual, experiential, and working memory, and agentically orchestrates the full lifecycle of memory operations. ",
+        "bbox": [
+            105,
+            705,
+            897,
+            752
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "• Tree-Guided Optimization. We present MoT-GRPO, a memory operation tree-based paradigm that tackles temporal credit assignment via node-wise reward backpropagation and hindsight credit assignment. By transforming sparse terminal rewards into dense supervision for intermediate operations, it enables the joint optimization of memory formation, evolution, and retrieval. ",
+        "bbox": [
+            104,
+            753,
+            899,
+            816
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "• Experimental Evaluation. Comprehensive evaluations on four memory benchmarks demonstrate that Mem-T achieves state-of-the-art performance while maintaining a superior Pareto frontier, delivering up to $1 4 . 9 2 \\%$ F1 gains and reducing inference tokens per query by $\\sim 2 4 . 4 5 \\%$ compared with GAM and A-Mem baselines. ",
+        "bbox": [
+            104,
+            818,
+            899,
+            881
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "discarded",
+        "text": "Mem-T: Densifying Rewards for Long-Horizon Memory Agents ",
+        "bbox": [
+            267,
+            61,
+            726,
+            74
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            882,
+            923,
+            895,
+            935
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "2. Related Work ",
+        "text_level": 1,
+        "bbox": [
+            102,
+            99,
+            268,
+            116
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Memory Agent Architectures. In recent years, memory agents have advanced rapidly, evolving from heuristic-based systems such as MemoryBank [Zhong et al., 2024] and MemGPT [Packer et al., 2023] to more agentic architectures, including Mem0 [Chhikara et al., 2025], MemOS [Li et al., 2025], and A-Mem [Xu et al., 2025]. Functionally, prior work spans three categories: (I) Factual Memory, preserving declarative knowledge for long-term consistency [Zhong et al., 2024]; (II) Experiential Memory, distilling experience from trajectories to support continual self-improvement [Zhao et al., 2024]; and (III) Working Memory, managing dynamic context for ongoing tasks [Wu et al., 2025b]. Operationally, the memory lifecycle comprises $( I )$ Formation, transforming raw context into high-value memory; (II) Evolution, integrating new insights with existing memory ",
+        "bbox": [
+            102,
+            130,
+            477,
+            437
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Table 1 | Comparison of different memory agent systems. p: Not included; {: Included but heuristic-based; \\: Included and trainable. Abbreviations: Fact. $=$ Factual Memory, Exp. $=$ Experiential Memory, Work. $=$ Working Memory, Form. $=$ Memory Formation, Evol. $=$ Memory Evolution, Retr. $=$ Memory Retrieval, Proc. Attr. $=$ Process Attribution. ",
+        "bbox": [
+            497,
+            137,
+            897,
+            265
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "table",
+        "img_path": "images/b7cff9e03ec9801cdd5cfb4c3bb49403bec314635c8fddbee867fc4348d82f42.jpg",
+        "table_caption": [],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Method</td><td colspan=\"3\">Functions</td><td colspan=\"3\">Operations</td><td rowspan=\"2\">Proc. Attr.</td></tr><tr><td></td><td></td><td>Fact. Exp. Work. Form. Evol. Retr.</td><td></td><td></td><td></td><td></td></tr><tr><td>MemAgent</td><td>x</td><td>x</td><td>S</td><td></td><td>S</td><td>x</td><td>x</td></tr><tr><td>Context-Folding</td><td>x</td><td>x</td><td></td><td>S</td><td>*</td><td>x</td><td>x</td></tr><tr><td>Memory-R1</td><td></td><td>x</td><td>x</td><td>*</td><td>S</td><td>2</td><td>x</td></tr><tr><td>Mem-α</td><td>:</td><td>x</td><td>0</td><td></td><td></td><td></td><td>x</td></tr><tr><td>MemSearcher</td><td></td><td>x</td><td>x</td><td>x</td><td>x</td><td></td><td>x</td></tr><tr><td>LightSearcher</td><td>x</td><td>S</td><td>x</td><td>X</td><td>x</td><td></td><td>x</td></tr><tr><td>Mem-T</td><td>3</td><td>0</td><td>0</td><td>s</td><td>s</td><td>U</td><td>0</td></tr></table>",
+        "bbox": [
+            495,
+            278,
+            895,
+            419
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "store; and (III) Retrieval, performing accurate retrieval from the memory base. As shown in Table 1, our Mem-T, despite its streamlined design, spans all three functional classes and operational stages. ",
+        "bbox": [
+            102,
+            438,
+            897,
+            470
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Reinforcement Learning for Memory Agents. As memory systems scale in complexity, the efficacy of foundation models in managing memory increasingly becomes the primary performance bottleneck. Consequently, reinforcement learning (RL) has emerged as a central paradigm for endowing LLMs with adaptive memory management capabilities [Hu et al., 2026b]. Current research spans a broad spectrum, from short-term working memory to long-term factual and experiential memory. Working Memory. RL has been used to enable agents to autonomously manage execution context within a single task [Chen et al., 2025a, Yu et al., 2025], particularly in settings such as deep research and web browsing [Sun et al., 2025, Ye et al., 2025a, Zhou et al., 2025]. Long-term Factual Memory. Prior work targets different stages of memory management: Memory-R1 [Yan et al., 2025b] emphasizes memory evolution, Mem- $\\alpha$ [Wang et al., 2025] addresses both formation and evolution, and MemSearcher [Yuan et al., 2025] focuses on training agents to exploit retrieval tools. Long-term Experiential Memory. Methods such as LightSearcher [Lan et al., 2025] and MemRL [Zhang et al., 2026] improve the acquisition, refinement, and reuse of skills over time. Despite these advances, RLbased approaches remain limited by sparse rewards and temporal credit assignment in long-horizon settings, hindering effective optimization across the full memory construction and utilization pipeline, as shown in Table 1. ",
+        "bbox": [
+            100,
+            476,
+            897,
+            733
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "3. Method ",
+        "text_level": 1,
+        "bbox": [
+            102,
+            758,
+            211,
+            775
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "3.1. Mem-T Workflow ",
+        "text_level": 1,
+        "bbox": [
+            102,
+            790,
+            290,
+            806
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Hierarchical Memory Definition. We consider the agent interacting with a continuous information stream $X = \\{ x _ { 1 } , x _ { 2 } , \\ldots , x _ { T } \\}$ . At each time step $t$ , corresponding to the processing of the current chunk $x _ { t }$ , the system maintains a hierarchical memory state $\\textstyle { \\mathcal { M } } _ { t }$ : ",
+        "bbox": [
+            102,
+            816,
+            897,
+            864
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "img_path": "images/a3e03aabf6f193e66dfd75792aab4518a342f0e20e274cf8f57db46e0351ab27.jpg",
+        "text": "$$\n\\mathcal { M } _ { t } = \\langle \\mathcal { M } _ { t } ^ { \\mathrm { w o r k } } , \\mathcal { M } _ { t } ^ { \\mathrm { f a c t } } , \\mathcal { M } _ { t } ^ { \\mathrm { e x p } } , \\mathcal { M } _ { t } ^ { \\mathrm { r a w } } \\rangle .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            359,
+            875,
+            636,
+            895
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "discarded",
+        "text": "Mem-T: Densifying Rewards for Long-Horizon Memory Agents ",
+        "bbox": [
+            267,
+            61,
+            726,
+            74
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "discarded",
+        "text": "3 ",
+        "bbox": [
+            882,
+            922,
+            895,
+            935
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "image",
+        "img_path": "images/006676ffaf9672b5b4bfa202ab22c6d84b10d7f218588ac32c3dff02d26ac0d9.jpg",
+        "image_caption": [
+            "Figure 2 | The overall framework of our proposed Mem-T. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            104,
+            102,
+            894,
+            470
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Within this hierarchy, Working Memory $( M _ { t } ^ { \\mathrm { w o r k } } )$ iteratively updates a concise summary at each step, maintaining within-episode coherence. The long-term memory consists of three modules: Factual Memory $( M _ { t } ^ { \\mathrm { f a c t } } )$ stores declarative knowledge, Experiential Memory $( \\boldsymbol { M } _ { t } ^ { \\mathrm { e x p } } )$ captures procedural knowledge, and Raw Memory $( M _ { t } ^ { \\mathrm { r a w } } )$ archives raw data across sessions. Formally, we have: ",
+        "bbox": [
+            100,
+            520,
+            900,
+            586
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "img_path": "images/655b44b9c7987f014453aa6370f7b246254cf267d555876863c92da6859a3beb.jpg",
+        "text": "$$\n\\begin{array} { r l } & { M _ { t } ^ { \\mathrm { f a c t } } = \\{ m _ { i } ^ { \\mathrm { f a c t } } \\mid m _ { i } ^ { \\mathrm { f a c t } } = ( f _ { i } , t _ { i } ^ { \\mathrm { s t a r t } } , t _ { i } ^ { \\mathrm { e n d } } ) \\} _ { i = 1 } ^ { N _ { f } } , } \\\\ & { M _ { t } ^ { \\mathrm { e x p } } = \\{ m _ { j } ^ { \\mathrm { e x p } } \\mid m _ { j } ^ { \\mathrm { e x p } } = ( e _ { j } , t _ { j } ^ { \\mathrm { s t a r t } } , t _ { j } ^ { \\mathrm { e n d } } ) \\} _ { j = 1 } ^ { N _ { e } } , } \\\\ & { M _ { t } ^ { \\mathrm { r a w } } = \\{ m _ { l } ^ { \\mathrm { r a w } } \\mid m _ { l } ^ { \\mathrm { r a w } } = ( x _ { l } , t _ { l } ^ { \\mathrm { r a w } } ) \\} _ { l = 1 } ^ { t } , } \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            334,
+            604,
+            662,
+            674
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "where each $m ^ { ( \\cdot ) }$ represents an atomic memory unit. Specifically, $f _ { i }$ and $e _ { j }$ represent concrete facts and strategies, respectively, bound by validity time windows $[ t ^ { \\mathrm { s t a r t } } , t ^ { \\mathrm { e n d } } ]$ . ",
+        "bbox": [
+            99,
+            678,
+            897,
+            711
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Memory Operation Pipeline. Building upon this hierarchical memory, we formulate the agent’s interaction as a dual-track decision process, comprising continuous memory construction and ondemand memory utilization. ",
+        "bbox": [
+            100,
+            713,
+            899,
+            760
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Phase I: Continuous Memory Construction. As the agent processes the input stream $x _ { t }$ , it proactively constructs new memory candidates via the memory formation policy $\\pi _ { \\mathrm { f o r m } }$ . This policy scans the raw input to identify salient information and operates on the formation action space $\\mathcal { A } _ { \\mathrm { { f o r m } } } ~ = ~ \\{ \\mathrm { { C r t F a c t , C r t E x p , C r t R a w , U p d W o r k } } \\}$ . Here, CrtFact, CrtExp, and CrtRaw extract atomic declarative facts, procedural strategies, and raw data, respectively, while UpdWork updates the session-level working summary. Formally, the formation process is defined as: ",
+        "bbox": [
+            100,
+            768,
+            897,
+            850
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "discarded",
+        "text": "Mem-T: Densifying Rewards for Long-Horizon Memory Agents ",
+        "bbox": [
+            267,
+            61,
+            726,
+            74
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            882,
+            923,
+            895,
+            935
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            99,
+            99,
+            752,
+            117
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "img_path": "images/753b44a85300e890ae8d7d085af67e3ce6a9482c9b9d274fd54269e11c9771d7.jpg",
+        "text": "$$\n\\begin{array} { r l r } & { } & { a _ { \\mathrm { f o r m } } \\sim \\pi _ { \\mathrm { f o r m } } ( \\cdot | x _ { t } , M _ { t } ^ { \\mathrm { w o r k } } ) , \\quad a _ { \\mathrm { f o r m } } \\subseteq \\mathcal { A } _ { \\mathrm { f o r m } } , } \\\\ & { } & { M _ { t } ^ { \\mathrm { c a n d } } = \\{ m \\mid m  \\mathrm { E x e c u t e } ( o p ) , \\forall o p \\in a _ { \\mathrm { f o r m } } \\} , } \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            317,
+            127,
+            680,
+            171
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "where $M _ { t } ^ { \\mathrm { c a n d } }$ denotes the set of candidate memories extracted from $x _ { t }$ . For each candidate $m \\in \\mathcal { M } _ { t } ^ { \\mathrm { c a n d } }$ , the memory evolution policy $\\pi _ { \\mathrm { e v o l } }$ integrates it into $\\textstyle { \\mathcal { M } } _ { t }$ . Specifically, the policy considers memories in $\\textstyle { \\mathcal { M } } _ { t }$ that are relevant to $m$ , and samples an evolution action $a _ { \\mathrm { e v o l } } \\sim \\pi _ { \\mathrm { e v o l } } ( \\cdot \\mid m , M _ { t } )$ from the action space $\\mathcal { A } _ { \\mathrm { e v o l } } = \\{ \\mathtt { A D D }$ , UPDATE, DELETE, IGNORE}. Collectively, these actions define the set of memories to be added $( \\Delta ^ { + } )$ and removed $\\left( \\Delta ^ { - } \\right)$ from the memory store: ",
+        "bbox": [
+            100,
+            181,
+            897,
+            263
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "img_path": "images/2a1086edd982fb67a4ec101572433b9fac4b5d333eb97336df909b9f0be87c23.jpg",
+        "text": "$$\n\\begin{array} { r l } & { \\Delta ^ { + } = \\{ m | a _ { \\mathrm { e v o l } } = \\mathrm { A D D } \\} \\cup \\{ m _ { \\mathrm { r e f i n e d } } | a _ { \\mathrm { e v o l } } = \\mathrm { U P D A T E } \\} , } \\\\ & { \\Delta ^ { - } = \\{ m _ { \\mathrm { t a r g e t } } | a _ { \\mathrm { e v o l } } = \\mathrm { D E L E T E } \\} \\cup \\{ m _ { \\mathrm { o l d } } | a _ { \\mathrm { e v o l } } = \\mathrm { U P D A T E } \\} . } \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            297,
+            272,
+            699,
+            309
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Consequently, the memory store is updated accordingly: ",
+        "bbox": [
+            100,
+            316,
+            552,
+            332
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "img_path": "images/0b8ee038da91af6a5d9598a7a3772e5912928a043a1f1daaacc0d334e2a6d6dd.jpg",
+        "text": "$$\n\\ M _ { t + 1 } = ( M _ { t } \\setminus \\Delta ^ { - } ) \\cup \\Delta ^ { + } .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            401,
+            344,
+            594,
+            363
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Phase II: On-Demand Memory Retrieval. Based on the constructed memory store $\\textstyle { \\mathcal { M } } _ { t }$ , when a query $q$ arises, the agent employs a multi-turn retrieval to respond. During this process, the memory retrieval policy $\\pi _ { \\mathrm { r e t r } }$ selects actions from the retrieval action space $\\mathcal { A } _ { \\mathrm { r e t r } }$ , which includes queries for each memory module and a terminal signal: ",
+        "bbox": [
+            100,
+            381,
+            897,
+            447
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "img_path": "images/a4483436a54a19d77baf16d313cbb943f8b4a426499527d3f08bb3922e8fb3ef.jpg",
+        "text": "$$\n\\mathcal { R } _ { \\mathrm { r e t r } } = \\{ \\mathtt { S e a r c h } ( r , \\mathrm { k e y } , \\mathrm { t o p k } ) \\ | \\ r \\in \\mathcal { M } _ { t } \\} \\cup \\{ \\mathrm { F i n i s h } \\} ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            287,
+            458,
+            709,
+            476
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "where $r$ is the memory type to be retrieved, key is the retrieval query. Unlike single-step retrieval, $\\pi _ { \\mathrm { r e t r } }$ operates as a sequential decision policy. At each step $k$ , conditioned on the query $q$ and the history context $h _ { k - 1 }$ , which consists of the retrieved relevant memory set $\\boldsymbol { \\mathcal { M } } _ { k - 1 } ^ { \\mathrm { r e l } }$ and reasoning state $\\mathfrak { z } _ { k - 1 }$ , the policy samples an action $a _ { k }$ : ",
+        "bbox": [
+            100,
+            487,
+            897,
+            552
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "img_path": "images/fb7e96997572dd8493e7f0444b0b82dcc0c55069afe310b736adbf8bf690c085.jpg",
+        "text": "$$\na _ { k } \\sim \\pi _ { \\mathrm { r e t r } } ( \\cdot \\mid q , M _ { t } , h _ { k - 1 } ) , \\quad a _ { k } \\in \\mathcal { A } _ { \\mathrm { r e t r } } .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            346,
+            565,
+            652,
+            582
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "This iterative process accumulates the relevant memory set $\\boldsymbol { \\mathcal { M } } ^ { \\mathrm { r e l } }$ by aggregating the observations from each search step. Finally, the loop terminates when the policy selects the Finish action, signaling that the gathered information is sufficient to support the final answer $y \\sim P _ { \\theta } ( \\cdot \\mid q , M ^ { \\mathrm { r e l } } )$ . ",
+        "bbox": [
+            100,
+            594,
+            899,
+            643
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "3.2. MoT-GRPO for Memory Retrieval ",
+        "text_level": 1,
+        "bbox": [
+            104,
+            665,
+            423,
+            682
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "In long-horizon scenarios, memory operation chains become extremely long, making credit assignment and reward sparsity major challenges. To address these issues, we propose Memory Operation Tree GRPO (MoT-GRPO), inspired by prior RL methods [Ji et al., 2025, Shao et al., 2024]. ",
+        "bbox": [
+            102,
+            693,
+            897,
+            741
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Memory Operation Tree Construction. In the retrieval phase, to achieve efficient rollout generation while obtaining dense intermediate signals, we employ an Iterative Branching Rollout to construct the Memory Operation Tree(MoT). Formally, we define a node in MoT as a tuple $\\nu ~ = ~ \\langle a _ { r e t r } , h \\rangle$ , representing a specific operation $a _ { r e t r } \\in \\mathcal { A } _ { \\mathrm { r e t r } }$ and the reasoning context $h$ . ",
+        "bbox": [
+            100,
+            749,
+            897,
+            814
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "For each query, we initialize an ensemble of $G$ independent MoTs $\\{ \\mathcal { T } _ { 0 } ^ { ( i ) } \\} _ { i = 1 } ^ { G }$ . Each tree $\\mathcal { T } _ { 0 } ^ { ( i ) }$ initially contains a single seed trajectory , obtained by a full rollout from the root state $( q , \\mathcal { M } _ { t } , h _ { 0 } = \\emptyset )$ : ",
+        "bbox": [
+            100,
+            820,
+            899,
+            856
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "img_path": "images/921b02bc9d5258b965a63d22549cfbcbd532c4ecac3346ac8211763515bde27f.jpg",
+        "text": "$$\n\\begin{array} { r l } & { \\mathcal { T } _ { 0 } ^ { ( i ) } = \\{ \\tau ^ { ( i ) } \\} , \\quad i = 1 , \\dots , G } \\\\ & { \\quad \\tau ^ { ( i ) } = ( \\nu _ { 1 } ^ { ( i ) } , \\nu _ { 2 } ^ { ( i ) } , \\dots , \\nu _ { L _ { i } } ^ { ( i ) } ) , \\mathrm { w h e r e } \\ \\nu _ { k } ^ { ( i ) } = \\langle a _ { k } ^ { ( i ) } , h _ { k } ^ { ( i ) } \\rangle . } \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            317,
+            864,
+            680,
+            908
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "discarded",
+        "text": "Mem-T: Densifying Rewards for Long-Horizon Memory Agents ",
+        "bbox": [
+            267,
+            60,
+            726,
+            76
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "discarded",
+        "text": "5 ",
+        "bbox": [
+            880,
+            922,
+            895,
+            936
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "we iteratively densify ea, we stochastically sample $\\mathscr { T } ^ { ( i ) }$ ove-ter $M$ expansion roal pivot nodes n each expansifrom each tree ound. For $j \\in \\{ 1 , \\dots , M \\}$ $N _ { \\nu }$ $\\{ \\nu _ { n } ^ { * } \\} _ { n = 1 } ^ { N _ { \\nu } }$ $\\mathcal { T } _ { j - 1 } ^ { ( i ) }$ $\\nu ^ { * }$ $h _ { \\nu ^ { * } }$ a branch trajectory ??branch: ",
+        "bbox": [
+            100,
+            99,
+            899,
+            167
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "img_path": "images/fd96ca02b841f1cea96d90b90cd82888e2ec5efca82e5a4b134a152febd288e5.jpg",
+        "text": "$$\n\\begin{array} { r } { \\tau _ { \\mathrm { b r a n c h } } \\sim \\pi _ { \\mathrm { r e t r } } ( \\cdot \\mid q , M _ { t } , h _ { \\nu ^ { * } } ) , } \\\\ { \\tau _ { \\mathrm { n e w } } = \\mathrm { P a t h } ( \\nu ^ { * } ) \\oplus \\tau _ { \\mathrm { b r a n c h } } . } \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            388,
+            165,
+            610,
+            204
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "The newly generated trajectories are then grafted onto the tree, updating its state to $\\mathcal { T } _ { j } ^ { ( i ) }$ . After $M$ rounds, this process yields a final ensemble of $G$ MoTs $\\{ \\mathcal { T } _ { M } ^ { ( i ) } \\} _ { i = 1 } ^ { G }$ . ",
+        "bbox": [
+            102,
+            211,
+            897,
+            252
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Node-wise Reward Backpropagation. Instead of relying solely on sparse terminal rewards, we assign a dense reward $R ( \\nu )$ to every node $\\nu$ , synthesizing immediate retrieval quality with expected future success. Formally, for a node $\\nu$ with retrieved memories $\\boldsymbol { \\mathcal { M } } _ { \\boldsymbol { \\nu } } ^ { \\mathrm { r e l } }$ , we define the reward as: ",
+        "bbox": [
+            102,
+            256,
+            897,
+            306
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "img_path": "images/99175954d8d1978a62d01861e1257769eb6d34d3c570418f8f0f52e5607efc90.jpg",
+        "text": "$$\nR ( \\nu ) = \\mathbb { I } _ { \\mathrm { f m t } } ( \\nu ) \\cdot ( \\alpha \\cdot \\mathrm { E v i d } ( \\nu ) + \\mathrm { P e r f o r m } ( \\nu ) )\n$$",
+        "text_format": "latex",
+        "bbox": [
+            332,
+            318,
+            663,
+            336
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Here, $\\mathbb { I } _ { \\mathrm { f m t } } ( \\nu )$ serves as a binary validity mask ensuring syntactic correctness of tool invocations; $\\operatorname { E v i d } ( \\nu )$ measures the immediate evidence density, calculated as the proportion of ground-truth evidence retrieved in $\\boldsymbol { \\mathcal { M } } _ { \\boldsymbol { \\nu } } ^ { \\mathrm { r e l } }$ ; and Perform $( \\nu )$ denotes the expected terminal performance of node $\\nu$ . For a leaf node, it is defined as the answer quality measured by the F1 score or accuracy. For an internal node, it is computed as the average Perform $( \\cdot )$ over all its child nodes $\\operatorname { C h } ( \\nu )$ : ",
+        "bbox": [
+            100,
+            347,
+            899,
+            429
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "img_path": "images/f2bec0f159a3ae08f512204f639575a62ddda2f5de17a987d4073b17eb6befa4.jpg",
+        "text": "$$\n\\mathrm { P e r f o r m } ( \\nu ) = \\left\\{ \\begin{array} { l l } { \\mathrm { F 1 } ( \\nu ) , } & { \\nu \\in \\mathcal { V } _ { \\mathrm { l e a f } } , } \\\\ { \\frac { 1 } { | \\mathrm { C h } ( \\nu ) | } \\displaystyle \\sum _ { u \\in \\mathrm { C h } ( \\nu ) } \\mathrm { P e r f o r m } ( u ) , } & { \\mathrm { o t h e r w i s e } . } \\end{array} \\right.\n$$",
+        "text_format": "latex",
+        "bbox": [
+            284,
+            438,
+            709,
+            498
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "This formulation ensures that high-reward nodes should adhere to valid formats, retrieve relevant evidence, and lead to high-quality outcomes. ",
+        "bbox": [
+            105,
+            514,
+            899,
+            548
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Dual-Scale Advantage Estimation. To enable tree-based credit assignment, we perform grouped advantage estimation at both the intra-tree and inter-tree levels. The Intra-Tree Advantage $A _ { \\mathrm { i n t r a } } ( \\nu )$ evaluates the relative quality of nodes within the same tree. For a node $\\nu$ in tree $\\mathscr { T } ^ { ( i ) }$ , we standardize $R ( \\nu )$ using the mean $\\chi _ { \\mathrm { i n t r a } } ^ { ( i ) }$ and standard deviation $\\sigma _ { \\mathrm { i n t r a } } ^ { ( i ) }$ derived from that specific tree: ",
+        "bbox": [
+            100,
+            555,
+            897,
+            623
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "img_path": "images/238839334e7c508c2fd0ed79f0a0565b0db6212d1e61eca73694150bef92b52d.jpg",
+        "text": "$$\nA _ { \\mathrm { i n t r a } } ( \\nu ) = \\frac { R ( \\nu ) - \\mu _ { \\mathrm { i n t r a } } ^ { ( i ) } } { \\sigma _ { \\mathrm { i n t r a } } ^ { ( i ) } + \\epsilon }\n$$",
+        "text_format": "latex",
+        "bbox": [
+            403,
+            632,
+            593,
+            680
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Simultaneously, to capture each node’s global advantage, we compute the Inter-Tree Advantage $A _ { \\mathrm { { i n t e r } } } ( \\nu )$ against the global mean $\\mu _ { \\mathrm { g l o b a l } }$ and standard deviation $\\sigma _ { \\mathrm { g l o b a l } }$ across the entire ensemble $\\{ \\mathcal { T } ^ { ( i ) } \\} _ { i = 1 } ^ { G }$ : ",
+        "bbox": [
+            100,
+            689,
+            897,
+            738
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "img_path": "images/287061d53605ba95bebc69e89036d7dc82ab4a6872b825f3c51dbb9527f66131.jpg",
+        "text": "$$\nA _ { \\mathrm { i n t e r } } ( \\nu ) = \\frac { R ( \\nu ) - \\mu _ { \\mathrm { g l o b a l } } } { \\sigma _ { \\mathrm { g l o b a l } } + \\epsilon }\n$$",
+        "text_format": "latex",
+        "bbox": [
+            400,
+            736,
+            598,
+            774
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "The final advantage $A _ { \\mathrm { t o t a l } } ( \\nu )$ balances these perspectives: ",
+        "bbox": [
+            100,
+            778,
+            559,
+            795
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "img_path": "images/6f9b7a9442405be85c93e71aebea304ae9273cebccdb9996eaa510343fe989d1.jpg",
+        "text": "$$\nA _ { \\mathrm { t o t a l } } ( \\nu ) = A _ { \\mathrm { i n t r a } } ( \\nu ) + A _ { \\mathrm { i n t e r } } ( \\nu ) .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            376,
+            808,
+            621,
+            825
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Through this dual-scale design, the intra-tree advantage supports reliable local comparisons sharing similar contexts and effective credit assignment to identify nodes that critically influence the final outcome. Meanwhile, inter-tree advantages encourage cross-tree competition, guiding the optimization toward globally high-quality solutions. ",
+        "bbox": [
+            100,
+            837,
+            897,
+            902
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "discarded",
+        "text": "Mem-T: Densifying Rewards for Long-Horizon Memory Agents ",
+        "bbox": [
+            265,
+            60,
+            726,
+            76
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "discarded",
+        "text": "6 ",
+        "bbox": [
+            880,
+            922,
+            895,
+            935
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Optimization Objective. Following the GRPO paradigm, we directly utilize the dual-scale advantage $A _ { \\mathrm { t o t a l } } ( \\nu )$ to optimize the retrieval policy $\\pi _ { \\theta }$ by maximizing: ",
+        "bbox": [
+            99,
+            99,
+            900,
+            134
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "equation",
+        "img_path": "images/61ed0bf54679128d8547e795dd24c18a394de2466ba7d12804cdffd8568d436d.jpg",
+        "text": "$$\n\\mathcal { T } ( \\theta ) = \\mathbb { E } _ { q \\sim \\mathcal { D } } \\left[ \\frac { 1 } { G } \\sum _ { i = 1 } ^ { G } \\frac { 1 } { | \\mathcal { T } ^ { ( i ) } | } \\sum _ { \\nu \\in \\mathcal { T } ^ { ( i ) } } \\left( \\mathcal { L } _ { \\mathrm { c l i p } } - \\beta \\mathbb { D } _ { \\mathrm { K L } } \\left( \\pi _ { \\theta } | | \\pi _ { \\mathrm { r e f } } \\right) \\right) \\right]\n$$",
+        "text_format": "latex",
+        "bbox": [
+            289,
+            142,
+            709,
+            184
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "where $\\pi _ { \\mathrm { r e f } }$ constrains the update via the $\\mathrm { K L }$ penalty coefficient $\\beta$ . The core term $\\mathcal { L } _ { \\mathrm { c l i p } }$ applies standard PPO clipping to the probability ratio $\\rho _ { \\nu , t } ( \\theta ) = \\pi _ { \\theta } ( a _ { \\nu , t } | \\cdot ) / \\pi _ { \\theta _ { \\mathrm { o l d } } } ( a _ { \\nu , t } | \\cdot )$ : ",
+        "bbox": [
+            100,
+            192,
+            895,
+            227
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "equation",
+        "img_path": "images/fa0e104eeeb8b0f8a58a03b40eff87c5528d58514cc0eb9c75a8b37d76480747.jpg",
+        "text": "$$\n\\mathcal { L } _ { \\mathrm { c l i p } } = \\operatorname* { m i n } \\left( \\rho _ { v , t } ( \\theta ) A _ { \\mathrm { t o t a l } } ( \\nu ) , \\mathrm { c l i p } ( \\rho _ { v , t } ( \\theta ) , 1 \\pm \\epsilon ) A _ { \\mathrm { t o t a l } } ( \\nu ) \\right)\n$$",
+        "text_format": "latex",
+        "bbox": [
+            295,
+            235,
+            702,
+            253
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "3.3. MoT-GRPO for Memory Construction ",
+        "text_level": 1,
+        "bbox": [
+            100,
+            275,
+            457,
+            292
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Unlike retrieval, memory construction spans hundreds of steps with rewards delayed until downstream queries, and its quality is irrelevant to most queries, resulting in severe credit assignment ambiguity. To address this, we propose Hindsight Credit Assignment, which back-propagates advantage signals from downstream retrieval trajectories to upstream construction actions. ",
+        "bbox": [
+            100,
+            302,
+            899,
+            367
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Hindsight Credit Assignment. Let $a _ { \\mathrm { m e m } }$ be a memory operation processing source turns $\\chi _ { \\mathrm { s r c } }$ to produce a memory entry $m$ . For a query $q$ with ground-truth evidence $X _ { \\mathrm { e v i \\cdot } } ^ { q }$ , we define the hindsight score $S ( a _ { \\mathrm { m e m } } )$ by aggregating advantages $A _ { \\mathrm { t o t a l } } ( \\nu _ { L } )$ from terminal leaf nodes $\\upsilon _ { L } \\in \\mathcal { V } _ { \\mathrm { l e a v e s } }$ : ",
+        "bbox": [
+            100,
+            375,
+            897,
+            424
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "equation",
+        "img_path": "images/61d1a8d5ef8444bc888436af40924cd1ef88e9153471eb331cffffa8094016b4.jpg",
+        "text": "$$\nS ( a _ { \\mathrm { m e m } } ) = \\frac { 1 } { | \\mathcal { V } _ { \\mathrm { l e a v e s } } | } \\sum _ { \\nu _ { L } \\in \\mathcal { V } _ { \\mathrm { l e a v e s } } } A _ { \\mathrm { t o t a l } } ( \\nu _ { L } ) \\cdot \\varrho ( a _ { \\mathrm { m e m } } , \\nu _ { L } )\n$$",
+        "text_format": "latex",
+        "bbox": [
+            302,
+            434,
+            695,
+            474
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "The credit coefficient $\\varrho$ integrates two distinct signals: ",
+        "bbox": [
+            100,
+            485,
+            536,
+            501
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "equation",
+        "img_path": "images/a60fba62cab1485752b3928d0a61af83728e468166d60cfa1ba1d9670c1b168d.jpg",
+        "text": "$$\n\\varrho ( a _ { \\mathrm { m e m } } , \\upsilon _ { L } ) = ~ \\mathbb { I } ( X _ { \\mathrm { s r c } } \\cap X _ { \\mathrm { e v i } } ^ { q } \\neq \\emptyset ) ~ + \\lambda \\cdot ~ \\mathbb { I } ( m \\in \\mathcal { M } _ { \\upsilon _ { L } } )\n$$",
+        "text_format": "latex",
+        "bbox": [
+            289,
+            512,
+            695,
+            532
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "The Evidence Alignment Gate attributes credit by linking the construction quality of ideal evidence turn $X _ { \\mathrm { e v i } } ^ { q }$ to answer accuracy. It posits that successful reasoning is fundamentally rooted in the effective transformation of ground-truth evidence into memory. Thus, the advantage of a final answer serves as a proxy to evaluate the construction of these pivotal source turns. Conversely, the Retrieval Trace Gate (weighted by $\\lambda = 0 . 1$ ) captures the empirical utility of $m$ retrieved within the actual retrieval tree. It recognizes that any memory entry $m$ involved in the terminal path $\\boldsymbol { \\mathcal { M } } _ { \\boldsymbol { \\nu _ { L } } }$ objectively modulates the model’s decision-making, rewarding the construction process for its functional contribution to the successful trajectory. Notably, in the absence of ground-truth evidence, the mechanism naturally relies on the Retrieval Trace Gate, maintaining robust generalization across diverse datasets. ",
+        "bbox": [
+            100,
+            567,
+            897,
+            714
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Policy Refinement. To optimize memory construction policies, we employ rank-based sampling to curate a high-quality training dataset $\\mathcal { D } _ { \\mathrm { m e m } } ^ { * }$ . We first discard trajectories with invalid tool invocations. Subsequently, we rank all candidate actions by their hindsight score $S ( a _ { \\mathrm { m e m } } )$ and retain only the top $5 0 \\%$ percentile within each operation category. Finally, treating $\\mathcal { D } _ { \\mathrm { m e m } } ^ { * }$ as a collection of expert demonstrations, we train the policies $\\pi _ { \\theta }$ (encompassing $\\pi _ { \\mathrm { f o r m } }$ and $\\pi _ { \\mathrm { e v o l } } )$ ) to maximize the log-likelihood of these selected actions: ",
+        "bbox": [
+            100,
+            721,
+            897,
+            819
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "equation",
+        "img_path": "images/62b6cb5a51f5c4fb1ebeb1e1d7f482ea97a780117ae248d7bb469179a9c46195.jpg",
+        "text": "$$\n\\mathcal { L } _ { \\mathrm { O f f } } ( \\theta ) = - \\mathbb { E } _ { ( x , a _ { \\mathrm { m e m } } ) \\sim \\mathcal { D } _ { \\mathrm { m e m } } ^ { * } } \\left[ \\log \\pi _ { \\theta } ( a _ { \\mathrm { m e m } } \\mid x , \\mathcal { M } _ { t } ) \\right] .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            302,
+            831,
+            695,
+            850
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "This offline optimization effectively distills the “hindsight wisdom\" derived from the downstream MoT-GRPO search trees into the forward-looking memory construction policy. ",
+        "bbox": [
+            99,
+            859,
+            900,
+            894
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "discarded",
+        "text": "Mem-T: Densifying Rewards for Long-Horizon Memory Agents ",
+        "bbox": [
+            265,
+            60,
+            726,
+            76
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "discarded",
+        "text": "7 ",
+        "bbox": [
+            882,
+            922,
+            895,
+            935
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "table",
+        "img_path": "images/26be219b037f537058b99cda6229dd7772affa87b10120639fd49b59fbb0ea2e.jpg",
+        "table_caption": [
+            "Table 2 | Performance comparison on the LoCoMo benchmark, with F1 and BLEU-1 as the evaluation metrics. †: The GAM paper recommends gpt-4o-mini; we also reproduced it using Qwen3-4B for a fair comparison. ‡: As Memory-R1 is not open-source, we faithfully report the results provided in their original paper. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td rowspan=\"2\">Method</td><td rowspan=\"2\">Base LLM</td><td colspan=\"2\">Single-Hop</td><td colspan=\"2\">Multi-Hop</td><td colspan=\"2\">Temporal</td><td colspan=\"2\">Open Domain</td><td colspan=\"2\">Overall</td></tr><tr><td>F1↑</td><td>B1↑</td><td>F1↑</td><td>B1↑</td><td>F1↑</td><td>B1↑</td><td>F1↑</td><td>B1↑</td><td>F1↑</td><td>B1↑</td></tr><tr><td colspan=\"10\">Training-free Methods</td></tr><tr><td>VANILLA</td><td>Qwen3-4B</td><td>40.68</td><td>31.54</td><td>23.23</td><td>16.76</td><td>18.97</td><td>13.42</td><td>13.87</td><td>10.70</td><td>31.50</td><td>23.94</td></tr><tr><td>RAG</td><td>Qwen3-4B</td><td>49.45</td><td>44.94</td><td>23.50</td><td>17.13</td><td>43.07</td><td>37.35</td><td>20.23</td><td>14.94</td><td>41.59</td><td>36.45</td></tr><tr><td>MemGPT</td><td>Qwen3-4B</td><td>14.00</td><td>11.77</td><td>16.68</td><td>13.99</td><td>12.56</td><td>10.94</td><td>11.61</td><td>9.16</td><td>14.05</td><td>11.84</td></tr><tr><td>MemoryBank</td><td>Qwen3-4B</td><td>26.65</td><td>17.72</td><td>25.52</td><td>19.44</td><td>9.15</td><td>7.44</td><td>16.42</td><td>12.39</td><td>22.34</td><td>15.66</td></tr><tr><td>Mem0</td><td>Qwen3-4B</td><td>47.28</td><td>40.72</td><td>35.40</td><td>27.36</td><td>46.84</td><td>39.48</td><td>26.64</td><td>21.04</td><td>43.71</td><td>36.78</td></tr><tr><td>MemoryOS</td><td>Qwen3-4B</td><td>48.35</td><td>42.57</td><td>35.24</td><td>27.30</td><td>40.98</td><td>32.68</td><td>22.08</td><td>17.93</td><td>42.83</td><td>36.26</td></tr><tr><td>LightMem</td><td>Qwen3-4B</td><td>43.78</td><td>38.84</td><td>30.78</td><td>25.80</td><td>44.71</td><td>40.72</td><td>18.93</td><td>14.42</td><td>40.01</td><td>35.27</td></tr><tr><td>A-Mem</td><td>Qwen3-4B</td><td>44.62</td><td>38.26</td><td>27.24</td><td>21.07</td><td>43.85</td><td>35.97</td><td>15.40</td><td>12.71</td><td>39.43</td><td>33.04</td></tr><tr><td>GAM</td><td>Qwen3-4B</td><td>32.23</td><td>25.54</td><td>32.23</td><td>28.66</td><td>26.26</td><td>22.52</td><td>18.45</td><td>14.47</td><td>30.17</td><td>24.81</td></tr><tr><td>GAM</td><td>gpt-4o-mini</td><td>57.75</td><td>52.10</td><td>42.29</td><td>34.44</td><td>59.45</td><td>53.11</td><td>29.73</td><td>24.74</td><td>53.48</td><td>47.33</td></tr><tr><td colspan=\"10\">Trained Methods</td></tr><tr><td>MEM1</td><td>MEM1-7B</td><td>27.48</td><td>22.10</td><td>18.98</td><td>15.56</td><td>30.52</td><td>23.48</td><td>14.21</td><td>11.43</td><td>25.68</td><td>20.50</td></tr><tr><td>MemAgent</td><td>MemAgent-14B</td><td>35.86</td><td>29.64</td><td>27.86</td><td>22.72</td><td>37.93</td><td>31.85</td><td>20.31</td><td>16.47</td><td>33.82</td><td>27.97</td></tr><tr><td>Memory-R1-PPO‡</td><td>Mem-R1-8B‡</td><td>32.52</td><td>24.47</td><td>26.86</td><td>23.47</td><td>41.57</td><td>26.11</td><td>45.30</td><td>39.18</td><td>34.08</td><td>25.54</td></tr><tr><td>Memory-R1-GRPO‡</td><td>Mem-R1-8B‡</td><td>35.73</td><td>27.70</td><td>35.65</td><td>30.77</td><td>49.86</td><td>38.27</td><td>47.42</td><td>41.24</td><td>39.25</td><td>31.21</td></tr><tr><td colspan=\"10\">Our Method Mem-T</td></tr><tr><td>w/o training</td><td>Qwen3-4B</td><td>53.97</td><td>49.15</td><td>38.44</td><td>31.70</td><td>53.99</td><td>48.08</td><td>26.44</td><td>23.37</td><td>49.38</td><td>44.11</td></tr><tr><td>with GRPO</td><td>Qwen3-4B</td><td>59.43</td><td>54.65</td><td>38.40</td><td>30.51</td><td>60.78</td><td>56.10</td><td>23.46</td><td>20.16</td><td>53.56</td><td>48.33</td></tr><tr><td>with MoT-GRPO</td><td>Qwen3-4B</td><td>63.75</td><td>57.95</td><td>45.09</td><td>36.58</td><td>65.13</td><td>60.12</td><td>32.97</td><td>28.94</td><td>58.65</td><td>52.63</td></tr></table>",
+        "bbox": [
+            100,
+            173,
+            895,
+            485
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "4. Experiments ",
+        "text_level": 1,
+        "bbox": [
+            102,
+            500,
+            260,
+            518
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "4.1. Experimental Setup ",
+        "text_level": 1,
+        "bbox": [
+            102,
+            530,
+            314,
+            545
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Evaluation and Benchmarks. We evaluate the proposed framework across four challenging longcontext benchmarks, including LoCoMo [Maharana et al., 2024], LongMemEval [Wu et al., 2025a], HotpotQA [Yang et al., 2018], and NarrativeQA [Kočiský et al., 2017]. LoCoMo and LongMemEval focus on long-term conversational question answering. Following Memory-R1 [Yan et al., 2025b], we use the same training data configuration by splitting the LoCoMo dataset into a 1:1:8 train/- validation/test split to ensure a fair comparison. The remaining three benchmarks are treated as out-of-domain datasets to evaluate the generalization ability of our method. Specifically, for HotpotQA, following [Yan et al., 2025a, Yu et al., 2025], we construct long-context inputs by concatenating the gold supporting documents with 400 irrelevant Wikipedia documents. More details about the dataset are in Section A.1. ",
+        "bbox": [
+            102,
+            552,
+            899,
+            711
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Baselines. We compare Mem-T against thirteen baselines, categorized into two groups: (I) Trainingfree Methods: This group includes memory-free approaches, such as vanilla long-LLM and retrievalaugmented generation (RAG) [Lewis et al., 2020], as well as memory-based methods, including MemGPT [Packer et al., 2023], MemoryBank [Zhong et al., 2024], Mem0 [Chhikara et al., 2025], LightMem [Fang et al., 2025], A-Mem [Xu et al., 2025], and GAM [Yan et al., 2025a]. (II) Trainingbased Methods: This group includes MemAgent [Yu et al., 2025] and Mem1 [Zhou et al., 2025], which primarily focus on working memory, and Memory-R1 [Yan et al., 2025b] and Mem- $\\alpha$ [Wang et al., 2025], which are designed to mainly enhance factual memory. For all the baselines, official implementations and released parameters are used when available. ",
+        "bbox": [
+            100,
+            709,
+            902,
+            853
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Implementation Details. We select LLM backbones of varying sizes, including Qwen3-4B and Qwen3- 8B [Yang et al., 2025]. All methods use BGE-M3 as the embedding model [Chen et al., 2025b]. ",
+        "bbox": [
+            100,
+            862,
+            897,
+            894
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "discarded",
+        "text": "Mem-T: Densifying Rewards for Long-Horizon Memory Agents ",
+        "bbox": [
+            267,
+            61,
+            726,
+            74
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "discarded",
+        "text": "8 ",
+        "bbox": [
+            882,
+            923,
+            894,
+            935
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "During training with MoT-GRPO, we generate three trees for each query $\\left( G = 3 \\right)$ ), with a maximum tree depth of 4. In each expansion round, we select three nodes $\\left( N _ { \\nu } = 3 \\right)$ for branch expansion. The training for memory retrieval is conducted for 200 steps. And the training for memory construction is based on a dataset containing $1 0 k$ memory operations. At inference time, Mem-T is allowed up to 6 reasoning steps. All retrieval operations default to returning the top-5 most similar items. More training setup and parameter configurations are listed in Section A.2. ",
+        "bbox": [
+            102,
+            101,
+            895,
+            197
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "4.2. Main Results ",
+        "text_level": 1,
+        "bbox": [
+            102,
+            222,
+            253,
+            236
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "High Performance. As shown in Table 2 and Table 5, Mem-T achieves substantially better performance on the LoCoMo benchmark than both training-free and training-based baselines. When using Qwen3- 4B and Qwen3-8B, Mem-T improves F1 by 14.92 $( 3 4 . 1 3 \\% \\uparrow )$ ) and 14.55 $( 3 3 . 0 8 \\% \\uparrow )$ , respectively. Even without training, the hierarchical and highly agentic memory system of Mem-T achieves superior performance, improving F1 by 5.67 $( 1 2 . 9 7 \\% \\uparrow )$ ) compared to other methods. Moreover, MoT-GRPO further strengthens the LLM’s memory management capability compared to the training-free and the GRPO baseline, yielding additional F1 gains of 9.27 $( 1 8 . 7 7 \\% \\uparrow )$ and 5.09 $\\left( 9 . 5 0 \\% \\uparrow \\right)$ ). These results demonstrate that the joint retrieval and construction training with dense rewards in MoT-GRPO is better suited for long-horizon memory agents. Notably, GAM, the SOTA memory system, exhibits an F1 gap of 23.31 when switching its backbone from gpt-4o-mini to Qwen3-4B, highlighting the importance of systematically improving model-level memory management capabilities. ",
+        "bbox": [
+            102,
+            247,
+            897,
+            424
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Cross-domain generalization. To evaluate whether the memory management capabilities learned by MoTGRPO can transfer across tasks, we assess the performance of Mem-T on three out-of-domain tasks. As shown in Table 3, baselines such as LightMem achieve suboptimal performance on LongMemEval but fail to generalize to other benchmarks, trailing Mem-T by 27.73 and 13.51 on HotpotQA and NarrativeQA, respectively. Training-based MEM-1 performs well on the in-domain QA benchmark HotpotQA, outperforming training-free methods by 2.38, but suffers substantial degradation on benchmarks that emphasize longhorizon dialogue understanding, underperforming Mem-T by 46.8 and 16.8. In contrast, Mem-T learns effec",
+        "bbox": [
+            102,
+            434,
+            398,
+            771
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "table",
+        "img_path": "images/00b9c5c13c6bb314c880eda3fd0659c53d2a69987f296fe8a6987e1e376959ac.jpg",
+        "table_caption": [
+            "Table 3 | Evaluation results on OOD benchmarks (HotpotQA, LongMemEval, NarrativeQA). All methods, except MEM1, which uses the 7B model trained in the original paper, are implemented with models based on Qwen3-4B. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Method</td><td>HotpotQA F1↑</td><td>LongMemEval Acc↑</td><td>NarrativeQA F1↑</td><td>Avg.</td></tr><tr><td>Training-free Methods</td><td></td><td></td><td></td><td></td></tr><tr><td>VANILLA</td><td>21.89</td><td>38.80</td><td>18.09</td><td>26.26</td></tr><tr><td>RAG</td><td>50.13</td><td>56.60</td><td>21.17</td><td>42.63</td></tr><tr><td>MemGPT</td><td>18.24</td><td>23.00</td><td>8.39</td><td>16.54</td></tr><tr><td>MemoryBank</td><td>16.90</td><td>26.20</td><td>9.65</td><td>17.58</td></tr><tr><td>A-Mem</td><td>30.46</td><td>61.30</td><td>25.18</td><td>38.98</td></tr><tr><td>Mem0</td><td>31.96</td><td>53.60</td><td>27.63</td><td>37.73</td></tr><tr><td>MemoryOS</td><td>26.86</td><td>46.80</td><td>23.45</td><td>32.37</td></tr><tr><td>LightMem</td><td>38.62</td><td>63.10</td><td>16.78</td><td>39.50</td></tr><tr><td>GAM</td><td>52.98</td><td>61.80</td><td>28.32</td><td>47.70</td></tr><tr><td>Trained Methods</td><td></td><td></td><td></td><td></td></tr><tr><td>MEM1</td><td>55.36</td><td>19.00</td><td>13.49</td><td>29.28</td></tr><tr><td>Mem-α</td><td>58.80</td><td>52.00</td><td>28.56</td><td>46.45</td></tr><tr><td>Mem-T</td><td>66.35</td><td>65.80</td><td>30.29</td><td>54.15</td></tr></table>",
+        "bbox": [
+            418,
+            514,
+            897,
+            752
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "tive memory management strategies through training on LoCoMo and achieves SOTA performance across all three out-of-domain benchmarks, with an average improvement of 6.45( $1 3 . 5 2 \\% \\uparrow$ ) over other methods. Notably, Mem-T generalizes well from long-horizon dialogue to the QA setting of HotpotQA, outperforming other approaches by 7.55. ",
+        "bbox": [
+            102,
+            772,
+            897,
+            835
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Token-economical. As illustrated in Figure 3 and Figure 4, Mem-T demonstrates superior costeffectiveness, lying on the Pareto front for both the LoCoMo and HotpotQA datasets. Compared to GAM, Mem-T not only achieves a $5 . 1 7 \\sim 2 8 . 4 8$ improvement in F1 Score but also reduces the inference overhead by $1 9 . 9 4 \\% \\sim 2 4 . 4 5 \\%$ per query. ",
+        "bbox": [
+            102,
+            844,
+            897,
+            891
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "discarded",
+        "text": "Mem-T: Densifying Rewards for Long-Horizon Memory Agents ",
+        "bbox": [
+            267,
+            61,
+            726,
+            74
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            882,
+            923,
+            894,
+            935
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "image",
+        "img_path": "images/0ba3a03ff6f08802ab1ab030193bf2f8566d99277fc7e90d98a5a6e4c2e6ab1e.jpg",
+        "image_caption": [
+            "Figure 3 | The comparison of the performance and inference cost on the LoCoMo dataset. Different shapes of the scatter points represent various types of baselines. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            112,
+            105,
+            480,
+            256
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "image",
+        "img_path": "images/e58a8498b7b3fe48b6975ee49766c0187b9c4cdd76899142abc8e0fccbf18737.jpg",
+        "image_caption": [
+            "Figure 4 | The comparison of the performance and inference cost on the HotpotQA dataset. Different shapes of the scatter points represent various types of baselines. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            510,
+            107,
+            878,
+            256
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            102,
+            350,
+            514,
+            366
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "4.3. Framework Analysis ",
+        "text_level": 1,
+        "bbox": [
+            104,
+            390,
+            315,
+            405
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Ablation Study We conduct an ablation study on the hierarchical memory architecture and the MoT-GRPO training paradigm, with results presented in Table 4: (1) w/o Memory Modules, which individually removes the working $( M _ { \\mathrm { w o r k } } )$ , factual $\\left( \\boldsymbol { \\mathcal { M } } _ { \\mathrm { f a c t } } \\right)$ , experiential $( M _ { \\mathrm { e x p } } )$ , and raw $\\left( \\boldsymbol { \\mathcal { M } } _ { \\mathrm { r a w } } \\right)$ memory stores. On LoCoMo, which emphasizes information extraction in long-horizon dialogues, factual memory proves to be the most critical component, leading to a substantial performance decline of 3.40. (2) w/o Optimization Strategies, where we replace the MoT-GRPO-optimized policies with the base model during ",
+        "bbox": [
+            102,
+            416,
+            398,
+            690
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "table",
+        "img_path": "images/81a735761261d6f63258f8a59d60c812ed74fbc0528fabde8183d230618561ba.jpg",
+        "table_caption": [
+            "Table 4 | Ablation study on the LoCoMo dataset. The evaluation metric is set as F1 for all entries. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Method</td><td>Single</td><td>Multi</td><td>Temporal</td><td>Open</td><td>Overall</td></tr><tr><td>Vanilla Mem-T</td><td>63.75</td><td>45.09</td><td>65.13</td><td>32.97</td><td>58.65</td></tr><tr><td colspan=\"6\">Ablation of Memory Modules</td></tr><tr><td>w/o Mwork</td><td>63.24</td><td>43.42</td><td>63.38</td><td>30.90</td><td>57.59</td></tr><tr><td>w/o Mfact</td><td>60.80</td><td>40.10</td><td>64.23</td><td>22.39</td><td>55.25</td></tr><tr><td>w/o Mexp</td><td>61.94</td><td>43.96</td><td>62.64</td><td>27.42</td><td>56.60</td></tr><tr><td>w/o Mraw</td><td>62.19</td><td>42.84</td><td>62.41</td><td>29.38</td><td>56.61</td></tr><tr><td colspan=\"6\">Ablation of MoT-GRPO</td></tr><tr><td>w/o Retr. Opt.</td><td>57.91</td><td>43.85</td><td>56.69</td><td>30.73</td><td>53.37</td></tr><tr><td>w/o Cons. Opt.</td><td>61.41</td><td>41.15</td><td>61.17</td><td>25.24</td><td>55.36</td></tr><tr><td>w/o Aintra</td><td>62.08</td><td>43.08</td><td>63.52</td><td>31.53</td><td>56.95</td></tr><tr><td>w/o Ainter</td><td>58.33</td><td>43.52</td><td>59.58</td><td>30.59</td><td>54.09</td></tr></table>",
+        "bbox": [
+            416,
+            466,
+            897,
+            668
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "the memory retrieval (w/o Retr. Opt.) and construction $( w / o$ Cons. Opt.) phases. Eliminating the retrieval optimization leads to the most significant performance decline of 5.28, while removing the construction optimization causes a 3.29 drop. These marked degradations verify that both stages of MoT-GRPO are crucial. (3) w/o Advantage Terms, which ablates the intra-tree $\\left( A _ { \\mathrm { i n t r a } } \\right)$ or inter-tree $\\left( A _ { \\mathrm { i n t e r } } \\right)$ advantage. Removing $A _ { \\mathrm { { i n t e r } } }$ causes a larger performance drop (4.56 ↓) than removing $A _ { \\mathrm { i n t r a } }$ (1.70 ↓), indicating that cross-tree advantage estimation is critical for stable RL training, while combining both signals yields the best performance. ",
+        "bbox": [
+            100,
+            690,
+            897,
+            803
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Sensitivity Analysis We analyze the sensitivity of Mem-T to three core parameters. The results are presented in Figure 5 and Figure 7. For the maximum retrieval steps, we observe a substantial performance improvement as the steps increase from 2 to 6, where the F1 score increases from $5 3 . 4 5  5 8 . 6 5$ . However, further extending the steps from 6 to 10 yields only marginal gains $( < 0 . 5 \\% )$ while linearly inflating the token consumption per query from $\\sim 9 k$ to $\\sim 2 1 k$ . For the number of operation trees $G$ , increasing $G$ from 1 to 3 yields substantial gains, boosting the F1 score on LoCoMo from 54.20 to 58.65 and on HotpotQA from 62.49 to 66.54. However, further increasing $G$ to 5 results in diminishing returns, offering a marginal average improvement of only 0.35 while disproportionately inflating the computational cost by approximately $6 7 \\%$ . Thus, we set the maximum retrieval steps to 6 and $G = 3$ to balance efficiency and overhead. More analysis is in Section B.2. ",
+        "bbox": [
+            102,
+            812,
+            897,
+            891
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "discarded",
+        "text": "Mem-T: Densifying Rewards for Long-Horizon Memory Agents ",
+        "bbox": [
+            267,
+            61,
+            726,
+            74
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            872,
+            923,
+            895,
+            935
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "image",
+        "img_path": "images/68b386215a4c107009052a3033c6b4a207c629a5c7f11c310b551536928cf6da.jpg",
+        "image_caption": [
+            "Figure 5 | (Left) Parameter sensitivity analysis on the max inference retrieval steps on the LoCoMo; (Right) Parameter sensitivity analysis on the number of operation trees per query(??) when training with MoT-GRPO on the LoCoMo and HotpotQA dataset. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            193,
+            108,
+            806,
+            319
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            102,
+            412,
+            897,
+            508
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "4.4. Case Study ",
+        "text_level": 1,
+        "bbox": [
+            102,
+            532,
+            238,
+            548
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "We present a case study comparing the memory processing trajectories of Mem-T against the Qwen3- 4B baseline in Figure 6 to demonstrate the enhanced capabilities acquired through our training paradigm. ",
+        "bbox": [
+            102,
+            558,
+            897,
+            606
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "As illustrated, the baseline exhibits severe limitations across the entire memory lifecycle. In the formation phase, it lacks an accurate information extraction capability, failing to resolve relative timestamps (e.g., “yesterday”) into specific dates. During evolution, it fails to distinguish between Update and Add operations, erroneously overwriting existing entity records with unrelated new memory. Finally, its retrieval mechanism is limited to ambiguous raw queries, lacking the logical depth to handle multi-step reasoning. ",
+        "bbox": [
+            102,
+            614,
+            897,
+            712
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "In contrast, Mem-T demonstrates superior capabilities in three aspects:❶Accurate Information Extraction: It accurately processes raw information (e.g., converting “yesterday” to a correct specific date), ensuring initial memory entries are temporally grounded and factually complete; $\\pmb { \\varrho }$ Rational Memory Evolution: It exhibits a deep understanding of the usage criteria for memory evolution tools. By explicitly distinguishing between state updates and new knowledge acquisition, it preserves memory atomicity and prevents key information forgetting. $\\pmb { \\otimes }$ Multi-step Retrieval: Instead of vague searches, it autonomously decomposes complex queries into sub-questions and retrieves from a suitable store. This step-by-step memory lookups synthesize the answer from distinct memory entries. ",
+        "bbox": [
+            102,
+            719,
+            899,
+            848
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "discarded",
+        "text": "Mem-T: Densifying Rewards for Long-Horizon Memory Agents ",
+        "bbox": [
+            267,
+            61,
+            726,
+            74
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            872,
+            923,
+            894,
+            935
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "image",
+        "img_path": "images/1617066df23547996e5b2854e48dad517d480ff9af3af0b3a5da943919dc3e18.jpg",
+        "image_caption": [
+            "Figure 6 | Case Study comparing Mem-T against baseline. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            102,
+            102,
+            889,
+            455
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "5. Conclusion ",
+        "text_level": 1,
+        "bbox": [
+            102,
+            499,
+            245,
+            516
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "In this paper, we introduce Mem-T, a comprehensive hierarchical memory framework, and MoTGRPO, a novel RL paradigm for memory agents. By decomposing sparse terminal rewards into dense, step-wise supervision via memory operation trees, MoT-GRPO enables the joint optimization of memory construction and retrieval policies. The extensive experiments demonstrate that Mem-T not only achieves state-of-the-art performance across in-domain and out-of-domain benchmarks but also realizes a superior Pareto efficiency between task accuracy and inference overhead. We believe Mem-T represents a shift from heuristic-based storage to fully learnable, attribution-centric memory systems, paving the way for the development of self-evolving agents capable of lifelong learning. ",
+        "bbox": [
+            102,
+            530,
+            899,
+            659
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "References ",
+        "text_level": 1,
+        "bbox": [
+            102,
+            686,
+            213,
+            702
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Qingyao Ai, Yichen Tang, Changyue Wang, Jianming Long, Weihang Su, and Yiqun Liu. Memorybench: A benchmark for memory and continual learning in llm systems. arXiv preprint arXiv:2510.17281, 2025. ",
+        "bbox": [
+            102,
+            717,
+            899,
+            763
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Guoxin Chen, Zile Qiao, Xuanzhong Chen, Donglei Yu, Haotian Xu, Wayne Xin Zhao, Ruihua Song, Wenbiao Yin, Huifeng Yin, Liwen Zhang, Kuan Li, Minpeng Liao, Yong Jiang, Pengjun Xie, Fei Huang, and Jingren Zhou. Iterresearch: Rethinking long-horizon agents via markovian state reconstruction, 2025a. URL https://arxiv.org/abs/2511.07327. ",
+        "bbox": [
+            102,
+            775,
+            900,
+            840
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Jianlv Chen, Shitao Xiao, Peitian Zhang, Kun Luo, Defu Lian, and Zheng Liu. M3-embedding: Multi-linguality, multi-functionality, multi-granularity text embeddings through self-knowledge distillation, 2025b. URL https://arxiv.org/abs/2402.03216. ",
+        "bbox": [
+            102,
+            851,
+            899,
+            900
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "discarded",
+        "text": "Mem-T: Densifying Rewards for Long-Horizon Memory Agents ",
+        "bbox": [
+            267,
+            61,
+            726,
+            74
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            872,
+            923,
+            895,
+            935
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Prateek Chhikara, Dev Khant, Saket Aryan, Taranjeet Singh, and Deshraj Yadav. Mem0: Building production-ready ai agents with scalable long-term memory. arXiv preprint arXiv:2504.19413, 2025. ",
+        "bbox": [
+            102,
+            101,
+            899,
+            148
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Jizhan Fang, Xinle Deng, Haoming Xu, Ziyan Jiang, Yuqi Tang, Ziwen Xu, Shumin Deng, Yunzhi Yao, Mengru Wang, Shuofei Qiao, et al. Lightmem: Lightweight and efficient memory-augmented generation. arXiv preprint arXiv:2510.18866, 2025. ",
+        "bbox": [
+            102,
+            160,
+            897,
+            208
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Sirui Hong, Mingchen Zhuge, Jonathan Chen, Xiawu Zheng, Yuheng Cheng, Jinlin Wang, Ceyao Zhang, Zili Wang, Steven Ka Shing Yau, Zijuan Lin, Liyang Zhou, Chenyu Ran, Lingfeng Xiao, Chenglin Wu, and Jürgen Schmidhuber. MetaGPT: Meta programming for A multi-agent collaborative framework. In The Twelfth International Conference on Learning Representations, 2024. ",
+        "bbox": [
+            102,
+            218,
+            900,
+            282
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Yuyang Hu, Jiongnan Liu, Jiejun Tan, Yutao Zhu, and Zhicheng Dou. Memory matters more: Event-centric memory as a logic map for agent searching and reasoning, 2026a. URL https: //arxiv.org/abs/2601.04726. ",
+        "bbox": [
+            102,
+            294,
+            900,
+            342
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Yuyang Hu, Shichun Liu, Yanwei Yue, Guibin Zhang, Boyang Liu, Fangyi Zhu, Jiahang Lin, Honglin Guo, Shihan Dou, Zhiheng Xi, Senjie Jin, Jiejun Tan, Yanbin Yin, Jiongnan Liu, Zeyu Zhang, Zhongxiang Sun, Yutao Zhu, Hao Sun, Boci Peng, Zhenrong Cheng, Xuanbo Fan, Jiaxin Guo, Xinlei Yu, Zhenhong Zhou, Zewen Hu, Jiahao Huo, Junhao Wang, Yuwei Niu, Yu Wang, Zhenfei Yin, Xiaobin Hu, Yue Liao, Qiankun Li, Kun Wang, Wangchunshu Zhou, Yixin Liu, Dawei Cheng, Qi Zhang, Tao Gui, Shirui Pan, Yan Zhang, Philip Torr, Zhicheng Dou, Ji-Rong Wen, Xuanjing Huang, Yu-Gang Jiang, and Shuicheng Yan. Memory in the age of ai agents, 2026b. URL https://arxiv.org/abs/2512.13564. ",
+        "bbox": [
+            102,
+            353,
+            899,
+            466
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Yuxiang Ji, Ziyu Ma, Yong Wang, Guanhua Chen, Xiangxiang Chu, and Liaoni Wu. Tree search for llm agent reinforcement learning, 2025. URL https://arxiv.org/abs/2509.21240. ",
+        "bbox": [
+            100,
+            476,
+            897,
+            510
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Tomáš Kočiský, Jonathan Schwarz, Phil Blunsom, Chris Dyer, Karl Moritz Hermann, Gábor Melis, and Edward Grefenstette. The narrativeqa reading comprehension challenge, 2017. URL https: //arxiv.org/abs/1712.07040. ",
+        "bbox": [
+            102,
+            519,
+            900,
+            568
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Hengzhi Lan, Yue Yu, Li Qian, Li Peng, Jie Wu, Wei Liu, Jian Luan, and Ting Bai. Lightsearcher: Efficient deepsearch via experiential memory, 2025. URL https://arxiv.org/abs/2512.06653. ",
+        "bbox": [
+            100,
+            577,
+            899,
+            611
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin, Naman Goyal, Heinrich Küttler, Mike Lewis, Wen-tau Yih, Tim Rocktäschel, Sebastian Riedel, and Douwe Kiela. Retrieval-augmented generation for knowledge-intensive NLP tasks. In Hugo Larochelle, Marc’Aurelio Ranzato, Raia Hadsell, Maria-Florina Balcan, and Hsuan-Tien Lin, editors, Advances in Neural Information Processing Systems 33: Annual Conference on Neural Information Processing Systems 2020, NeurIPS 2020, December 6-12, 2020, virtual, 2020. URL https://proceedings.ne urips.cc/paper/2020/hash/6b493230205f780e1bc26945df7481e5-Abstract.html. ",
+        "bbox": [
+            102,
+            620,
+            899,
+            734
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Tianle Li, Ge Zhang, Quy Duc Do, Xiang Yue, and Wenhu Chen. Long-context llms struggle with long in-context learning. arXiv preprint arXiv:2404.02060, 2024. ",
+        "bbox": [
+            99,
+            744,
+            895,
+            777
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Zhiyu Li, Shichao Song, Hanyu Wang, Simin Niu, Ding Chen, Jiawei Yang, Chenyang Xi, Huayi Lai, Jihao Zhao, Yezhaohui Wang, Junpeng Ren, Zehao Lin, Jiahao Huo, Tianyi Chen, Kai Chen, Kehang Li, Zhiqiang Yin, Qingchen Yu, Bo Tang, Hongkang Yang, Zhi-Qin John Xu, and Feiyu Xiong. Memos: An operating system for memory-augmented generation (mag) in large language models, 2025. URL https://arxiv.org/abs/2505.22101. ",
+        "bbox": [
+            102,
+            787,
+            899,
+            869
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "discarded",
+        "text": "Mem-T: Densifying Rewards for Long-Horizon Memory Agents ",
+        "bbox": [
+            267,
+            61,
+            726,
+            74
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            872,
+            923,
+            895,
+            935
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Jiaheng Liu, Dawei Zhu, Zhiqi Bai, Yancheng He, Huanxuan Liao, Haoran Que, Zekun Wang, Chenchen Zhang, Ge Zhang, Jiebin Zhang, Yuanxing Zhang, Zhuo Chen, Hangyu Guo, Shilong Li, Ziqiang Liu, Yong Shan, Yifan Song, Jiayi Tian, Wenhao Wu, Zhejian Zhou, Ruijie Zhu, Junlan Feng, Yang Gao, Shizhu He, Zhoujun Li, Tianyu Liu, Fanyu Meng, Wenbo Su, Yingshui Tan, Zili Wang, Jian Yang, Wei Ye, Bo Zheng, Wangchunshu Zhou, Wenhao Huang, Sujian Li, and Zhaoxiang Zhang. A comprehensive survey on long context language modeling, 2025. URL https://arxiv.org/ab s/2503.17407. ",
+        "bbox": [
+            105,
+            101,
+            897,
+            214
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Elias Lumer, Anmol Gulati, Vamse Kumar Subbiah, Pradeep Honaganahalli Basavaraju, and James A Burke. Memtool: Optimizing short-term memory management for dynamic tool calling in llm agent multi-turn conversations. arXiv preprint arXiv:2507.21428, 2025. ",
+        "bbox": [
+            102,
+            224,
+            897,
+            272
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Adyasha Maharana, Dong-Ho Lee, Sergey Tulyakov, Mohit Bansal, Francesco Barbieri, and Yuwei Fang. Evaluating very long-term conversational memory of LLM agents. In Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), pages 13851–13870, Bangkok, Thailand, August 2024. Association for Computational Linguistics. doi: 10.18653/v1/2024.acl-long.747. URL https://aclanthology.org/2024.acl-long.747/. ",
+        "bbox": [
+            102,
+            282,
+            897,
+            365
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Charles Packer, Vivian Fang, ShishirG Patil, Kevin Lin, Sarah Wooders, and JosephE Gonzalez. Memgpt: Towards llms as operating systems. arXiv preprint arXiv:2310.08560, 2023. ",
+        "bbox": [
+            99,
+            374,
+            897,
+            407
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Eduardo Pignatelli, Johan Ferret, Matthieu Geist, Thomas Mesnard, Hado van Hasselt, Olivier Pietquin, and Laura Toni. A survey of temporal credit assignment in deep reinforcement learning, 2024. URL https://arxiv.org/abs/2312.01072. ",
+        "bbox": [
+            102,
+            417,
+            900,
+            466
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Cheng Qian, Emre Can Acikgoz, Qi He, Hongru Wang, Xiusi Chen, Dilek Hakkani-Tür, Gokhan Tur, and Heng Ji. ToolRL: Reward is all tool learning needs. arXiv preprint arXiv:2504.13958, 2025. ",
+        "bbox": [
+            99,
+            476,
+            900,
+            510
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Preston Rasmussen, Pavlo Paliychuk, Travis Beauvais, Jack Ryan, and Daniel Chalef. Zep: A temporal knowledge graph architecture for agent memory. CoRR, abs/2501.13956, 2025. doi: 10.48550/A RXIV.2501.13956. URL https://doi.org/10.48550/arXiv.2501.13956. ",
+        "bbox": [
+            100,
+            519,
+            899,
+            568
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Zhihong Shao, Peiyi Wang, Qihao Zhu, Runxin Xu, Junxiao Song, Xiao Bi, Haowei Zhang, Mingchuan Zhang, YK Li, Yang Wu, et al. Deepseekmath: Pushing the limits of mathematical reasoning in open language models. arXiv preprint arXiv:2402.03300, 2024. ",
+        "bbox": [
+            102,
+            579,
+            899,
+            626
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Weiwei Sun, Miao Lu, Zhan Ling, Kang Liu, Xuesong Yao, Yiming Yang, and Jiecao Chen. Scaling long-horizon LLM agent via context-folding. CoRR, abs/2510.11967, 2025. doi: 10.48550/ARXIV .2510.11967. URL https://doi.org/10.48550/arXiv.2510.11967. ",
+        "bbox": [
+            102,
+            637,
+            897,
+            686
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Haoran Tan, Zeyu Zhang, Chen Ma, Xu Chen, Quanyu Dai, and Zhenhua Dong. MemBench: Towards more comprehensive evaluation on the memory of LLM-based agents. In Findings of the Association for Computational Linguistics: ACL 2025, pages 19336–19352, Vienna, Austria, July 2025. Association for Computational Linguistics. ISBN 979-8-89176-256-5. doi: 10.18653/v1/2025.findings-acl .989. URL https://aclanthology.org/2025.findings-acl.989/. ",
+        "bbox": [
+            100,
+            696,
+            899,
+            777
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Yu Wang, Ryuichi Takanobu, Zhiqi Liang, Yuzhen Mao, Yuanzhe Hu, Julian J. McAuley, and Xiaojian Wu. Mem- $\\alpha$ : Learning memory construction via reinforcement learning. CoRR, abs/2509.25911, 2025. doi: 10.48550/ARXIV.2509.25911. URL https://doi.org/10.48550/arXiv.2509. 25911. ",
+        "bbox": [
+            100,
+            787,
+            899,
+            852
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Di Wu, Hongwei Wang, Wenhao Yu, Yuwei Zhang, Kai-Wei Chang, and Dong Yu. Longmemeval: Benchmarking chat assistants on long-term interactive memory. In The Thirteenth International ",
+        "bbox": [
+            102,
+            863,
+            899,
+            895
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "discarded",
+        "text": "Mem-T: Densifying Rewards for Long-Horizon Memory Agents ",
+        "bbox": [
+            267,
+            61,
+            726,
+            74
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            872,
+            923,
+            895,
+            936
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Conference on Learning Representations, ICLR 2025, Singapore, April 24-28, 2025. OpenReview.net, 2025a. URL https://openreview.net/forum?id=pZiyCaVuti. ",
+        "bbox": [
+            114,
+            101,
+            900,
+            134
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "Qingyun Wu, Gagan Bansal, Jieyu Zhang, Yiran Wu, Beibin Li, Erkang Zhu, Li Jiang, Xiaoyun Zhang, Shaokun Zhang, Jiale Liu, Ahmed Hassan Awadallah, Ryen W White, Doug Burger, and Chi Wang. Autogen: Enabling next-gen llm applications via multi-agent conversation, 2023. URL https://arxiv.org/abs/2308.08155. ",
+        "bbox": [
+            102,
+            141,
+            897,
+            206
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "Xixi Wu, Kuan Li, Yida Zhao, Liwen Zhang, Litu Ou, Huifeng Yin, Zhongwang Zhang, Yong Jiang, Pengjun Xie, Fei Huang, Minhao Cheng, Shuai Wang, Hong Cheng, and Jingren Zhou. ReSum: Unlocking Long-Horizon Search Intelligence via Context Summarization. CoRR, abs/2509.13313, 2025b. doi: 10.48550/ARXIV.2509.13313. ",
+        "bbox": [
+            100,
+            215,
+            900,
+            279
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "Zidi Xiong, Yuping Lin, Wenya Xie, Pengfei He, Zirui Liu, Jiliang Tang, Himabindu Lakkaraju, and Zhen Xiang. How memory management impacts llm agents: An empirical study of experience-following behavior, 2025. URL https://arxiv.org/abs/2505.16067. ",
+        "bbox": [
+            102,
+            288,
+            899,
+            337
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "Renjun Xu and Jingwen Peng. A comprehensive survey of deep research: Systems, methodologies, and applications, 2025. URL https://arxiv.org/abs/2506.12594. ",
+        "bbox": [
+            99,
+            346,
+            899,
+            379
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "Wujiang Xu, Zujie Liang, Kai Mei, Hang Gao, Juntao Tan, and Yongfeng Zhang. A-MEM: Agentic Memory for LLM Agents. CoRR, abs/2502.12110, 2025. doi: 10.48550/ARXIV.2502.12110. ",
+        "bbox": [
+            97,
+            387,
+            899,
+            420
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "B. Y. Yan, Chaofan Li, Hongjin Qian, Shuqi Lu, and Zheng Liu. General agentic memory via deep research, November 2025a. ",
+        "bbox": [
+            99,
+            428,
+            897,
+            461
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "Sikuan Yan, Xiufeng Yang, Zuchao Huang, Ercong Nie, Zifeng Ding, Zonggen Li, Xiaowen Ma, Hinrich Schütze, Volker Tresp, and Yunpu Ma. Memory-R1: Enhancing large language model agents to manage and utilize memories via reinforcement learning. arXiv preprint arXiv:2508.19828, 2025b. ",
+        "bbox": [
+            102,
+            469,
+            899,
+            518
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "An Yang, Anfeng Li, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng, Bowen Yu, Chang Gao, Chengen Huang, Chenxu Lv, Chujie Zheng, Dayiheng Liu, Fan Zhou, Fei Huang, Feng Hu, Hao Ge, Haoran Wei, Huan Lin, Jialong Tang, Jian Yang, Jianhong Tu, Jianwei Zhang, Jianxin Yang, Jiaxi Yang, Jing Zhou, Jingren Zhou, Junyang Lin, Kai Dang, Keqin Bao, Kexin Yang, Le Yu, Lianghao Deng, Mei Li, Mingfeng Xue, Mingze Li, Pei Zhang, Peng Wang, Qin Zhu, Rui Men, Ruize Gao, Shixuan Liu, Shuang Luo, Tianhao Li, Tianyi Tang, Wenbiao Yin, Xingzhang Ren, Xinyu Wang, Xinyu Zhang, Xuancheng Ren, Yang Fan, Yang Su, Yichang Zhang, Yinger Zhang, Yu Wan, Yuqiong Liu, Zekun Wang, Zeyu Cui, Zhenru Zhang, Zhipeng Zhou, and Zihan Qiu. Qwen3 technical report, 2025. URL https://arxiv.org/abs/2505.09388. ",
+        "bbox": [
+            102,
+            526,
+            899,
+            673
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "Zhilin Yang, Peng Qi, Saizheng Zhang, Yoshua Bengio, William W. Cohen, Ruslan Salakhutdinov, and Christopher D. Manning. Hotpotqa: A dataset for diverse, explainable multi-hop question answering, 2018. URL https://arxiv.org/abs/1809.09600. ",
+        "bbox": [
+            102,
+            681,
+            899,
+            730
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "Rui Ye, Zhongwang Zhang, Kuan Li, Huifeng Yin, Zhengwei Tao, Yida Zhao, Liangcai Su, Liwen Zhang, Zile Qiao, Xinyu Wang, et al. Agentfold: Long-horizon web agents with proactive context management. arXiv preprint arXiv:2510.24699, 2025a. ",
+        "bbox": [
+            102,
+            738,
+            899,
+            787
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "Shicheng Ye, Chao Yu, Kaiqiang Ke, Chengdong Xu, and Yinqi Wei. $\\mathrm { H } ^ { 2 } \\mathrm { r }$ : Hierarchical hindsight reflection for multi-task LLM agents. CoRR, abs/2509.12810, 2025b. doi: 10.48550/ARXIV.2509. 12810. URL https://doi.org/10.48550/arXiv.2509.12810. ",
+        "bbox": [
+            102,
+            796,
+            899,
+            845
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "Hongli Yu, Tinghong Chen, Jiangtao Feng, Jiangjie Chen, Weinan Dai, Qiying Yu, Ya-Qin Zhang, Wei-Ying Ma, Jingjing Liu, Mingxuan Wang, et al. Memagent: Reshaping long-context llm with multi-conv rl-based memory agent. arXiv preprint arXiv:2507.02259, 2025. ",
+        "bbox": [
+            102,
+            854,
+            899,
+            903
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "discarded",
+        "text": "Mem-T: Densifying Rewards for Long-Horizon Memory Agents ",
+        "bbox": [
+            267,
+            61,
+            726,
+            74
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "discarded",
+        "text": "15 ",
+        "bbox": [
+            872,
+            922,
+            895,
+            936
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "Qianhao Yuan, Jie Lou, Zichao Li, Jiawei Chen, Yaojie Lu, Hongyu Lin, Le Sun, Debing Zhang, and Xianpei Han. MemSearcher: Training LLMs to Reason, Search and Manage Memory via End-to-End Reinforcement Learning, November 2025. ",
+        "bbox": [
+            104,
+            101,
+            897,
+            148
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "Guibin Zhang, Haotian Ren, Chong Zhan, Zhenhong Zhou, Junhao Wang, He Zhu, Wangchunshu Zhou, and Shuicheng Yan. Memevolve: Meta-evolution of agent memory systems. arXiv preprint arXiv:2512.18746, 2025. ",
+        "bbox": [
+            104,
+            159,
+            897,
+            206
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "Shengtao Zhang, Jiaqian Wang, Ruiwen Zhou, Junwei Liao, Yuchen Feng, Weinan Zhang, Ying Wen, Zhiyu Li, Feiyu Xiong, Yutao Qi, Bo Tang, and Muning Wen. Memrl: Self-evolving agents via runtime reinforcement learning on episodic memory, 2026. URL https://arxiv.org/abs/2601.03192. ",
+        "bbox": [
+            102,
+            218,
+            899,
+            266
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "Andrew Zhao, Daniel Huang, Quentin Xu, Matthieu Lin, Yong-Jin Liu, and Gao Huang. Expel: LLM agents are experiential learners. In Michael J. Wooldridge, Jennifer G. Dy, and Sriraam Natarajan, editors, Thirty-Eighth AAAI Conference on Artificial Intelligence, AAAI 2024, Thirty-Sixth Conference on Innovative Applications of Artificial Intelligence, IAAI 2024, Fourteenth Symposium on Educational Advances in Artificial Intelligence, EAAI 2014, February 20-27, 2024, Vancouver, Canada, pages 19632–19642. AAAI Press, 2024. doi: 10.1609/AAAI.V38I17.29936. URL https://doi.org/10.1609/aaai.v38i17.29936. ",
+        "bbox": [
+            102,
+            277,
+            897,
+            390
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "Wanjun Zhong, Lianghong Guo, Qiqi Gao, He Ye, and Yanlin Wang. Memorybank: Enhancing large language models with long-term memory. In Proceedings of the AAAI Conference on Artificial Intelligence, pages 19724–19731, 2024. ",
+        "bbox": [
+            102,
+            399,
+            899,
+            448
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "Zijian Zhou, Ao Qu, Zhaoxuan Wu, Sunghwan Kim, Alok Prakash, Daniela Rus, Jinhua Zhao, Bryan Kian Hsiang Low, and Paul Pu Liang. MEM1: Learning to synergize memory and reasoning for efficient long-horizon agents. arXiv preprint arXiv:2506.15841, 2025. ",
+        "bbox": [
+            102,
+            457,
+            897,
+            507
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "A. Supplementary Experimental Setup ",
+        "text_level": 1,
+        "bbox": [
+            102,
+            545,
+            494,
+            563
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "A.1. Dataset Description ",
+        "text_level": 1,
+        "bbox": [
+            104,
+            579,
+            312,
+            594
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "LoCoMo([Maharana et al., 2024]) is a benchmark of very long-term conversational dialogues designed to evaluate long-range memory and reasoning capabilities in agent systems. The dataset consists of 10 extended conversations, each spanning dozens of sessions and hundreds of dialogue turns, with an average of around 600 turns and roughly 16K tokens per conversation. Questions in the LoCoMo QA evaluation are annotated with answer locations and categorized into types such as single-hop, multi-hop, open-domain, temporal reasoning, and adversarial, targeting different memory and inference challenges. In our experiments on LoCoMo QA, we follow standard practice in related work and do not use adversarial question data, which aligns with previous evaluations [Chhikara et al., 2025, Xu et al., 2025]. ",
+        "bbox": [
+            102,
+            605,
+            897,
+            750
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "Hotpotqa([Yang et al., 2018]) is a widely-used multi-hop reasoning benchmark that requires models to aggregate information across multiple supporting documents to reach an answer. To evaluate performance in long-context scenarios, we follow the synthesis methodology proposed in recent work [Yan et al., 2025a, Yu et al., 2025], where the golden paragraphs containing the necessary evidence are embedded within a haystack of distractor content. In our experiments, we specifically utilize the 56K-token(eval_400) version of this synthetic HotpotQA dataset. This setup effectively transforms the reasoning task into a long-range retrieval and inference challenge, testing the agent’s ability to filter out extensive irrelevant information while maintaining the precision required for multi-step logical reasoning. ",
+        "bbox": [
+            102,
+            757,
+            897,
+            903
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "discarded",
+        "text": "Mem-T: Densifying Rewards for Long-Horizon Memory Agents ",
+        "bbox": [
+            267,
+            61,
+            726,
+            74
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            872,
+            923,
+            895,
+            935
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "LoneMemEval([Wu et al., 2025a]) is specifically designed to evaluate the long-term interactive memory capabilities of LLM-driven chat assistants, addressing the underexplored challenge of sustained memory performance in prolonged user-AI interactions. It comprehensively assesses five core memory abilities, information extraction, multi-session reasoning, temporal reasoning, knowledge updates, and abstention, through 500 manually curated questions embedded in freely scalable user-assistant chat histories, with two standard configurations: LONGMEMEVALS ( $_ { 1 1 5 k }$ tokens per question) and LONGMEMEVALM ( $\\sim 1 . 5$ million tokens across 500 sessions). Following previous works [Fang et al., 2025, Rasmussen et al., 2025, Wang et al., 2025], we use the LONGMEMEVALS dataset. ",
+        "bbox": [
+            102,
+            101,
+            897,
+            229
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "NarrativeQA([Kočiský et al., 2017]) is a large-scale reading comprehension benchmark that assesses models’ ability to understand and reason over long narrative text, such as books and movie scripts. The full NarrativeQA dataset contains on the order of tens of thousands of human-written question–answer pairs associated with over a thousand story documents, where questions require synthesis across global document structure rather than shallow pattern matching. Questions are constructed based on human-generated abstractive summaries, encouraging deep narrative understanding and integrative reasoning beyond local context overlaps. Following [Hu et al., 2026a], we randomly sampled 10 long documents from the NarrativeQA corpus and used their associated 298 QA pairs to measure performance on long-range narrative question answering. ",
+        "bbox": [
+            102,
+            237,
+            897,
+            382
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "A.2. Implementation Details ",
+        "text_level": 1,
+        "bbox": [
+            104,
+            407,
+            347,
+            423
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "MoT-GRPO for Memory Retrieval Training Implementation Details. We utilize the Ray distributed framework combined with vLLM as the inference backend, employing XFormers to optimize attention mechanisms. The model is trained with a global batch size of 32. We adopt a peak learning rate of $5 \\times 1 0 ^ { - 6 }$ with a warmup ratio of 0.285. To ensure training stability and prevent reward hacking, we set the KL divergence coefficient to 0.001. ",
+        "bbox": [
+            102,
+            432,
+            897,
+            513
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "Context and Efficiency. To support extensive memory retrieval operations, we configure the system with an extended context window, allowing for a maximum prompt length of 40,960 tokens and a maximum observation history of 20,480 tokens. For computational efficiency, we employ Fully Sharded Data Parallel (FSDP) with parameter, gradient, and optimizer offloading, performing all computations in bfloat16 precision. ",
+        "bbox": [
+            102,
+            521,
+            897,
+            601
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "MoT-GRPO for Memory Construction Training Configuration. The training is conducted on a single node equipped with 8 GPUs, utilizing the LLaMA-Factory framework. To maximize computational efficiency and handle the memory footprint of full-parameter updates, we employ DeepSpeed ZeRO-3 combined with Flash Attention 2. The maximum sequence length is truncated to 6, 144 tokens. ",
+        "bbox": [
+            102,
+            611,
+            897,
+            675
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "Hyperparameters. The global batch size is set to 32 (calculated with a per-device batch size of 2 and 2 gradient accumulation steps). We optimize the model for 200 steps using a cosine learning rate scheduler, with a peak learning rate of $5 \\times 1 0 ^ { - 6 }$ and a warmup ratio of 0.1. The training uses bfloat16 precision, and $1 0 \\%$ of the dataset is reserved for validation to monitor convergence. ",
+        "bbox": [
+            102,
+            682,
+            897,
+            746
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "B. Supplementary Experiment ",
+        "text_level": 1,
+        "bbox": [
+            105,
+            772,
+            411,
+            790
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "B.1. Generalization Experiments Across Other LLMs ",
+        "text_level": 1,
+        "bbox": [
+            102,
+            806,
+            546,
+            821
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "Table 5 demonstrates the generalization capabilities of Mem-T when applied to the Qwen3-8B model. The results indicate that our approach significantly outperforms all existing baselines across most metrics in the LoCoMo benchmark. Notably, even our training-free variant achieves an Overall F1 score of 50.08, surpassing previously established trained models such as Memory-R1 and MemAgent. ",
+        "bbox": [
+            102,
+            832,
+            899,
+            896
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "discarded",
+        "text": "Mem-T: Densifying Rewards for Long-Horizon Memory Agents ",
+        "bbox": [
+            267,
+            61,
+            726,
+            74
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            872,
+            923,
+            894,
+            935
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "table",
+        "img_path": "images/6673f7d6c240e15664cda58c04216173b4a3ca9d2b5db47219bc5c963974832b.jpg",
+        "table_caption": [
+            "Table 5 | Performance comparison on the LoCoMo benchmark, with F1 and BLEU-1 as the evaluation metrics. ‡: As Memory-R1 is not open-source, we faithfully report the results provided in their original paper. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td rowspan=\"2\">Method</td><td rowspan=\"2\">LLM</td><td colspan=\"2\">Single-Hop</td><td colspan=\"2\">Multi-Hop</td><td colspan=\"2\">Temporal</td><td colspan=\"2\">Open Domain</td><td colspan=\"2\">Overall</td></tr><tr><td>F1↑</td><td>B1↑</td><td>F1↑</td><td>B1↑</td><td>F1↑</td><td>B1↑</td><td>F1↑</td><td>B1↑</td><td>F1↑</td><td>B1↑</td></tr><tr><td>Training-free Methods</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>RAG</td><td>Qwen3-8B</td><td>49.62</td><td>43.98</td><td>23.64</td><td>17.82</td><td>37.93</td><td>33.80</td><td>21.39</td><td>16.33</td><td>40.77</td><td>35.43</td></tr><tr><td>MemGPT</td><td>Qwen3-8B</td><td>16.23</td><td>13.08</td><td>18.13</td><td>13.72</td><td>15.87</td><td>11.39</td><td>14.18</td><td>10.66</td><td>16.38</td><td>12.71</td></tr><tr><td>MemoryBank</td><td>Qwen3-8B</td><td>26.50</td><td>19.48</td><td>26.52</td><td>18.93</td><td>15.49</td><td>11.36</td><td>15.92</td><td>12.09</td><td>23.66</td><td>17.31</td></tr><tr><td>Mem0</td><td>Qwen3-8B</td><td>45.92</td><td>39.93</td><td>27.80</td><td>19.97</td><td>43.64</td><td>33.82</td><td>18.37</td><td>13.84</td><td>40.41</td><td>33.42</td></tr><tr><td>MemoryOS</td><td>Qwen3-8B</td><td>48.77</td><td>43.47</td><td>29.19</td><td>24.87</td><td>42.98</td><td>35.27</td><td>18.50</td><td>15.09</td><td>42.12</td><td>36.65</td></tr><tr><td>LightMem</td><td>Qwen3-8B</td><td>49.89</td><td>44.48</td><td>33.98</td><td>27.60</td><td>44.53</td><td>39.65</td><td>19.37</td><td>14.05</td><td>43.98</td><td>38.51</td></tr><tr><td>A-Mem</td><td>Qwen3-8B</td><td>47.75</td><td>41.36</td><td>32.35</td><td>24.82</td><td>36.80</td><td>30.71</td><td>18.62</td><td>14.98</td><td>40.92</td><td>34.56</td></tr><tr><td>GAM</td><td>Qwen3-8B</td><td>46.62</td><td>40.15</td><td>32.18</td><td>24.96</td><td>46.42</td><td>39.71</td><td>13.56</td><td>10.32</td><td>41.84</td><td>35.39</td></tr><tr><td>Trained Methods</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>MEM1</td><td>MEM1-7B</td><td>27.48</td><td>22.10</td><td>18.98</td><td>15.56</td><td>30.52</td><td>23.48</td><td>14.21</td><td>11.43</td><td>25.68</td><td>20.50</td></tr><tr><td>MemAgent</td><td>MemAgent-14B</td><td>35.86</td><td>29.64</td><td>27.86</td><td>22.72</td><td>37.93</td><td>31.85</td><td>20.31</td><td>16.47</td><td>33.82</td><td>27.97</td></tr><tr><td>Memory-R1-PPO</td><td>Mem-R1-8B</td><td>32.52</td><td>24.47</td><td>26.86</td><td>23.47</td><td>41.57</td><td>26.11</td><td>45.30</td><td>39.18</td><td>34.08</td><td>25.54</td></tr><tr><td>Memory-R1-GRPO‡</td><td>Mem-R1-8B</td><td>35.73</td><td>27.70</td><td>35.65</td><td>30.77</td><td>49.86</td><td>38.27</td><td>47.42</td><td>41.24</td><td>39.25</td><td>31.21</td></tr><tr><td>Our Method</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>w/o training</td><td>Qwen3-8B</td><td>55.89</td><td>51.14</td><td>38.13</td><td>30.33</td><td>53.30</td><td>47.02</td><td>23.55</td><td>20.18</td><td>50.08</td><td>44.55</td></tr><tr><td>with MoT-GRPO</td><td>Qwen3-8B</td><td>63.65</td><td>57.97</td><td>42.38</td><td>34.72</td><td>66.85</td><td>62.29</td><td>34.33</td><td>31.47</td><td>58.53</td><td>52.89</td></tr></table>",
+        "bbox": [
+            100,
+            158,
+            895,
+            430
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "When combined with our specific training, the performance further improves to 58.53 F1, particularly excelling in Single-Hop and Temporal reasoning tasks, thereby confirming the robust transferability and effectiveness of our framework across different LLM backbones. ",
+        "bbox": [
+            102,
+            453,
+            897,
+            501
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "B.2. Sensitivity Analysis ",
+        "text_level": 1,
+        "bbox": [
+            102,
+            525,
+            310,
+            541
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "image",
+        "img_path": "images/9a80d7964717bd0a86510ca30cbf2fdb4fea6cc3fee23c4017d04cb5344cea92.jpg",
+        "image_caption": [
+            "Figure 7 | Parameter sensitivity analysis on the number of nodes selected for branch expansion when training with MoT-GRPO on the LoCoMo and HotpotQA dataset. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            314,
+            567,
+            687,
+            829
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "discarded",
+        "text": "Mem-T: Densifying Rewards for Long-Horizon Memory Agents ",
+        "bbox": [
+            267,
+            61,
+            726,
+            74
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            872,
+            922,
+            895,
+            936
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "Regarding the number of nodes selected for branch expansion, as shown in Figure 7, we observe that increasing the number of nodes selected for branch expansion from 1 to 3 leads to significant performance improvements, with the F1 score rising from 56.08 to 58.65 on LoCoMo and from 64.89 to 66.35 on HotpotQA. However, further increasing the expansion breadth beyond 3 nodes yields diminishing returns; for instance, at a node count of 5, the F1 scores for both datasets plateau or even slightly decrease. Given that a larger number of expansion nodes significantly increases the search space and computational latency, we select 3 as the optimal number of nodes for branch expansion to achieve the best trade-off between reasoning accuracy and inference efficiency. ",
+        "bbox": [
+            102,
+            101,
+            897,
+            230
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "text",
+        "text": "B.3. Training Curves ",
+        "text_level": 1,
+        "bbox": [
+            102,
+            252,
+            282,
+            267
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "image",
+        "img_path": "images/0b89755cc0e954904a9ecd12d262c1c9df2dc9bb5fbb89a6981ba57dc423fd71.jpg",
+        "image_caption": [
+            "Figure 8 | Reward curves of memory retrieval training under MoT-GRPO. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            302,
+            285,
+            695,
+            448
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "text",
+        "text": "Regarding the memory retrieval training stage, Figure 8 illustrates the evolution of rewards under the MoT-GRPO framework. The smoothed reward curve exhibits a consistent upward trend, climbing from an initial value of approximately 0.30 to over 0.50 by the 200th step. Although the raw rewards show significant variance, typical of reinforcement learning in complex reasoning tasks, the steady improvement in the moving average confirms that the agent effectively learns to optimize its retrieval strategies to maximize task-specific gains. ",
+        "bbox": [
+            100,
+            488,
+            899,
+            585
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "image",
+        "img_path": "images/de28ff73e7d9c765650b13c3539a7d2b7e7e918d16f81d17d28e440f4ab7649f.jpg",
+        "image_caption": [
+            "Figure 9 | Loss curves of memory construction training under MoT-GRPO. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            309,
+            601,
+            689,
+            759
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "text",
+        "text": "For the memory construction training stage, Figure 9 presents the training loss over 180 steps. The curve shows a sharp initial descent, with the loss dropping rapidly from 1.8 to below 0.4 within the first 50 steps, indicating efficient convergence. In the subsequent phase, the loss stabilizes and fluctuates marginally around 0.25, suggesting that the model has successfully captured the underlying patterns for memory synthesis and state updates. The overall stability of the loss curve demonstrates the robustness of the memory construction process under our policy optimization framework. ",
+        "bbox": [
+            102,
+            806,
+            897,
+            903
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "discarded",
+        "text": "Mem-T: Densifying Rewards for Long-Horizon Memory Agents ",
+        "bbox": [
+            267,
+            61,
+            726,
+            74
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            872,
+            923,
+            895,
+            935
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "text",
+        "text": "C. Prompts of Mem-T ",
+        "text_level": 1,
+        "bbox": [
+            104,
+            98,
+            315,
+            117
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "C.1. Memory Formation ",
+        "text_level": 1,
+        "bbox": [
+            102,
+            133,
+            309,
+            148
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "CreateFactTool ",
+        "text_level": 1,
+        "bbox": [
+            124,
+            165,
+            250,
+            179
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "class CreateFactTool ( BaseTool ) : def __init__ ( self ) : super () . __init__ ( name $=$ \" create_fact \" , description $=$ ( \" Extract ’ Factual Memory ’ ( Concrete , verifiable statements about WHAT happened ) .\\ n \" \" CRITICAL RULES :\\ n \" \"1. Full Entity Scan : Extract attributes and relationships between all entities mentioned ( e . g . , specific objects , places , third parties ) , not just the user .\\ n \" \"2. Pay special attention to time information , including relative times like ’ yesterday ’ or ’ the week before ’ in the text .\\ n \" \" Target two specific types of facts :\\ n \" \"1. User Factual Memory : Verifiable facts about the user ’ s events experienced , identity , preferences , items owned , and specific constraints .\\ n \" \"2. Environment Factual Memory : Explicit states of the external world , object properties , document knowledge , or tool states , and other entities .\\ n \" ) , parameters $, = +$ { \" fact \": { \" type \": \" string \" , \" description \": \" The concise , standalone declarative statement . E . g . , ’ The user prefers Python for backend tasks ’ or ’ The API endpoint v2 is deprecated ’.\" } , \" start_time \": { \" type \": \" string \" , \" description \": \" The time when the event occurred or the time when the attribute is valid . Use an empty string if it does not exist .\" } , \" end_time \": { \" type \": \" string \" , \" description \": \" The end time of the event or the expiration time of the attribute . Use an empty string if it does not exist .\" } } , required $=$ [\" fact \" , \" start_time \" , \" end_time \"] ) ",
+        "bbox": [
+            109,
+            187,
+            865,
+            802
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "CreateExperienceTool ",
+        "text_level": 1,
+        "bbox": [
+            124,
+            822,
+            304,
+            838
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "class CreateExperienceTool ( BaseTool ) : def __init__ ( self ) : ",
+        "bbox": [
+            127,
+            853,
+            514,
+            882
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "discarded",
+        "text": "Mem-T: Densifying Rewards for Long-Horizon Memory Agents ",
+        "bbox": [
+            265,
+            61,
+            726,
+            76
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            870,
+            922,
+            895,
+            936
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "super () . __init__ ( name $=$ \" create_experience \" , description $=$ \" Extract ’ Experiential Memory ’ ( Actionable lessons , patterns , or HOW - TO perform a task ) \\ n \" \" This tool captures lessons learned , reasoning patterns , and executable skills .\\ n \" \"1. Strategy - based : Reusable heuristics , workflows , or insights derived from reasoning ( e . g . , ’ To solve X , method Y is most efficient ’) .\\ n \" \"2. Case - based : Key trajectories of Success or Failure that serve as examples ( e . g . , ’ Attempting action A under condition B caused error C ’) .\\ n \" \"3. Skill - based : Validated code snippets , tool usage protocols , or functions that the agent can execute . \\ n \" , parameter $z = \\downarrow$ \" experience \": { \" type \": \" string \" , \" description \": \" The distilled content of the experience . It should be formulated as a rule , a cause - effect relationship , or a guideline for future actions .\" } , \" start_time \": { \" type \": \" string \" , \" description \": \" The time when the event occurred or the time when the attribute is valid . Use an empty string if it does not exist .\" } , \" end_time \": { \" type \": \" string \" , \" description \": \" The end time of the event or the expiration time of the attribute . Use an empty string if it does not exist .\" } } , required $=$ [\" experience \" ,\" start_time \" ,\" end_time \"]   \n) ",
+        "bbox": [
+            210,
+            107,
+            865,
+            605
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "UpdatePersonaTool ",
+        "text_level": 1,
+        "bbox": [
+            112,
+            631,
+            900,
+            653
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "class UpdatePersonaTool ( BaseTool ) : def __init__ ( self ) : super () . __init__ ( name $=$ \" update_persona \" , description $=$ \" If there is new and important information about the person , such as hobbies , participated projects or significant events , update ( add or modify ) the full character profile for that person .\" , parameter $\\mathsf { s } = \\mathsf { f }$ \" name \": { \" type \": \" string \" , \" description \": \" Name of the person . Or ’ User ’ if the user does not have a specified name .\" } , \" profile \": { \" type \": \" string \" , \" description \": \" The full , concise and updated ",
+        "bbox": [
+            124,
+            664,
+            843,
+            891
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "discarded",
+        "text": "21 ",
+        "bbox": [
+            870,
+            922,
+            894,
+            936
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "discarded",
+        "text": "Mem-T: Densifying Rewards for Long-Horizon Memory Agents ",
+        "bbox": [
+            267,
+            61,
+            726,
+            74
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "persona text .\" }   \n} ,   \nrequired $=$ [\" name \" , \" profile \"] ",
+        "bbox": [
+            223,
+            109,
+            546,
+            177
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "UpdateSummaryTool ",
+        "text_level": 1,
+        "bbox": [
+            110,
+            203,
+            899,
+            223
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "class UpdateSummaryTool ( BaseTool ) : def _init__ ( self ) : super () . __init__ ( name $=$ \" update_summary \" , description $=$ \" If there is new information based on the current conversation , update the runtime summary of the sessions .\" , parameter $z = \\downarrow$ \" content \": { \" type \": \" string \" , \" description \": \" The concise , complete and updated summary text .\" } } , required $=$ [\" content \"] ) ",
+        "bbox": [
+            124,
+            235,
+            863,
+            448
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "C.2. Memory Evolution ",
+        "text_level": 1,
+        "bbox": [
+            102,
+            487,
+            302,
+            502
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "AddItemTool ",
+        "text_level": 1,
+        "bbox": [
+            109,
+            516,
+            895,
+            535
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "class AddItemTool ( BaseTool ) : def __init__ ( self , vector_db : VectorDBBase , collection_name : str ) : super () . __init__ ( name $=$ \" add_item \" , description $=$ \" Add a new memory item .\" , parameters ={ \" document \": {\" type \": \" string \" , \" description \": \" The content .\"} , \" turn_time \": {\" type \": \" string \" , \" description \": \" The time of the turn that generated this item .\"} , \" start_time \": {\" type \": \" string \" , \" description \": \" Start time .\"} , \" end_time \": {\" type \": \" string \" , \" description \": \" End time .\"} , } , required $=$ [\" document \"] ) self . db $=$ vector_db self . collection_name $=$ collection_name ",
+        "bbox": [
+            122,
+            548,
+            863,
+            799
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "UpdateItemTool ",
+        "text_level": 1,
+        "bbox": [
+            105,
+            822,
+            897,
+            843
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "class UpdateItemTool ( BaseTool ) : def __init__ ( self , vector_db : VectorDBBase , collection_name : str ) : ",
+        "bbox": [
+            124,
+            856,
+            862,
+            884
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            870,
+            922,
+            895,
+            936
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "discarded",
+        "text": "Mem-T: Densifying Rewards for Long-Horizon Memory Agents ",
+        "bbox": [
+            265,
+            61,
+            726,
+            76
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "super () . __init__ ( name $=$ \" update_item \" , description $=$ \" Update an existing memory item .\" , parameters $= +$ { \" id \": {\" type \": \" string \" , \" description \": \" The ID of the item to update .\"} , \" document \": {\" type \": \" string \" , \" description \": \" Enrich the content with more details and update the statistical data or factual frequencies mentioned . Must save the original time information of previously items in the document .\"} , \" turn_time \": {\" type \": \" string \" , \" description \": \" The time of the turn that generated this update .\"} , \" start_time \": {\" type \": \" string \" , \" description \": \" New start time .\"} , \" end_time \": {\" type \": \" string \" , \" description \": \" New end time .\"} , } , required $=$ [\" id \" , \" document \"]   \n)   \nself . db $=$ vector_db   \nself . collection_name $=$ collection_name ",
+        "bbox": [
+            206,
+            108,
+            862,
+            399
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "class DeleteItemTool ( BaseTool ) : def __init__ ( self , vector_db : VectorDBBase , collection_name : str ) : super () . __init__ ( name $=$ \" delete_item \" , description $=$ \" Delete an existing memory item . Use when an item is explicitly negated or wrong .\" , parameters ={ \" id \": {\" type \": \" string \" , \" description \": \" The ID to delete .\"} } , required $=$ [\" id \"] ) self . db $=$ vector_db self . collection_name $=$ collection_name ",
+        "bbox": [
+            126,
+            455,
+            857,
+            639
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "IgnoreItemTool ",
+        "text_level": 1,
+        "bbox": [
+            110,
+            665,
+            897,
+            686
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "class IgnoreItemTool ( BaseTool ) : def __init__ ( self ) : super () . __init__ ( name $=$ \" ignore_item \" , description $=$ \" Do nothing . If the item is completely redundant in both $^ *$ semantic meaning \\* and \\* time range \\*.\" , parameter $\\mathsf { s } = \\mathsf { f }$ \" reason \": {\" type \": \" string \" , \" description \": \" Reason for ignoring .\"} } , required $=$ [\" reason \"] ) ",
+        "bbox": [
+            126,
+            699,
+            840,
+            873
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            870,
+            922,
+            895,
+            936
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "discarded",
+        "text": "Mem-T: Densifying Rewards for Long-Horizon Memory Agents ",
+        "bbox": [
+            267,
+            61,
+            726,
+            74
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "discarded",
+        "text": "DeleteItemTool ",
+        "bbox": [
+            110,
+            423,
+            899,
+            442
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "C.3. Memory Retrieval ",
+        "text_level": 1,
+        "bbox": [
+            104,
+            101,
+            297,
+            116
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "SearchSummaryTool ",
+        "text_level": 1,
+        "bbox": [
+            126,
+            131,
+            297,
+            149
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "class SearchSummaryTool ( BaseTool ) : def __init__ ( self , vector_db : VectorDBBase ) : super () . __init__ ( name $=$ \" search_summary \" , description $=$ \" Retrieve relevant summaries to quickly understand the context background .\" , parameters $=$ {\" query \": {\" type \": \" string \" , \" description \": Query string .\"}} , required $=$ [\" query \"] ) self . db $=$ vector_db ",
+        "bbox": [
+            126,
+            164,
+            842,
+            311
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "SearchFactsTool ",
+        "text_level": 1,
+        "bbox": [
+            109,
+            335,
+            899,
+            354
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "class SearchFactsTool ( BaseTool ) : def __init__ ( self , vector_db : VectorDBBase , top_k : int ) : super () . __init__ ( name $=$ \" search_facts \" , description $=$ \" Retrieve ’ Factual Memory ’ ( Concrete , verifiable statements about WHAT happened ) .\\ n \" \" Target two specific types of facts :\\ n \" \"1. User Factual Memory : Verifiable facts about the user ’ s identity , stable preferences , important events , habits , \" \" historical commitments , and specific constraints .\\ n \" \"2. Environment Factual Memory : Explicit states of the external world , object properties , \" \" document knowledge , or tool states .\\ n \" , parameters $=$ {\" query \": {\" type \": \" string \" , \" description \": \" A self - contained , semantically rich search query rewritten from the user ’ s intent . \\ n \" \" Instead of raw questions like ’ Does he like it ? ’ , use specific declarative queries like \" \" ’ User preference regarding spicy food ’ or Attributes of Object X ’.\"}} , required $=$ [\" query \"] ) self . db $=$ vector_db self . top_k $=$ top_k ",
+        "bbox": [
+            107,
+            363,
+            867,
+            832
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "discarded",
+        "text": "Mem-T: Densifying Rewards for Long-Horizon Memory Agents ",
+        "bbox": [
+            267,
+            61,
+            726,
+            76
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            870,
+            923,
+            895,
+            936
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "SearchExperiencesTool ",
+        "text_level": 1,
+        "bbox": [
+            105,
+            98,
+            897,
+            121
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "class SearchExperiencesTool ( BaseTool ) : def __init__ ( self , vector_db : VectorDBBase , top_k : int ) : super () . __init__ ( name $=$ \" search_experiences \" , description $=$ ( \" Extract ’ Experiential Memory ’ ( Actionable lessons , patterns , or HOW - TO perform a task ) \\ n \" \" This tool captures lessons learned , reasoning patterns , and executable skills .:\\ n \" \"1. Strategy - based : Reusable heuristics , workflows , or insights derived from reasoning ( e . g . , ’ To solve X , method Y is most efficient ’) .\\ n \" \"2. Case - based : Key trajectories of Success or Failure that serve as examples ( e . g . , ’ Attempting action A under condition B caused error C ’) .\\ n \" \"3. Skill - based : Validated code snippets , tool usage protocols , or functions that the agent can execute . \\ n \" \" Avoid recording raw dialogue history ; focus on the distilled ’ Lesson ’ or ’ Rule ’.\" ) , parameters $= \\cdot$ { \" query \": { \" type \": \" string \" , \" description \": ( \" A self - contained , semantically rich search query rewritten from the user ’ s intent . \\ n \" \" Formulate problem - solving queries like Standard workflow for analyzing finance reports ’ \" \" or ’ How to handle TimeoutError in API calls ’.\" ) } } , required $=$ [\" query \"] ) self . db $=$ vector_db self . top_k $=$ top_k ",
+        "bbox": [
+            107,
+            126,
+            870,
+            649
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "SearchPersonasTool ",
+        "text_level": 1,
+        "bbox": [
+            109,
+            669,
+            895,
+            688
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "class SearchPersonasTool ( BaseTool ) : def __init__ ( self , vector_db : VectorDBBase ) : super () . __init__ ( name $=$ \" search_personas \" , description $=$ \" Retrieve character profiles or insights for specific individuals .\" , parameters ={ \" name \": {\" type \": \" string \" , \" description \": \" Name of the target individual for exact lookup .\"} , \" query \": {\" type \": \" string \" , \" description \": \" Query string to find personas by traits ; ignored if ’ name ’ is provided .\"} } , required $=$ [\" query \"] ",
+        "bbox": [
+            124,
+            700,
+            863,
+            898
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            870,
+            922,
+            895,
+            936
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "discarded",
+        "text": "Mem-T: Densifying Rewards for Long-Horizon Memory Agents ",
+        "bbox": [
+            265,
+            61,
+            726,
+            74
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": ") self . db $=$ vector_db ",
+        "bbox": [
+            208,
+            110,
+            411,
+            137
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "text",
+        "text": "SearchTurnsTool ",
+        "text_level": 1,
+        "bbox": [
+            107,
+            162,
+            895,
+            181
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "text",
+        "text": "class SearchTurnsTool ( BaseTool ) : def __init__ ( self , vector_db : VectorDBBase , top_k : int ) : super () . __init__ ( name $=$ \" search_turns \" , description $=$ \" Retrieve specific raw dialogue history ( Raw Turns ) . \\ n \" \" Use this tool for questions about specific past conversations , verifying exact quotes , or checking ’ what was ’ in detail . \\ n \" \" Raw turns provide the most authentic context that summaries or facts might miss .\" , parameters $= \\left\\{ \\begin{array} { r l } \\end{array} \\right.$ \" query \": {\" type \": \" string \" , \" description \": \" Keywords or specific quotes .\"} , \" top_k \": {\" type \": \" integer \" , \" description \": \" The number of turns to retrieve . Default is 5.\"} } , required $=$ [\" query \"] ) self . db $=$ vector_db ",
+        "bbox": [
+            121,
+            193,
+            862,
+            458
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "text",
+        "text": "class FinishTool ( BaseTool ) : def _init__ ( self , benchmark_name : str $=$ \" locomo \" , category : str $=$ \"\") : self . benchmark_name $=$ benchmark_name self . category $=$ str ( category ) if category else \"\" description $=$ \" Call this when you are confident that you can give the correct final answer . Or you should continue to retrieve more information .\" super () . __init__ ( name $=$ \" finish \" , description $=$ description , parameters $=$ {\" answer \": {\" type \": \" string \" , \" description \": \" The concise answer following the Final Result Format .\"}} , required $=$ [\" answer \"] ) ",
+        "bbox": [
+            124,
+            514,
+            862,
+            751
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            870,
+            922,
+            895,
+            936
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "discarded",
+        "text": "Mem-T: Densifying Rewards for Long-Horizon Memory Agents ",
+        "bbox": [
+            265,
+            61,
+            726,
+            76
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "discarded",
+        "text": "FinishTool ",
+        "bbox": [
+            109,
+            482,
+            900,
+            500
+        ],
+        "page_idx": 25
+    }
+]
