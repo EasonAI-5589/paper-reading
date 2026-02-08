@@ -2,7 +2,7 @@
 
 # Paper Reading 📚
 
-Eason 的文献阅读仓库，按课题组织。
+Eason 的文献阅读仓库，按课题组织。每篇论文都有「批读格式」阅读笔记：原文完整保留 + 内嵌批注。
 
 ---
 
@@ -13,27 +13,54 @@ Eason 的文献阅读仓库，按课题组织。
 
 | 论文 | 会议 | 方法特点 |
 |------|------|----------|
-| ⭐ [Survey](./MLLM-Token-Compression/[TechRxiv%202025]%20Survey-Token-Compression/) | TechRxiv 2025 | **综述** - Token 压缩方法全景 |
-| [FastV](./MLLM-Token-Compression/[ECCV%202024]%20FastV/) | ECCV 2024 | 第2层后固定剪枝，简单高效 |
-| [PyramidDrop](./MLLM-Token-Compression/[CVPR%202025]%20PyramidDrop/) | CVPR 2025 | 金字塔式渐进剪枝 |
-| [SparseVLM](./MLLM-Token-Compression/[ICML%202025]%20SparseVLM/) | ICML 2025 | 文本引导 + Token回收 |
-| [SwiftVLM](./MLLM-Token-Compression/[Arxiv%202403.12178]%20SwiftVLM/) | arXiv | Swift token 压缩 |
+| ⭐ [Survey](./MLLM-Token-Compression/%5BArxiv%202507.20198%5D%20Survey-Token-Compression/) | arXiv 2507.20198 | **综述** - 50+ 方法全景，4 位置 × 5 决策维度分类 |
+| [FastV](./MLLM-Token-Compression/%5BECCV%202024%5D%20FastV/) | ECCV 2024 | 第 2 层后固定剪枝，简单高效 |
+| [SparseVLM](./MLLM-Token-Compression/%5BICML%202025%5D%20SparseVLM/) | ICML 2025 | 文本引导 + Token 回收 |
+| [PyramidDrop](./MLLM-Token-Compression/%5BCVPR%202025%5D%20PyramidDrop/) | CVPR 2025 | 金字塔式渐进剪枝 |
+| [SwiftVLM](./MLLM-Token-Compression/%5BArxiv%202403.12178%5D%20SwiftVLM/) | arXiv 2403.12178 | Bypass 范式 + DP 选层 |
+| [DivPrune](./MLLM-Token-Compression/%5BCVPR%202025%5D%20DivPrune/) | CVPR 2025 | MMDP 最大化 token 多样性 |
+| [VisionZip](./MLLM-Token-Compression/%5BCVPR%202025%5D%20VisionZip/) | CVPR 2025 | Text-agnostic, [CLS] attention + similarity merging |
+| [CDPruner](./MLLM-Token-Compression/%5BNeurIPS%202025%5D%20CDPruner/) | NeurIPS 2025 | DPP 条件多样性剪枝 |
+| [SCOPE](./MLLM-Token-Compression/%5BNeurIPS%202025%5D%20SCOPE/) | NeurIPS 2025 | Saliency + Coverage 联合优化 |
 
 📖 [方法对比总结](./MLLM-Token-Compression/methods-list.md)
 
 ---
 
 ### 🎬 Video Chaptering
-视频章节生成 - 自动将长视频分割成语义连贯的章节，并生成章节标题
+视频章节生成 - 自动将长视频分割成语义连贯的章节
 
 | 论文 | 会议 | 方法特点 | 性能 (F1) |
 |------|------|----------|-----------|
-| [SODA](./Video-Chaptering/[ECCV%202020]%20SODA/) | ECCV 2020 | **评估指标** - 考虑故事性的评估框架 | - |
-| [VidChapters-7M](./Video-Chaptering/[NeurIPS%202023]%20VidChapters-7M/) | NeurIPS 2023 | **THE Benchmark** - 817K视频, 7M章节 + Baseline | 25.0 |
-| [Chapter-Llama](./Video-Chaptering/[CVPR%202025]%20Chapter-Llama/) | CVPR 2025 | LLM 文本域方法, Speech-guided 采样 | 45.3 |
-| [ARC-Chapter](./Video-Chaptering/[arXiv%202025]%20ARC-Chapter/) | arXiv 2025 | **SOTA** - Qwen2.5-VL + GRPO, GRACE 指标 | **59.3** |
+| [SODA](./Video-Chaptering/%5BECCV%202020%5D%20SODA/) | ECCV 2020 | **评估指标** - 考虑故事性的评估框架 | - |
+| [VidChapters-7M](./Video-Chaptering/%5BNeurIPS%202023%5D%20VidChapters-7M/) | NeurIPS 2023 | **THE Benchmark** - 817K 视频, 7M 章节 | 25.0 |
+| [Chapter-Llama](./Video-Chaptering/%5BCVPR%202025%5D%20Chapter-Llama/) | CVPR 2025 | LLM 文本域方法, Speech-guided 采样 | 45.3 |
+| [ARC-Chapter](./Video-Chaptering/%5BarXiv%202025%5D%20ARC-Chapter/) | arXiv 2025 | **SOTA** - Qwen2.5-VL + GRPO, GRACE 指标 | **59.3** |
 
 📖 [Video Chaptering 详细总结](./Video-Chaptering/README.md)
+
+---
+
+### 🤖 VLA (Vision-Language-Action)
+视觉-语言-动作模型，机器人操作
+
+| 论文 | 会议 | 方法特点 |
+|------|------|----------|
+| [RoboBrain](./VLA/%5BCVPR%202025%5D%20RoboBrain/) | CVPR 2025 | LLaVA + A-LoRA/T-LoRA, ShareRobot 数据集 |
+| [RoboBrain 2.0](./VLA/%5BArxiv%202507.02029%5D%20RoboBrain-2.0/) | arXiv 2507.02029 | Qwen2.5-VL base, 统一空间+时间推理 |
+| [RoboBrain 2.5](./VLA/%5BArxiv%202601.14352%5D%20RoboBrain-2.5/) | arXiv 2601.14352 | 精确 3D 空间推理 + 密集时间价值估计 |
+| [π0](./VLA/%5BCoRL%202025%5D%20pi0/) | CoRL 2025 | Flow matching policy |
+| [π0.5](./VLA/%5BCoRL%202025%5D%20pi0.5/) | CoRL 2025 Oral | VLM-based robot policy |
+| [π0.6-RECAP](./VLA/%5BICLR%202026%5D%20Pi0.6-RECAP/) | ICLR 2026 | CoT reasoning robot policy |
+
+---
+
+### 🎯 RLHF
+强化学习人类反馈
+
+| 论文 | 会议 | 方法特点 |
+|------|------|----------|
+| [MM-RLHF](./RLHF/%5BICML%202025%5D%20MM-RLHF/) | ICML 2025 | 多模态 RLHF |
 
 ---
 
@@ -41,19 +68,35 @@ Eason 的文献阅读仓库，按课题组织。
 
 ```
 paper-reading/
-├── MLLM-Token-Compression/          # MLLM Token 压缩
-│   ├── [TechRxiv 2025] Survey/
+├── MLLM-Token-Compression/          # MLLM Token 压缩 (9 篇)
+│   ├── [Arxiv 2507.20198] Survey-Token-Compression/
 │   ├── [ECCV 2024] FastV/
-│   ├── [CVPR 2025] PyramidDrop/
 │   ├── [ICML 2025] SparseVLM/
+│   ├── [CVPR 2025] PyramidDrop/
+│   ├── [CVPR 2025] DivPrune/
+│   ├── [CVPR 2025] VisionZip/
+│   ├── [Arxiv 2403.12178] SwiftVLM/
+│   ├── [NeurIPS 2025] CDPruner/
+│   ├── [NeurIPS 2025] SCOPE/
 │   └── methods-list.md
 │
-├── Video-Chaptering/                # 视频章节生成
+├── Video-Chaptering/                # 视频章节生成 (4 篇)
 │   ├── [ECCV 2020] SODA/
 │   ├── [NeurIPS 2023] VidChapters-7M/
 │   ├── [CVPR 2025] Chapter-Llama/
 │   ├── [arXiv 2025] ARC-Chapter/
-│   └── README.md                    # 领域详细总结
+│   └── README.md
+│
+├── VLA/                             # Vision-Language-Action (6 篇)
+│   ├── [CVPR 2025] RoboBrain/
+│   ├── [Arxiv 2507.02029] RoboBrain-2.0/
+│   ├── [Arxiv 2601.14352] RoboBrain-2.5/
+│   ├── [CoRL 2025] pi0/
+│   ├── [CoRL 2025] pi0.5/
+│   └── [ICLR 2026] Pi0.6-RECAP/
+│
+├── RLHF/                           # 强化学习人类反馈 (1 篇)
+│   └── [ICML 2025] MM-RLHF/
 │
 └── README.md                        # 本文件
 ```
@@ -65,12 +108,16 @@ paper-reading/
 每篇论文包含：
 ```
 [会议 年份] 论文名/
-├── README.md           # 阅读笔记与总结
+├── README.md           # 论文概览 + Section 导航
+├── sections/           # 批读笔记（原文 + 内嵌批注）
+│   ├── 00-abstract.md
+│   ├── 01-introduction.md
+│   └── ...
 ├── full.md             # MinerU 解析的完整内容
-├── paper.pdf           # 原始 PDF
+├── images/             # 论文图片（MinerU 提取）
 ├── content_list.json   # 结构化内容
 ├── layout.json         # 版面分析
-└── images/             # 论文图片
+└── paper.pdf           # 原始 PDF
 ```
 
 ---
@@ -79,31 +126,15 @@ paper-reading/
 
 文件夹命名: `[会议 年份] 论文名`
 - 例: `[CVPR 2025] Chapter-Llama`
-- 例: `[arXiv 2025] ARC-Chapter`
-- 例: `[NeurIPS 2023] VidChapters-7M`
-
----
-
-## 使用说明
-
-### Clone 仓库
-```bash
-git clone --recursive https://github.com/EasonAI-5589/paper-reading.git
-```
-
-### 更新
-```bash
-cd paper-reading
-git pull
-```
+- 例: `[NeurIPS 2025] CDPruner`
+- 例: `[Arxiv 2507.20198] Survey-Token-Compression`
 
 ---
 
 ## 相关资源
 
-- 🍎 [Apple Interview 准备](https://github.com/EasonAI-5589/apple-interview) - 基于 Video Chaptering 的面试
 - 📖 [葵花宝典](https://github.com/EasonAI-5589/openclaw-baodian) - OpenClaw 配置文档
 
 ---
 
-*由 1号机 协助整理 📚 | 更新: 2026-02-07*
+*由 3号机 协助整理 📚 | 更新: 2026-02-08 | 共 20 篇论文*
