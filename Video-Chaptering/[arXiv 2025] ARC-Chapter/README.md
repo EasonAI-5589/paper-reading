@@ -1,131 +1,68 @@
-# 📄 ARC-Chapter: Structuring Hour-Long Videos into Navigable Chapters and Hierarchical Summaries
+# ARC-Chapter: Structuring Hour-Long Videos into Navigable Chapters and Hierarchical Summaries
 
-## 论文信息
-
-| 项目 | 内容 |
-|------|------|
-| **标题** | ARC-Chapter: Structuring Hour-Long Videos into Navigable Chapters and Hierarchical Summaries |
-| **作者** | Junfu Pu*, Teng Wang*, Yixiao Ge†, Yuying Ge, Chen Li, Ying Shan |
-| **机构** | ARC Lab, Tencent PCG |
-| **发布** | November 18, 2025 (arXiv) |
-| **类型** | Technical Report |
-| **arXiv** | https://arxiv.org/abs/2511.14349 |
-| **Project** | https://arcchapter.github.io/ |
-| **GitHub** | https://github.com/TencentARC/ARC-Chapter |
+**作者**: Junfu Pu*, Teng Wang*, Yixiao Ge†, Yuying Ge, Chen Li, Ying Shan (ARC Lab, Tencent PCG)  
+**来源**: arXiv 2025 (Technical Report) | **日期**: 2025-11-18  
+**链接**: [arXiv](https://arxiv.org/abs/2025.xxxxx) | [GitHub](https://github.com/TencentARC/ARC-Chapter)
 
 ## 一句话总结
 
-**首个百万级视频章节模型**，提出 GRACE 多对一匹配指标，在 VidChapters-7M 上 F1 提升 14%（45.3→59.3），首次证明 Video Chaptering 的 Scaling Law。
+首个百万级长视频 chaptering 模型，配套双语层级标注数据集 VidAtlas 和 many-to-one 评估指标 GRACE，在 VidChapters-7M 上 F1 +14.0%、SODA +11.3%。
 
----
+## 核心贡献
 
-## 论文结构
+1. **VidAtlas 数据集**：41 万+视频（11.5 万小时），双语（EN/ZH），层级标注（Short Title → Structural Chapter → Timestamp-Aligned Description），比之前大 50 倍
+2. **半自动标注管线**：利用用户 chapter markers + Whisper ASR + Qwen2.5-VL caption → LLM 推理生成层级标注
+3. **GRACE 指标**：many-to-one 匹配 + DTW 寻优 + BERTscore，解决 chaptering 的粒度模糊问题
+4. **GRPO 强化学习**：用 temporal reward 直接优化边界预测精度，且跨模态迁移
+5. **Scaling Law**：首次证明 video chaptering 性能随数据量持续提升，不饱和
 
-| # | 章节 | 笔记 | 状态 | 重点 |
-|---|------|------|------|------|
-| 0 | Abstract | [📝](./sections/00-abstract.md) | ✅ | 核心贡献概览 |
-| 1 | Introduction | [📝](./sections/01-introduction.md) | ✅ | 三大挑战 + 三大贡献 |
-| 2 | Related Works | [📝](./sections/02-related-works.md) | ✅ | 任务演进脉络 |
-| 3 | Data Collection | [📝](./sections/03-data-collection.md) | ✅ ⭐ | VidAtlas 数据集 |
-| 4 | Method | [📝](./sections/04-method.md) | ✅ ⭐⭐ | GRACE + GRPO |
-| 5 | Experiments | [📝](./sections/05-experiments.md) | ✅ ⭐⭐ | Scaling Law |
-| 6 | Conclusion | [📝](./sections/06-conclusion.md) | ✅ | 总结 + 未来方向 |
+## 📖 批读导航
 
----
+| Section | 内容 |
+|---------|------|
+| [00 - Abstract](sections/00-abstract.md) | 摘要 + 关键数字 |
+| [01 - Introduction](sections/01-introduction.md) | 三大挑战 + 三大贡献 + Figure 1（模型能力展示）|
+| [02 - Related Works](sections/02-related-works.md) | Global → Temporal → Long-Form 三条线索 + Figure 2（标注管线）|
+| [03 - Data Collection](sections/03-data-collection.md) | VidAtlas 数据集：来源、筛选、标注管线、统计 + Figure 3 |
+| [04 - Method](sections/04-method.md) | 模型架构 + 训练策略 + GRACE 指标 + GRPO RL + Figure 4/5 + 5 个公式 |
+| [05 - Experiments](sections/05-experiments.md) | SOTA 对比 + 迁移性 + Scaling/层级标注/GRPO 消融 + Table 1-6 + Figure 6-8 |
+| [06 - Conclusion](sections/06-conclusion.md) | 总结 + 局限性分析 |
 
-## 核心贡献框架
+## 关键数字
+
+| 指标 | 数值 |
+|------|------|
+| 训练数据 | 41 万+ 视频, 11.5 万小时 |
+| 基座模型 | Qwen2.5-VL-7B |
+| VidChapters7M F1 | 45.3 → **59.3** (+14.0) |
+| VidChapters7M SODA | 19.3 → **30.6** (+11.3) |
+| VidChapters7M CIDEr | 100.9 → **186.6** (+85.7) |
+| VidAtlas F1 | 48.7 → **66.2** (+17.5) |
+| VidAtlas GRACE | 19.8 → **34.1** (+14.3) |
+| YouCook2 F1 | 33.5 → **37.9** (+4.4) |
+
+## 方法概览
 
 ```
-ARC-Chapter
-├── 📦 VidAtlas 数据集 (§3)
-│   ├── 410k+ 视频，115k 小时
-│   ├── 中英双语
-│   └── 层级标注（短标题→结构化章节→时间戳描述）
-│
-├── 🏗️ 方法设计 (§4)
-│   ├── Base: Qwen2.5-VL-7B
-│   ├── 输入: Video (768帧) + ASR (文本)
-│   ├── 输出: 18种Prompt模板
-│   ├── 训练: SFT + Adaptive Modality Dropping
-│   └── 优化: GRPO 强化学习
-│
-├── 📏 GRACE 评估指标 (§4.3)
-│   ├── 多对一匹配（解决粒度歧义）
-│   ├── DTW 动态规划找最优
-│   └── BERTScore 语义评估
-│
-└── 🔬 关键发现 (§5)
-    ├── Scaling Law: 数据量↑ → 性能持续提升
-    ├── 多模态互补: ASR+Video 最佳
-    └── GRPO 有效: 时间↑，语义不降反升
+输入: 视频帧(≤768帧) + ASR转录(Whisper-v3) + Task Prompt(18种模板)
+      ↓
+模型: Qwen2.5-VL-7B (frozen vision encoder + trainable LLM)
+      ↓
+训练: SFT (VidAtlas + VidChapters-7M) → GRPO RL (temporal reward)
+      ↓
+输出: Short Title / Structural Chapter / Video Description
 ```
 
----
+## 我的评价
 
-## Key Takeaways
+**优点**:
+- 数据驱动的范式非常实用：利用平台已有的 chapter markers 作为种子，大幅降低标注成本
+- GRACE 指标设计合理，many-to-one 匹配确实更适合 chaptering 场景
+- Scaling law 的发现有重要启示：之前认为 ~20k 就饱和是因为数据不够好
+- GRPO 的跨模态迁移是个有趣的发现
 
-### 1. 数据层面
-- **VidAtlas**: 410k+ 视频，115k 小时，是之前研究的 **50 倍**
-- **标注流程**: Whisper-v3 (ASR) + Qwen2.5-VL (视觉) → LLM 推理 → 验证
-
-### 2. 方法层面
-- **GRACE 指标**: 多对一匹配，解决"粗粒度 vs 细粒度"的标注歧义
-- **GRPO**: 用 RL 直接优化时间准确性，KL=0.01 防止语言退化
-
-### 3. 实验层面
-- **Scaling Law**: 首次证明 Video Chaptering 性能随数据量持续提升（推翻之前 ~20k 饱和的观察）
-- **多模态重要**: Video+ASR 比单模态高 5-8 SODA
-- **迁移性强**: YouCook2, ActivityNet Captions 都达到 SOTA
-
----
-
-## 性能对比
-
-| Benchmark | 指标 | Chapter-Llama | ARC-Chapter | 提升 |
-|-----------|------|---------------|-------------|------|
-| VidChapters-7M | F1 | 45.3 | **59.3** | +31% |
-| VidChapters-7M | SODA | 19.3 | **30.6** | +58% |
-| VidChapters-7M | CIDEr | 100.9 | **186.6** | +85% |
-| VidAtlas (中文) | F1 | - | **66.2** | - |
-| YouCook2 | SODA | 7.2 | **12.5** | +74% |
-
----
-
-## 对 Apple Assignment 的价值
-
-| 问题 | 参考价值 |
-|------|----------|
-| **Q1 评估维度** | 时间准确性 + 语义质量 + 层级结构 |
-| **Q2 评估指标** | GRACE (多对一匹配)，F1/tIoU/SODA/CIDEr |
-| **Q3 人工审核** | 半自动标注流程 + 验证步骤 |
-| **Q4 评分标准** | 层级输出提供多粒度评估维度 |
-| **Q5 LLM 错误** | 时间戳偏移、粒度不匹配、模态依赖 |
-
----
-
-## 附件
-
-### 📄 论文 PDF
-- **[ARC-Chapter.pdf](./ARC-Chapter.pdf)** ← 直接打开对照阅读
-
-### 📁 完整解析
-```
-./2511.14349-ec960086-4710-41e0-98a4-fdb14f73ae01/
-├── full.md          # 完整 Markdown (85KB)
-├── images/          # 34 张论文图片
-├── *.pdf            # 原始 PDF (8.6MB)
-└── *.json           # 解析元数据
-```
-
-### 🔧 VSCode PDF 标注工具
-
-在 VSCode 扩展商店安装:
-1. **vscode-pdf** (`tomoki1207.pdf`) - 基础 PDF 预览
-2. **pdf-annotate** - PDF 标注 + Markdown 笔记导出
-
-安装后可直接在 VSCode 中打开 PDF 对照阅读和标注。
-
----
-
-*笔记由 1号机 🤖 整理*  
-*首次阅读：2026-02-06*
+**局限**:
+- 数据源有 selection bias（只选有 chapter markers 的视频）
+- 只用了 7B 模型，scaling model size 的实验缺失
+- 标注管线的 LLM hallucination 问题没有讨论
+- GRACE 指标需要更多验证（与人类判断的相关性分析较少）
