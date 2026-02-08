@@ -1,0 +1,678 @@
+# RoboBrain: A Unified Brain Model for Robotic Manipulation from Abstract to Concrete
+
+Yuheng $\mathrm { J i ^ { 2 , 3 , 6 , * } }$ , Huajie Tan1,2,∗, Jiayu $\operatorname { S h i } ^ { 1 , 2 , * }$ , Xiaoshuai $\mathrm { H a o } ^ { 2 , * , \dagger }$ , Yuan Zhang1,2, Hengyuan Zhang1,2   
+Pengwei Wang2,†, Mengdi Zhao2, Yao $\mathrm { \ M u ^ { 5 } }$ , Pengju $\mathbf { A n } ^ { 1 , 2 }$ , Xinda Xue1,2, Qinghang $\mathrm { S u ^ { 2 , 4 } }$ , Huaihai Lyu2,3,6 Xiaolong Zheng3,6, Jiaming Liu1,2, Zhongyuan Wang2, Shanghang Zhang1,2,B   
+1 State Key Laboratory of Multimedia Information Processing, School of Computer Science, Peking University 2 Beijing Academy of Artificial Intelligence 3 Institute of Automation, Chinese Academy of Sciences 4 Institute of Information Engineering, Chinese Academy of Sciences 5 The University of Hong Kong 6 School of Artificial Intelligence, University of Chinese Academy of Sciences
+
+![](images/82ad37a1378b1ec730894c6f36e09e1b3bf694a7e07c39ba0b21418e3ba6e99d.jpg)  
+Figure 1. Overview of RoboBrain. RoboBrain consists of three key robotic capabilities: planning capability, affordance perception, and trajectory prediction. RoboBrain outperforms previous MLLMs in robotics tasks. The bottom part shows the composition of RoboBrain’s training data and provides a specific example of visual question answering from our proposed ShareRobot. Best viewed on screen.
+
+# Abstract
+
+Recent advancements in Multimodal Large Language Models (MLLMs) have shown remarkable capabilities across various multimodal contexts. However, their application in robotic scenarios, particularly for long-horizon manipulation tasks, reveals significant limitations. These limitations arise from the current MLLMs lacking three essential robotic brain capabilities: Planning Capability, which involves decomposing complex manipulation instructions into manageable sub-tasks; Affordance Perception, the ability to recognize and interpret the affordances of interactive objects; and Trajectory Prediction, the foresight to anticipate the complete manipulation trajectory necessary for successful execution. To enhance the robotic brain’s core capabilities from abstract to concrete, we introduce ShareRobot, a high-quality heterogeneous dataset that labels multi-dimensional information such as task planning, object affordance, and end-effector trajectory. ShareRobot’s diversity and accuracy have been meticulously refined by three human annotators. Building on this dataset, we developed RoboBrain, an MLLMbased model that combines robotic and general multi-modal data, utilizes a multi-stage training strategy, and incorporates long videos and high-resolution images to improve its robotic manipulation capabilities. Extensive experiments demonstrate that RoboBrain achieves state-of-the-art performance across various robotic tasks, highlighting its potential to advance robotic brain capabilities. Project website: RoboBrain.
+
+# 1. Introduction
+
+Recent advancements in Multimodal Large Language Models (MLLMs) have significantly advanced the pursuit of Artificial General Intelligence (AGI). By leveraging extensive multimodal datasets sourced from the internet and employing self-supervised learning techniques, MLLMs demonstrate exceptional capabilities in visual perception and understanding human language instructions, excelling in tasks such as visual question answering [3, 15, 16], image captioning [28, 42, 45], and sentiment analysis [18, 21]. Despite significant progress in MLLMs, the exploration of their application in robotics remains in its early stages, highlighting a crucial area for further research and innovation.
+
+Recent studies have examined the application of MLLMs in robotics, focusing on planning and subgoal decomposition [6, 31], action sequencing [8, 9], and replanning and feedback [49, 57, 98]. However, their effectiveness in robotic scenarios—particularly for long-horizon manipulation tasks—reveals significant limitations. These limitations stem from the current MLLMs’ lack of three critical robotic capabilities: planning, affordance perception, and trajectory prediction, as illustrated in Fig. 1. For instance, consider a robotic arm tasked with lifting a teapot and pouring water into a cup. The MLLM should be capable of decomposing this task into sub-tasks, such as “approach the teapot and lift it”, “move the teapot until the spout is positioned over the cup”, and “tilt the teapot to pour”. For each sub-task, such as “approach and grasp the teapot”, the MLLM must utilize affordance perception to accurately identify the graspable regions of the teapot. Additionally, trajectory prediction is essential for determining the complete path from the starting point to the graspable part of the teapot. This challenge for existing MLLMs primarily arises from the scarcity of large-scale, fine-grained datasets specifically designed for robotic operation tasks.
+
+To empower the RoboBrain’s core capabilities that transition from abstract instruction comprehension to concrete action expression. we first introduce ShareRobot, a largescale, fine-grained dataset specifically designed for robotic operation tasks. Specifically, we label multi-dimensional information such as task planning, object affordance, and end-effector trajectory. Building upon ShareRobot, we developed RoboBrain, an MLLM model based on the LLaVA [48] architecture, aimed at enhancing the perception and planning capabilities of robots in complex tasks. In the process of training RoboBrain, we meticulously designed the ratio of robotic data to general multi-modal data, implemented a multi-stage training strategy, and incorporated long videos and high-resolution images. This approach endowed RoboBrain with powerful visual information perception capabilities in robotic scenarios, supporting historical frame memory and high-definition image input, thereby further enhancing the ability in robotic manipulation planning. Extensive experimental results demonstrate that RoboBrain outperforms existing models across multiple robotic benchmarks, including RoboVQA [73] and OpenEQA [61], achieving state-of-the-art performance. Additionally, it shows competitive results in trajectory and affordance prediction accuracy. These findings validate the effectiveness of the proposed dataset and framework in enhancing robotic brain capabilities. In summary, the main contributions of this paper are as follows:
+
+• We propose RoboBrain, a unified multimodal large language model designed for robotic manipulation, which facilitates more efficient task execution by transforming abstract instruction into concrete actions.   
+• We meticulously designed the ratio of robotic data to general multi-modal data, implemented a multi-stage training strategy, and incorporated long videos and highresolution images. This approach provided RoboBrain with historical frame memory and high-resolution image input, thereby further enhancing its capabilities in robotic manipulation planning.   
+• We introduce ShareRobot, a high-quality heterogeneous dataset that labels multi-dimensional information, including task planning, object affordance, and end-effector trajectory, effectively enhancing various robotic capabilities.   
+Comprehensive experimental results demonstrate that RoboBrain achieves state-of-the-art performance across various robotic benchmarks, highlighting its potential for real-world applications in robotics.
+
+# 2. Related Work
+
+MLLM for Robotic Manipulation Planning Existing studies mostly utilize MLLMs primarily focus on understanding natural language and visual observation tasks $[ 6 -$
+
+![](images/bcfed446226b4fbe9db8795e845fb59780457122ac24157f11c14d6447284f77.jpg)  
+Figure 2. The generation procession of our ShareRobot dataset. Our dataset labels multi-dimensional information, including task planning, object affordance, and end-effector trajectories. The task planning is first annotated by atomic tasks and then augmented by constructing question-answer pairs. The affordance and trajectory are labeled on the images according to the specific instructions.
+
+8, 37, 43, 96], with fewer addressing the decomposition of high-level task instructions into actionable steps. PaLME [20] generates multimodal inputs by mapping real-world observations into the language embedding space. RT-H [6] and RoboMamba [50] generate reasoning results along with robot actions obtained from an additional policy head. However, while these models generate planning texts and actions, they still lack adequate mechanisms for executing complex atomic tasks, highlighting the need for enhanced affordance perception and trajectory prediction.
+
+Datasets for Manipulation Planning Early datasets for Manipulation [12, 26, 38, 54, 76] mainly comprise annotated images and videos that highlight fundamental handobject interactions, including grasping and pushing. Recent advancements [19, 27, 73, 77] in robotic manipulation emphasize multi-modal and cross-embodiment datasets for enhanced generalization. Datasets such as RH20T [22], BridgeDataV2 [84], and DROID [35] enhance scene diversity, broadening the range of manipulation scenarios. Notably, RT-X [67] compiles data from 60 datasets across 22 embodiments into the Open X-Embodiment (OXE) repository. In this work, we extract high-quality data from OXE, decompose high-level descriptions into low-level planning instructions, and adapt these into a question-answer format to enhance model training.
+
+# 3. ShareRobot Dataset
+
+To enhance the RoboBrain’s capability of planning, affordance perception, and trajectory prediction, we develop a dataset called ShareRobot–a large-scale, fine-grained dataset specifically designed for robotic manipulation tasks. The generation procession of our dataset is shown as Fig. 2. The details are described in the following sections.
+
+# 3.1. Overview
+
+ShareRobot is a comprehensive dataset, facilitates more efficient task execution by transforming abstract concepts into concrete actions. The main features of the ShareRobot dataset include:
+
+• Fine-grained Unlike the Open X-Embodiment dataset [66], which provides generalized high-level task descriptions, each data point in ShareRobot includes detailed low-level planning instructions linked to individual frames. This specificity enhances the model’s accuracy in executing tasks at the right moment. • Multi-dimensional To enhance RoboBrain’s capabilities from abstract to concrete, we label task planning, object affordances, and end-effector trajectories, allowing for greater flexibility and precision in task processing. • High quality We establish rigorous criteria for selecting data from the Open-X-Embodiment dataset [66], focusing on high resolution, accurate descriptions, successful task execution, visible affordance, and clear motion trajectories. Based on these criteria, we validate 51,403 instances to ensure high quality, forming the foundation for RoboBrain’s core capabilities.
+
+![](images/fac14631f6cdcbe8c435a9074e9bf32a0d5670e74af39b4deae5664e59ba8477.jpg)  
+Figure 3. The diversity of our ShareRobot dataset. Our dataset involves (a) 23 original datasets, (b) 12 embodiments and (c) 107 types of atomic tasks. The distribution of the top 20 most frequent atomic actions within our ShareRobot dataset is presented in (c).
+
+• Large scale With 1,027,990 question-answer pairs, ShareRobot is the largest open-source dataset for task planning, affordance perception, and trajectory prediction, enabling deeper understanding of complex relationships from abstract to concrete.
+
+• Rich diversity In contrast to the RoboVQA [73] dataset’s limited scenes, ShareRobot features 102 scenes across 12 embodiments and 107 types of atomic tasks, as shown in Fig. 3. This diversity allows MLLMs to learn from varied real-world contexts, enhancing robustness in complex, multi-step planning.
+
+• Easy scalability Our data generation pipeline is designed for high scalability, facilitating expansion as new robotic embodiments, task types, and environments develop. This adaptability ensures the ShareRobot dataset can support increasingly complex manipulation tasks.
+
+# 3.2. Data Selection
+
+Based on the Open X-embodiment dataset [66], we carefully selected 51,403 instances, mainly focusing on image quality, description accuracy and success status. Our data collection process adheres to the following principles:
+
+• High-resolution image We eliminate videos lacking images or those with low resolution. Any video with a resolution below 128 pixels is removed. • Accurate description Videos without descriptions or with vague descriptions are filtered out to avoid affecting the planning capability of the model. • Success status We discard videos of failed tasks, as unsuccessful demonstrations hinder the model’s learning.
+
+• Long video length Videos with fewer than 30 frames are excluded, as they contain limited atomic tasks. • Object not covered We remove any videos where the target object or end-effector is covered by other objects, as our model has to accurately identify the positions of endeffectors and the object’s affordance. • Clear Trajectories We exclude the demonstrations with unclear or incomplete trajectories, as trajectory prediction is one of our RoboBrain’s capabilities.
+
+# 3.3. Data Labeling
+
+Planning Labeling We extract 30 frames from each robotic operation demonstration and use these frames along with their high-level descriptions to decompose them into lowlevel planning instructions using Gemini [78]. Three annotators then review and refine these instructions to ensure the precision of labeling. Subsequently, we design 5 different templates for each of the 10 question types in RoboVQA [73]. In the process of data generation, we randomly select 2 templates of each question type to generate question-answer pairs for every instance. This process transforms 51,403 instances into 1,027,990 questionanswer pairs, with annotators monitoring data generation to maintain the dataset’s integrity.
+
+Affordance Labeling We filter 6,522 images and annotate each with affordance areas as $\{ l ^ { ( x ) } , l ^ { ( y ) } , \bar { r } ^ { ( x ) } , r ^ { ( y ) } \}$ according to its high-level description, where $\{ l ^ { ( x ) } , l ^ { ( y ) } \}$ are the top left coordinates and $\{ r ^ { ( x ) } , r ^ { ( y ) } \}$ are the bottom right corner coordinates. Subsequently, we conduct a rigorous manual review and refinement of each instruction to ensure its precise alignment with the associated affordance areas.
+
+Trajectory Labeling We filter 6,870 images and annotate each with the gripper’s trajectory using at least three $\{ x , y \}$ coordinates according to its low-level instruction. Subsequently, we conduct a rigorous manual review and refinement of each instruction to ensure its precise alignment
+
+![](images/d4ccb5c16f629f5fd3b1ad40fcba407524d10a9458a47821bcde41adcc24bc8e.jpg)  
+Figure 4. The pipeline of our RoboBrain. The images, multiple images, and videos are sent into our model to pre-train a foundation robotic brain. Besides, we fine-tune the RoboBrain via A-LoRA and T-LoRA to develop affordance and trajectory skills. In practical applications, the model first generates detailed plans, and then splits it into sub-task descriptions to execute specific robotic tasks.
+
+with the associated trajectory.
+
+# 3.4. Data Statistics
+
+We select 23 original datasets from the Open Xembodiment dataset [66]. The distribution of the source data is shown in the Fig. 3. The data involves 102 various scenes (e.g. bedroom, laboratory, kitchen, office), and covers 12 different robot bodies. According to statistics, there are 132 types of atomic actions in this dataset, tasks with higher word frequency are shown in Fig. 3 (c). The 5 most frequent atomic tasks are “pick”, “move”, “reach”, “lift”, and “place”, which are frequent task types in real robotic operation scenarios. This suggests that the distribution of our dataset is reasonable. Finally, we get 1,027,990 question-answer (QA) pairs for planning. For the planning QA pairs dataset, we split 1 million QA pairs as the training set and 2,050 QA pairs as the test set. For the affordance dataset, we split 6,000 images as the training set and 522 images as the test set. For the trajectory dataset, we split 6000 images for training and 870 images for testing.
+
+# 4. RoboBrain Model
+
+In this section, we provide an overview of RoboBrain. Our goal is to enable the Multi-modal Large Language Model (MLLM) to understand abstract instructions and explicitly output object affordance regions and potential operational trajectories, facilitating a transition from abstract to concrete. We employ a multi-stage training strategy: Phase 1 focuses on general OneVision (OV) training to develop a foundational MLLM with strong understanding and instruction-following abilities. Phase 2, the robotic training phase, aims to empower the core capabilities of RoboBrain from abstract to concrete.
+
+# 4.1. Model Architecture
+
+RoboBrain consists of three modules: the foundational model for planning, the A-LoRA model for affordance perception, and the T-LoRA model for trajectory prediction. In practical applications, the model first generates detailed plans, and then splits it into sub-task descriptions to execute affordance perception and trajectory prediction. The pipeline of our RoboBrain is shown to Fig. 4.
+
+Foundational Model for Planning We utilize LLaVA as the foundational model for RoboBrain, which consists of three main modules: the Vision Encoder (ViT) $g ( \cdot )$ , the Projectior $h ( \cdot )$ , and the Large Language Model (LLM) $f ( \cdot )$ . Specifically, we employ SigLIP [92], a 2-layer MLP [47], and Qwen2.5-7B-Instruct [80]. Given an image or video $X _ { v }$ as visual input, ViT encodes it into visual features $Z _ { v } =$ $g ( X _ { v } )$ , which are then mapped to the semantic space of the LLM through Projector, resulting in a sequence of visual tokens $H _ { v } = h ( Z _ { v } )$ . Finally, the LLM generates a textual response in an autoregressive manner based on the human language instruction $X _ { t }$ and $H _ { v }$ .
+
+![](images/af3ab8e1859238e44fd23140bc7acbd084743b6dc3225c123edb5d8ce21be939.jpg)
+
+Table 1. Detailed configuration for each training stage of the RoboBrain.   
+
+<table><tr><td></td><td></td><td>Stage-1</td><td>Stage-1.5</td><td colspan="2">Stage-2</td><td>Stage-3</td><td colspan="2">Stage-4</td></tr><tr><td></td><td></td><td></td><td></td><td>Single-Image</td><td>OneVision</td><td></td><td>A-LoRA</td><td>T-LoRA</td></tr><tr><td>2</td><td>Resolution</td><td>384</td><td>Max 384×{2×2}</td><td>Max 384×{6×6}</td><td>Max 384×{6×6}</td><td>Max 384×{6×6}</td><td>Max 384×{6×6}</td><td>Max 384×{6×6}</td></tr><tr><td></td><td>#Tokens</td><td>729</td><td>Max 729×5</td><td>Max 729×37</td><td>Max 729×37</td><td>Max 729×37</td><td>Max 729×37</td><td>Max 729×37</td></tr><tr><td>0</td><td>Dataset</td><td>LCS</td><td>Image</td><td>Image</td><td>Image &amp; Video</td><td>Robotic Data</td><td>Afford. Data</td><td>Traj. Data</td></tr><tr><td></td><td>#Samples</td><td>558K</td><td>4M</td><td>3.2M</td><td>1.6M</td><td>3M</td><td>10K</td><td>400K</td></tr><tr><td>20</td><td>Trainable</td><td>Projector</td><td>Full Model</td><td>Full Model</td><td>Full Model</td><td>Full Model</td><td>A-LoRA</td><td>T-LoRA</td></tr><tr><td></td><td>#Tunable Parameters</td><td>17.0M</td><td>8.0B</td><td>8.0B</td><td>8.0B</td><td>8.0B</td><td>28.0M</td><td>28.0M</td></tr><tr><td></td><td>Batch Size</td><td>8</td><td>2</td><td>1</td><td>1</td><td>1</td><td>4</td><td>4</td></tr><tr><td>Tunn</td><td>LR: ψVIT</td><td>-</td><td>2 ×10−6</td><td>2 ×10−6</td><td>2 ×10−6</td><td>2 ×10−6</td><td>2 ×10−6</td><td>2 × 10−6</td></tr><tr><td></td><td>LR: {θProj., φLLM, φLoRA}</td><td>1×10−3</td><td>1×10−5</td><td>1 ×10−5</td><td>1×10-5</td><td></td><td>1 ×10−5</td><td></td></tr><tr><td></td><td>Epoch</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1×10−5 1</td><td>1</td><td>1×10-5 1</td></tr></table>
+
+A-LoRA Module for Affordance Perception The term affordance in our work refers to the area where the human hand makes contact with objects. During interactions, humans instinctively engage with various objects within specific regions. We utilize bounding boxes to represent affordances. Formally, consider an image $I$ consisting of multiple objects with their affordances: $O _ { i } = \{ A _ { i } ^ { 0 } , A _ { i } ^ { 1 } , . . . , A _ { i } ^ { N } \}$ where the ith object owns $N$ affordances. The format of affordance is defined as $\{ l ^ { ( x ) } , l ^ { ( y ) } , r ^ { ( x ) } , r ^ { ( y ) } \}$ , and $\{ l ^ { ( x ) } , l ^ { ( y ) } \}$ represents the top left corner coordinates of affordance, while $\{ r ^ { ( x ) } , r ^ { ( y ) } \}$ is the bottom right corner coordinates.
+
+T-LoRA Module for Trajectory Prediction The term trajectory in our work refers to the concept of $2 D$ visual traces, as presented in [25]. We define trajectory waypoints as a series of 2D coordinates representing the movement of the end-effector or hand throughout the process. Formally, at time step $t$ , the trajectory waypoints can be represented as $P _ { t : N } = \{ ( x _ { i } , y _ { i } ) \mid i = t , t + 1 , \ldots , N \}$ , where $( x _ { i } , y _ { i } )$ denotes the $i$ -th coordinate in the visual trace, and $N$ represents the total number of time steps in the episode.
+
+# 4.2. Training
+
+Phase 1: General OV Training In Phase 1, we drew on the state-of-the-art training data and strategies from LLaVAOneVision [41] to construct a foundational model with general multi-modal understanding and visual instruction following capabilities. This lays the groundwork for enhancing the model’s robotic manipulation planning abilities in
+
+# Phase 2. Detailed information is provided in Tab. 1.
+
+In Stage 1, we utilize the image-text data from the LCS558K dataset [11, 72] to train Projector, facilitating the alignment of visual features $Z _ { v }$ with the LLM semantic features $H _ { v }$ . In Stage 1.5, we train the entire model using 4M high-quality image-text data to enhance the model’s multimodal general knowledge understanding capabilities. In Stage 2, we further train the entire model with 3.2M singleimage data and 1.6M image and video data from LLaVAOneVision-Data [41], aiming to enhance the instructionfollowing abilities of RoboBrain and improve understanding of high-resolution image and video.
+
+Phase 2: Robotic Training In Phase 2, we build upon the robust multi-modal foundational model developed in Phase 1 to create a more powerful model for robotic manipulation planning. Specifically, we aim for RoboBrain to understand complex, abstract instructions, support the perception of historical frame information and high-resolution images, and output object affordance regions while predicting potential manipulation trajectories. This will facilitate the transition from abstract to concrete in manipulation planning tasks. Detailed information is provided in Tab. 1.
+
+In Stage 3, we collected a dataset of 1.3M robotic data to improve the model’s manipulation planning capabilities. Specifically, this data is sourced from RoboVQA800K [73], ScanView-318K including MMScan-224K [30, 59], 3RScan-43K [30, 83], ScanQA-25K [4, 30], SQA3d26K [30, 60], and a subset of ShareRobot-200K introduced in this paper. These datasets contain substantial scenescanning image data, long video data, and high-resolution data to support the model’s ability to perceive diverse environments. Additionally, the fine-grained, high-quality planning data in the ShareRobot dataset enhances the manipulation planning capabilities of RoboBrain. To mitigate the issue of catastrophic forgetting [93], we selected a highquality subset of approximately 1.7M image-text data from Phase 1 to mix with the robotic data collected in Stage 3 for training, tuning the entire model accordingly. In Stage 4, we enhanced the model’s ability to perceive object affordances and predict manipulation trajectories from instructions, utilizing affordance and trajectory data from the ShareRobot dataset and other open-source sources [58, 65]. This was achieved by incorporating LoRA modules during training for concrete manipulation capabilities.
+
+![](images/87588a96167dd91ed36d614a6867f60f596db86e61af9afc4f53700472affc8f.jpg)  
+Figure 5. The performance of our model RoboBrain on the OpenEQA, ShareRobot, and RoboVQA benchmarks. RoboBrain surpassed all baseline models, achieving state-of-the-art results.
+
+# 5. Experiment
+
+# 5.1. Implementation Details
+
+During the entire training phase, we employed the Zero3 [71] distributed training strategy, conducting all experiments on a cluster of servers, each equipped with $8 \times \mathsf { A } 8 0 0$ GPUs. The training components for each stage, including image resolution settings, batch size, epochs, and learning rates, are provided in Tab. 1.
+
+# 5.2. Evaluation Metrics
+
+Planning Task We selected RoboVQA [73], OpenEQA [61], and the test set of ShareRobot as robotic benchmarks for multi-dimensional assessment. For RoboVQA, we adopt the BLEU1 to BLEU4 metrics [69] used in RoboMamba [50] for evaluation. Additionally, for OpenEQA and ShareRobot, we use GPT-4o [68] as the evaluation tool, scoring based on the alignment or similarity between model predictions and ground truth, which serves as the final performance score for the model.
+
+Affordance Prediction We utilize the Average Precision (AP) to evaluate the affordance performance of our model. AP metric summarizes the precision-recall affordance curve, which plots the relationship between precision and recall at various threshold settings. It is calculated across multiple Intersection over Union (IoU) thresholds to obtain a more comprehensive evaluation.
+
+Trajectory Prediction We evaluate the similarity between ground truth and predicted trajectories, both represented as sequences of 2D waypoints normalized to [0, 1000), following Qwen2-VL [87]. The evaluation uses three metrics: Discrete Frechet Distance (DFD) [ ´ 25], Hausdorff Distance (HD), and Root Mean Square Error (RMSE). DFD captures overall shape and temporal alignment, HD identifies maximum deviation, and RMSE measures average pointwise error. Together, these metrics provide a comprehensive assessment of trajectory accuracy and similarity.
+
+# 5.3. Evaluation on Robot Brain Task
+
+Evaluation on Planning Task We selected 6 powerful MLLMs as our baselines for comparison, including both open-source and closed-source models with different architectures. Specifically, these models include GPT-4V [2], Claude3 [1], LLaVA-1.5 [48], LLaVA-OneVision-7b [41], Qwen2-VL-7b [86] and RoboMamba [50]. Our specific experimental results are shown in Fig. 5. Our RoboBrain outperformed all baseline models across three robotic benchmarks. RoboBrain significantly outperformed all baseline models on OpenEQA and ShareRobot, which can be attributed to its robust capabilities in understanding robotic tasks and perceiving long videos. Additionally, this pattern was observed in other benchmarks as well, with RoboBrain consistently demonstrating superior performance on RoboVQA, achieving a BLEU-4 score that exceeded that of the second-place model by 18.75. This result highlights its capability to decompose complex long-range task planning.
+
+Evaluation on Affordance Prediction Our results are summarized in Tab. 2. We compare the Qwen2-VL-7B and LLaVA-NeXT-7B models. Qwen2-VL [86] has a superior visual grounding ability and LLaVA-NeXT [44] owns a high-resolution and strong vision tower. We test them all on the AGD20K affordance test set. Our RoboBrain outperforms significantly the other models. It surpasses Qwen2-
+
+![](images/f601f7d6088e6565100cf44dd4f8d29367a0f46413f4f35f9ff88b112a30be8f.jpg)  
+Figure 6. This visualization illustrates that RoboBrain can interpret human instructions and visual images to generate action plans and assessments based on real-time image feedback. Furthermore, it predicts trajectories for each step and identifies corresponding affordances.
+
+Table 2. The comparison of affordance prediction. We utilize AP as the metric, and test them on affordance test set.   
+
+<table><tr><td>Model</td><td>AP↑</td></tr><tr><td>LLaVA-NeXT-7B [48]</td><td>9.8 %</td></tr><tr><td>Qwen2-VL-7B [5]</td><td>12.5 %</td></tr><tr><td>RoboBrain (Ours)</td><td>27.1 % (14.6↑)</td></tr></table>
+
+Table 3. Trajectory Prediction Results Comparison. Discrete Frechet Distance (DFD), Hausdorff Distance (HD), and Root ´ Mean Square Error (RMSE).   
+
+<table><tr><td>Method</td><td>DFD ↓</td><td>HD ↓</td><td>RMSE ↓</td></tr><tr><td>RoboBrain (Base)</td><td>0.191</td><td>0.171</td><td>0.133</td></tr><tr><td>+ Start_Points</td><td>0.176</td><td>0.157</td><td>0.117</td></tr><tr><td>+ Max_Points</td><td>0.185</td><td>0.163</td><td>0.125</td></tr><tr><td>+ Spec_Token</td><td></td><td>0.109 (42.9%↓) 0.010 (94.2%↓) 0.091 (31.6%↓)</td><td></td></tr></table>
+
+VL [86] by 14.6 AP, and LLaVA-NeXT by 17.3 AP. It validates our RoboBrain can understand the physical properties of objects and provide the affordance accurately.
+
+Evaluation on Trajectory Prediction We compare several variants of our model, and the results are in Tab. 3: (1) Baseline, fine-tuned on trajectory-related VQA data; (2) Start Points, which adds the 2D start coordinates of the end-effector; (3) Max Points, limiting waypoints to 10 via uniform sampling; and (4) Spec Token & End Points, which adds end-effector positions and special tokens to emphasize waypoints and start/goal points. Each variant builds on the previous one, with the final model integrating all components. Our most effective model integrates all design choices. As shown in the last row of Tab. 3, DFD, HD, and RMSE decreased by $4 2 . 9 \%$ , $9 4 . 2 \%$ , and $3 1 . 6 \%$ , respectively, compared to the baseline. We found that adding start points corrected the translational offset between the generated trajectory and the end-effector.
+
+# 5.4. Visualization
+
+In this section, we present visual examples of RoboBrain in Fig. 6. Given human instructions and visual inputs, RoboBrain engages in multi-turn interactions, understanding and planning future steps. It also outputs more concrete affordances and trajectories.
+
+# 6. Conclusion
+
+In this paper, we introduce ShareRobot, a high-quality dataset that labels multi-dimensional information, including task planning, object affordance, and end-effector trajectory. We also present RoboBrain, an MLLM-based model that integrates robotic and general multi-modal data, employs a multi-stage training strategy, and leverages long videos and high-resolution images to enhance robotic manipulation. Extensive experiments demonstrate that RoboBrain achieves state-of-the-art performance across various robotic tasks, underscoring its potential to significantly advance robotic capabilities.
+
+# Acknowledgments
+
+This work was supported by the National Natural Science Foundation of China 62476011, 72225011 and 72434005.
+
+# References
+
+[1] The claude 3 model family: Opus, sonnet, haiku. 7 [2] Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ahmad, Ilge Akkaya, Florencia Leoni Aleman, Diogo Almeida, Janko Altenschmidt, Sam Altman, Shyamal Anadkat, et al. Gpt-4 technical report. arXiv preprint arXiv:2303.08774,   
+2023. 7, 14, 15, 16 [3] Stanislaw Antol, Aishwarya Agrawal, Jiasen Lu, Margaret Mitchell, Dhruv Batra, C Lawrence Zitnick, and Devi Parikh. Vqa: Visual question answering. In ICCV, pages 2425–2433,   
+2015. 2 [4] Daichi Azuma, Taiki Miyanishi, Shuhei Kurita, and Motoaki Kawanabe. Scanqa: 3d question answering for spatial scene understanding. In CVPR, pages 19129–19139, 2022. 6, 14 [5] Jinze Bai, Shuai Bai, Yunfei Chu, Zeyu Cui, Kai Dang, Xiaodong Deng, Yang Fan, Wenbin Ge, Yu Han, Fei Huang, et al. Qwen technical report. arXiv preprint arXiv:2309.16609, 2023. 8, 13, 17 [6] Suneel Belkhale, Tianli Ding, Ted Xiao, Pierre Sermanet, Quon Vuong, Jonathan Tompson, Yevgen Chebotar, Debidatta Dwibedi, and Dorsa Sadigh. Rt-h: Action hierarchies using language. arXiv preprint arXiv:2403.01823, 2024. 2,   
+3 [7] Anthony Brohan, Noah Brown, Justice Carbajal, Yevgen Chebotar, Joseph Dabis, Chelsea Finn, Keerthana Gopalakrishnan, Karol Hausman, Alex Herzog, Jasmine Hsu, et al. Rt-1: Robotics transformer for real-world control at scale. arXiv preprint arXiv:2212.06817, 2022. [8] Anthony Brohan, Noah Brown, Justice Carbajal, Yevgen Chebotar, Xi Chen, Krzysztof Choromanski, Tianli Ding, Danny Driess, Avinava Dubey, Chelsea Finn, et al. Rt-2: Vision-language-action models transfer web knowledge to robotic control. arXiv preprint arXiv:2307.15818, 2023. 2,   
+3 [9] Anthony Brohan, Yevgen Chebotar, Chelsea Finn, Karol Hausman, Alexander Herzog, Daniel Ho, Julian Ibarz, Alex Irpan, Eric Jang, Ryan Julian, et al. Do as i can, not as i say: Grounding language in robotic affordances. In CoRL, pages   
+287–318, 2023. 2 [10] Jiajun Cao, Yuan Zhang, Tao Huang, Ming Lu, Qizhe Zhang, Ruichuan An, Ningning Ma, and Shanghang Zhang. Movekd: Knowledge distillation for vlms with mixture of visual encoders. arXiv preprint arXiv:2501.01709, 2025. 19 [11] Soravit Changpinyo, Piyush Sharma, Nan Ding, and Radu Soricut. Conceptual $1 2 \mathrm { m }$ : Pushing web-scale image-text pretraining to recognize long-tail visual concepts. In CVPR, pages 3558–3568, 2021. 6, 13 [12] Yu-Wei Chao, Wei Yang, Yu Xiang, Pavlo Molchanov, Ankur Handa, Jonathan Tremblay, Yashraj S. Narang, Karl Van Wyk, Umar Iqbal, Stan Birchfield, Jan Kautz, and Dieter Fox. Dexycb: A benchmark for capturing hand grasping of objects. In CVPR, pages 9044–9053, 2021. 3 ing Chen, Xiangbo Zhang, Zhihong Chen, Jian quan Li, Xiang Wan, and Benyou Wang. Allava: Harnessing gpt4v-synthesized data for a lite vision-language model. arXiv preprint arXiv:2402.11684, 2024. 13   
+[14] Lin Chen, Jinsong Li, Xiaoyi Dong, Pan Zhang, Yuhang Zang, Zehui Chen, Haodong Duan, Jiaqi Wang, Yu Qiao, Dahua Lin, et al. Are we on the right way for evaluating large vision-language models? arXiv preprint arXiv:2403.20330, 2024. 15   
+[15] Xi Chen, Xiao Wang, Soravit Changpinyo, AJ Piergiovanni, Piotr Padlewski, Daniel Salz, Sebastian Goodman, Adam Grycner, Basil Mustafa, Lucas Beyer, et al. Pali: A jointlyscaled multilingual language-image model. In ICLR. 2, 13   
+[16] Zhe Chen, Jiannan Wu, Wenhai Wang, Weijie Su, Guo Chen, Sen Xing, Muyan Zhong, Qinglong Zhang, Xizhou Zhu, Lewei Lu, et al. Internvl: Scaling up vision foundation models and aligning for generic visual-linguistic tasks. In CVPR, pages 24185–24198, 2024. 2, 14, 15   
+[17] Wei-Lin Chiang, Zhuohan Li, Zi Lin, Ying Sheng, Zhanghao Wu, Hao Zhang, Lianmin Zheng, Siyuan Zhuang, Yonghao Zhuang, Joseph E. Gonzalez, Ion Stoica, and Eric P. Xing. Vicuna: An open-source chatbot impressing gpt-4 with $9 0 \% ^ { \ast }$ chatgpt quality, 2023. 17   
+[18] Ringki Das and Thoudam Doren Singh. Multimodal sentiment analysis: a survey of methods, trends, and challenges. ACM Computing Surveys, 55(13s):1–38, 2023. 2   
+[19] Sudeep Dasari, Frederik Ebert, Stephen Tian, Suraj Nair, Bernadette Bucher, Karl Schmeckpeper, Siddharth Singh, Sergey Levine, and Chelsea Finn. Robonet: Large-scale multi-robot learning. In CoRL, pages 885–897, 2019. 3   
+[20] Danny Driess, Fei Xia, Mehdi SM Sajjadi, Corey Lynch, Aakanksha Chowdhery, Brian Ichter, Ayzaan Wahid, Jonathan Tompson, Quan Vuong, Tianhe Yu, et al. Palme: An embodied multimodal language model. arXiv preprint arXiv:2303.03378, 2023. 3   
+[21] Kelvin Du, Frank Xing, Rui Mao, and Erik Cambria. Financial sentiment analysis: Techniques and applications. ACM Computing Surveys, 56(9):1–42, 2024. 2   
+[22] Haoshu Fang, Hongjie Fang, Zhenyu Tang, Jirong Liu, Chenxi Wang, Junbo Wang, Haoyi Zhu, and Cewu Lu. RH20T: A comprehensive robotic dataset for learning diverse skills in one-shot. In ICRA, pages 653–660, 2024. 3   
+[23] Chaoyou Fu, Peixian Chen, Yunhang Shen, Yulei Qin, Mengdan Zhang, Xu Lin, Jinrui Yang, Xiawu Zheng, Ke Li, Xing Sun, et al. Mme: A comprehensive evaluation benchmark for multimodal large language models. arXiv preprint arXiv:2306.13394, 2023. 15   
+[24] Google. Gemini robotics brings ai into the physical world. https://deepmind.google/discover/blog/geminirobotics-brings-ai-into-the-physical-world/, 2025. 19   
+[25] Jiayuan Gu, Sean Kirmani, Paul Wohlhart, Yao Lu, Montserrat Gonzalez Arenas, Kanishka Rao, Wenhao Yu, Chuyuan Fu, Keerthana Gopalakrishnan, Zhuo Xu, et al. Rt-trajectory: Robotic task generalization via hindsight trajectory sketches. arXiv preprint arXiv:2311.01977, 2023. 6, 7   
+[26] Shreyas Hampali, Mahdi Rad, Markus Oberweger, and Vincent Lepetit. Honnotate: A method for 3d annotation of hand and object poses. In CVPR, pages 3193–3203, 2020. 3   
+[27] Peng Hao, Chaofan Zhang, Dingzhe Li, Xiaoge Cao, Xiaoshuai Hao, Shaowei Cui, and Shuo Wang. Tla: Tactilelanguage-action model for contact-rich manipulation. arXiv preprint arXiv:2503.08548, 2025. 3, 19   
+[28] Xiaoshuai Hao, Yi Zhu, Srikar Appalaraju, Aston Zhang, Wanqian Zhang, Bo Li, and Mu Li. Mixgen: A new multimodal data augmentation. In Proceedings of the IEEE/CVF winter conference on applications of computer vision, pages 379–389, 2023. 2, 13   
+[29] Edward J Hu, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean Wang, Lu Wang, Weizhu Chen, et al. Lora: Low-rank adaptation of large language models. In ICLR. 13   
+[30] Jiangyong Huang, Silong Yong, Xiaojian Ma, Xiongkun Linghu, Puhao Li, Yan Wang, Qing Li, Song-Chun Zhu, Baoxiong Jia, and Siyuan Huang. An embodied generalist agent in 3d world. In ICLR 2024 Workshop: How Far Are We From AGI. 6   
+[31] Wenlong Huang, Fei Xia, Ted Xiao, Harris Chan, Jacky Liang, Pete Florence, Andy Zeng, Jonathan Tompson, Igor Mordatch, Yevgen Chebotar, et al. Inner monologue: Embodied reasoning through planning with language models. In CoRL, pages 1769–1782. PMLR, 2023. 2   
+[32] Yuheng Ji, Yue Liu, Zhicheng Zhang, Zhao Zhang, Yuting Zhao, Gang Zhou, Xingwei Zhang, Xinwang Liu, and Xiaolong Zheng. Advlora: Adversarial low-rank adaptation of vision-language models. arXiv preprint arXiv:2404.13425, 2024. 19   
+[33] Albert Q Jiang, Alexandre Sablayrolles, Arthur Mensch, Chris Bamford, Devendra Singh Chaplot, Diego de las Casas, Florian Bressand, Gianna Lengyel, Guillaume Lample, Lucile Saulnier, et al. Mistral 7b. arXiv preprint arXiv:2310.06825, 2023. 17   
+[34] Aniruddha Kembhavi, Mike Salvato, Eric Kolve, Minjoon Seo, Hannaneh Hajishirzi, and Ali Farhadi. A diagram is worth a dozen images. In ECCV, pages 235–251. Springer, 2016. 13, 14, 15   
+[35] Alexander Khazatsky, Karl Pertsch, Suraj Nair, Ashwin Balakrishna, Sudeep Dasari, Siddharth Karamcheti, Soroush Nasiriany, Mohan Kumar Srirama, Lawrence Yunliang Chen, Kirsty Ellis, et al. Droid: A large-scale in-the-wild robot manipulation dataset. arXiv preprint arXiv:2403.12945, 2024. 3   
+[36] Geewook Kim, Teakgyu Hong, Moonbin Yim, JeongYeon Nam, Jinyoung Park, Jinyeong Yim, Wonseok Hwang, Sangdoo Yun, Dongyoon Han, and Seunghyun Park. Ocr-free document understanding transformer. In ECCV, 2022. 13   
+[37] Moo Jin Kim, Karl Pertsch, Siddharth Karamcheti, Ted Xiao, Ashwin Balakrishna, Suraj Nair, Rafael Rafailov, Ethan Foster, Grace Lam, Pannag Sanketi, et al. Openvla: An open-source vision-language-action model. arXiv preprint arXiv:2406.09246, 2024. 3, 17   
+[38] Taein Kwon, Bugra Tekin, Jan Stuhmer, Federica Bogo, and ¨ Marc Pollefeys. H2O: two hands manipulating objects for first person interaction recognition. In ICCV, pages 10118– 10128, 2021. 3   
+[39] Bohao Li, Rui Wang, Guangzhi Wang, Yuying Ge, Yixiao Ge, and Ying Shan. Seed-bench: Benchmarking multimodal llms with generative comprehension. arXiv preprint arXiv:2307.16125, 2023. 15   
+[40] Bo Li, Hao Zhang, Kaichen Zhang, Dong Guo, Yuanhan Zhang, Renrui Zhang, Feng Li, Ziwei Liu, and Chunyuan Li. Llava-next: What else influences visual instruction tuning beyond data, 2024. 13, 17   
+[41] Bo Li, Yuanhan Zhang, Dong Guo, Renrui Zhang, Feng Li, Hao Zhang, Kaichen Zhang, Yanwei Li, Ziwei Liu, and Chunyuan Li. Llava-onevision: Easy visual task transfer. arXiv preprint arXiv:2408.03326, 2024. 6, 7, 13, 14, 17   
+[42] Chenliang Li, Haiyang Xu, Junfeng Tian, Wei Wang, Ming Yan, Bin Bi, Jiabo Ye, He Chen, Guohai Xu, Zheng Cao, et al. mplug: Effective and efficient vision-language learning by cross-modal skip-connections. In EMNLP, pages 7241– 7259, 2022. 2   
+[43] Dingzhe Li, Yixiang Jin, Yuhao Sun, Hongze Yu, Jun Shi, Xiaoshuai Hao, Peng Hao, Huaping Liu, Fuchun Sun, Jianwei Zhang, et al. What foundation models can bring for robot learning in manipulation: A survey. arXiv preprint arXiv:2404.18201, 2024. 3, 19   
+[44] Feng Li, Renrui Zhang, Hao Zhang, Yuanhan Zhang, Bo Li, Wei Li, Zejun Ma, and Chunyuan Li. Llava-next-interleave: Tackling multi-image, video, and 3d in large multimodal models. arXiv preprint arXiv:2407.07895, 2024. 7, 13, 14, 15, 16   
+[45] Junnan Li, Dongxu Li, Silvio Savarese, and Steven Hoi. Blip-2: Bootstrapping language-image pre-training with frozen image encoders and large language models. In ICML, pages 19730–19742. PMLR, 2023. 2   
+[46] Haotian Liu, Chunyuan Li, Yuheng Li, and Yong Jae Lee. Improved baselines with visual instruction tuning. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pages 26296–26306, 2024. 17   
+[47] Haotian Liu, Chunyuan Li, Yuheng Li, and Yong Jae Lee. Improved baselines with visual instruction tuning. In CVPR, pages 26296–26306, 2024. 5   
+[48] Haotian Liu, Chunyuan Li, Qingyang Wu, and Yong Jae Lee. Visual instruction tuning. NeurIPS, 36, 2024. 2, 7, 8, 13   
+[49] Jiaming Liu, Chenxuan Li, Guanqun Wang, Lily Lee, Kaichen Zhou, Sixiang Chen, Chuyan Xiong, Jiaxin Ge, Renrui Zhang, and Shanghang Zhang. Self-corrected multimodal large language model for end-to-end robot manipulation. arXiv preprint arXiv:2405.17418, 2024. 2   
+[50] Jiaming Liu, Mengzhen Liu, Zhenyu Wang, Lily Lee, Kaichen Zhou, Pengju An, Senqiao Yang, Renrui Zhang, Yandong Guo, and Shanghang Zhang. Robomamba: Multimodal state space model for efficient robot reasoning and manipulation. arXiv preprint arXiv:2406.04339, 2024. 3, 7, 15, 16, 19   
+[51] Shilong Liu, Hao Cheng, Haotian Liu, Hao Zhang, Feng Li, Tianhe Ren, Xueyan Zou, Jianwei Yang, Hang Su, Jun Zhu, et al. Llava-plus: Learning to use tools for creating multimodal agents. In European Conference on Computer Vision, pages 126–142. Springer, 2024. 19 [52] Yue Liu, Xiaoxin He, Miao Xiong, Jinlan Fu, Shumin Deng, and Bryan Hooi. Flipattack: Jailbreak llms via flipping. arXiv preprint arXiv:2410.02832, 2024. 19 [53] Yuliang Liu, Zhang Li, Mingxin Huang, Biao Yang, Wenwen Yu, Chunyuan Li, Xu-Cheng Yin, Cheng-Lin Liu, Lianwen Jin, and Xiang Bai. Ocrbench: on the hidden mystery of ocr in large multimodal models. Science China Information Sciences, 67(12):220102, 2024. 15 [54] Yun Liu, Haolin Yang, Xu Si, Ling Liu, Zipeng Li, Yuxiang Zhang, Yebin Liu, and Li Yi. TACO: benchmarking generalizable bimanual tool-action-object understanding. In CVPR, pages 21740–21751, 2024. 3 [55] Yuan Liu, Haodong Duan, Yuanhan Zhang, Bo Li, Songyang Zhang, Wangbo Zhao, Yike Yuan, Jiaqi Wang, Conghui He, Ziwei Liu, et al. Mmbench: Is your multi-modal model an all-around player? In ECCV, pages 216–233. Springer, 2025.   
+15 [56] Yue Liu, Hongcheng Gao, Shengfang Zhai, Xia Jun, Tianyi Wu, Zhiwei Xue, Yulin Chen, Kenji Kawaguchi, Jiaheng Zhang, and Bryan Hooi. Guardreasoner: Towards reasoningbased llm safeguards. arXiv preprint arXiv:2501.18492,   
+2025. 19 [57] Zeyi Liu, Arpit Bahety, and Shuran Song. Reflect: Summarizing robot experiences for failure explanation and correction. In CoRL, pages 3468–3484. PMLR, 2023. 2 [58] Hongchen Luo, Wei Zhai, Jing Zhang, Yang Cao, and Dacheng Tao. Learning affordance grounding from exocentric images. In CVPR, pages 2242–2251. IEEE, 2022. 7 [59] Ruiyuan Lyu, Tai Wang, Jingli Lin, Shuai Yang, Xiaohan Mao, Yilun Chen, Runsen Xu, Haifeng Huang, Chenming Zhu, Dahua Lin, and Jiangmiao Pang. Mmscan: A multimodal 3d scene dataset with hierarchical grounded language annotations. arXiv preprint arXiv:2406.09401, 2024. 6, 14 [60] Xiaojian Ma, Silong Yong, Zilong Zheng, Qing Li, Yitao Liang, Song-Chun Zhu, and Siyuan Huang. Sqa3d: Situated question answering in 3d scenes. In ICLR, 2023. 6, 14 [61] Arjun Majumdar, Anurag Ajay, Xiaohan Zhang, Pranav Putta, Sriram Yenamandra, Mikael Henaff, et al. Openeqa: Embodied question answering in the era of foundation models. In CVPR, pages 16488–16498, 2024. 2, 7, 15, 16, 17 [62] Kenneth Marino, Mohammad Rastegari, Ali Farhadi, and Roozbeh Mottaghi. Ok-vqa: A visual question answering benchmark requiring external knowledge. In CVPR, pages   
+3195–3204, 2019. 13 [63] Ahmed Masry, Do Xuan Long, Jia Qing Tan, Shafiq Joty, and Enamul Hoque. Chartqa: A benchmark for question answering about charts with visual and logical reasoning. arXiv preprint arXiv:2203.10244, 2022. 14, 15 [64] Minesh Mathew, Dimosthenis Karatzas, and CV Jawahar. Docvqa: A dataset for vqa on document images. In Proceedings of the IEEE/CVF winter conference on applications of computer vision, pages 2200–2209, 2021. 14, 15 [65] Dantong Niu, Yuvan Sharma, Giscard Biamby, Jerome Quenum, Yutong Bai, Baifeng Shi, Trevor Darrell, and Roei Herzig. Llarva: Vision-action instruction tuning enhances robot learning. arXiv preprint arXiv:2406.11815, 2024. 7 [66] Abby O’Neill, Abdul Rehman, Abhinav Gupta, Abhiram Maddukuri, Abhishek Gupta, Abhishek Padalkar, Abraham Lee, Acorn Pooley, Agrim Gupta, Ajay Mandlekar, et al. Open $\mathbf { X }$ -embodiment: Robotic learning datasets and rt-x models. arXiv preprint arXiv:2310.08864, 2023. 3, 4, 5   
+[67] Abby O’Neill, Abdul Rehman, Abhiram Maddukuri, Abhishek Gupta, Abhishek Padalkar, Abraham Lee, et al. Open $\mathbf { X }$ -embodiment: Robotic learning datasets and RT-X models : Open $\mathbf { X }$ -embodiment collaboration. In ICRA, pages 6892– 6903, 2024. 3   
+[68] OpenAI. Hello gpt-4o, 2024. 7, 14, 15, 16   
+[69] Kishore Papineni, Salim Roukos, Todd Ward, and Wei-Jing Zhu. Bleu: a method for automatic evaluation of machine translation. In ACL, pages 311–318, 2002. 7   
+[70] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sastry, Amanda Askell, Pamela Mishkin, Jack Clark, et al. Learning transferable visual models from natural language supervision. In ICML, pages 8748–8763. PMLR, 2021. 13   
+[71] Jeff Rasley, Samyam Rajbhandari, Olatunji Ruwase, and Yuxiong He. Deepspeed: System optimizations enable training deep learning models with over 100 billion parameters. In SIGKDD, pages 3505–3506, 2020. 7   
+[72] Christoph Schuhmann, Romain Beaumont, Richard Vencu, Cade Gordon, Ross Wightman, Mehdi Cherti, Theo Coombes, Aarush Katta, Clayton Mullis, Mitchell Wortsman, et al. Laion-5b: An open large-scale dataset for training next generation image-text models. NeuIPS, 35:25278– 25294, 2022. 6, 13   
+[73] Pierre Sermanet, Tianli Ding, Jeffrey Zhao, Fei Xia, Debidatta Dwibedi, Keerthana Gopalakrishnan, Christine Chan, Gabriel Dulac-Arnold, Sharath Maddineni, Nikhil J Joshi, et al. Robovqa: Multimodal long-horizon reasoning for robotics. In ICRA, pages 645–652, 2024. 2, 3, 4, 6, 7, 14, 15, 16, 17   
+[74] Amanpreet Singh, Vivek Natarajan, Meet Shah, Yu Jiang, Xinlei Chen, Dhruv Batra, Devi Parikh, and Marcus Rohrbach. Towards vqa models that can read. In CVPR, pages 8317–8326, 2019. 15   
+[75] Jianlin Su, Murtadha Ahmed, Yu Lu, Shengfeng Pan, Wen Bo, and Yunfeng Liu. Roformer: Enhanced transformer with rotary position embedding. Neurocomputing, 568:127063, 2024. 19   
+[76] Omid Taheri, Nima Ghorbani, Michael J. Black, and Dimitrios Tzionas. GRAB: A dataset of whole-body human grasping of objects. In ECCV, pages 581–600, 2020. 3   
+[77] Yingbo Tang, Shuaike Zhang, Xiaoshuai Hao, Pengwei Wang, Jianlong Wu, Zhongyuan Wang, and Shanghang Zhang. Affordgrasp: In-context affordance reasoning for open-vocabulary task-oriented grasping in clutter. arXiv preprint arXiv:2503.00778, 2025. 3, 19   
+[78] Gemini Team, Rohan Anil, Sebastian Borgeaud, et al. Gemini: A family of highly capable multimodal models, 2024. 4, 18   
+[79] Kimi Team, Angang Du, Bofei Gao, Bowei Xing, Changjiu Jiang, Cheng Chen, Cheng Li, Chenjun Xiao, Chenzhuang Du, Chonghua Liao, et al. Kimi k1. 5: Scaling reinforcement learning with llms. arXiv preprint arXiv:2501.12599, 2025. 19   
+[80] Qwen Team. Qwen2.5: A party of foundation models, 2024. 5, 13   
+[81] Shengbang Tong, Ellis Brown, Penghao Wu, Sanghyun Woo, Manoj Middepogu, Sai Charitha Akula, Jihan Yang, Shusheng Yang, Adithya Iyer, Xichen Pan, et al. Cambrian1: A fully open, vision-centric exploration of multimodal llms. arXiv preprint arXiv:2406.16860, 2024. 13   
+[82] Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier Martinet, Marie-Anne Lachaux, Timothee Lacroix, Baptiste ´ Roziere, Naman Goyal, Eric Hambro, Faisal Azhar, et al. \` Llama: Open and efficient foundation language models. arXiv preprint arXiv:2302.13971, 2023. 17   
+[83] Johanna Wald, Armen Avetisyan, Nassir Navab, Federico Tombari, and Matthias Nießner. Rio: 3d object instance re-localization in changing indoor environments. In ICCV, pages 7658–7667, 2019. 6, 14   
+[84] Homer Rich Walke, Kevin Black, Tony Z. Zhao, Quan Vuong, Chongyi Zheng, Philippe Hansen-Estruch, Andre Wang He, Vivek Myers, Moo Jin Kim, Max Du, Abraham Lee, Kuan Fang, Chelsea Finn, and Sergey Levine. Bridgedata V2: A dataset for robot learning at scale. In CoRL, pages 1723–1736, 2023. 3   
+[85] Junyang Wang, Haiyang Xu, Jiabo Ye, Ming Yan, Weizhou Shen, Ji Zhang, Fei Huang, and Jitao Sang. Mobile-agent: Autonomous multi-modal mobile device agent with visual perception. arXiv preprint arXiv:2401.16158, 2024. 19   
+[86] Peng Wang, Shuai Bai, Sinan Tan, Shijie Wang, Zhihao Fan, Jinze Bai, Keqin Chen, Xuejing Liu, Jialin Wang, Wenbin Ge, et al. Qwen2-vl: Enhancing vision-language model’s perception of the world at any resolution. arXiv preprint arXiv:2409.12191, 2024. 7, 8, 14, 15, 16, 17   
+[87] Peng Wang, Shuai Bai, Sinan Tan, Shijie Wang, Zhihao Fan, Jinze Bai, Keqin Chen, Xuejing Liu, Jialin Wang, Wenbin Ge, et al. Qwen2-vl: Enhancing vision-language model’s perception of the world at any resolution. arXiv preprint arXiv:2409.12191, 2024. 7   
+[88] x.ai. Grok 1.5v vision preview. https://x.ai/blog/ grok-1.5v, 2024. Accessed: 2024-11-21. 15   
+[89] Jihan Yang, Shusheng Yang, Anjali W Gupta, Rilyn Han, Li Fei-Fei, and Saining Xie. Thinking in space: How multimodal large language models see, remember, and recall spaces. arXiv preprint arXiv:2412.14171, 2024. 19   
+[90] Jiabo Ye, Anwen Hu, Haiyang Xu, Qinghao Ye, Ming Yan, Guohai Xu, Chenliang Li, Junfeng Tian, Qi Qian, Ji Zhang, et al. Ureader: Universal ocr-free visually-situated language understanding with multimodal large language model. arXiv preprint arXiv:2310.05126, 2023. 13   
+[91] Xiang Yue, Yuansheng Ni, Kai Zhang, Tianyu Zheng, Ruoqi Liu, Ge Zhang, Samuel Stevens, Dongfu Jiang, Weiming Ren, Yuxuan Sun, et al. Mmmu: A massive multi-discipline multimodal understanding and reasoning benchmark for expert agi. In CVPR, pages 9556–9567, 2024. 15   
+[92] Xiaohua Zhai, Basil Mustafa, Alexander Kolesnikov, and Lucas Beyer. Sigmoid loss for language image pre-training. In ICCV, pages 11975–11986, 2023. 5, 13   
+[93] Yuexiang Zhai, Shengbang Tong, Xiao Li, Mu Cai, Qing Qu, Yong Jae Lee, and Yi Ma. Investigating the catastrophic forgetting in multimodal large language models. In NeurIPS 2023 Workshop on Instruction Tuning and Instruction Following. 7   
+[94] Hangtao Zhang, Chenyu Zhu, Xianlong Wang, Ziqi Zhou, Changgan Yin, Minghui Li, Lulu Xue, Yichen Wang, Shengshan Hu, Aishan Liu, et al. Badrobot: Jailbreaking embodied llms in the physical world. In The Thirteenth International Conference on Learning Representations, . 19   
+[95] Kaichen Zhang, Bo Li, Peiyuan Zhang, Fanyi Pu, Joshua Adrian Cahyono, Kairui Hu, Shuai Liu, Yuanhan Zhang, Jingkang Yang, Chunyuan Li, et al. Lmms-eval: Reality check on the evaluation of large multimodal models, 2024. arXiv preprint arXiv:2407.12772, . 14   
+[96] Lingfeng Zhang, Xiaoshuai Hao, Qinwen Xu, Qiang Zhang, Xinyao Zhang, Pengwei Wang, Jing Zhang, Zhongyuan Wang, Shanghang Zhang, and Renjing Xu. Mapnav: A novel memory representation via annotated semantic maps for vlm-based vision-and-language navigation. arXiv preprint arXiv:2502.13451, 2025. 3, 19   
+[97] Yuan Zhang, Fei Xiao, Tao Huang, Chun-Kai Fan, Hongyuan Dong, Jiawen Li, Jiacong Wang, Kuan Cheng, Shanghang Zhang, and Haoyuan Guo. Unveiling the tapestry of consistency in large vision-language models. arXiv preprint arXiv:2405.14156, 2024. 14   
+[98] Enshen Zhou, Qi Su, Cheng Chi, Zhizheng Zhang, Zhongyuan Wang, Tiejun Huang, Lu Sheng, and He Wang. Code-as-monitor: Constraint-aware visual programming for reactive and proactive robotic failure detection. arXiv preprint arXiv:2412.04455, 2024. 2
+
+# Appendix
+
+This supplementary material provides more details of the proposed method and experiment results that are omitted from the manuscript due to the page limit. Sec. A presentsAffordance for Ta additional details of the models and training strategies.[Add coffee to the Sec. B presents details of training dataset. Sec. C complements more experiment results and analysis. Sec. D shows more visualization results to prove the effectiveness of RoboBrain. Sec. E introduces more details about the construction of ShareRobot dataset. Sec. F discusses potentialAffordance for Ta future research directions for RoboBrain.
+
+# A. Details of Models and Training
+
+Model Setting. RoboBrain is built upon the LLaVA [48] framework and consists of three main components: the visual encoder, projector, and large language model (LLM).
+
+For the visual encoder, we utilized the SigLIP [92] model, specifically the siglip- $\mathbf { s o 4 0 0 m }$ -patch14-384, which is pre-trained on WebLi [15] at a resolution of $3 8 4 \mathrm { x } 3 8 4$ . The SigLIP model improves upon traditional CLIP [28, 70] architectures by employing a sigmoid loss function that operates solely on image-text pairs, eliminating the need for global normalization of pairwise similarities. This enhancement allows for more efficient scaling of batch sizes while maintaining performance, even at smaller scales. SigLIP has 27 hidden layers and processes input images using patches of size 14x14, resulting in 729 visual tokens per image. The projector consists of a two-layer MLP [44] that projects the visual tokens obtained from the visual encoder to the dimensions of the text embeddings. For the LLM, we adopted the Qwen2.5-7B-Instruct [80] model, which is a state-of-the-art open-source LLM that is part of the latest Qwen series [5]. It features 28 hidden layers and supports long-context inputs of up to 128K tokens, providing multilingual capabilities across more than 29 languages.
+
+In Stage 4, we introduced LoRA [29] to train RoboBrain, enabling it to acquire affordance perception and trajectory prediction capabilities. LoRA allows for parameterefficient fine-tuning of large models by adding low-rank parameter matrices to existing layers. We incorporated LoRA modules with a rank of 64 into the feed-forward network layers of both the Projector and the LLM, freezing all parameters except those of the LoRA modules during training.
+
+Training Setting. In the main text of the paper, we employed a staged training strategy, with complete settings presented in Tab. 4. We primarily referenced the training strategy of LLaVA-Onevision [41], a state-of-the-art multimodal large language model, and built upon this foundation to expand the robotic training phase. During the entire training phase, we conducted all experiments on a cluster of servers, each equipped with $8 \times \mathsf { A } 8 0 0$ GPUs.
+
+![](images/9a2e1765737482708b869b38f3f86aa0fa716d00479a44131128e52a79944c0d.jpg)  
+Figure 7. The distribution of the entire training dataset.
+
+# B. Details of Training Dataset
+
+In the main body of the paper, we emphasize the importance of the training data and the proportion of robotic data. In this section, we will provide a detailed overview of the training data and its sources. The distribution of the entire training dataset is illustrated in Fig. 7.
+
+• LCS-558K is a subset of the LAION/CC/SBU dataset [11, 72], specifically designed as the LLaVA Visual Instruct Pretrain [48] Dataset. This dataset has been filtered to ensure a balanced distribution of concept coverage, providing diverse and representative visual content. The primary purpose of LCS-558K is to facilitate alignment between the visual encoder and the LLM, enabling the LLM to understand visual information.
+
+• Image-4M comprises 8 data sources, including 3 from the LLaVA-Recap series [40]: BLIP558K, COCO118K, and CC3M, as well as UReader [90], Instruct Azure DC [40], Evol-Instruct [13], and SynthDog [36] We utilized the download links provided by the LLaVAOneVision team for the data acquisition.
+
+• SI-3.2M [41] consists of 3.2 million samples, carefully curated to support multimodal learning. It includes subsets from existing datasets such as Cambrian [81], Cauldron [40], and UReader [90], which were subjected to cleaning and re-annotation to ensure data quality. Additionally, it incorporates single-image data from sources like AI2D [34] and OKVQA [62], alongside a newly compiled single-image collection designed to achieve a balanced and diverse dataset.
+
+Table 4. Detailed configuration for each training stage of the RoboBrain.   
+
+<table><tr><td rowspan="2" colspan="2"></td><td rowspan="2">Stage-1</td><td rowspan="2">Stage-1.5</td><td colspan="2">Stage-2</td><td rowspan="2">Stage-3</td><td colspan="2">Stage-4</td></tr><tr><td>Single-Image</td><td>OneVision</td><td>A-LoRA</td><td>T-LoRA</td></tr><tr><td></td><td>Resolution</td><td>384</td><td>Max 384× {2×2}</td><td>Max 384×{6×6}</td><td>Max 384×{6×6}</td><td>Max 384× {6×6}</td><td>Max 384× {6×6}</td><td>Max 384× {6×6}</td></tr><tr><td></td><td>#Tokens</td><td>729</td><td>Max 729×5</td><td>Max 729×37</td><td>Max 729×37</td><td>Max 729×37</td><td>Max 729×37</td><td>Max 729×37</td></tr><tr><td>20</td><td>Trainable</td><td>Projector</td><td>Full Model</td><td>Full Model</td><td>Full Model</td><td>Full Model</td><td>A-LoRA</td><td>T-LoRA</td></tr><tr><td></td><td>#Tunable Parameters</td><td>17.0M</td><td>8.0B</td><td>8.0B</td><td>8.0B</td><td>8.0B</td><td>28.0M</td><td>28.0M</td></tr><tr><td rowspan="10"></td><td>Per-device Batch Size</td><td>8</td><td>2</td><td>1</td><td>1</td><td>1</td><td>4</td><td>4</td></tr><tr><td>Gradient Accumulation</td><td>1</td><td>2</td><td>2</td><td>2</td><td>2</td><td>2</td><td>2</td></tr><tr><td>LR: ψVIT</td><td>-</td><td>2 ×10−6</td><td>2 ×10−6</td><td>2 ×10−6</td><td>2 ×10−6</td><td>2 ×10−6</td><td>2 ×10−6</td></tr><tr><td>LR: {Proj. $LLM, φLoRA}</td><td>1×10−3</td><td>1×10−5</td><td>1×10−5</td><td>1×10-5</td><td>1 ×10-5</td><td>1×10−5</td><td>1×10−5</td></tr><tr><td>Epoch</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td>Optimizer</td><td>AdamW</td><td>AdamW</td><td>AdamW</td><td>AdamW</td><td>AdamW</td><td>AdamW</td><td>AdamW</td></tr><tr><td>Deepspeed</td><td>Zero3</td><td>Zero3</td><td>Zero3</td><td>Zero3</td><td>Zero3</td><td>Zero2</td><td>Zero2</td></tr><tr><td>Weight Decay</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Warmup Ratio</td><td>0.03</td><td>0.03</td><td>0.03</td><td>0.03</td><td>0.03</td><td>0.03</td><td>0.03</td></tr><tr><td>LR Schedule</td><td>cosine</td><td>cosine</td><td>cosine</td><td>cosine</td><td>cosine</td><td>cosine</td><td>cosine</td></tr><tr><td>Projector Type</td><td>mlp2x_gelu</td><td>mlp2x_gelu</td><td>mlp2x_gelu</td><td>mlp2x_gelu</td><td>mlp2x_gelu</td><td>mlp2x_gelu</td><td>mlp2x_gelu</td></tr><tr><td>Vision Select Layer</td><td>-2</td><td>-2</td><td>-2</td><td>-2</td><td>-2</td><td>-2</td><td>-2</td></tr><tr><td>Patch Merge Type</td><td>spatial_unpad</td><td>spatial_unpad</td><td>spatial_unpad</td><td>spatial_unpad</td><td>spatial_unpad</td><td>spatial_unpad</td><td>spatial_unpad</td></tr><tr><td>Frames Upbound</td><td>-</td><td>-</td><td>-</td><td>32</td><td>32</td><td>32</td><td>32</td></tr><tr><td>Max Seq Length</td><td>8192</td><td>32768</td><td>32768</td><td>32768</td><td>32768</td><td>4096</td><td>4096</td></tr><tr><td>GPU Nums</td><td>16*8</td><td>16*8</td><td>20*8</td><td>20*8</td><td>22*8</td><td>4*8</td><td>4*8</td></tr></table>
+
+• OV-1.6M [41] comprises 1.6 million samples, which includes approximately 800K high-quality samples resampled from earlier SI-3.2M datasets with a data replay strategy, ensuring improved data reliability and relevance. Additionally, the dataset incorporates M4-Instruct data to enrich instructional learning tasks. A significant component of OV-1.6M is its video data, which has been released alongside LLaVA-video data. The video subset used in the dataset is specifically aligned with the previous annotation format, providing a diverse multimodal resource for advancing vision-language learning.
+
+• RoboVQA-800K [73] consists of realistic data gathered from various user requests, utilizing different embodiments including robots, humans, and humans equipped with grasping tools. The dataset features 5,246 longhorizon episodes and 92,948 medium-horizon episodes of robotic tasks, with each episode accompanied by corresponding image and text prompt inputs. The primary purpose of RoboVQA-800K is to enhance RoboBrain’s reasoning capabilities in robotic-related scenarios.
+
+• ScanView-318K totals 318K samples, which integrates data from several high-quality sources, including MMScan-224K [59], 3RScan-43K [83], ScanQA25K [4], and SQA3D-26K [60], each contributing unique strengths. MMScan-224K provides multimodal scene data with detailed annotations, such as object segmentation and textual descriptions. 3RScan-43K offers 3D reconstructions and semantic annotation. ScanQA-25K includes question-answer pairs based on 3D scanned environments. SQA3D-26K focuses on spatial question answering. Together, these datasets provide diverse scenescanning image data, long video sequences, and highresolution samples, equipping models with fine-grained environmental perception and reasoning abilities.
+
+# C. Complementary Experiments
+
+In this section, we present the complete experiments and results that are omitted from the manuscript due to page limitations. This includes an exploration of the impact of incorporating ShareRobot on training, the effects of varying proportions of robotic data in the training dataset, and more comprehensive results comparing RoboBrain with the baselines on both general and robotic benchmarks.
+
+Additionally, we explore the impact of different architectures and pre-trained MLLMs, as well as different LLM backbones on our experimental results. We also conduct ablation studies at various stages to meticulously analyze the contributions of each stage to overall performance.
+
+# C.1. More Results on General Benchmarks
+
+To evaluate performance on general tasks in real-world scenarios, as is commonly done with MLLMs [2, 16, 44, 68, 86], we conducted experiments using a diverse set of image benchmarks summarized in Table 5. We leveraged the comprehensive evaluation toolkit, LMMs-Eval[95, 97], to evaluate RoboBrain’s performance on general benchmarks. These benchmarks are categorized into three classes:
+
+• Chart, Diagram, and Document Understanding. As key visual formats for structured OCR data, benchmarks such as AI2D [34], ChartQA [63], DocVQA [64], and
+
+Table 5. Performance comparison on multiple general benchmarks.   
+
+<table><tr><td>Dataset</td><td>Split</td><td>RoboBrain (Ours)</td><td>GPT-4V [2]</td><td>LLaVA-OV-7B [44]</td><td>InternVL2-8B [16]</td><td>Qwen2-VL-7B [86]</td><td>GPT-4o [68]</td></tr><tr><td>A12D[34]</td><td>test</td><td>82.03</td><td>78.2</td><td>81.4</td><td>83.8</td><td>-</td><td>94.2</td></tr><tr><td>ChartQA[63]</td><td>test</td><td>80.48</td><td>78.5</td><td>80</td><td>83.3</td><td>83</td><td>85.7</td></tr><tr><td>DocVQA[64]</td><td>test</td><td>88</td><td>88.4</td><td>87.5</td><td>91.6</td><td>94.5</td><td>92.8</td></tr><tr><td>TextVQA[74]</td><td>val</td><td>75.85</td><td>-</td><td>71.07</td><td>77.4</td><td>84.3</td><td>-</td></tr><tr><td>MMMU[91]</td><td>val</td><td>49</td><td>56.8</td><td>48.8</td><td>51.8</td><td>54.1</td><td>69.1</td></tr><tr><td>MMStar[14]</td><td>test</td><td>61.23</td><td>57.1</td><td>61.7</td><td>61.5</td><td>60.7</td><td>63.9</td></tr><tr><td>OCRBench[53]</td><td>-</td><td>677</td><td>656</td><td>697</td><td>794</td><td>845</td><td>805</td></tr><tr><td>RealWorldQA[88]</td><td>test</td><td>68.89</td><td>61.4</td><td>66.3</td><td>64.4</td><td>70.1</td><td>58.6</td></tr><tr><td>SeedBench[39]</td><td>image</td><td>71.03</td><td>49.9</td><td>75.4</td><td>76.2</td><td>-</td><td>76.2</td></tr><tr><td>MMbench[55]</td><td>en-dev</td><td>81.52</td><td>81.3</td><td>83.2</td><td>-</td><td>-</td><td>83.4</td></tr><tr><td>MMbench[55]</td><td>en-test</td><td>80.44</td><td>75</td><td>80.8</td><td>81.7</td><td>83</td><td>-</td></tr><tr><td>MME[23]</td><td>test</td><td>2084</td><td>1926</td><td>1998</td><td>2210</td><td>2327</td><td>-</td></tr></table>
+
+OCRBench [53] were utilized. Open-source models like InternVL2-8B [16] and LLAVA-OV-7B [44] have demonstrated comparable performance to closed-source models such as GPT-4V [2]. For RoboBrain, despite being optimized primarily for multidimensional robotic tasks, it surpasses LLAVA-OV-7B [44] and GPT-4V [2] on these benchmarks, achieving a significant improvement in structured OCR tasks, with the only exceptions being DocVQA [64], where it performs slightly lower than GPT-4V [2], and OCRBench [53], where it falls slightly behind LLAVA-OV-7B [44].
+
+• Visual Perception and Multi-domain Reasoning. This category focuses on complex visual perception and multidisciplinary reasoning tasks. Benchmarks for visual perception include MMStar [14], MMBench [55], and MME [23], while reasoning benchmarks include MMMU [91] and SeedBench [39]. RoboBrain demonstrates comparable performance to GPT-4V [2] and LLAVA-OV-7B [44] across multiple benchmarks.
+
+• Real-world Understanding and Interaction. Evaluating MLLMs [2, 16, 44, 68, 86] as general-purpose assistants in real-world settings is crucial, as these scenarios extend beyond controlled environments. For this, the RealworldQA [88] benchmark was utilized. Results indicate that RoboBrain not only outperforms open-source models like LLAVA-OV-7B [44] and InternVL2-8B [16], but also exceeds closed-source models such as GPT-4V [2] and GPT-4o [68], showcasing its extensive knowledge base and strong generalization capabilities.
+
+# C.2. More Results on Robotic Benchmarks.
+
+To evaluate RoboBrain’s performance on robotic capabilities in real-world scenarios, we selected RoboVQA [73], OpenEQA [61], and the test set of ShareRobot, extracted from the proposed ShareRobot dataset, as robotic benchmarks for multi-dimensional assessment, as shown in Table 6. The chosen baselines include MLLMs such as GPT4V [2], LLaVA-OV-7B [44], and Qwen2-VL-7B [86], as well as robotic models like RoboMamba [50]. Detailed descriptions of the three selected robotic benchmarks and the analysis of each results are provided below:
+
+• RoboVQA [73] provides a robotics VQA benchmark and a long-horizon planning benchmark with an intervention mechanism on real robots. Specifically, this benchmark includes 18,248 video-text pairs designed from 100 long-horizon episodes for various robotic VQA tasks, including planning, planning with context, planning remaining steps, future prediction, generative affordance, past description, success (positive/negative), and discriminative affordance (positive/negative). Similar to RoboMamba [50], we utilized BLEU- $1 \sim$ BLEU-4 to evaluate the average performance across all tasks. According to the evaluation results, our proposed model, RoboBrain, outperforms all baselines, achieving approximately $30 \%$ higher performance than the second-best model.
+
+• OpenEQA [61] provides a robotics VQA benchmark with over 1,600 high-quality human-generated questions drawn from more than 180 real-world scenes, targeting the task of Embodied Question Answering (EQA) for environment understanding. For fairness, we evaluated all models using the prompt templates and the LLM-Score metric provided by OpenEQA [61]. Based on the evaluation results, our proposed model, RoboBrain, outperforms GPT-4V [2] overall and achieves comparable performance to other baselines. In the future, we plan to further enhance RoboBrain’s spatial intelligence to improve its generalization across scenes.
+
+• ShareRobot (Eval) provides a cross-scene and crossembodiment robotics benchmark consisting of 2,050 VQA pairs, drawn from 102 diverse scenes (e.g., bedroom, laboratory, kitchen, office) and covering 12 different robot bodies. Similar to RoboVQA [73], we categorized various robotic VQA tasks into planning, planning with context, planning remaining steps, future prediction, generative affordance, past description, success (positive/negative), and discriminative affordance (positive/negative). Unlike RoboVQA benchmark [73], we utilized GPT-4o [68] to score the evaluation results instead of BLEU metrics for each task, aiming for more accurate performance assessment. Based on the results, our proposed model, RoboBrain, outperforms all baselines, demonstrating its exceptional planning capabilities across diverse scenes and embodiments.
+
+Table 6. Performance comparison on RoboVQA, OpenEQA and ShareRobot Benchmarks.   
+
+<table><tr><td>Dataset</td><td>Split / Metric</td><td>RoboBrain (Ours)</td><td>GPT-4V [2]</td><td>LLaVA-OV-7B [44]</td><td>RoboMamba [50]</td><td>Qwen2-VL-7B [86]</td></tr><tr><td rowspan="4">RoboVQA[73]</td><td>BLEU1</td><td>72.05</td><td>32.23</td><td>38.12</td><td>54.9</td><td>33.22</td></tr><tr><td>BLEU2</td><td>65.35</td><td>26.51</td><td>33.56</td><td>44.2</td><td>26.11</td></tr><tr><td>BLEU3</td><td>59.39</td><td>24.65</td><td>31.76</td><td>39.5</td><td>20.98</td></tr><tr><td>BLEU4</td><td>55.05</td><td>23.94</td><td>30.97</td><td>36.3</td><td>17.37</td></tr><tr><td rowspan="7">OpenEQA[61]</td><td>OBJECT-STATE-RECOGNITION</td><td>70.4</td><td>63.2</td><td>72.02</td><td></td><td>72.06</td></tr><tr><td>OBJECT-RECOGNITION</td><td>49.54</td><td>43.4</td><td>51.73</td><td>- -</td><td>61.91</td></tr><tr><td>FUNCTIONAL-REASONING</td><td>57.14</td><td>57.4</td><td>55.53</td><td></td><td>54.23</td></tr><tr><td>SPATIAL-UNDERSTANDING</td><td>46.46</td><td>33.6</td><td>48.98</td><td></td><td>50.39</td></tr><tr><td>ATTRIBUTE-RECOGNITION</td><td>66.7</td><td>57.2</td><td>75.52</td><td></td><td>73.88</td></tr><tr><td>WORLD-KNOWLEDGE</td><td>53.12</td><td>50.7</td><td>56.46</td><td></td><td>57.3</td></tr><tr><td>OBJECT-LOCALIZATION</td><td>47.45</td><td>42</td><td>45.25</td><td></td><td>47.29</td></tr><tr><td rowspan="8">ShareRobot (Eval)</td><td>DISCRIMINATIVE</td><td>99.02</td><td></td><td></td><td></td><td></td></tr><tr><td>FUTURE-PREDICTION</td><td>72.92</td><td></td><td>57.9</td><td></td><td>76.47</td></tr><tr><td>GENERATIVE</td><td>32.43</td><td></td><td>13.1</td><td></td><td>8.04</td></tr><tr><td>PAST-DESCRIPTION</td><td>37.07</td><td></td><td>5.44 4.4</td><td></td><td>4.63</td></tr><tr><td>PLANNING-REMAINING</td><td>71.29</td><td></td><td>24.5</td><td></td><td>13.65</td></tr><tr><td>PLANNING-TASK</td><td>52.43</td><td></td><td>25</td><td></td><td>7.56 36.34</td></tr><tr><td>PLANNING-WITH</td><td>91.95</td><td></td><td>44.25</td><td></td><td></td></tr><tr><td>SUCCESS</td><td>61.7</td><td></td><td>58.5</td><td></td><td>45.12 54.63</td></tr></table>
+
+# C.3. Effectiveness of ShareRobot
+
+In this subsection, we investigate the effectiveness of the proposed ShareRobot dataset for training RoboBrain. We maintain the ratio of robotic data to general data used in the main body of the paper, approximately 4:6. Based on the original data source proportions, we randomly sampled 200K samples, which include:
+
+• Exp A consists of $40 \%$ robotic data, with $20 \%$ sourced from ShareRobot and $20 \%$ from other robotic sources, along with $60 \%$ general data. • Exp B consists of $40 \%$ robotic data, excluding ShareRobot, with the same other robotic data resampled as in Experiment A, resulting in a total of $40 \%$ . It also includes $60 \%$ general data, which is identical to that of Exp A.
+
+We conducted a complete epoch for all the experiments mentioned above. The results are presented in Tab 7.
+
+As shown in the table, the inclusion of ShareRobot data enhances the model’s performance compared to scenarios without ShareRobot. This highlights ShareRobot’s key role in enhancing RoboBrain’s planning capabilities.
+
+# C.4. Effectiveness of Robot Data Proportion
+
+In this subsection, we investigate the effectiveness of the ratio of robotic data (including ShareRobot) to general data used in training RoboBrain. We maintain a constant total training dataset size of 200K while varying the sampling proportions of robotic and general data. The configurations are as follows:
+
+• Exp C utilizes a ratio of 3:7, comprising $30 \%$ robotic data and $70 \%$ general data.   
+• Exp D utilizes a ratio of 4:6, comprising $40 \%$ robotic data and $60 \%$ general data, same to Exp A.   
+• Exp E utilizes a ratio of 5:5, with $50 \%$ robotic data and $50 \%$ general data.   
+• Exp F utilizes a ratio of 6:4, featuring $60 \%$ robotic data   
+and $40 \%$ general data.   
+• Exp G utilizes a ratio of 7:3, containing $70 \%$ robotic data and $30 \%$ general data.
+
+We conducted a complete epoch for all the experiments mentioned above. The results are presented in Tab 7. As shown in the table, a 4:6 ratio of robotic data is an effective choice for training, balancing performance on both the robotic and general benchmarks.
+
+Table 7. EExperimental results demonstrating the effectiveness of different task types. Type-1 refers to Chart, Diagram, and Document Understanding; Type-2 pertains to Visual Perception and Multi-domain Reasoning; Type-3 encompasses Real-world Understanding and Interaction. For detailed task descriptions, please refer to C.1.   
+
+<table><tr><td rowspan="2">Exp. Name</td><td>General Data (%)</td><td colspan="2">Robotic Data (%)</td><td colspan="3">General Benchmarks</td><td colspan="3">Robotic Benchmarks</td><td rowspan="2">Average</td></tr><tr><td>OneVision</td><td>ShareRobot</td><td>Others</td><td>Type-1</td><td>Type-2</td><td>Type-3</td><td>RoboVQA[73]</td><td>OpenEQA[61]</td><td>ShareRobot</td></tr><tr><td>EXP A</td><td>60%</td><td>20%</td><td>20%</td><td>62.44</td><td>71.98</td><td>70.33</td><td>48.29</td><td>58.74</td><td>63.11</td><td>62.48</td></tr><tr><td>EXP B</td><td>60%</td><td>0%</td><td>40%</td><td>62.36</td><td>71.38</td><td>66.01</td><td>49.20</td><td>57.96</td><td>27.03</td><td>55.66</td></tr><tr><td>EXP C</td><td>70%</td><td>15%</td><td>15%</td><td>62.73</td><td>72.19</td><td>68.10</td><td>45.96</td><td>56.59</td><td>61.73</td><td>61.22</td></tr><tr><td>EXP D</td><td>60%</td><td>20%</td><td>20%</td><td>62.44</td><td>71.98</td><td>70.33</td><td>48.29</td><td>58.74</td><td>63.11</td><td>62.48</td></tr><tr><td>EXPE</td><td>50%</td><td>25%</td><td>25%</td><td>62.28</td><td>71.25</td><td>66.54</td><td>49.34</td><td>58.76</td><td>63.35</td><td>61.92</td></tr><tr><td>EXP F</td><td>40%</td><td>30%</td><td>30%</td><td>62.39</td><td>71.61</td><td>68.37</td><td>49.22</td><td>56.24</td><td>64.57</td><td>62.07</td></tr><tr><td>EXP G</td><td>30%</td><td>35%</td><td>35%</td><td>62.69</td><td>71.92</td><td>69.54</td><td>47.74</td><td>55.72</td><td>65.22</td><td>62.14</td></tr></table>
+
+Table 8. Additional Experimental Results. “SFT Data (G:R)” indicates the ratio of training data for fine-tuning MLLMs, where “G” represents general VQA data and “R” denotes robot data (with half being ShareRobot). The total dataset size is 1.47M.   
+
+<table><tr><td>Model</td><td>SFT Data(G:R)</td><td>RoboVQA</td><td>ShareRobot</td><td>MME</td><td>MMMU</td></tr><tr><td rowspan="4">LLaVA-OV-7b (a) Qwen2VL-7B</td><td>6:0</td><td>36.29</td><td>27.04</td><td>2001</td><td>49.65</td></tr><tr><td>6:4</td><td>43.63</td><td>54.66</td><td>1945</td><td>48.83</td></tr><tr><td>6:0</td><td>24.05</td><td>28.17</td><td>2313</td><td>52.10</td></tr><tr><td>6:4</td><td>58.94</td><td>58.86</td><td>2295</td><td>52.33</td></tr><tr><td rowspan="2">OpenVLA-7B</td><td>6:0</td><td>4.11</td><td>21.44</td><td>1681</td><td>35.07</td></tr><tr><td>6:4</td><td>54.79</td><td>60.56</td><td>1722</td><td>37.25</td></tr><tr><td rowspan="2">LLaVA1.5-Qwen</td><td>6:0</td><td>24.17</td><td>26.73</td><td>1720</td><td>44.28</td></tr><tr><td>6:4</td><td>49.01</td><td>43.41</td><td>1732</td><td>48.33</td></tr><tr><td rowspan="2">LLaVA1.5-LLaMA (b)</td><td>6:0</td><td>21.40</td><td>25.06</td><td>1529</td><td>46.40</td></tr><tr><td>6:4</td><td>49.67</td><td>54.87</td><td>1722</td><td>43.41</td></tr><tr><td rowspan="2">LLaVA1.5-Vicuna</td><td>6:0</td><td>26.19</td><td>22.18</td><td>1668</td><td>30.09</td></tr><tr><td>6:4</td><td>50.40</td><td>51.42</td><td>1650</td><td>31.51</td></tr><tr><td rowspan="2">LLaVA1.5-Mistral</td><td>6:0</td><td>14.30</td><td>21.88</td><td>1602</td><td>23.91</td></tr><tr><td>6:4</td><td>36.29</td><td>57.47</td><td>1548</td><td>24.32</td></tr></table>
+
+# C.5. Different Architecture and MLLMs
+
+To validate the effectiveness of different architecture and pre-trained MLLMs and training data in the stage 3 training setup, we selected LLaVA-OV-7B [41], OpenVLA-7B [37], and Qwen2VL-7B [86], each representing a distinct architecture among MLLMs, and conducted supervised finetuning (SFT) using the same proportion of training data described in the main text. As shown in Tab. 8 (a), the results demonstrated that incorporating ShareRobot can significant performance improvements. For unaligned MLLMs such as LLaVA 1.5 [46] and OpenVLA, we first aligned the MLP using BLIP-558k [40] before fine-tuning. In contrast, other models that already have aligned vision encoder and LLM were directly fine-tuned.
+
+# C.6. Different LLM Backbones
+
+To demonstrate the effectiveness of different LLM backbones when fine-tuned on the ShareRobot dataset, we conducted experiments using four distinct LLMs [5, 17, 33, 82]. These models were fine-tuned using the ShareRobot data, and the experimental results are summarized in Tab. 8 (b).
+
+Table 9. Additional Evaluation Results. “S1.5” refers to Stage 1.5, and this notation applies similarly to other stages.   
+
+<table><tr><td>Stage</td><td>RoboVQA</td><td>ShareRobot</td><td>MME</td><td>MMMU</td><td>Affordance↑</td><td>Trajectory↓</td></tr><tr><td>S1.5</td><td>2.60</td><td>9.81</td><td>1406</td><td>46.00</td><td>0.00</td><td>1.00</td></tr><tr><td>S2-si</td><td>28.90</td><td>13.31</td><td>2110</td><td>50.76</td><td>3.11</td><td>1.00</td></tr><tr><td>S2-ov</td><td>31.81</td><td>34.84</td><td>2083</td><td>49.95</td><td>8.50</td><td>1.00</td></tr><tr><td>S3</td><td>62.96</td><td>65.05</td><td>2084</td><td>49.00</td><td>7.14</td><td>1.00</td></tr><tr><td>S4-A</td><td>62.96</td><td>65.05</td><td>2084</td><td>49.00</td><td>27.1</td><td></td></tr><tr><td>S4-T</td><td>62.96</td><td>65.05</td><td>2084</td><td>49.00</td><td>-</td><td>0.09</td></tr></table>
+
+The findings indicate that different LLMs benefit from the ShareRobot data.
+
+# C.7. Ablation Studies of Different Stages
+
+We present the evaluation results for each stage in Tab. 9. The results demonstrate that staged training from stage 1 to stage 3 consistently and effectively improves the model’s planning performance, while stage 4 enhances the model’s affordance and trajectory capabilities.
+
+# D. More Qualitative Results
+
+In this section, we provide additional visual results for planning, affordance perception, and trajectory prediction. This includes the presentation of both positive and negative samples, as well as further analysis.
+
+# D.1. Visualization on Planning
+
+Here, we present additional embodied planning for robotic tasks generated by RoboBrain, as shown in Fig. 8. In this figure, we demonstrate the planning results of RoboBrain for four distinct robotic manipulation tasks: ”Water plants”, ”Put the pot in the drawer”, ”Cluster blocks of the same color into different corners”, and ”Clean the desk”, where the first three are categorized as good cases, and the last one as a bad case. Additionally, the model provides a rationale and detailed explanation for each step of the planning process across all four cases.
+
+From the first three planning cases, it is evident that RoboBrain effectively utilizes environmental information and the states of interactive objects—captured from firstor third-person perspective images—to generate task plans for various types of robotic manipulation tasks. Notably, in the ”Cluster blocks of the same color into different corners” task, RoboBrain not only analyzes the number of blocks of each color on the table in Steps 1 and 2 but also provides detailed sub-steps in Step 3, i.e., ”Move the objects to form clusters”. Specifically, it plans the movement of blocks of four different colors to their designated locations: ”top left corner”, ”top right corner”, ”bottom left corner”, and ”bottom right corner”. The exceptional task generalization capability of RoboBrain in planning further validates the effectiveness of our training dataset—including the proposed ShareRobot dataset—and the Multi-Phase training strategy.
+
+We also present a bad case for RoboBrain, namely the ”Clean the desk” task. In this case, the first-person perspective image depicts a work desk spilled with coffee, where the main objects of focus include a ”tissue box”, a ”tippedover coffee cup”, and the ”spilled coffee liquid”. The errors in the planning results inferred by RoboBrain are summarized as follows: (1) Object recognition error. The only available object for wiping the desk in the image is a ”tissue”, rather than a ”disinfectant wipe”. (2) Omission of critical steps. Before wiping the desk, it is necessary to extract a tissue from the tissue box. However, this step is missing in RoboBrain’s planning. (3) Action decision deviation. In Step 2, i.e., ”Wipe down the desk with a disinfectant wipe”, the detailed description states, ”Start from one end of the desk and move to the other”. This implies that RoboBrain fails to prioritize wiping the ”spilled coffee liquid” specifically, focusing instead on cleaning ”the entire desk”. The primary cause might be the similarity in color between the desk and the spilled coffee, making it difficult for the model to distinguish.
+
+In our extensive testing, although a small number of unreasonable bad cases like the one described above were observed, RoboBrain demonstrated robust planning capabilities in the vast majority of cases. This provides a solid foundation for executing long-horizon manipulation tasks.
+
+# D.2. Visualization on Affordance
+
+Here, we present the visualizations of RoboBrain’s perception of affordance areas, as shown in Fig.9. The text below each subfigure indicates the task instructions, while the red bounding boxes represent the affordance areas predicted by the RoboBrain model. The visualizations in the first three rows demonstrate that our RoboBrain model can effectively provide reasonable affordance areas based on human instructions and visual information. For example, given the instruction “drink with the bottle”, RoboBrain can determine that the bottle cap is in a closed state, thus providing affordance information for the cap area. This highlights RoboBrain’s strong understanding of abstract instructions.
+
+We also present several failure cases, as illustrated in the fourth row of Fig.9. These include misidentified objects, interference from other objects in the scene, and instances where no objects were recognized. These issues may stem from the model’s limited ability to perceive and localize in noisy environments.
+
+# D.3. Visualization on Trajectory
+
+Here, we present additional visualizations generated by RoboBrain using start points, as shown in Fig.10. In this figure, the red-to-purple gradient curves represent the ground truth, while the green-to-blue gradient curves indicate the predicted trajectories. For clarity, waypoints are omitted. The first three rows demonstrate that, regardless of the complexity of the end-effector trajectory, RoboBrain accurately predicts 2D trajectories based on visual observations and task instructions. These predictions closely align with the structure of the ground truth and remain executable.
+
+Additionally, RoboBrain’s predictions often capture the essential features of the trajectories, leading to smoother and potentially more efficient paths compared to the ground truth. This improvement may stem from the inherent variability in the robot’s actual trajectories, which can include redundant waypoints under similar manipulation scenarios. By learning from a large, embodied dataset and utilizing the reasoning capabilities of large language models, RoboBrain is able to infer effective and optimized execution paths.
+
+The visualizations in the third row further suggest that RoboBrain avoids overfitting; it generalizes well across different scenarios, producing trajectories that are both executable and reasonable.
+
+We also present several failure cases, as shown in the fourth row of Fig. 10. These include the robot’s end-effector failing to accurately locate the cup, neglecting the articulated nature of the fridge door while opening it, and not accounting for the deformable properties of clothing during folding. These examples highlight the need for improved spatial perception, as well as the incorporation of objectspecific physical constraints and world knowledge to generate more feasible and realistic trajectories.
+
+# E. Details of ShareRobot Dataset
+
+In the previous section, we introduced the process of collecting and annotating our ShareRobot dataset. Here, we will provide detailed prompts for data labeling and templates used during data generation. Additionally, we will display some high-level descriptions and low-level instructions examples.
+
+# E.1. Prompts
+
+The prompts we used for Gemini [78] in data labeling are shown in Fig.11.
+
+# E.2. Templates of Question Types
+
+In the process of planning data generation, the templates used to generate question-answer pairs are shown in Fig.12.
+
+# E.3. High-level Descriptions Examples
+
+Our ShareRobot dataset contains 10,290 long-horizon highlevel descriptions. Below, we present the 40 most frequently occurring ones.
+
+• Closing a drawer   
+• Opening a drawer   
+• Opening a cabinet door   
+• Dragging a strainer across a table   
+• Picking up a bowl   
+• Inserting a three-pronged object into its matching slot   
+• Inserting a double-square object into its matching slot   
+• Opening a door   
+• Closing a cabinet door   
+• Inserting a star-shaped object into its corresponding slot   
+• Opening a laptop   
+• Inserting an oval object into its corresponding slot   
+• Picking up a ketchup bottle from a table   
+• Moving a banana from a plate to a table   
+• Closing a door   
+• Switching a light switch   
+• Inserting an arch-shaped object into its corresponding slot   
+• Inserting a square-circle object into its matching slot   
+• Dragging a strainer backwards   
+• Dragging a mug from left to right   
+• Dragging a mug forward   
+• Picking up a red object from a table   
+• Placing a ketchup bottle onto a plate   
+• Placing a bowl inside an oven   
+• Inserting a hexagonal object into its corresponding slot   
+• Closing a microwave door   
+• Moving a banana from a table to a plate   
+• Turning on a toaster   
+• Opening a microwave   
+• Closing an oven door   
+• Making tea   
+• Dragging a strainer forward   
+• Placing a bowl into an oven   
+• Picking up a banana and placing it in a mug   
+• Inserting an arch-shaped object into its matching slot   
+• Closing a tea container   
+• Inserting a green object into a designated slot   
+• Picking up a banana and placing it in a strainer   
+• Moving a cloth to the left side of a table   
+• Dragging a mug backwards
+
+# E.4. Low-level Instructions Examples
+
+Our ShareRobot dataset contains 28,181 low-level instructions, with the top 40 occurrences displayed below.
+
+• Grasp the ketchup bottle   
+• Reach for the ketchup bottle   
+• Grasp the banana   
+• Lift the ketchup bottle   
+• Lift the banana   
+• Reach for the strainer   
+• Reach for the banana   
+• Reach for the mug   
+• Grasp the mug   
+• Lift the pot   
+• Lift the bowl   
+• Pull the drawer open   
+• Reach for the bowl   
+• Reach for the pot   
+• Grasp the strainer   
+• Reach for the drawer handle   
+• Grasp the handle   
+• Lift the spoon   
+• Grasp the bowl   
+• Reach for the spoon   
+• Place the ketchup bottle on the table   
+• Release the banana   
+• Reach the drawer   
+• Place the banana on the table   
+• Lift the mug   
+• Reach the cabinet door   
+• Grasp the pot   
+• Grasp the strainer   
+• Grasp the drawer handle   
+• Release the mug   
+• Grasp the pot   
+• Grasp the spoon   
+• Place the mug down   
+• Move the banana towards the table   
+• Grasp the bowl   
+• Pull the drawer closed   
+• Move towards the bowl   
+• Reach for the cloth   
+• Release the pot   
+• Grasp the bottle
+
+# F. Future Work
+
+In future research, we aim to enhance various capabilities of RoboBrain, including spatial understanding [43, 89], embodied reasoning [24, 77, 96], tool utilization [51, 85], and long-text comprehension [27, 75, 79]. We will ensure that these capabilities are effectively integrated into downstream action models for application in real-world scenarios. Moreover, we will consider the issues of model efficiency [10, 50] and safety [32, 52, 56, 94], as constructing a RoboBrain that is both efficient in reasoning and secure will be a focal point of our future research.
+
+# 8\*8
+
+![](images/b2be7365536013a1c3b8406e3a23039baff060714e96f73879c1d942afe2eb5c.jpg)
+
+i your plan an explaii detai us he ollia: Step Ste.
+
+Moe pot plan Mor e t pneht e ro. firm grip on the handle for better control while watering.   
+Wa . W   p the bas the planaking sur ache l res wihout caus ay wate  spill ut  e po.   
+aaa securely so it doesn't tip over or cause any damage.   
+S Move away from the plants. Se away rom he plants avoid any accidental damage while ovin
+
+# (a) Embodied planning for Task [Water plants].
+
+# 88
+
+![](images/5482ba602f951f32ac1878e889d83b6a759a7459200e85383897c3702ca325b4.jpg)
+
+l   p
+
+Se Movtowars the pot on the countr.Mov heoboi a twars the pot that plac e counter next to the sink. The arm should move in a straight line towards the pot.   
+hold the pot securely to avoid dropping it.   
+S Move he pot towards the rawer. Mov he ottards he edrawer belowhe conter.e should move in a smooth motion, keeping the pot close to the body for stability.   
+the pot is fully inside the drawer and not touching the edges or the lid.   
+clonallyani l o.   
+Movway fom heraw. ovheboa wayomraple sk should move back to its original position or to a designated safe area.
+
+# (b) Embodied planning for Task [Put the pot in the drawer].
+
+# 8\*8
+
+pls Csboc Step1: xxxIn Step2: xxxIn ...In
+
+![](images/ba3e377517fb822702c8d1200421892d1ccf50cc132ecb8c5759cf54a68a7bc6.jpg)
+
+e he hloGebecbe e Red shapes: [red shape, red shape] - Yellow shapes: [yellow shape, yellow shape]
+
+# Step3: Move the objects to form clusters.
+
+- Place all green cubes next to each other in the top left corner.   
+- Place all blue cubes next to each other in the top right corner.   
+- Place all red shapes next to each other in the bottom left corner.   
+- Placell yellow shapes next to each other in the bottom right corner.
+
+SteVery ecusters. Check that eaccluser contaisyjec the sam.
+
+# (c) Embodied planning for Task [Cluster blocks of the same color into different corners].
+
+![](images/1691b936130966e084834d3f4c40e06d5158c8f7c282274f260ed8880105c075.jpg)
+
+# 888
+
+ee e helnsk a pW  la xple e te  Ste
+
+StpMove he cofe pe atn. Make ukeee cway ome. SteWipedown the desk wita isectant wipar romne es dmovh. uunn dust may have accumulated.   
+ties to secure them.   
+he them away.
+
+![](images/70faa2a9f80334b25887ea8490729a676649d6c6989cf2f099c785c3e055edc6.jpg)
+
+(d) Embodied planning for Task [Clean the desk].
+
+Figure 8. Additional embodied planning of RoboBrain. (a) $\sim$ (c) show some good cases of RoboBrain’s embodied planning, while (d) shows its bad case. More detailed analysis can be found in Sec.D.1.
+
+![](images/dc5e92692b5768600568601419e574760dd45723b48fd40ed49577ff14941436.jpg)  
+that our RoboBrain model effectively identifies reasonable affordance areas based on human instructions and visual information. The fourth row presents several failure cases, which may stem from the model’s lack of ability to perceive and localize in noisy environments. This limitation could be attributed to the absence of such scenarios in the training data used during Stage 4. The complete prompt provided to RoboBrain is: ”You are a Franka robot using joint control. The task is $\$ 123,456$ . Please predict all possible affordance areas of the end effector.” Here, $\$ 123,456$ represents specific task instructions, such as ”drink with the cup.”
+
+![](images/eb6408d929ec2994d6a6172c4fe7d25a1f61cf69a9c1eeaa53cd52107d436aae.jpg)
+
+![](images/7eb5ddbc19c2bf650a13903891d945cbfbc049b531faa373398c71a145bf835c.jpg)
+
+![](images/c7b8a90d5b6f8acb49d6c2c025183929414e6cff3ab6b06b29540937ecca9144.jpg)  
+open bottom drawer
+
+![](images/40324b4d8354f297ddea2c168e23d0d54cf15531ac9dd673645894aca67c9af8.jpg)  
+place green rice chip bag into top drawer
+
+![](images/93be4f8eb914e4510cc04fa1be0aad6bafc339f5d4d84a5b21fda3bc7bdf0db4.jpg)  
+make a piece of toast with the oven   
+Pick up a white plate, and then place it on the red plate
+
+![](images/ec5a351ae162d05efc7e5131f3fb74150729250da7a4796067e160accf2d81ba.jpg)
+
+![](images/2d5c10e6cce37792aa8580d0b5fbff29b89618e168162f2c79b63e18b9376557.jpg)  
+pick sponge from middle drawer and place on counter
+
+![](images/51f5f9247de53874bc6cbab333912e117bb4db7f20c44705e3bf779cb31f218a.jpg)  
+make a cup of coffee with keurig machine   
+place green cube on table
+
+![](images/ba2506c23db58badb1a7191b0785b2da4b9be2b7a8a68a82170dd19f23d02c61.jpg)  
+pick up the blue cup and put it into the brown cup   
+place green rice chip bag into top drawer
+
+![](images/7f3a4bf00344118f3f0fd063a2cdf6db3425b8f594d174dbb87420397f71081f.jpg)  
+opening the fridge
+
+Pick up the object on the table and place it in the cup
+
+![](images/6324dc90cbd7a7805875b83dd0bbe324761e2ea8c1c730e0a6ddfb1ee3e276a6.jpg)  
+folding a cloth   
+Figure 10. Additional visualizations of diverse 2D trajectories. The red-to-purple gradient curves represent the ground truth, while the green-to-blue gradient curves indicate the predicted trajectories. The visualizations in the first two rows demonstrate that our RoboBrain model effectively generates end-effector manipulation curves based on the robot’s observations and task instructions. The third row shows that RoboBrain is not merely fitting trajectories but also exhibits the ability to generate more reasonable and feasible curves. The fourth row presents some failure cases, which stem from a lack of spatial awareness and world knowledge. These limitations result in an inability to accurately localize the objects involved in interactions, account for physical constraints, and adapt to the variability of deformable objects.
+
+# Data Labeling Prompt with Gemini
+
+# ## Task Description
+
+You will analyze a video (represented by image frames) of a robotic arm performing a specific task. Your task is to identify the primary task during the video with the help of the referenced descrition, summarize the task and rewrite the description, extract the necessary steps to complete it, and specify the frame range for each step.
+
+# ## Target
+
+Task Identification: First, identify the main task the robotic arm is performing. This task could be a clear goal or a series of related activities (e.g., assembling furniture, repairing equipment, preparing food, etc.). Briefly describe the primary task in one sentence.
+
+Step Extraction: Once the task is identified, extract the key steps required to complete it, ensuring that each step is clearly described and logically ordered. Each step may include:
+
+- Specific actions (e.g., tightening screws, stirring mixtures, pressing buttons, etc).   
+- Frame window: Specify the start and end frame for each step (from $\setminus 0 ^ { \setminus }$ to $\cdot 2 9 ^ { \cdot }$ ).
+
+# ## Output Format
+
+Provide the task description and steps in two parts, formatted as JSON:
+
+1. Task Summary: A string summarizing the primary task in the video without mentioning the subjects - the robotic arm.
+
+2. Steps: An array where each element represents a step, containing: - step_description: A concise description of the step which the action being performed in the format of verb phrases without mentioning the subjects - the robotic arm (e.g., "Add syrup in the glass"). - start_frame: The start frame of the step (from $ { \mathrm { ~  ~ \cdot ~ } } _ { 0 }  { \mathrm { ~  ~ \cdot ~ } } _ { }$ to $\cdot _ { 2 9 }$ ). - end_frame: The end frame of the step (from $\mathbb { O }$ to $\cdot _ { 2 9 }$ ).
+
+# ## Example
+
+"task_summary": "Assembling an office desk.", "steps": [ {"step_description": "Remove all components and screws from the package.", "start_frame": 0, "end_frame": 4}, {"step_description": "Use a screwdriver to attach the legs to the tabletop.", "start_frame": 5, "end_frame": 14}, {"step_description": "Install the leg pads at the bottom.", "start_frame": 15, "end_frame": 19}, {"step_description": "Fix the support beam between the legs with screws.", "start_frame": 20, "end_frame": 28}, {"step_description": "Ensure all screws are tight and the desk is stable.", "start_frame": 29, "end_frame": 29} ]   
+}   
+Now, it’s your turn!   
+{Video} Please output the task summary and steps in the specified JSON format based on your analysis of the video.
+
+# Templates of 10 Question Types
+
+# ## Planning Task
+
+Template 1: The objective is <long-horizon>, what should be the next step to move forward? Template 2: In pursuit of achieving <long-horizon>, what's the next action to take? Template $3 :$ To reach the goal of <long-horizon>, which task should be prioritized next? Template $4 :$ Given the goal of <long-horizon>, what is the most logical next move? Template 5: With the aim of <long-horizon>, what should you focus on next?
+
+# ## Planning with Context Task
+
+Template 1: So far, you've completed these steps: 1-<task 1>, ..., n-1-<task n-1>. What's the next move to achieve the goal of <long-horizon>? Template 2: With the following steps completed: 1-<task 1>, ..., n-1-<task n-1>. What is the next logical step toward <long-horizon>? Template $3 { : }$ Considering the goal of <long-horizon>, and having done 1-<task 1>, ..., n-1-<task n-1>, what should you do next? Template $4 :$ You are working towards <long-horizon>. After completing steps 1-<task 1>, ..., n-1-<task n-1>, what's the next immediate task? Template 5: Given your progress so far (1-<task 1>, ... n-1-<task n-1>), what's the next step toward achieving <long-horizon>?
+
+# ## Planning Remaining Steps Task
+
+Template $1 \div$ With <long-horizon> as the goal and the steps 1-<task 1>, ..., n-1-<task n-1> completed, what are the next five things to do? Template $2 \div$ To work toward <long-horizon>, what are the next five steps after completing 1-<task 1>, ..., n-1-<task n-1>? Template 3: Here's what's been done so far: 1-<task 1>, ..., n-1-<task n-1>. What are the next five tasks to take toward the goal of <long-horizon>? Template $4 :$ The goal is <long-horizon>. After completing 1-<task 1>, ..., n-1-<task n-1>, what are the next five steps you should take? Template 5: Given the progress so far: 1-<task $^ { 1 > , }$ ..., n-1-<task n-1>, what's the next set of five steps to move closer to <long-horizon>?
+
+# ## Future Prediction Task
+
+Template 1: Based on the current situation, what is expected to happen after <task n-1>? Template 2: What do you think will happen after <task $\mathbf { n } { - } 1 >$ is completed? Template $3 :$ Considering the current sequence of tasks, what's likely to occur after <task n-1>? Template $4 :$ Given the context, what will most likely happen following <task n-1>? Template $5 { : }$ After <task n-1>, what's the most probable next event?
+
+# ## Success (Positive/Negative) Task
+
+Template $1 :$ Was <task $\mathbf { n } >$ completed successfully? Template $2 :$ Has <task $\mathbf { n } >$ been fully carried out? Template $3 :$ Has <task $\mathbf { n } >$ reached completion? Template 4: Was <task $\mathbf { n } >$ finalized? Template $5 { : }$ Can we say that <task $\mathbf { n } >$ was accomplished?
+
+# ## Discriminative Affordance (Positive) Task
+
+Template 1: Is <task $\mathbf { n } >$ something that can be accomplished right now? Template $2 :$ Can <task $\mathbf { n } >$ be initiated at this moment? Template 3: Is it feasible to begin <task $\mathbf { n } >$ immediately? Template $4 :$ Is now a suitable time to carry out <task n>? Template 5: Can you proceed with <task $\mathbf { n } >$ given the current conditions?
+
+# ## Discriminative Affordance (Negative) Task
+
+Template 1: Is <random task> what you're working on at the moment? Template $2 :$ Are you currently engaged in <random task>? Template 3: Is this <random task> you're focused on right now? Template $4 :$ Is this <random task> you're handling at present? Template 5: Are you doing <random task> at this very moment?
+
+# ## Generative Affordance Task
+
+Template 1: What can you do at this moment?   
+Template 2: Which task is possible to start right now?   
+Template $3 :$ Given the current situation, what action can be taken?   
+Template $4 :$ What's the next available action?   
+Template $5 { : }$ Considering the circumstances, what task can you begin now?
+
+# ## Past Description Task
+
+Template 1: What was the last task completed? Template 2: What just occurred? Template 3: What was the most recent action taken? Template $4 :$ What task did you just finish? Template 5: What happened immediately before this?
+
+Figure 12. Templates of 10 question types. We have 10 question types for planning, each with 5 different templates to ensure the diversit of our ShareRobot dataset question formulations.
