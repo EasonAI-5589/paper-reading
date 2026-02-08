@@ -24,7 +24,8 @@ MemGen 提出动态生成式隐式记忆框架：通过 RL 训练的 Memory Trig
 
 | Section | 文件 | 内容 |
 |---|---|---|
-| Abstract + §1 Introduction | [01-introduction.md](sections/01-introduction.md) | 研究动机、三种记忆范式对比、MemGen 核心思想 |
+| Abstract | [00-abstract.md](sections/00-abstract.md) | 摘要、论文定位、一句话总结 |
+| §1 Introduction | [01-introduction.md](sections/01-introduction.md) | 研究动机、三种记忆范式对比、MemGen 核心思想 |
 | §2 Related Work | [02-related-work.md](sections/02-related-work.md) | Agent Memory、Latent Computation、LLM Decoding & RL |
 | §3 Preliminary | [03-preliminary.md](sections/03-preliminary.md) | 符号定义、问题形式化、记忆调用粒度 |
 | §4 Methodology | [04-methodology.md](sections/04-methodology.md) | MemGen 完整方法：Trigger + Weaver + 检索集成 |
