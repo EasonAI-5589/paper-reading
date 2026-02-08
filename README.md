@@ -60,10 +60,10 @@ Agent 记忆机制
 
 | 论文 | 会议 | 方法特点 |
 |------|------|----------|
-| [Survey: Memory in the Age of AI Agents](./Agent-Memory/%5BSurvey%202025%5D%20Memory%20in%20the%20Age%20of%20AI%20Agents/) | Survey 2025 | **综述** - AI Agent 记忆系统全景 |
+| [Survey: Memory in the Age of AI Agents](./Agent-Memory/%5BArxiv%202512.13564%5D%20Memory%20in%20the%20Age%20of%20AI%20Agents/) | arXiv 2512.13564 | **综述** - AI Agent 记忆系统全景 |
 | [MemGen](./Agent-Memory/%5BICLR%202026%5D%20MemGen/) | ICLR 2026 | 生成式隐式记忆，推理-记忆交织，超 ExpeL/AWM 38% |
 | [Mem-T](./Agent-Memory/%5BArxiv%202601.23014%5D%20Mem-T/) | arXiv 2601.23014 | 层次化记忆数据库 + 密集化奖励训练 Memory Agent |
-| [Memory Survey](./Agent-Memory/%5BSurvey%202025%5D%20Memory%20in%20the%20Age%20of%20AI%20Agents/) | arXiv 2512.13564 | **综述** - Forms×Functions×Dynamics 三维分类框架, 400+文献 |
+| [Memory Survey](./Agent-Memory/%5BArxiv%202512.13564%5D%20Memory%20in%20the%20Age%20of%20AI%20Agents/) | arXiv 2512.13564 | **综述** - Forms×Functions×Dynamics 三维分类框架, 400+文献 |
 
 ---
 
@@ -108,7 +108,7 @@ paper-reading/
 │   └── [ICLR 2026] Pi0.6-RECAP/
 │
 ├── Agent-Memory/                    # Agent 记忆机制 (3 篇)
-│   ├── [Survey 2025] Memory in the Age of AI Agents/
+│   ├── [Arxiv 2512.13564] Memory in the Age of AI Agents/
 │   ├── [ICLR 2026] MemGen/
 │   └── [Arxiv 2601.23014] Mem-T/
 │
