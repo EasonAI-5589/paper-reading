@@ -1,93 +1,63 @@
+[← 返回 README](../README.md)
+
 # 2 Related Work
 
-> 来源: Beyond Attention or Similarity: Maximizing Conditional Diversity for Token Pruning in MLLMs
+## 📌 预览
+Related Work 涵盖三个方面：MLLM 架构及其 token 冗余问题、Visual token reduction 方法分类、DPP 的背景知识。
 
 ---
 
-> 💡 **Section 概览**: 三个方向：MLLM 的发展与视觉 token 膨胀问题、视觉 token 减少的三类方法、DPP 的背景。
+## Multimodal large language models
 
----
+The remarkable achievements of large language models (LLMs) [Touvron et al., 2023a,b, Jiang et al., 2023, Bai et al., 2023, Yang et al., 2024a, Cai et al., 2024b] have lead to a growing trend of extending their powerful reasoning capabilities to other modalities, eventually forming multimodal large language models (MLLMs) [Liu et al., 2023, Li et al., 2024a, Wang et al., 2024, Bai et al., 2025, Chen et al., 2024c, Zhu et al., 2025]. These models typically encode visual inputs as tokens to fully leverage the capabilities of LLMs. However, the sparsity of visual signals results in a significantly larger number of visual tokens compared to their textual counterparts. For example, LLaVA-1.5 [Liu et al., 2024a] converts a 336×336 image into 576 tokens, while its high-resolution variant, LLaVA-NeXT [Liu et al., 2024b], generates 2,880 tokens from an image with twice the resolution. In video understanding scenarios, LongVA [Zhang et al., 2024a] transforms 2,000 frames into over 200K visual tokens, and LongVILA [Chen et al., 2024b] can even handle up to 6,000 frames and produce an ultra-long input sequence of over 1M visual tokens, leading to enormous computational overhead. Therefore, achieving more efficient inference for MLLMs is becoming increasingly critical.
 
-## 2.1 Multimodal Large Language Models
-
-> 💡 **2.1 要点预览**: MLLM 的视觉 token 数量随分辨率和帧数爆炸式增长。
-
-These models typically encode visual inputs as tokens to fully leverage the capabilities of LLMs. However, the sparsity of visual signals results in a significantly larger number of visual tokens compared to their textual counterparts. For example, LLaVA-1.5 converts a 336×336 image into 576 tokens, while its high-resolution variant, LLaVA-NeXT, generates 2,880 tokens from an image with twice the resolution. In video understanding scenarios, LongVA transforms 2,000 frames into over 200K visual tokens, and LongVILA can even handle up to 6,000 frames and produce an ultra-long input sequence of over 1M visual tokens.
-
-> 💡 **2.1 小结**: 视觉 token 数量问题严重，高分辨率和视频场景尤甚，高效推理势在必行。
-
----
-
-## 2.2 Visual Token Reduction
-
-> 💡 **2.2 要点预览**: 三类方法各有优劣，CDPruner 要统一它们的优点。
-
-Reducing the number of input visual tokens is an effective way for MLLM inference acceleration. Some works attempt to compress visual tokens via vision-text pre-fusion, but these approaches require architectural modifications and additional training. Other works adopt a training-free approach by removing redundant visual tokens during inference, known as token pruning. These methods can be broadly categorized into three groups:
-
-**第一类：Attention-based（在 LLM 内部剪枝）**
-- FastV, PyramidDrop, SparseVLM 等
-- 用 text-visual attention 评估 token 重要性
-- 缺点：attention shift 导致剪枝不准；不兼容 FlashAttention
-
-**第二类：Vision-based（在 LLM 之前剪枝）**
-- LLaVA-Prumerge, VisionZip 等
-- 依赖 visual encoder 的特征
-- 缺点：依赖特定视觉编码器架构；不考虑用户指令
-
-**第三类：Similarity-based（基于特征相似度剪枝）**
-- DART, DivPrune 等
-- 直接根据 token 间的特征相似度去重
-- 缺点：同样不考虑用户指令
-
-> 💡 **方法分类对比**:
-> ```
-> Token Pruning 方法谱系
-> ├── 需要训练: Pre-fusion 方法 (改架构，成本高)
-> └── Training-free:
->     ├── Attention-based: FastV, PyramidDrop, SparseVLM
->     │   ├── ✅ 考虑指令相关性（通过 attention）
->     │   ├── ❌ attention shift 问题
->     │   └── ❌ 不兼容 FlashAttention
->     ├── Vision-based: LLaVA-Prumerge, VisionZip
->     │   ├── ✅ 不需要 attention score
->     │   ├── ❌ 依赖特定视觉编码器
->     │   └── ❌ 不考虑指令
->     └── Similarity-based: DART, DivPrune
->         ├── ✅ 保证多样性
->         ├── ✅ Model-agnostic
->         └── ❌ 不考虑指令
-> ```
-
----
-
-## 2.3 Determinantal Point Process
-
-> 💡 **2.3 要点预览**: DPP 的物理起源和在多样性建模中的应用。
-
-DPP was first introduced to describe the distribution of fermion systems in thermal equilibrium, where no two fermions can occupy the same quantum state, resulting in an "anti-bunching" effect that can be interpreted as diversity. Later, DPPs have been widely adopted in list-wise diversity modeling across various domains. Unlike MaxMin Diversity Problem (MMDP), which also aims to maximize diversity, DPP emphasizes global diversity and typically yields more balanced and representative subset selections.
-
-> 💡 **DPP vs MMDP（大白话）**:
-> ```
-> MMDP（DivPrune 用的）:
->   目标：最大化被选 token 之间的最小距离
->   问题：过度关注极端情况，可能忽略整体分布
->   类比：选人时只保证最不像的两个人尽可能不同
+> 💡 **MLLM token 数量一览**:
+> | 模型 | 输入 | Token 数 |
+> |------|------|---------|
+> | LLaVA-1.5 | 336×336 图片 | 576 |
+> | LLaVA-NeXT | 672×672 图片 | 2,880 |
+> | LongVA | 2000 帧视频 | 200K+ |
+> | LongVILA | 6000 帧视频 | 1M+ |
 >
-> DPP（CDPruner 用的）:
->   目标：最大化被选子集的"体积"（行列式）
->   优点：考虑全局多样性，选出更均衡的子集
->   类比：选人时保证整个团队的技能覆盖面最大
-> ```
-
-Traditional DPP focuses solely on feature similarity among samples. In this work, we extend this formulation by incorporating instruction relevance as a condition, enabling a unified consideration for superior visual token pruning performance in MLLMs.
-
-> 💡 **2.3 小结**: CDPruner 的创新点：在 DPP 的基础上加入了**条件**（instruction relevance），从"纯多样性"变成"条件多样性"。
+> 视觉信号的稀疏性导致需要大量 token 才能表征图像信息。
 
 ---
 
-## 💡 Section 总结
+## Visual token reduction
 
-### 关键洞察
-1. 现有三类方法各有盲区，没有一个能同时做到"多样+相关+通用"
-2. DPP 比 MMDP 更适合全局多样性建模
-3. CDPruner 的核心创新：将 DPP 从无条件扩展到有条件（conditioned on instruction）
+Reducing the number of input visual tokens is an effective way for MLLM inference acceleration. Some works attempt to compress visual tokens via vision-text pre-fusion [Li et al., 2024d, Hu et al., 2024b, Cai et al., 2024a, Zhang et al., 2025], but these approaches require architectural modifications and additional training, thereby increasing computational costs. Other works adopt a training-free approach by removing redundant visual tokens during inference, known as token pruning. These methods can be broadly categorized into two groups.
+
+> 💡 **Token reduction 两大路线**:
+> - **Pre-fusion**：在 projector 阶段压缩（需要改架构 + 训练）
+> - **Token pruning**：推理时去掉冗余 token（training-free，本文关注的方向）
+
+The first group leverages text-visual attentions within the language model to assess the importance of visual tokens [Chen et al., 2024a, Ye et al., 2025, Xing et al., 2024, Zhang et al., 2024c, Liu et al., 2024c]. However, as pointed out by Zhang et al. [2024b] and Wen et al. [2025a], such methods suffer from attention shift, which compromises pruning accuracy. Moreover, the reliance on attention scores makes them incompatible with efficient attention implementations like FlashAttention [Dao et al., 2022]. The second group avoids these issues by pruning before the language model [Shang et al., 2024, Yang et al., 2024b, Song et al., 2024]. Nonetheless, these methods rely on specific visual encoder architectures and thus cannot be applied across different MLLMs. The third group directly prunes tokens based on feature similarity among visual tokens [Wen et al., 2025b, Alvar et al., 2025, Jeddi et al., 2025]. However, like the second group, they fail to consider the relevance between visual tokens and user instructions during pruning, leading to suboptimal performance.
+
+> 💡 **三组 Pruning 方法对比**:
+> | 类别 | 代表方法 | 优点 | 缺点 |
+> |------|----------|------|------|
+> | Text-visual attention | FastV, PyramidDrop, SparseVLM | 考虑指令相关性 | Attention shift + 不兼容 FlashAttention |
+> | Vision encoder-based | PruMerge, VisionZip, TRIM | 不需要 LLM attention | 依赖特定视觉编码器 |
+> | Similarity-based | DART, DivPrune | 不需要 attention | 忽略指令相关性 |
+>
+> CDPruner 的定位：结合 similarity-based 的优势（不需要 attention）+ 引入指令相关性
+
+---
+
+## Determinantal point process
+
+Determinantal Point Process (DPP) was first introduced to describe the distribution of fermion systems in thermal equilibrium [Macchi, 1975], where no two fermions can occupy the same quantum state, resulting in an "anti-bunching" effect that can be interpreted as diversity. Later, DPPs have been widely adopted in list-wise diversity modeling across various domains [Chen et al., 2018, Celis et al., 2018, Li et al., 2024c, Sun et al., 2025]. Unlike MaxMin Diversity Problem (MMDP) [Porumbel et al., 2011], which also aims to maximize diversity, DPP emphasizes global diversity and typically yields more balanced and representative subset selections [Kulesza et al., 2012]. Traditional DPP focuses solely on feature similarity among samples. In this work, we extend this formulation by incorporating instruction relevance as a condition, enabling a unified consideration for superior visual token pruning performance in MLLMs.
+
+> 💡 **DPP vs MMDP**:
+> - **MMDP**（DivPrune 用的）: 最大化最小 pairwise 距离 → 关注极端情况
+> - **DPP**: 最大化子集 kernel 矩阵的行列式 → 关注全局多样性，子集更均衡
+> - 本文创新：传统 DPP 只考虑 feature similarity，CDPruner 加入 instruction relevance 作为条件
+
+---
+
+## 🔖 Section 总结
+
+### 核心洞察
+1. Token pruning 的三个流派各有局限，CDPruner 填补了"多样性 + 指令相关性"的空白
+2. DPP 比 MMDP 更适合 token pruning，因为它关注全局多样性而非局部极端
+3. 不依赖 attention scores 是工程上的重要优势（FlashAttention 兼容性）
