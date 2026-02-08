@@ -27,16 +27,6 @@ Early datasets for Manipulation [12, 26, 38, 54, 76] mainly comprise annotated i
 > 
 > ShareRobot 的定位是在 OXE 基础上做精细化标注（planning + affordance + trajectory），而非从头采集。
 
-![](../images/bcfed446226b4fbe9db8795e845fb59780457122ac24157f11c14d6447284f77.jpg)  
-*Figure 2. The generation procession of our ShareRobot dataset. Our dataset labels multi-dimensional information, including task planning, object affordance, and end-effector trajectories. The task planning is first annotated by atomic tasks and then augmented by constructing question-answer pairs. The affordance and trajectory are labeled on the images according to the specific instructions.*
-
-> 💡 **Figure 2 解读**: ShareRobot 数据生成流程图。三条并行标注流水线：
-> - **Task Planning**: 先标注原子任务（atomic tasks），再通过模板构造 QA 对 → 实现数据放大（51K instances → 1M QA pairs）
-> - **Affordance**: 在图像上标注物体可交互区域（bounding box）
-> - **Trajectory**: 在图像上标注末端执行器运动轨迹（至少 3 个坐标点）
-> 
-> 注意 Figure 2 在原论文 PDF 中排版在 Related Work 页面，但内容属于 Section 3 的数据集介绍。这里放在 Related Work 末尾作为过渡。
-
 ---
 
 ## 🔖 Section 总结

@@ -11,6 +11,14 @@ Section 3 详细介绍 ShareRobot 数据集的构建过程，包括概述、数�
 
 To enhance the RoboBrain's capability of planning, affordance perception, and trajectory prediction, we develop a dataset called ShareRobot–a large-scale, fine-grained dataset specifically designed for robotic manipulation tasks. The generation procession of our dataset is shown as Fig. 2. The details are described in the following sections.
 
+![](../images/bcfed446226b4fbe9db8795e845fb59780457122ac24157f11c14d6447284f77.jpg)  
+*Figure 2. The generation procession of our ShareRobot dataset. Our dataset labels multi-dimensional information, including task planning, object affordance, and end-effector trajectories.*
+
+> 💡 **Figure 2 解读**: ShareRobot 数据生成流程图。三条并行标注流水线：
+> - **Task Planning**: 先标注原子任务（atomic tasks），再通过模板构造 QA 对 → 实现数据放大（51K instances → 1M QA pairs）
+> - **Affordance**: 在图像上标注物体可交互区域（bounding box）
+> - **Trajectory**: 在图像上标注末端执行器运动轨迹（至少 3 个坐标点）
+
 ## 3.1. Overview
 
 ### 预览
