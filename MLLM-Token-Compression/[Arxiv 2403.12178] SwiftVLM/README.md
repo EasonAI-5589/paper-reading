@@ -1,43 +1,57 @@
 # SwiftVLM: Efficient Vision-Language Model Inference via Cross-Layer Token Bypass
 
-**arXiv**: [2602.03134](https://arxiv.org/abs/2602.03134)  
-**分类**: compress (Token Compression)  
-**解析工具**: MinerU API (vlm model)  
-**解析时间**: 2026-02-06
+**作者**: Chen Qian*, Xinran Yu*, Danyang Li, Guoxuan Chi, Zheng Yang, Qiang Ma, Xin Miao (Tsinghua University)  
+**来源**: Arxiv 2403.12178 (2026.02)  
+**链接**: [arXiv](https://arxiv.org/abs/2403.12178)
+
+## 一句话总结
+提出 **bypass** 剪枝范式——不丢弃低排名 visual token，而是保留并转发到后续剪枝层重新评估，结合 DP 选择最优剪枝层，实现 training-free 的高效视觉 token 剪枝。
 
 ## 核心贡献
+1. **发现层间 token 重要性差异**：浅层认为不重要的 token 在深层可能变得高度相关
+2. **Bypass 范式**：第三种剪枝策略（与 merge/drop 并列），保留未选中 token 并通过 offset alignment 在后续层重新评估
+3. **DP 选层**：发现各层 token 判别能力非单调，用动态规划选择最优剪枝层
+4. **SwiftVLM**：training-free 方法，在 2 个 VLM、9 个 benchmark 上全面超越现有方法
 
-1. **Bypass 策略**: 不直接丢弃低重要性 token，而是保留并转发到后续层重新评估
-2. **Layer-wise 分析**: 揭示不同层对 visual token 重要性判断存在显著差异
-3. **动态规划选层**: 选择具有高判别能力的层进行 pruning
-4. **Training-free**: 无需额外训练
+## 📖 批读导航
 
-## 方法
+| Section | 内容 |
+|---------|------|
+| [00 - Abstract](sections/00-abstract.md) | 摘要：bypass 范式概述 |
+| [01 - Introduction](sections/01-introduction.md) | 动机 + 层间 token 重要性分析 + 贡献 (Figure 1-4) |
+| [02 - Related Work](sections/02-related-work.md) | Text-agnostic vs Text-aware 方法分类 |
+| [03 - Method](sections/03-method.md) | Attention 基础 + DP 选层 + Bypass 架构 + 对齐分析 + FLOPs (Figure 5, Eq.1-19) |
+| [04 - Experiments](sections/04-experiments.md) | 主实验 + 效率 + 消融 + 分析 + 泛化 (Table 1-4, Figure 6-8) |
+| [05 - Conclusion](sections/05-conclusion.md) | 总结 + 局限性分析 |
 
-- 在浅层 pruning 后，未选中的 visual token 被保留并 bypass 到深层
-- 深层重新评估这些 token 的重要性
-- 避免早期 pruning 导致的不可逆信息丢失
+## 关键数字
 
-## 实验结果
-
-- 在多个 VLM 和 benchmark 上优于现有 pruning 策略
-- 更好的 accuracy-efficiency trade-off
-- 更准确的 visual token 选择
-
-## 文件说明
-
-| 文件 | 说明 |
+| 指标 | 数值 |
 |------|------|
-| `full.md` | 完整论文 Markdown |
-| `*_origin.pdf` | 原始 PDF |
-| `content_list_v2.json` | 结构化内容 |
-| `layout.json` | 布局信息 |
-| `images/` | 提取的图片 |
+| LLaVA-1.5-7B 最优剪枝层 | 3, 11, 15 |
+| 192 tokens, Localization 相对准确率 | **86.9%** (vs FEATHER 66.9%) |
+| 128 tokens, Localization 相对准确率 | **69.8%** (vs FEATHER 50.8%) |
+| 192 tokens, Non-localization 相对准确率 | **99.0%** |
+| 128 tokens, Prefill 加速 | **2.04×** |
+| LLaVA-NeXT, 22.2% tokens, 相对准确率 | **97.1%** |
 
-## 相关工作
+## 方法速览
 
-- FastV
-- PDrop
-- SparseVLM
-- FEATHER
-- VisionZip
+```
+Input Image → Visual Encoder → 576 visual tokens
+                                    ↓
+              Layer 1-2: 全部保留
+                                    ↓
+              Layer 3 (剪枝层 x): T-V attention 排序
+                 ├── Top tokens → 直接保留
+                 └── Low tokens → 分组合并(代理) + bypass(保留原始)
+                                    ↓
+              Layer 4-10: 用 top + merged tokens 推理
+                                    ↓
+              Layer 11 (剪枝层 y): offset alignment → 恢复 bypass tokens → 重新排序
+                 └── 最终保留 top tokens
+                                    ↓
+              Layer 12-32: 用最终选中的 tokens 推理
+                                    ↓
+              Output
+```

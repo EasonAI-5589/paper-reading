@@ -1,77 +1,64 @@
+[← 返回 README](../README.md)
+
 # 2. Related Work
 
-> 来源: SwiftVLM
+## 📌 预览
+Related Work 将现有视觉 token 压缩方法分为 **Text-agnostic** 和 **Text-aware** 两大类，分析各自的优缺点。
 
 ---
 
-## 📄 原文
+To reduce the number of visual tokens and improve inference efficiency, existing studies (Zhong et al., 2025; Wang et al., 2025b; Li et al., 2024b) can be broadly classified into two categories.
 
-> 💡 **Section 概览**: 相关工作分两大类——Text-agnostic（不看问题直接压缩）和 Text-aware（根据问题选择性压缩）。SwiftVLM 属于后者中的 training-free 阵营。
-
----
-
-### 2.1 Text-agnostic 方法
-
-> 💡 **要点预览**: 这类方法不看用户问了什么，纯粹基于视觉特征来压缩 token。
-
-- **Qwen2.5-VL**: 每 4 个相邻 token 合并成 1 个
-- **ToMe**: 基于相似度的 token merging
-- **VisionZip**: 保留高 [CLS]-attention 的 token，其余按相似度合并
-- **VoCo-LLAMA**: 把所有视觉信息压缩到一个可学习 token
-
-> 💡 **批注**: 这些方法的共同问题——不看问题就压缩，如果问题问的是图中不显眼的细节（比如背景里的小字），这些方法很可能直接把它压没了。
-
-> 💡 **2.1 小结**:
-> - 优点: 简单高效，不依赖文本
-> - 缺点: 无法保留 query-relevant 的视觉细节
+> 💡 **分类框架**: 按是否利用文本信息来指导 token 压缩，分为两类。
 
 ---
 
-### 2.2 Text-aware 方法
+### Text-agnostic
 
-> 💡 **要点预览**: 利用文本信息来指导视觉 token 的选择/压缩。分为需要训练和不需要训练两派。
+Qwen2.5-VL (Bai et al., 2025) merges each group of four neighboring visual tokens into a single token. ToMe (Bolya et al., 2022) performs similarity-based token merging between the attention and MLP blocks. VisionZip (Yang et al., 2025b) retains tokens with high [CLS]-attention scores and merges the remaining ones based on feature similarity, following a strategy similar to VisPruner (Zhang et al., 2025) and Prumerge (Shang et al., 2025). VoCo-LLAMA (Ye et al., 2025b) compresses visual information into a single learnable VoCo token, which is then used for subsequent cross-modal interaction.
 
-**需要训练的:**
-- **Q-Former (BLIP-2)**: 训练交叉模态模块，压缩到少量可学习 token
-- **ATP-LLaVA**: 在 VLM 内部加可训练模块，基于 attention 打分剪枝
-
-> 💡 **批注**: 需要额外训练 = 额外成本，而且换个模型就得重新训。
-
-**Training-free 的 (SwiftVLM 的直接对手):**
-
-| 方法 | 策略 | 问题 |
-|------|------|------|
-| **FastV** (ECCV'24) | 浅层激进剪枝 | 丢掉后续重要 token |
-| **PDrop** (CVPR'25) | 逐层渐进 drop | 仍然是不可逆 drop |
-| **FEATHER** (ICCV'25) | 去除 RoPE 影响 + drop | 计算开销大，仍是 drop |
-| **SparseVLM** (ICML'25) | 自适应逐层剪枝 | 假设早期 drop 的后面也不重要 |
-
-> 💡 **批注**: 这四个方法的共同假设是"浅层不重要的 token 在深层也不重要"——但 Figure 2 已经证明这个假设是错的！SwiftVLM 通过 bypass 打破了这个假设。
-
-> 💡 **2.2 小结**:
-> - Training-free 方法都用 T-V attention 打分
-> - 核心缺陷: drop 是不可逆的，一旦丢了就没了
-> - SwiftVLM 的定位: training-free + bypass (可逆)
+> 💡 **Text-agnostic 方法一览**:
+> | 方法 | 策略 | 特点 |
+> |------|------|------|
+> | Qwen2.5-VL | 4 邻近 token → 1 token | 固定规则，简单粗暴 |
+> | ToMe | 相似度 merging | 在 attention/MLP 之间操作 |
+> | VisionZip | CLS-attention 筛选 + 相似度合并 | 类似 VisPruner、Prumerge |
+> | VoCo-LLAMA | 压缩到 1 个可学习 token | 极端压缩 |
 
 ---
 
-## 💡 Section 总结
+Despite their efficiency, these methods rely solely on visual cues for token reduction, which limits their ability to preserve query-relevant visual details, particularly when the queried regions are not visually salient.
 
-### 方法谱系
-```
-Visual Token Reduction
-├── Text-agnostic (不看问题)
-│   ├── Merge: ToMe, Qwen-VL, VisionZip
-│   └── Compress: VoCo-LLAMA
-└── Text-aware (看问题)
-    ├── 需要训练: Q-Former, ATP-LLaVA
-    └── Training-free
-        ├── Drop: FastV, PDrop, SparseVLM
-        ├── Drop + RoPE fix: FEATHER
-        └── Bypass: SwiftVLM ⭐ (本文)
-```
+> 💡 **核心局限**: 不考虑文本查询，只看视觉特征。如果查询涉及的区域视觉上不显著（如小文字、背景物体），就容易被误删。
 
-### SwiftVLM 的差异化
-- 唯一的 bypass 范式（vs 所有对手都是 drop）
-- Training-free（vs Q-Former, ATP-LLaVA）
-- 用动态规划选层（vs FastV 固定层、PDrop 均匀分布）
+---
+
+### Text-aware
+
+Q-Former (Li et al., 2023) reduces visual token redundancy by training cross-modal modules that compress hundreds of visual tokens into a small set of learnable tokens. ATP-LLaVA (Ye et al., 2025a) instead introduces trainable modules within the VLM and prunes visual tokens based on importance scores derived from text–vision and vision–vision attention. Although these approaches leverage the text query to guide visual token compression or selection, they require additional trainable components, incurring extra optimization overhead.
+
+> 💡 **需要训练的方法**: Q-Former 和 ATP-LLaVA 都需要额外可学习模块，虽然利用了文本信息但增加了训练成本。
+
+---
+
+Several training-free methods exploit the native cross-modal attention of VLMs. FastV (Chen et al., 2024a) uses T-V attention to assess visual token importance and performs aggressive pruning at a shallow layer. PDrop (Xing et al., 2024) progressively reduces visual tokens across layers, based on the observation that pruning becomes less harmful at deeper layers. FEATHER (Endo et al., 2025) further refines this strategy by mitigating the influence of Rotary Position Embedding (RoPE) (Su et al., 2024) on T-V attention, while SparseVLM (Zhang et al., 2024) performs adaptive layer-wise pruning by estimating redundancy from the rank of the T-V attention matrix. Despite being training-free, these methods assume that tokens pruned early remain unimportant in deeper layers, which often fails in fine-grained visual reasoning, leading to performance degradation.
+
+> 💡 **Training-free 方法（本文直接竞争对手）**:
+> | 方法 | 策略 | 局限 |
+> |------|------|------|
+> | FastV | 浅层一次性激进剪枝 | 信息丢失严重 |
+> | PDrop | 逐层渐进减少 | 仍假设早期丢弃的不重要 |
+> | FEATHER | 消除 RoPE 影响 + 渐进剪枝 | 仍是 drop 范式 |
+> | SparseVLM | 按 attention 矩阵秩自适应剪枝 | 同上 |
+>
+> **共同假设（也是共同缺陷）**: 被早期丢弃的 token 在深层也不重要 → 在细粒度推理中失败
+
+---
+
+## 🔖 Section 总结
+
+### 核心洞察
+1. Text-agnostic 方法高效但忽视查询相关性
+2. Text-aware + 需训练的方法有额外开销
+3. Training-free drop 方法是 SwiftVLM 的主要竞争对手，共同缺陷是**不可逆丢弃**
+4. SwiftVLM 的定位：training-free + text-aware + **不丢弃**（bypass）

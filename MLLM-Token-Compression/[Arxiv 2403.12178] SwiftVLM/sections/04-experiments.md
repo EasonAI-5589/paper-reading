@@ -1,288 +1,164 @@
+[← 返回 README](../README.md)
+
 # 4. Experiments
 
-> 来源: SwiftVLM
+## 📌 预览
+实验部分包含：(4.1) 9 个 benchmark 上的主实验，(4.2) 效率分析，(4.3) 消融实验，(4.4) bypass 为什么有效的可视化分析，(4.5) bypass 优于 drop 的原因，(4.6) 泛化性实验。
 
 ---
 
-## 📄 原文
+## 4.1. Overall Performance
 
-> 💡 **Section 概览**: 实验包括五大块——(1) 主实验对比；(2) 效率分析；(3) 消融实验；(4) bypass 为什么有效的分析；(5) 泛化性验证。
+### Datasets
 
----
+We categorize inference tasks into localization and non-localization types, where the former emphasizes fine-grained visual details and the latter focuses on holistic information integration. We evaluate our method on nine widely used benchmarks, including RefCOCO, RefCOCO+, RefCOCOg (Kazemzadeh et al., 2014; Yu et al., 2016), TextVQA, GQA (Hudson & Manning, 2019), SQA (Lu et al., 2022), MME (Bolya et al., 2022), MMB (Liu et al., 2024c), POPE (Li et al., 2024a). For TextVQA, we follow prior work (Endo et al., 2025) and exclude OCR prompt to better evaluate how pruning affects visual understanding.
 
-### 4.1 Overall Performance
-
-> 💡 **4.1 要点预览**: 在 LLaVA-1.5-7B 上，9 个 benchmark，两种 token 预算下的全面对比。SwiftVLM 在定位任务上碾压式领先。
-
-**数据集分类**:
-- **Localization** (细粒度): RefCOCO, RefCOCO+, RefCOCOg
-- **Non-localization** (粗粒度): TextVQA, GQA, SQA, MME, MMB, POPE
-
-**Table 1: 192 tokens (保留 33.3%) 主要结果**
-
-| 方法 | Loc. Avg. | Non-loc. Avg. | FLOPs |
-|------|-----------|---------------|-------|
-| Vanilla (上界) | 100% | 100% | 4.29T |
-| FastV | 40.3% | 95.9% | 1.71T |
-| VisionZip | 8.9% | 97.5% | 1.71T |
-| PDrop | 27.6% | 93.8% | 1.72T |
-| SparseVLM | 10.9% | 98.0% | 1.72T |
-| FEATHER | 66.9% | 96.5% | 1.82T |
-| **SwiftVLM** | **86.9%** | **99.0%** | 1.75T |
-
-> 💡 **Table 1 批读 (192 tokens)**:
-> ```
-> 定位任务排行:
-> ├── SwiftVLM:  86.9% ⭐ 碾压
-> ├── FEATHER:   66.9%
-> ├── FastV:     40.3%
-> ├── PDrop:     27.6%
-> ├── SparseVLM: 10.9%
-> └── VisionZip:  8.9% (text-agnostic 在定位上几乎不能用)
->
-> 非定位任务排行:
-> ├── SwiftVLM: 99.0% ⭐ (几乎无损!)
-> ├── SparseVLM: 98.0%
-> ├── VisionZip: 97.5%
-> ├── FEATHER: 96.5%
-> ├── FastV: 95.9%
-> └── PDrop: 93.8%
-> ```
-> **关键发现**:
-> 1. 非定位任务上大家都差不多（95%+），说明 visual token 冗余确实很多
-> 2. 定位任务才是真正的试金石——SwiftVLM 比第二名 FEATHER 高 20%
-> 3. VisionZip/SparseVLM 定位只有 ~10%，说明不保留位置信息是致命的
-
-**Table 1: 128 tokens (保留 22.2%) 主要结果**
-
-| 方法 | Loc. Avg. | Non-loc. Avg. | FLOPs |
-|------|-----------|---------------|-------|
-| FastV | 17.7% | 91.3% | 1.29T |
-| VisionZip | 5.8% | 96.1% | 1.29T |
-| PDrop | 3.6% | 91.8% | 1.28T |
-| SparseVLM | 6.0% | 95.8% | 1.30T |
-| FEATHER | 50.8% | 95.0% | 1.44T |
-| **SwiftVLM** | **69.8%** | **96.7%** | 1.31T |
-
-> 💡 **Table 1 批读 (128 tokens)**:
-> ```
-> 更激进的剪枝下 (保留 22.2%):
-> ├── SwiftVLM: 69.8% loc / 96.7% non-loc ⭐
-> ├── FEATHER:  50.8% / 95.0% (FLOPs 更高!)
-> └── 其他方法: 定位基本崩了 (<18%)
->
-> 注意 FEATHER 的 FLOPs 是 1.44T，SwiftVLM 只有 1.31T
-> → SwiftVLM 更快且更准
-> ```
+> 💡 **数据集分类**:
+> - **Localization（细粒度）**: RefCOCO, RefCOCO+, RefCOCOg — 需要精确定位
+> - **Non-localization（粗粒度）**: TextVQA, GQA, SQA, MME, MMB, POPE — 整体理解
+> - TextVQA 排除 OCR prompt，更能体现剪枝对视觉理解的影响
 
 ---
 
-**可视化结果**:
+### Main Results
 
-![Figure 6a](../images/9a44f2658cd9e352c30d9cdd8bb272701389146af400c4f0e7860e2935f89121.jpg)
-*Figure 6(a): 192 tokens 下各方法保留的 visual token 可视化*
+Since the average RefCOCO bounding box covers about 102 visual tokens, Tab. 1 reports the performance of different methods on LLaVA-1.5-7B under two visual token budgets (192 and 128). Across non-localization tasks, all methods achieve competitive performance, including VisionZip, which employs text-agnostic feature compression.
 
-![Figure 6b](../images/9c931e1ee5ab072308c2889ef1e639828b10fffc4802872483d76c335e21bc3c.jpg)
-*Figure 6(b): 128 tokens 下各方法保留的 visual token 可视化*
+In contrast, performance differences become pronounced on localization tasks. Notably, PDrop and SparseVLM do not preserve the positional information of visual tokens after pruning, leading to substantial performance degradation (Chien et al., 2025). FEATHER mitigates the impact of RoPE by recomputing attention, resulting in higher FLOPs compared to other methods. Moreover, despite eliminating RoPE effects, the ability of different layers to discriminate important visual tokens in FEATHER remains non-monotonic, and low-ranked visual tokens are still dropped after the initial pruning stage. As a result, FEATHER underperforms SwiftVLM by roughly 20%.
+
+![Table 1](../images/07699bf4896f7a8765e5360e5fca12274080e6b52ae98ac6c4501ae233b8a9b4.jpg)
+*Table 1. Performance comparison under different visual token budgets. (+) and (g) denote RefCOCO+ and RefCOCOg, respectively.*
+
+> 💡 **Table 1 批读**:
+> - **192 tokens (↓66.7%)**:
+>   - Non-localization: 所有方法都能保持 ~95%+ 的性能，差异不大
+>   - Localization: SwiftVLM **86.9%** vs FEATHER 66.9% vs FastV 40.3% → **巨大差距**
+>   - SwiftVLM 在 localization 上遥遥领先，non-localization 也最高 (99.0%)
+> - **128 tokens (↓77.8%)**:
+>   - Localization 差距更大：SwiftVLM **69.8%** vs FEATHER 50.8% vs PDrop 3.6%
+>   - PDrop/SparseVLM 不保留位置信息 → localization 几乎崩溃
+>   - SwiftVLM 在极端压缩下仍保持较好性能
+> - **FLOPs**: SwiftVLM (1.75T/1.31T) 与其他方法相当，FEATHER 偏高 (1.82T/1.44T)
+
+---
+
+### Visualization
+
+We visualize examples from RefCOCO and TextVQA, showing the retained visual tokens as image patches along with the final answers.
+
+![Figure 6](../images/figure6_full.jpg)
+*Figure 6. Visualization of method performance under varying tasks and computation budgets. (a) Avg. 192 Visual Tokens. (b) Avg. 128 Visual Tokens.*
 
 > 💡 **Figure 6 批读**:
-> ```
-> RefCOCO 示例 (定位 "small white car"):
->   FEATHER/PDrop: 丢了车所在区域的 token → 定位失败
->   SwiftVLM: 保留了车的 token → 定位成功
->
-> TextVQA 示例 (读招牌文字):
->   类似情况，SwiftVLM 保留了关键文字区域
-> ```
-
-> 💡 **4.1 小结**:
-> - 非定位任务: 所有方法都还行，SwiftVLM 最好 (99%)
-> - 定位任务: SwiftVLM 碾压 (比 FEATHER 高 20%+)
-> - 越激进的剪枝，SwiftVLM 的优势越大
+> - 可视化展示了各方法保留的 visual token 对应的图像区域
+> - FEATHER 和 PDrop 的 drop 策略丢弃了任务相关的 token（如定位任务中的 car、VQA 中的 signboard）
+> - SwiftVLM 通过 bypass 保留了关键区域
 
 ---
 
-### 4.2 Efficiency Study
+## 4.2. Efficiency Study
 
-> 💡 **4.2 要点预览**: 实际延迟对比，不只看 FLOPs。
+Following SparseVLM, we implement SwiftVLM in a FlashAttention-compatible (Dao et al., 2022) manner and report the corresponding latency results in Tab.2. Compared to the vanilla model, all pruning-based methods achieve noticeable speedups. FastV attains the largest acceleration since it performs pruning only once.
 
-**Table 2: LLaVA-1.5-7B 效率对比**
+Unlike FLOPs computation, FlashAttention does not provide direct access to attention maps, requiring attention scores to be recomputed in practice. Consequently, SwiftVLM incurs lower latency than SparseVLM, as it only computes attention between the final text token and visual tokens, whereas SparseVLM requires attention computation for all text tokens.
 
-| Tokens | Method | Total Time | Δ | Prefill Time | Δ |
-|--------|--------|-----------|---|-------------|---|
-| 576 | Vanilla | 850.7s | - | 67.3ms | - |
-| 192 | FastV | 551.8s | 1.54× | 34.7ms | 1.92× |
-| 192 | SparseVLM | 612.3s | 1.39× | 40.7ms | 1.65× |
-| 192 | **SwiftVLM** | 573.8s | **1.48×** | 37.6ms | **1.79×** |
-| 128 | FastV | 539.4s | 1.58× | 32.8ms | 2.05× |
-| 128 | SparseVLM | 583.9s | 1.46× | 37.5ms | 1.79× |
-| 128 | **SwiftVLM** | 546.2s | **1.56×** | 33.0ms | **2.04×** |
+![Table 2](../images/0094a14ed3e9f636f7ea72d0d30d4e56c0db2a6cc783db792f8427e4d040c6ac.jpg)
+*Table 2. Efficiency study on LLaVA-1.5-7B. Total Time denotes the wall-clock time required to process the entire POPE dataset. Prefilling Time refers to the average prefill latency per sample. Δ indicates the speedup factor relative to the vanilla model.*
 
 > 💡 **Table 2 批读**:
-> ```
-> 128-token 设置下延迟排行:
-> ├── FastV:     1.58× (最快，但准确率最差)
-> ├── SwiftVLM:  1.56× ⭐ (几乎一样快，准确率最好)
-> └── SparseVLM: 1.46× (最慢)
->
-> 为什么 SwiftVLM 比 SparseVLM 快?
-> → SparseVLM 要算所有 text token 的 attention
-> → SwiftVLM 只算最后一个 text token 的 attention
-> ```
-
-> 💡 **4.2 小结**:
-> - SwiftVLM 速度接近 FastV（最简单的方法），但准确率远超
-> - 128 token 下达到 2.04× prefill 加速
+> - **192 tokens**: SwiftVLM 1.48× 总加速 / 1.79× prefill 加速，接近 FastV (1.54×/1.92×)
+> - **128 tokens**: SwiftVLM 1.56× / 2.04×，几乎追平 FastV (1.58×/2.05×)
+> - SwiftVLM 快于 SparseVLM：因为只需计算最后一个 text token 的 attention
+> - **核心结论**: bypass 的额外计算开销对实际延迟影响很小
 
 ---
 
-### 4.3 Ablation Study
+## 4.3. Ablation Study
 
-> 💡 **4.3 要点预览**: 逐步加入各组件，看各自贡献。
+We adopt PDrop as the baseline and augment it with positional encoding updates. Based on this configuration, we progressively introduce layer selection, token merging, and bypass, with results reported in Tab. 3.
 
-**Table 3: 消融实验**
+Under the 192-token setting, pruning at layers with monotonically increasing selection capability yields the largest gains, while token merging degrades performance due to unnecessary information compression under sufficient computation budget. In contrast, under the more constrained 128-token setting, token merging becomes beneficial, as aggressive dropping would otherwise remove critical visual information. Overall, pruning with bypass consistently provides stable performance improvements across different budget settings.
 
-| Tokens | Method | RefCOCO | TextVQA |
-|--------|--------|---------|---------|
-| 192 | Baseline (PDrop) | 42.6 | 43.2 |
-| 192 | + Layer Selection | 64.5 | 45.3 |
-| 192 | + Merge | 63.7 | 44.8 |
-| 192 | + Merge + Bypass | **66.6** | **45.3** |
-| 128 | Baseline | 23.2 | 41.2 |
-| 128 | + Layer Selection | 42.8 | 40.1 |
-| 128 | + Merge | 51.9 | 40.7 |
-| 128 | + Merge + Bypass | **55.2** | **41.8** |
+![Table 3](../images/a4d7b7c29a675610b0ac480363cb202fe357782c59178eefb78e27db8a9104b7.jpg)
+*Table 3. Ablation study. X_S denotes layer selection. X_M denotes token merging, and X_B denotes the bypass mechanism.*
 
 > 💡 **Table 3 批读**:
-> ```
-> 192-token:
-> ├── Layer Selection: +22 RefCOCO ⭐ (最大收益!)
-> ├── + Merge: -0.8 (反而略降，因为 token 够用不需要 merge)
-> └── + Bypass: +2.9 (恢复并超过)
->
-> 128-token:
-> ├── Layer Selection: +19.6 RefCOCO
-> ├── + Merge: +9.1 (token 不够用时 merge 有帮助!)
-> └── + Bypass: +3.3
-> ```
-> **关键发现**:
-> 1. Layer Selection 贡献最大——选对层比什么都重要
-> 2. Merge 在 token 充裕时反而有害（压缩了不该压的），token 紧张时有益
-> 3. Bypass 稳定提升，尤其在激进剪枝下
-
-> 💡 **4.3 小结**:
-> - Layer Selection >> Bypass > Merge (贡献排序)
-> - Merge 的效果取决于 token 预算
-> - Bypass 在所有设置下稳定正向
+> - **Layer Selection (X_S)** 是最大贡献：RefCOCO 从 42.6→64.5 (192 tokens), 23.2→42.8 (128 tokens)
+> - **Token Merging (X_M)**: 192 tokens 下反而降低 (64.5→63.7)；128 tokens 下有益 (42.8→51.9)
+>   - 解释：预算充足时合并是不必要的压缩；预算紧张时合并比直接丢弃好
+> - **Bypass (X_B)**: 始终有正贡献，特别在 128 tokens: 51.9→55.2
+> - **结论**: 三个组件互补，层选择贡献最大，bypass 在低预算下尤其重要
 
 ---
 
-### 4.4 Why Bypass Works?
+## 4.4. Why Bypass Works?
 
-> 💡 **4.4 要点预览**: 通过 t-SNE 可视化验证 offset 对齐的有效性。
+To investigate why visual tokens forwarded through bypass can still participate effectively in subsequent computation after representation alignment, we analyze the low-dimensional projections of token offsets as described in Sec.3.4. Under the 128-token setting, we visualize the results for a sample in TextVQA, as shown in the Fig.7. Here, Merged Token corresponds to the offset Δh_gm. For each bypassed group, we additionally run the vanilla model. Vanilla Token records the actual hidden-state changes of individual tokens within the group after layer 10, while Vanilla Group Mean represents the average hidden-state change computed from these tokens. We observe that the vanilla group mean closely overlaps with the merged token offset and remains highly consistent with the changes of individual tokens within the group. We then substantially reduce the number of merged tokens and report the results for the same example in Fig.7(b).
 
-![Figure 7a](../images/1ac16612ab760f5bf360afc2735315eafe1aa5476cf6e21112da1c4c1ce5e12b.jpg)
-*Figure 7(a): 细粒度分组下的 token hidden-state 变化 t-SNE 可视化*
-
-![Figure 7b](../images/9f10ba18bd8da69a2c22b6fe2e150d5b085f5778ba12da1e6693a0b9784b13e1.jpg)
-*Figure 7(b): 粗粒度分组下的 t-SNE 可视化*
+![Figure 7](../images/figure7_full.jpg)
+*Figure 7. t-SNE visualization of visual token hidden-state changes. Colors denote similarity-based token groups. In the vanilla model, • shows per-token changes and × shows the group-wise mean. In our method, each group is merged into a single token, its change from layer 3 to layer 10 is shown as a ★. At n=18, merged tokens account for less than 5%.*
 
 > 💡 **Figure 7 批读**:
-> ```
-> 图中三种标记:
-> • = 单个 token 的变化 (vanilla model)
-> × = 组内平均变化 (vanilla model)
-> ★ = 合并 token 的变化 (SwiftVLM)
->
-> 关键观察:
-> (a) 细粒度分组: ★ 和 × 几乎完全重叠
->     → 合并 token 的 offset 完美近似了组内平均变化
-> (b) 粗粒度分组 (n=18): 仍然很接近
->     → 合并 token 只占 <5%，依然能追踪变化
-> ```
-> **结论**: Offset 对齐的理论假设在实验中得到了验证。
+> - **(a) Fine-grained merging**: 每组内 •(个体变化)、×(组均值)、★(merged token 变化) 三者高度重合
+> - **(b) Coarse-grained merging**: 分组更粗时，★ 与 ×/• 仍然方向一致但距离略有偏差
+> - **结论**: 相似 token 确实经历相似的表示变换 → merged token offset 是好的近似
+> - 这验证了 Sec.3.4 的理论假设
 
 ---
 
-### 4.5 Why Is Bypass Better Than Drop?
+Given that VLMs employ causal attention, the hidden-state evolution of a visual token can actually only be influenced by preceding visual tokens. Moreover, since attention fundamentally operates through similarity-based interactions, we hypothesize that visual tokens with similar semantics exhibit similar transformation directions in the representation space, and can thus be well approximated by the changes of the corresponding merged token.
 
-> 💡 **4.5 要点预览**: 对比 bypass 和 drop 在层 15 选出的 token 与 vanilla 模型的重叠率。
+> 💡 **理论解释**: causal attention 下 visual token 只受前面 token 影响 + attention 基于相似度 → 语义相似的 token 变换方向相似 → 平均变化量可以作为个体变化量的近似。
 
-![Figure 8a](../images/e2c89e96290627e1b9d99d2183f453ccbfc4f1361620656995b98a74bff14f6400eec05127ee31d.jpg)
-![Figure 8b](../images/503fa0c5759459a601c8584ac247232e191b98a74bff14f6400eec05127ee31d.jpg)
-*Figure 8: Bypass vs Drop 的 token 选择重叠率对比（TextVQA 和 RefCOCO）*
+---
+
+## 4.5. Why Is Bypass Better Than Drop?
+
+Under the 128-token setting, we compare the visual tokens retained at layer 15 by drop and bypass with the top 5% and top 10% tokens selected by the vanilla model, and report their overlap ratios on TextVQA and RefCOCO in Fig.8.
+
+Bypass exhibits a higher overlap with the vanilla model, indicating its ability to preserve visual tokens that are critical for reasoning. This overlap gap is more pronounced on RefCOCO, consistent with the larger performance differences observed across datasets under the 128-token setting in the ablation study.
+
+![Figure 8](../images/figure8_full.jpg)
+*Figure 8. Token selection overlap with vanilla for drop and bypass. Under an equal computational budget, the overlap distribution and mean are reported over 4,000 cases by comparing the tokens selected at layer 15 under different pruning schemes with those selected by the vanilla model, in order to assess their impact on intrinsic selection behavior.*
 
 > 💡 **Figure 8 批读**:
-> ```
-> 比较: 各方法在层 15 选出的 token 与 vanilla 的重叠率
->
-> TextVQA:
->   Bypass > Drop (重叠率更高)
->
-> RefCOCO:
->   Bypass >> Drop (差距更大!)
->   → 与定位任务上更大的性能差距一致
-> ```
-> **结论**: Bypass 让深层能"看到"更多跟 vanilla 一致的关键 token，因为它没把这些 token 在浅层就丢掉。
-
-> 💡 **4.5 小结**:
-> - Bypass 的 token 选择行为更接近 vanilla model
-> - 在细粒度任务上优势更明显
+> - Bypass 在 layer 15 选出的 token 与 vanilla model 的 top token 重合度更高
+> - **RefCOCO 上差距更明显**: bypass 的选择更"忠实"于原始模型
+> - 说明 drop 会破坏后续层的 attention 分布（因为丢弃了本该参与计算的 token），而 bypass 通过保留信息维持了更正常的选择行为
+> - 这解释了 bypass 在 localization 任务上的优势
 
 ---
 
-### 4.6 Generalization
+## 4.6. Generalization
 
-> 💡 **4.6 要点预览**: 在 LLaVA-NeXT-7B 上验证泛化性。
+To evaluate generalization, following prior work, we conduct experiments on LLaVA-NeXT (Liu et al., 2024b) across four datasets. Due to image padding removal in LLaVA-NeXT, performance is compared using visual token retention ratios. SwiftVLM consistently outperforms other methods, with particularly notable gains on localization datasets.
 
-**Table 4: LLaVA-NeXT-7B 结果**
-
-| Method | RefCOCO | TextVQA | GQA | MMB | Rel. Acc |
-|--------|---------|---------|-----|-----|----------|
-| Vanilla | 85.3 | 65.5 | 63.9 | 67.9 | 100% |
-| FastV (33.3%) | 40.5 | 58.7 | 59.0 | 48.3 | 75.1% |
-| FEATHER (33.3%) | 68.8 | 62.6 | 62.5 | 67.5 | 92.8% |
-| **SwiftVLM (33.3%)** | **80.7** | **64.1** | **63.6** | **68.0** | **98.0%** |
-| FastV (22.2%) | 26.1 | 52.6 | 56.9 | 46.0 | 66.9% |
-| FEATHER (22.2%) | 53.1 | 60.9 | 61.9 | 66.5 | 87.5% |
-| **SwiftVLM (22.2%)** | **79.6** | **62.4** | **63.5** | **67.7** | **97.1%** |
+![Table 4](../images/6bceeb04fa294f1a95e76cfa0e37498034b41bfb75630dce0cd94f4a91ee42d3.jpg)
+*Table 4. Performance comparison on LLaVA-NeXT-7B.*
 
 > 💡 **Table 4 批读**:
-> ```
-> 保留 33.3% tokens:
-> ├── SwiftVLM: 98.0% 相对准确率 ⭐
-> ├── FEATHER:  92.8%
-> └── FastV:    75.1%
->
-> 保留 22.2% tokens:
-> ├── SwiftVLM: 97.1% ⭐ (几乎无损!)
-> ├── FEATHER:  87.5%
-> └── FastV:    66.9%
->
-> RefCOCO 上 SwiftVLM (79.6) vs FEATHER (53.1)
-> → 差距 26.5，比 LLaVA-1.5 上更大
-> ```
-> **关键发现**: SwiftVLM 在更新的模型上泛化良好，优势甚至更大。
-
-> 💡 **4.6 小结**:
-> - 在 LLaVA-NeXT 上同样大幅领先
-> - 保留 22.2% tokens 仍达 97.1% 相对准确率
+> - **33.3% tokens**: SwiftVLM 98.0% 相对准确率 vs FEATHER 92.8% vs FastV 75.1%
+> - **22.2% tokens**: SwiftVLM 97.1% vs FEATHER 87.5% vs FastV 66.9%
+> - RefCOCO 上：SwiftVLM 几乎不掉点 (80.7/79.6 vs vanilla 85.3)，FastV 崩溃 (40.5/26.1)
+> - **泛化性结论**: SwiftVLM 在不同 VLM（LLaVA-1.5 和 LLaVA-NeXT）上都表现最优
 
 ---
 
-## 💡 Section 总结
+## 🔖 Section 总结
 
 ### 关键数字速查
 | 指标 | 数值 |
 |------|------|
-| 最佳定位保持率 (192 tok) | 86.9% |
-| 最佳非定位保持率 (192 tok) | 99.0% |
-| Prefill 加速 (128 tok) | 2.04× |
-| LLaVA-NeXT 相对准确率 (22.2%) | 97.1% |
+| 评估 benchmark 数量 | 9 个 |
+| LLaVA-1.5-7B, 192 tokens, Localization 相对准确率 | 86.9% |
+| LLaVA-1.5-7B, 128 tokens, Localization 相对准确率 | 69.8% |
+| 192 tokens Prefill 加速 | 1.79× |
+| 128 tokens Prefill 加速 | 2.04× |
+| LLaVA-NeXT, 33.3% tokens, 相对准确率 | 98.0% |
 
-### 核心结论
-1. SwiftVLM 在定位任务上碾压所有对手（20%+ 领先）
-2. 非定位任务几乎无损（99%）
-3. 速度接近最简单的 FastV，但准确率远超
-4. Layer Selection 是最重要的组件
-5. 泛化性好，在 LLaVA-NeXT 上优势更大
+### 核心洞察
+1. SwiftVLM 在 **localization 任务**上优势巨大（领先 FEATHER ~20%），non-localization 上也最优
+2. 效率与 FastV 接近，但准确率高得多
+3. 消融显示：层选择 > bypass > merging 的贡献排序
+4. Bypass 保持了与 vanilla 模型更高的 token 选择一致性
+5. 在 LLaVA-NeXT 上同样有效，泛化性好
