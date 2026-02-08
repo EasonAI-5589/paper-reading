@@ -122,7 +122,7 @@ Despite the growing interest in agentic systems endowed with memory, the communi
 
 These overlapping yet distinct notions have led to ambiguity in the literature and practice. To clarify these distinctions and situate agent memory within this broader landscape, we examine how agent memory relates to, and diverges from, LLM memory, RAG, and context engineering in the subsequent subsubsections. Figure 2 visually illustrates the commonalities and distinctions among these fields through a Venn diagram.
 
-![](images/688e9237c75530ba778e871307f894cf0be1bee9498671badfb9b79b4653dcae.jpg)  
+![](../images/688e9237c75530ba778e871307f894cf0be1bee9498671badfb9b79b4653dcae.jpg)  
 Figure 2 Conceptual comparison of Agent Memory with LLM Memory, RAG, and Context Engineering. The diagram illustrates shared technical implementations (e.g., KV reuse, graph retrieval) while highlighting fundamental distinctions: unlike the architectural optimizations of LLM Memory, the static knowledge access of RAG, or the transient resource management of Context Engineering, Agent Memory is uniquely characterized by its focus on maintaining a persistent and self-evolving cognitive state that integrates factual knowledge and experience. The listed categories and examples are illustrative rather than strictly parallel, serving as representative reference points to clarify conceptual relationships rather than to define a rigid taxonomy.
 
 # 2.3.1 Agent Memory vs. LLM Memory

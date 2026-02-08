@@ -38,7 +38,7 @@ Although all token-level memories share the property of being stored as discrete
 2. Planar Memory (2D): A structured but single-layer organization within one plane: units are related by a graph, tree, table and so on, with no cross-layer relations. The structure is explicit, but not layered.   
 3. Hierarchical Memory (3D): Structured across multiple layers with inter-layer links, forming a volumetric or stratified memory
 
-![](images/bd1b2d76930fb35a2315c47ac1c4531e63b7dddbaf4fc6e21d4035a73f2ec3ed.jpg)  
+![](../images/bd1b2d76930fb35a2315c47ac1c4531e63b7dddbaf4fc6e21d4035a73f2ec3ed.jpg)  
 Figure 3 Taxonomy of token-level memory organized by topological complexity and dimensionality: (a) Flat Memory (1D) stores information as linear sequences or independent clusters without explicit inter-unit topology, commonly used for Chunk sets, Dialogue logs, and Experience pools. (b) Planar Memory (2D) introduces a single-layer structured layout where units are linked via Tree or Graph structures to capture relational dependencies, supporting diverse node types such as images and chat records. (c) Hierarchical Memory (3D) employs multi-level forms, such as Pyramids or Multi-layer graphs, to facilitate vertical abstraction and cross-layer reasoning between different data granularities, such as raw docs and synthesized QAs.
 
 The three types of token-level memory are clearly illustrated in Figure 3. From Flat Memory with no topology, to Planar Memory with single-layer structural organization, to Hierarchical Memory with multi-layer interlinked structures, this organizational spectrum governs not only how token-level memory supports search, update, and reasoning, but also how the memory itself is structured and what capabilities it affords. In the subsections that follow, we introduce each organizational form in terms of its strengths and limitations, typical use cases, and representative work. The summary and comparison of representative token-level memory methods are presented in Table 1.
@@ -53,15 +53,15 @@ To facilitate a clear and coherent presentation, we group prior work on flat mem
 
 Table 1 Comparison of representative token-level memory methods. We categorize existing works into three groups based on their topological complexity: Flat Memory (1D) for linear or independent records, Planar Memory (2D) for structured single-layer graphs/trees, and Hierarchical Memory (3D) for multi-level architectures. Methods are characterized across four dimensions: (1) Multi indicates multimodal capability, where $\boldsymbol { v }$ denotes support for modalities beyond text (e.g., visual) and $x$ implies text-only; (2) Type identifies the specific functional category of the memory (e.g., Fact for factual memory, Exp for experiential memory, Work for working memory ); (3) Memory Form details the content of the stored units; and (4) Task lists the primary application domains.
 
-![Table](images/33ef4435a6ea94777b0005f2b9adf52f64b6ba5255a47514a97c849d053bff2a.jpg)
+![Table](../images/33ef4435a6ea94777b0005f2b9adf52f64b6ba5255a47514a97c849d053bff2a.jpg)
 
 Table 1 Comparison of representative token-level memory methods. We categorize existing works into three groups based on their topological complexity: Flat Memory (1D) for linear or independent records, Planar Memory (2D) for structured single-layer graphs/trees, and Hierarchical Memory (3D) for multi-level architectures. Methods are characterized across four dimensions: (1) Multi indicates multimodal capability, where $\boldsymbol { v }$ denotes support for modalities beyond text (e.g., visual) and $x$ implies text-only; (2) Type identifies the specific functional category of the memory (e.g., Fact for factual memory, Exp for experiential memory, Work for working memory ); (3) Memory Structure details the organization mechanism of the stored units; and (4) Task lists the primary application domains. (continued)   
 
-![Table](images/0473af53b9d12ad44e7473c0fc5ed2a1e825967c0250743b8f1ca5f1e6a2dadb.jpg)
+![Table](../images/0473af53b9d12ad44e7473c0fc5ed2a1e825967c0250743b8f1ca5f1e6a2dadb.jpg)
 
 Table 1 Comparison of representative token-level memory methods. We categorize existing works into three groups based on their topological complexity: Flat Memory (1D) for linear or independent records, Planar Memory (2D) for structured single-layer graphs/trees, and Hierarchical Memory (3D) for multi-level architectures. Methods are characterized across four dimensions: (1) Multi indicates multimodal capability, where $\pmb { \nu }$ denotes support for modalities beyond text (e.g., visual) and $x$ implies text-only; (2) Type identifies the specific functional category of the memory (e.g., Fact for factual memory, Exp for experiential memory, Work for working memory ); (3) Memory Structure details the organization mechanism of the stored units; and (4) Task lists the primary application domains. (continued)   
 
-![Table](images/b338eb3e9f0649e2110656f6b508ac09e9b8ede3e9ffc235849533ed7158f4f9.jpg)
+![Table](../images/b338eb3e9f0649e2110656f6b508ac09e9b8ede3e9ffc235849533ed7158f4f9.jpg)
 
 Dialogue Some flat memory work focuses on storing and managing dialogue content. Early approaches primarily focused on preventing forgetting by storing raw dialogue history or generating recursive summaries to extend context windows (Wang et al., 2025a; Lu et al., 2023; Wang et al., 2025h; Yuan et al., 2025b). MemGPT (Packer et al., 2023a) introduces an operating-system metaphor with hierarchical management, inspiring subsequent works (Li et al., 2025l; Kang et al., 2025a) to decouple active context from external storage for infinite context management.
 
@@ -151,7 +151,7 @@ Internal parameter memory injects domain knowledge, personalized knowledge, or p
 
 Table 2 Taxonomy of parametric memory methods. We categorize existing works based on the storage location relative to the core model: Internal Parametric Memory embeds knowledge directly into the original weights, while External Parametric Memory isolates information within auxiliary parameter sets. Based on the training phase, we performed a secondary classification of the articles. Methods are compared across three technical dimensions: (1) Type defines the nature of the memory, (2) Task specifies the target downstream application, and (3) Optimization denotes the optimization strategy, such as SFT, FT (fine-tuning) , and $P E$ (prompt engineering).   
 
-![Table](images/413d812fe652b8fc05a3505f4a96dcfa7f270495e0b1b8ad0a9d90d80cd7ce4a.jpg)
+![Table](../images/413d812fe652b8fc05a3505f4a96dcfa7f270495e0b1b8ad0a9d90d80cd7ce4a.jpg)
 
 The timing of memory injection can be the pre-training phase, continued pre-training phase, mid-training phase, or post-training phase. The memory stored in internal parameters does not add extra parameters or additional modules.
 
@@ -169,7 +169,7 @@ Storing memory as tokens outside LLMs leads to insufficient understanding of tok
 
 Adapter A common line of external parametric memory methods relies on modules that are attached to a frozen base model. MLP-Memory (Wei et al., 2025d) integrates RAG knowledge with Transformer decoders through MLP. K-Adapter (Wang et al., 2021) injects new knowledge by training task-specific adapter modules while keeping the original backbone unchanged, enabling continual knowledge expansion without interfering with pre-trained representations. WISE (Wang et al., 2024e) further introduces a dual-parameter memory setup—separating pre-trained knowledge and edited knowledge—and a routing mechanism that dynamically selects which parameter memory to use at inference time, thus mitigating conflicts during lifelong editing. ELDER (Li et al., 2025d) advances this direction by maintaining multiple LoRA modules and learning a routing function that adaptively selects or blends them based on input semantics, improving robustness and scalability in long-term editing scenarios. Collectively, these methods leverage additional parameter subspaces to store and retrieve memory in a modular and reversible manner, avoiding the risks of catastrophic interference associated with directly modifying the core model weights.
 
-![](images/23d2fc1b32d64bc4d9c59a0973a19a7abe77e8b5857ad4b9e4eb53faafd8c5fd.jpg)  
+![](../images/23d2fc1b32d64bc4d9c59a0973a19a7abe77e8b5857ad4b9e4eb53faafd8c5fd.jpg)  
 Figure 4 Overview of Latent Memory integration in LLM agents. Unlike explicit text storage, latent memory operates within the model’s internal representational space. The framework is categorized by the origin of the latent state: (a) Generate, where auxiliary models synthesize embeddings to interfere with or augment the LLM’s forward pass; (b) Reuse, which directly propagates prior computational states such as KV caches or intermediate embeddings; and (c) Transform, which compresses internal states through token selection, merging, or projection to maintain efficient context.
 
 Auxiliary LM Beyond Adapter-based storage, another line of work adopts a more architecturally decoupled form of external parametric memory, where memory is stored in a separate model or external knowledge module. MAC (Tack et al., 2024) compresses the information from a new document into a compact modulation through an amortization network, and stores it in a memory bank. Retroformer (Yao et al., 2024a) proposes a learning paradigm for memorizing the experiences of successes or failures in past task executions.
@@ -207,7 +207,7 @@ Single Modal In the single-modal setting, a major group of methods focuses on lo
 
 Table 3 Taxonomy of latent memory methods. We categorize existing works based on the origin of the latent state: Generate synthesizes memory via auxiliary modules, Reuse propagates internal computational states, and Transform compresses, modifies or restructs existing latent state. Methods are compared across three technical dimensions: (1) Form specifies the specific data type of the latent memory, (2) Type defines the nature of the recorded content (e.g., Working, Factual, and Experiential), and (3) Task denotes the target downstream application.   
 
-![Table](images/2e3eb348d3be91354374c993b1656e495c581d27db79b0d841d7c1167b458433.jpg)
+![Table](../images/2e3eb348d3be91354374c993b1656e495c581d27db79b0d841d7c1167b458433.jpg)
 
 CARE (Choi et al., 2025) further extends the latent tokens by training a context assessor that compresses retrieved RAG documents into compact memory tokens.
 
@@ -241,7 +241,7 @@ Transform-type latent memory methods focus on modifying, compressing, or restruc
 
 # Parametric Memory
 
-![](images/10725b3678bbb018572831ad77b30e8237c1e24d968a157531ee59d0639e07e8.jpg)
+![](../images/10725b3678bbb018572831ad77b30e8237c1e24d968a157531ee59d0639e07e8.jpg)
 
 # Features:
 
@@ -249,7 +249,7 @@ Transform-type latent memory methods focus on modifying, compressing, or restruc
 
 # Features:
 
-![](images/21ccad8d0d57712de12caa187a3eba77c4ba816980fe0163551a4c75d6f8f728.jpg)  
+![](../images/21ccad8d0d57712de12caa187a3eba77c4ba816980fe0163551a4c75d6f8f728.jpg)  
 Figure 5 Overview of three complementary memory paradigms for LLM agents. Token-level, parametric, and latent memories differ in their representational form, update dynamics, interpretability, and efficiency, leading to distinct strengths, limitations, and application domains in long-horizon and interactive agent systems.
 
 - Implicit, abstract, and generalizable - Slower memory update - (Typically) better performance gain - More severe catastrophic forgetting

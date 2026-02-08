@@ -117,6 +117,6 @@ Memory has emerged, and will continue to remain, a core capability of foundation
 7.8.1 Look Back . . 76   
 7.8.2 Future Perspective . . 76
 
-![](images/59c7dcb89b84c5659faf913c40baa21d0d721fb0004a4a3bb8b6dfab62df4dc9.jpg)  
+![](../images/59c7dcb89b84c5659faf913c40baa21d0d721fb0004a4a3bb8b6dfab62df4dc9.jpg)  
 Figure 1 Overview of agent memory organized by the unified taxonomy of forms (Section 3), functions (Section 4), and dynamics (Section 5). The diagram positions memory artifacts by their dominant form and primary function. It further maps representative systems into this taxonomy to provide a consolidated landscape.
 

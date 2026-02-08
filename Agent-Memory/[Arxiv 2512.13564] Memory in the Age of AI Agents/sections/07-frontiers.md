@@ -46,7 +46,7 @@ To support truly automated memory management, a promising direction is to integr
 
 Another key frontier lies in developing self-optimizing memory structures adopting hierarchical and adaptive architectures inspired by cognitive systems. First, hierarchical memory structure has been shown to improve the efficiency and performance (Kang et al., 2025a). Beyond hierarchy, self-evolving memory systems that dynamically link, index, and reconstruct memory entries enable the memory storage itself to self-organize over time, supporting richer reasoning and reducing dependence on hand-designed rules. Ultimately, such adaptive, self-organizing memory architectures pave the way toward agents capable of maintaining robust, scalable, and truly autonomous memory management.
 
-![](images/bfa4f070cfe203c683cf15051178cf6cb8ee5f3d627a34efff9e304068e3d582.jpg)  
+![](../images/bfa4f070cfe203c683cf15051178cf6cb8ee5f3d627a34efff9e304068e3d582.jpg)  
 Figure 11 The evolution of RL-enabled agent memory systems. A conceptual progression from RL-free memory systems based on heuristic or prompt-driven pipelines, to partially RL-involved designs where reinforcement learning governs selected memory operations, and finally to fully RL-driven memory systems in which memory architectures and control policies are learned end-to-end. This evolution reflects a broader paradigm shift from manually engineered memory pipelines toward model-native, self-optimizing memory management in LLM-based agents.
 
 # 7.3 Reinforcement Learning Meets Agent Memory

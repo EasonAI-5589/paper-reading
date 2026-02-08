@@ -21,7 +21,7 @@ These three memory systems are not isolated but form a dynamic, interconnected a
 
 # (a) Long-term Memory
 
-![](images/255bacf068c2331e7f94d192e011221907fe1d772e143354ba0b790b86bc3bbf.jpg)  
+![](../images/255bacf068c2331e7f94d192e011221907fe1d772e143354ba0b790b86bc3bbf.jpg)  
 Figure 6 The functional taxonomy of agent memory. We organize memory capabilities based on their functions (purpose) into three primary pillars spanning two temporal domains: (1) Factual Memory serves as a persistent declarative knowledge base to ensure interaction consistency, coherence, and adaptability; (2) Experiential Memory encapsulates procedural knowledge to enable continual learning and self-evolution across episodes; and (3) Working Memory provides mechanisms for the active management of transient context.
 
 pattern enabling agents to learn from the past simultaneously and reason in the present.
@@ -53,17 +53,17 @@ For exposition, we further organize factual memory according to the primary enti
 
 Table 4 Taxonomy of factual memory methods. We categorize existing works based on the primary target entity: User Factual Memory focuses on sustaining interaction consistency, while Environment Factual Memory ensures consistency with the external world. Methods are compared across three technical dimensions: (1) Carrier (Section 3) identifies the storage medium, (2) Structure follows the taxonomy of token-level memory (Section 3.1), and (3) Optimization denotes the integration strategy, where $P E$ encompasses prompt engineering and inference-time techniques without parameter updates, distinct from gradient-based methods like $S F T '$ and $R L$ .   
 
-![Table](images/abbf0461d9c6f3e19cf77547fc7f5527c1911825c49ec04d17648c3e3a1a316f.jpg)
+![Table](../images/abbf0461d9c6f3e19cf77547fc7f5527c1911825c49ec04d17648c3e3a1a316f.jpg)
 
 Continued on next page
 
 Table 4 Taxonomy of factual memory methods. (continued)   
 
-![Table](images/c9e2c49149422a1148ee5fcbfc470f12cff6c14aa7effd2149b5d0c0a418ca35.jpg)
+![Table](../images/c9e2c49149422a1148ee5fcbfc470f12cff6c14aa7effd2149b5d0c0a418ca35.jpg)
 
 II. Environment factual Memory   
 
-![Table](images/f9a866f3f7be3ba0df83079551ce6a61c8c0eb45508c01f8c77bedb65aae04c0.jpg)
+![Table](../images/f9a866f3f7be3ba0df83079551ce6a61c8c0eb45508c01f8c77bedb65aae04c0.jpg)
 
 # 4.1.1 User factual memory
 
@@ -107,7 +107,7 @@ In the domain of social simulation, platforms like Generative Agents (Park et al
 
 Summary environment factual memory furnishes a continuously updatable, auditable, and reusable external fact layer. On the knowledge axis, it improves completeness, interpretability, and editability of factual recall through structured organization and long-term memory modules. On the collaboration axis, it maintains crossagent and cross-stage consistency through sharing and governance, thereby enabling robust decision-making and execution under long horizons, multiple actors, and multi-source information.
 
-![](images/714d35abf490706e20697390a290ed69b48db6a9691e9ffb6122c7f75b50ee3a.jpg)  
+![](../images/714d35abf490706e20697390a290ed69b48db6a9691e9ffb6122c7f75b50ee3a.jpg)  
 Figure 7 Taxonomy of experiential memory paradigms. We classify approaches based on the abstraction level of stored knowledge: (1) Case-based Memory preserves raw trajectories and solutions as concrete exemplars; (2) Strategybased Memory abstracts experiences into high-level strategies, templates, or workflows; (3) Skill-based Memory distills procedural knowledge into executable functions and APIs; and (4) Hybrid Memory integrates multiple representations. Together, these systems mirror human procedural memory to enable continual learning and self-evolution. This figure draws inspiration from Gao et al. (2025).
 
 # 4.2 Experiential Memory
@@ -133,13 +133,13 @@ To systematically analyze existing literature, we classify experiential memory b
 
 Table 5 Taxonomy of experiential memory methods. We categorize existing works based on the abstraction level of stored knowledge: Case-based Memory preserves raw records for direct replay, Strategy-based Memory distills abstract heuristics for planning, and Skill-based Memory compiles executable capabilities for action. Methods are compared across three technical dimensions: (1) Carrier (Section 3) identifies the storage medium, (2) Form specifies the representation format of the experience, and (3) Optimization denotes the integration strategy, where $P E$ encompasses prompt engineering and inference-time techniques without parameter updates, distinct from gradient-based methods like $S F T$ and $R L$ .   
 
-![Table](images/fde9fb80d823a477eebab986c56c60e6aff385b743a6892fe059e1303f152478.jpg)
+![Table](../images/fde9fb80d823a477eebab986c56c60e6aff385b743a6892fe059e1303f152478.jpg)
 
 Continued on next page
 
 Table 5 Taxonomy of experiential memory methods. We categorize existing works based on the abstraction level of stored knowledge: Case-based Memory preserves raw records for direct replay, Strategy-based Memory distills abstract heuristics for planning, and Skill-based Memory compiles executable capabilities for action. (continued)   
 
-![Table](images/0088bd60f7037110fa180a7d60357691522385111779081acaed2b69ce7a8717.jpg)
+![Table](../images/0088bd60f7037110fa180a7d60357691522385111779081acaed2b69ce7a8717.jpg)
 
 # 4.2.1 Case-based Memory
 
@@ -224,7 +224,7 @@ In complex interactive environments, abstraction converts verbose inputs into co
 
 Table 6 Taxonomy of working memory methods. We categorize approaches into Single-turn and Multi-turn settings based on interaction dynamics. Methods are compared across three technical dimensions: (1) Carrier (Section 3) identifies the storage medium, (2) Task specifies the evaluation domain or application scenario, and (3) Optimization denotes the integration strategy, where PE encompasses prompt engineering and inference-time techniques without parameter updates, distinct from gradient-based methods like SFT and RL.   
 
-![Table](images/82af4535ed593467054f314ec858ec690c8ffeb09621d3f8a3dac9802cef4ca8.jpg)
+![Table](../images/82af4535ed593467054f314ec858ec690c8ffeb09621d3f8a3dac9802cef4ca8.jpg)
 
 2024g) converts streams into temporal event descriptions, and MA-LMM (He et al., 2024) maintains a bank of visual features. These methods effectively rewrite high-dimensional, redundant streams into low-dimensional, semantically rich representations operable within a limited context window for efficient processing.
 

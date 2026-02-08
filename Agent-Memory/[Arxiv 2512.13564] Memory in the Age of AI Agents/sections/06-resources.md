@@ -19,7 +19,7 @@ Lifelong-learning benchmarks extend beyond isolated memory retrieval to examine 
 
 Table 8 Overview of benchmarks relevant to LLM agent memory, long-term, lifelong learning, and self-evolving evaluation. The table covers two categories of benchmarks: (i) benchmarks explicitly designed for memory-, lifelong learning-, or self-evolving agent evaluation, and (ii) other agent-oriented benchmarks that implicitly stress long-horizon memory through sequential, multi-step, or multi-task interactions. Fac. and Exp. indicate whether a benchmark evaluates factual memory or experiential (interaction-derived) memory, respectively. MM. denotes the presence of multimodal inputs, while Env. indicates whether the benchmark is conducted in a simulated or real environment. Feature summarizes the primary capability under evaluation, and Scale reports the approximate benchmark size in terms of samples (s.) or tasks (t.). PDDL denotes commonly used PDDL-based planning subsets.   
 
-![Table](images/6532f8e6d83003d72381315b3ec6e0cd07ecb5034169636c4edaedf50c7745ec.jpg)
+![Table](../images/6532f8e6d83003d72381315b3ec6e0cd07ecb5034169636c4edaedf50c7745ec.jpg)
 
 Self-evolving-agent benchmarks go a step further by treating the agent as an open-ended system that can iteratively refine its own memory, skills, and strategies through interaction. Here, the focus is not only on storing and recalling information, but also on meta-level behaviors such as self-reflection, memory editing, tool-augmented storage, and policy improvement over multiple episodes or games. Benchmarks like MemoryAgentBench (Hu et al., 2025c), Evo-Memory (Wei et al., 2025e), and other multi-episode or mission-style environments can be instantiated in a self-evolving setting by allowing the agent to accumulate trajectories, synthesize higher-level abstractions, and adjust its behavior in future runs based on its own past performance. When viewed through this lens, these benchmarks provide a testbed for evaluating whether an agent can autonomously bootstrap more capable behaviors over time-turning static tasks into arenas for long-term adaptation, strategy refinement, and genuinely self-improving memory use.
 
@@ -39,7 +39,7 @@ Taken together, these benchmarks complement memory-oriented evaluations explicit
 
 Table 9 Overview of representative open-source memory frameworks for LLM-based agents. The table compares widely used frameworks in terms of the types of memory they support (factual vs. experiential), multimodality, internal memory structure, and reported evaluation benchmarks. Fac. and Exp. denote factual and experiential memory, respectively, MM. indicates multimodal memory support, and Structure summarizes the core memory abstraction or organization mechanism adopted by each framework. Evaluation lists publicly reported benchmarks used to assess memory-related capabilities, when available.   
 
-![Table](images/b370cb69c5059eac3226343954e4f8df96dedb7355312c99e29134efa0f0e8ac.jpg)
+![Table](../images/b370cb69c5059eac3226343954e4f8df96dedb7355312c99e29134efa0f0e8ac.jpg)
 
 # 6.2 Open-Source Frameworks
 
