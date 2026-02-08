@@ -1,123 +1,102 @@
-# 4. MM-DPO
+[← 返回 README](../README.md)
 
-> 来源: MM-RLHF (ICML 2025)
+# 4 MM-DPO
+
+## 📌 预览
+提出 MM-DPO：在 DPO 基础上引入 Dynamic Reward Scaling，通过 reward margin 动态调整 $\beta$，让高质量对比对获得更大权重。关键创新：使用所有可能的对比对（而非只用最难的），并通过有界的指数函数控制缩放因子。
 
 ---
-
-## 📄 原文
 
 In this section, we propose MM-DPO, an extension of the traditional DPO framework. MM-DPO introduces Dynamic Reward Scaling, which dynamically adjusts the update strength based on the confidence of training pairs, ensuring effective utilization of high-quality samples while mitigating the impact of noisy or low-confidence data.
 
-> 💡 **Section 概览**: MM-DPO = 标准 DPO + Dynamic Reward Scaling。核心思想：不同 preference pair 的质量不同，高 reward margin 的 pair 应该有更大的训练权重。
-
 ![Figure 4](../images/93accee73ab37db67bd518460288bf809ef2a7c68fdb2b5aa5dc15c24eaf9da4.jpg)
-*Figure 4: MM-DPO 框架概览。Dynamic reward scaling 机制根据 reward margin 调整更新强度，提高优化稳定性和鲁棒性。*
+*Figure 4: Overview of the MM-DPO framework. The dynamic reward scaling mechanism adjusts the update strength based on the reward margin, improving optimization stability and robustness.*
 
 > 💡 **Figure 4 批读**:
-> ```
-> MM-DPO 流程:
-> ├── 输入: query + preferred response + non-preferred response
-> ├── MM-RLHF-Reward-7B 计算:
-> │   ├── r(y_w): preferred 的 reward score
-> │   ├── r(y_l): non-preferred 的 reward score
-> │   └── δ = r(y_w) - r(y_l): reward margin
-> ├── Dynamic Scaling:
-> │   └── β(δ) = β_ori × (1 + w × (1 - e^(-kδ)))
-> └── DPO Loss with scaled β(δ)
-> ```
+> - 核心流程：Query + Responses → Reward Model 计算 margin → 动态调整 $\beta$ → DPO 训练
+> - margin 大的对比对（质量差异明显）获得更大 $\beta$，更新更强
+> - margin 小的对比对（质量相近）$\beta$ 接近基础值，避免噪声
 
 ---
 
-### 4.1 Background: Direct Preference Optimization
+## 4.1 Background: Direct Preference Optimization
 
-The DPO framework is a preference-based learning method that optimizes model parameters θ by aligning model outputs with human preferences. Given a query **x** and corresponding responses $y_w$ (positive) and $y_l$ (negative), the DPO loss is defined as:
+> 💡 **4.1 要点预览**: DPO 是 RLHF 的简化版——直接从偏好数据优化策略，不需要单独的 reward model 训练循环。但传统 DPO 对所有样本一视同仁。
 
-$$\ell_{\mathrm{DPO}}(\theta) = \mathbb{E}_{\mathbf{x}, y_w, y_l} \Big[ -\log \sigma \Big( \beta \Big( \log \frac{\pi_\theta(y_w | \mathbf{x})}{\pi_{\mathrm{ref}}(y_w | \mathbf{x})} - \log \frac{\pi_\theta(y_l | \mathbf{x})}{\pi_{\mathrm{ref}}(y_l | \mathbf{x})} \Big) \Big) \Big]$$
+The DPO framework is a preference-based learning method that optimizes model parameters $\theta$ by aligning model outputs with human preferences. Given a query $\mathbf{x}$ and corresponding responses $y_w$ (positive) and $y_l$ (negative), the DPO loss is defined as:
 
-where $\pi_\theta$ is the model's predicted probability distribution, $\pi_{\mathrm{ref}}$ is a reference policy, β is a scaling factor, and σ(·) is the sigmoid function. Traditional DPO treats all training pairs equally, regardless of their quality differences. This uniform scaling fails to prioritize high-quality pairs with clear preference distinctions, leading to inefficient use of informative samples and suboptimal optimization.
+![Equation 4](../images/eq4_dpo_loss.jpg)
+*Equation 4: Standard DPO loss*
 
-> 💡 **标准 DPO 的问题**: 所有 pair 权重一样。但实际上：
-> - Rank 1 vs Rank 4 的 pair 信息量很大（明显差异）
-> - Rank 3 vs Rank 4 的 pair 信息量小（差异微弱）
-> - 都用同样的 β，浪费了高信息量样本的价值
+where $\pi_\theta$ is the model's predicted probability distribution, $\pi_{\mathrm{ref}}$ is a reference policy, $\beta$ is a scaling factor, and $\sigma(\cdot)$ is the sigmoid function. Traditional DPO treats all training pairs equally, regardless of their quality differences. This uniform scaling fails to prioritize high-quality pairs with clear preference distinctions, leading to inefficient use of informative samples and suboptimal optimization.
+
+> 💡 **DPO 核心思想**: 让 preferred response 的 log-prob 增加（相对 ref），让 rejected response 的降低。$\beta$ 控制偏离 ref 的惩罚强度。问题：所有样本共享同一个 $\beta$。
 
 ---
 
-### 4.2 MM-DPO: Key Contributions and Improvements
+## 4.2 MM-DPO: Key Contributions and Improvements
 
-**Training on all possible comparison pairs instead of the hardest pairs.** Unlike many recent MLLM alignment approaches that prioritize training on the hardest comparison pairs, MM-DPO incorporates **all possible comparison pairs** for a single query into the training process. Specifically, for any query with multiple responses, every response pair with differing ranks is treated as a valid comparison pair. This comprehensive approach captures more nuanced ranking information, allowing the model to learn from a broader set of preferences.
+> 💡 **4.2 要点预览**: 两大改进——(1) 用所有对比对而非只用最难的；(2) Dynamic Reward Scaling 动态调 $\beta$。
 
-> 💡 **用所有 pair 而非最难的 pair**: 
-> - 假设一个 query 有 4 个 response (rank 1-4)
-> - 最难 pair: 只用 (rank 1, rank 2)
-> - 本文: 用所有 C(4,2)=6 个 pair: (1,2), (1,3), (1,4), (2,3), (2,4), (3,4)
-> - 这就是为什么 30K queries 能产生 120K+ pairs
+**Training on all possible comparison pairs instead of the hardest pairs.** Unlike many recent MLLM alignment approaches that prioritize training on the hardest comparison pairs, MM-DPO incorporates all possible comparison pairs for a single query into the training process. Specifically, for any query with multiple responses, every response pair with differing ranks is treated as a valid comparison pair. This comprehensive approach captures more nuanced ranking information, allowing the model to learn from a broader set of preferences. However, this strategy also introduces a challenge: pairs involving responses with similar ranks (e.g., rank 3 and rank 4) often have lower reward margins compared to pairs with more distinct rankings (e.g., rank 1 and rank 4). Treating all pairs equally, as in traditional DPO, exacerbates the issue of uniform scaling and underutilizes the high-confidence information contained in larger reward margins. To address this, MM-DPO introduces Dynamic Reward Scaling, which dynamically adjusts the update strength based on the reward margin to prioritize high-confidence training pairs.
 
-However, this strategy also introduces a challenge: pairs involving responses with similar ranks (e.g., rank 3 and rank 4) often have lower reward margins compared to pairs with more distinct rankings (e.g., rank 1 and rank 4). Treating all pairs equally, as in traditional DPO, exacerbates the issue of uniform scaling and underutilizes the high-confidence information contained in larger reward margins. To address this, MM-DPO introduces Dynamic Reward Scaling, which dynamically adjusts the update strength based on the reward margin to prioritize high-confidence training pairs.
+> 💡 **所有对比对 vs. 最难对比对**:
+> - 假设一个 query 有 4 个响应排名 1,2,3,4
+> - "最难对"方法只用 (1,2) 这种相邻排名的对
+> - MM-DPO 用所有 $\binom{4}{2}=6$ 个对比对
+> - 优势：信息利用更充分；挑战：质量参差不齐
+> - 解决：Dynamic Reward Scaling
 
 **Definition of dynamic reward scaling.** Reward models can naturally provide a pairwise reward margin, which serves as a straightforward signal for scaling. However, two critical aspects must be addressed: (1) ensuring the signal quality is sufficiently high, and (2) bounding the signal to prevent overly aggressive updates that might destabilize training.
 
 Regarding the first aspect, our experiments reveal that publicly available models, such as GPT-4o and LLaVA-Critic, perform inadequately in scoring our dataset. Conversely, our MM-RLHF-Reward-7B model surpasses several publicly available 72B models, offering a reliable and robust reward signal. We use this model to compute the reward margin: $\delta = r(y_w) - r(y_l)$, where $r(y_w)$ and $r(y_l)$ are the scores assigned to the positive and negative samples.
 
-For the second factor, we control the scaling factor β(δ) using the following formulation:
-
-$$\beta(\delta) = \beta_{\mathrm{ori}} \Big( 1 + w \big( 1 - e^{-k\delta} \big) \Big)$$
-
-where $\beta_{\mathrm{ori}}$ is the initial default scaling factor, $w$ is a parameter balancing the dynamic component's contribution, and $k$ is a tunable hyperparameter that adjusts β(δ)'s sensitivity to changes in δ.
-
 ![Figure 5](../images/0a8c4feb715eef5b3f9732628eeab49c9288cefefef64fbe9e1b3cf4269b1e40.jpg)
-*Figure 5: k 对 1 - e^(-kδ) 的影响。*
+*Figure 5: Effect of $k$ on $1 - e^{-k\delta}$.*
 
-> 💡 **Figure 5 批读**: 
-> - k 小 (e.g., 0.5): 缓慢增长，大多数 β(δ) 接近 β_ori
-> - k 大 (e.g., 5.0): 快速饱和，小 δ 就能达到最大权重
-> - 默认 k=0.5, w=0.5 效果最好
+> 💡 **Figure 5 批读**:
+> - $k$ 控制缩放函数的敏感度
+> - $k=0.1$: 几乎是线性的，对 margin 变化不敏感
+> - $k=5$: 快速饱和，margin 稍大就接近最大值
+> - $k=0.5$（默认）: 温和的非线性，是个好平衡
 
-The function $1 - e^{-k\delta}$ is bounded between [0, 1]. A smaller $k$ value keeps most β(δ) values near $\beta_{\mathrm{ori}}$, with slow growth as δ increases. In contrast, a larger $k$ makes β(δ) highly responsive to changes in δ, quickly reaching its maximum. To avoid overly aggressive updates, we constrain β(δ) within $[\beta_{\mathrm{ori}}, (1+w)\beta_{\mathrm{ori}}]$.
+For the second factor, we control the scaling factor $\beta(\delta)$ using the following formulation:
 
-> 💡 **Dynamic Reward Scaling 公式详解**:
-> ```
-> β(δ) = β_ori × (1 + w × (1 - e^(-kδ)))
-> 
-> 其中:
-> - β_ori = 0.1 (初始值，设得很小)
-> - w = 0.5 (控制动态范围: β 最大为 1.5 × β_ori)
-> - k = 0.5 (控制灵敏度)
-> - δ = r(y_w) - r(y_l) (reward margin，由 MM-RLHF-Reward-7B 计算)
-> 
-> 效果:
-> - δ 大 (pair 差异明显) → β 大 → 更新幅度大
-> - δ 小 (pair 差异微弱) → β ≈ β_ori → 更新幅度小
-> - β 有上界 (1+w)β_ori，防止过激更新
-> ```
-> 
-> **与 LLM 领域的 β-DPO [65] 区别**:
-> - β-DPO 用 implicit reward (模型自身信号) 调整 β → 在 MLLM 上不 work
-> - MM-DPO 用 **external high-quality RM** 的 reward margin → 有效
-> - 原因: MLLM 自身的信号判别力太弱，无法指导 β 选择
+![Equation 5](../images/eq5_beta_scaling.jpg)
+*Equation 5: Dynamic reward scaling*
 
-Overall, Dynamic Reward Scaling significantly enhances MM-DPO by leveraging high-quality reward signals and tailoring optimization steps to the confidence level of training pairs. This results in improved robustness, efficiency, and overall effectiveness of the framework.
+where $\beta_{\mathrm{ori}}$ is the initial default scaling factor, $w$ is a parameter balancing the dynamic component's contribution, and $k$ is a tunable hyperparameter that adjusts $\beta(\delta)$'s sensitivity to changes in $\delta$. The function $1 - e^{-k\delta}$ is bounded between $[0, 1]$, as illustrated in Figure 5. A smaller $k$ value keeps most $\beta(\delta)$ values near $\beta_{\mathrm{ori}}$, with slow growth as $\delta$ increases. In contrast, a larger $k$ makes $\beta(\delta)$ highly responsive to changes in $\delta$, quickly reaching its maximum. To avoid overly aggressive updates, we constrain $\beta(\delta)$ within $[\beta_{\mathrm{ori}}, (1+w)\beta_{\mathrm{ori}}]$.
+
+> 💡 **Dynamic Reward Scaling 公式解读**:
+> - $\beta(\delta) = \beta_{\text{ori}} \cdot (1 + w \cdot (1 - e^{-k\delta}))$
+> - 当 $\delta = 0$（margin 为 0）: $\beta = \beta_{\text{ori}}$（最小值）
+> - 当 $\delta \to \infty$: $\beta = (1+w) \cdot \beta_{\text{ori}}$（最大值）
+> - $w$ 控制动态范围: $w=0.5$ 意味着 $\beta$ 最多增加 50%
+> - $k$ 控制敏感度: 多大的 margin 开始产生显著影响
+> - 默认 $w=0.5$, $k=0.5$, $\beta_{\text{ori}}=0.1$
+
+Overall, Dynamic Reward Scaling significantly enhances MM-DPO by leveraging high-quality reward signals and tailoring optimization steps to the confidence level of training pairs. This results in improved robustness, efficiency, and overall effectiveness of the framework. We discuss the similarities and differing perspectives between our approach and existing methods in Appendix E.
+
+> 💡 **与 LLM 领域动态 $\beta$ 方法的区别** (Appendix E):
+> - LLM 领域用 implicit reward（模型自身的 log-prob 差异）来调 $\beta$
+> - MM-RLHF 发现 implicit reward 在 MLLM 上不 work（Figure 12a）
+> - 因此使用外部高质量 reward model 提供的显式信号
+> - 这是 MLLM 领域首次探索动态 $\beta$ 调整
 
 ---
 
-## 💡 Section 总结
+## 🔖 Section 总结
 
 ### 关键数字速查
-| 超参数 | 默认值 | 含义 |
-|--------|--------|------|
-| β_ori | 0.1 | 初始 β（设很小） |
-| w | 0.5 | 动态范围控制 |
-| k | 0.5 | 灵敏度控制 |
-| SFT loss weight | grid search {0, 0.1, 0.25, 0.5, 1.0} | 稳定训练 |
-| Learning rate | grid search {1e-7, 5e-7, 1e-6, 5e-6, 1e-5} | — |
+| 参数 | 默认值 |
+|------|--------|
+| $\beta_{\text{ori}}$ | 0.1 |
+| $w$ | 0.5 |
+| $k$ | 0.5 |
+| $\beta$ 范围 | $[0.1, 0.15]$ |
 
 ### 核心洞察
-1. **用所有 pair + 加权 > 只用最难 pair**: 信息更丰富，但需要 dynamic scaling 处理 noise
-2. **External RM 信号 > Implicit reward**: MLLM 领域的重要发现——不能直接照搬 LLM 的 β-DPO
-3. **bounded scaling 很重要**: 无上界的 β 会导致训练不稳定
-4. **β_ori 设很小 (0.1)**: 因为 dynamic scaling 会增大，所以初始值不需要手调
-
-### 对 Apple Assignment 的价值
-- Dynamic Reward Scaling 是一个简单但有效的技术，公式清晰，易于实现
-- 核心 insight: reward margin 作为 sample importance weight，比统一权重更合理
-- 与 curriculum learning / importance sampling 有联系，可以在 assignment 中扩展讨论
+1. **用所有对比对训练**比只用最难的对更好——信息利用更充分
+2. **Dynamic Reward Scaling** 的关键是有界的指数函数 $1-e^{-k\delta}$，保证稳定性
+3. MLLM 的 implicit reward 信号质量差，需要外部高质量 RM 提供显式信号
+4. 方法简洁优雅：只多了两个超参数 $w$ 和 $k$，且对超参数选择有一定鲁棒性
