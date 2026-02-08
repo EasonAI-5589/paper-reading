@@ -1,152 +1,60 @@
-# Chapter-Llama
+# Chapter-Llama: Efficient Chaptering in Hour-Long Videos with LLMs
 
-**会议/期刊**: CVPR 2025
-**作者**: [待填写]
-**链接**: [arXiv / OpenAccess]
-
----
+**作者**: Lucas Ventura, Antoine Yang, Cordelia Schmid, Gül Varol  
+**会议**: CVPR 2025  
+**机构**: LIGM (Ecole des Ponts), Inria, Google DeepMind  
+**链接**: [Project Page](https://imagine.enpc.fr/~lucas.ventura/chapter-llama/)
 
 ## 一句话总结
 
-[待填写]
-
----
-
-## 目录
-
-- [Abstract](sections/00-abstract.md)
-- [Chapter-Llama: Efficient Chaptering in Hour-Long Videos with LLMs](sections/01-chapter-llama-efficient-chaptering-in-hour-long-vi.md)
-- [Abstract](sections/02-abstract.md)
-- [1. Introduction](sections/03-introduction.md)
-- [2. Related Work](sections/04-related-work.md)
-- [3. Chapter-Llama: LLM-based Video Chaptering](sections/05-chapter-llama-llm-based-video-chaptering.md)
-- [4. Experiments](sections/06-experiments.md)
-- [4.1. Data and evaluation](sections/07-data-and-evaluation.md)
-- [4.2. Comparison with the state of the art](sections/08-comparison-with-the-state-of-the-art.md)
-- [4.3. Ablation studies](sections/09-ablation-studies.md)
-- [4.4. Iterative prediction on longer videos](sections/10-iterative-prediction-on-longer-videos.md)
-- [5. Conclusions](sections/11-conclusions.md)
-- [References](sections/12-references.md)
-- [APPENDIX](sections/13-appendix.md)
-- [A. Implementation Details 13](sections/14-a-implementation-details-13.md)
-- [B. Data Analysis and Statistics 14](sections/15-b-data-analysis-and-statistics-14.md)
-- [C. Additional Quantitative Results](sections/16-additional-quantitative-results.md)
-- [14](sections/17-.md)
-- [D. Additional Qualitative Analyses 18](sections/18-d-additional-qualitative-analyses-18.md)
-- [A. Implementation Details](sections/19-a-implementation-details.md)
-- [A.1. Finetuning the LLM](sections/20-a1-finetuning-the-llm.md)
-- [A.2. Prompt details](sections/21-a2-prompt-details.md)
-- [A.3. Training data format](sections/22-a3-training-data-format.md)
-- [A.4. Iterative prediction details](sections/23-a4-iterative-prediction-details.md)
-- [B. Data Analysis and Statistics](sections/24-b-data-analysis-and-statistics.md)
-- [B.1. Video duration distribution](sections/25-b1-video-duration-distribution.md)
-- [B.2. Video category distribution](sections/26-b2-video-category-distribution.md)
-- [B.3. Videos within 15k window token limit](sections/27-b3-videos-within-15k-window-token-limit.md)
-- [C. Additional Quantitative Results](sections/28-additional-quantitative-results.md)
-- [C.1. Predicting timestamps without chapter titles](sections/29-1-predicting-timestamps-without-chapter-titles.md)
-- [C.2. ASR timestamp representation](sections/30-2-asr-timestamp-representation.md)
-- [C.3. Modality prefixes](sections/31-3-modality-prefixes.md)
-- [C.4. Alternative frame selection strategies](sections/32-4-alternative-frame-selection-strategies.md)
-- [C.5. Training data size on the frame selection model](sections/33-5-training-data-size-on-the-frame-selection-model.md)
-- [C.6. Separate training data for frame selector and Chapter-Llama](sections/34-6-separate-training-data-for-frame-selector-and-ch.md)
-- [C.7. LLM variants](sections/35-7-llm-variants.md)
-- [C.8. LoRA rank](sections/36-8-lora-rank.md)
-- [C.9. Training on videos of various durations](sections/37-9-training-on-videos-of-various-durations.md)
-- [C.10. Oracle experiments with partial ground truth input](sections/38-10-oracle-experiments-with-partial-ground-truth-in.md)
-- [C.11. Performance on videos that have no speech](sections/39-11-performance-on-videos-that-have-no-speech.md)
-- [C.12. Full set of metrics](sections/40-12-full-set-of-metrics.md)
-- [C.13. Repetition analysis](sections/41-13-repetition-analysis.md)
-- [C.14. Accuracy of number of chapter predictions](sections/42-14-accuracy-of-number-of-chapter-predictions.md)
-- [D. Additional Qualitative Analyses](sections/43-d-additional-qualitative-analyses.md)
-- [D.1. Evaluation metrics](sections/44-d1-evaluation-metrics.md)
-- [D.2. Visualizing captions](sections/45-d2-visualizing-captions.md)
-- [D.3. Chapter-Llama prediction examples](sections/46-d3-chapter-llama-prediction-examples.md)
-- [Ground truth](sections/47-ground-truth.md)
-- [Frame selector(S: 49, C: 187)](sections/48-frame-selectors-49-c-187.md)
-- [Chapter-Llama(S: 54, C: 225)](sections/49-chapter-llamas-54-c-225.md)
-- [Captions](sections/50-captions.md)
-- [Ground truth](sections/51-ground-truth.md)
-- [Chapter-Llama(S:38, C:296)](sections/52-chapter-llamas38-c296.md)
-
----
+用 LLM 处理纯文本输入（ASR + speech-guided 关键帧 caption）实现小时级视频的自动章节划分，以极少训练数据（2.5%）大幅超越 SOTA。
 
 ## 核心贡献
 
-1. 
-2. 
-3. 
+1. **Chapter-Llama 框架**: 将视频转为纯文本（ASR + Caption），用 finetuned Llama-3.1-8B 预测章节边界和标题
+2. **Speech-based frame selection**: 先用 speech-only LLM 预测边界，只在预测位置 caption（~10 帧 vs 100 帧），效率极高且效果更好
+3. **大幅超越 SOTA**: F1 45.3 vs 26.7（Vid2Seq），只用 20k 训练视频（2.5% 数据）
 
----
+## 📖 批读导航
 
-## 阅读进度
+| Section | 内容 |
+|---------|------|
+| [00 - Abstract](sections/00-abstract.md) | 摘要：任务定义、方法概览、核心数字 |
+| [01 - Introduction](sections/01-introduction.md) | 背景动机、Vid2Seq 局限、三大贡献 |
+| [02 - Related Work](sections/02-related-work.md) | 时序分割、视频描述、长视频理解、LLM 应用 |
+| [03 - Method](sections/03-method.md) | Speech-based frame selection、文本映射、LLM 训练、迭代预测 |
+| [04 - Experiments](sections/04-experiments.md) | SOTA 对比、模态消融、帧采样策略、数据量、迭代预测 |
+| [05 - Conclusion](sections/05-conclusion.md) | 总结、局限性、未来方向 |
+| [06 - Appendix](sections/06-appendix.md) | 实现细节、数据分析、补充实验精选 |
 
-- [ ] Abstract
-- [ ] Chapter-Llama: Efficient Chaptering in Hour-Long Videos with LLMs
-- [ ] Abstract
-- [ ] 1. Introduction
-- [ ] 2. Related Work
-- [ ] 3. Chapter-Llama: LLM-based Video Chaptering
-- [ ] 4. Experiments
-- [ ] 4.1. Data and evaluation
-- [ ] 4.2. Comparison with the state of the art
-- [ ] 4.3. Ablation studies
-- [ ] 4.4. Iterative prediction on longer videos
-- [ ] 5. Conclusions
-- [ ] References
-- [ ] APPENDIX
-- [ ] A. Implementation Details 13
-- [ ] B. Data Analysis and Statistics 14
-- [ ] C. Additional Quantitative Results
-- [ ] 14
-- [ ] D. Additional Qualitative Analyses 18
-- [ ] A. Implementation Details
-- [ ] A.1. Finetuning the LLM
-- [ ] A.2. Prompt details
-- [ ] A.3. Training data format
-- [ ] A.4. Iterative prediction details
-- [ ] B. Data Analysis and Statistics
-- [ ] B.1. Video duration distribution
-- [ ] B.2. Video category distribution
-- [ ] B.3. Videos within 15k window token limit
-- [ ] C. Additional Quantitative Results
-- [ ] C.1. Predicting timestamps without chapter titles
-- [ ] C.2. ASR timestamp representation
-- [ ] C.3. Modality prefixes
-- [ ] C.4. Alternative frame selection strategies
-- [ ] C.5. Training data size on the frame selection model
-- [ ] C.6. Separate training data for frame selector and Chapter-Llama
-- [ ] C.7. LLM variants
-- [ ] C.8. LoRA rank
-- [ ] C.9. Training on videos of various durations
-- [ ] C.10. Oracle experiments with partial ground truth input
-- [ ] C.11. Performance on videos that have no speech
-- [ ] C.12. Full set of metrics
-- [ ] C.13. Repetition analysis
-- [ ] C.14. Accuracy of number of chapter predictions
-- [ ] D. Additional Qualitative Analyses
-- [ ] D.1. Evaluation metrics
-- [ ] D.2. Visualizing captions
-- [ ] D.3. Chapter-Llama prediction examples
-- [ ] Ground truth
-- [ ] Frame selector(S: 49, C: 187)
-- [ ] Chapter-Llama(S: 54, C: 225)
-- [ ] Captions
-- [ ] Ground truth
-- [ ] Chapter-Llama(S:38, C:296)
+## 关键数字
 
----
+| 指标 | Chapter-Llama | Vid2Seq (SOTA) | 提升 |
+|------|:---:|:---:|:---:|
+| F1 | 45.3 | 26.7 | +70% |
+| tIoU | 71.8 | 58.6 | +23% |
+| SODA | 19.3 | 11.6 | +66% |
+| CIDEr | 100.9 | 55.8 | +81% |
 
-## 笔记
+| 效率指标 | 数值 |
+|---------|------|
+| 训练数据 | 20k 视频 (2.5%) |
+| 平均采样帧数 | ~10.3 帧/视频 |
+| LoRA 参数量 | 13MB/模型 |
+| 训练耗时 | 40min on 4×H100 |
 
-### 亮点
+## 方法示意
 
-
-### 局限性
-
-
-### 与我的工作的关系
-
-
----
-
-*Generated by Paper Reader Skill*
+```
+视频 → ASR (Whisper) → Speech-only LLM → 预测边界位置
+                                              ↓
+                                     在边界位置采样帧
+                                              ↓
+                                     MiniCPM-V Caption
+                                              ↓
+                              ASR + Caption 交错排列 (带时间戳)
+                                              ↓
+                                   Llama-3.1-8B (LoRA finetuned)
+                                              ↓
+                                  章节边界 + 标题 (文本输出)
+```
