@@ -1,41 +1,39 @@
-# FastV: An Image is Worth 1/2 Tokens After Layer 2
+# An Image is Worth 1/2 Tokens After Layer 2: Plug-and-Play Acceleration for VLLM Inference (FastV)
 
-**arXiv**: [2403.06764](https://arxiv.org/abs/2403.06764)  
-**会议**: ECCV 2024 Oral  
-**分类**: Token Pruning / Compression  
-**解析工具**: MinerU API (vlm model)  
-**解析时间**: 2026-02-06
+**作者**: Liang Chen, Haozhe Zhao, Tianyu Liu, Shuang Bai, Junyang Lin, Chang Zhou, Baobao Chang  
+**单位**: Peking University, Alibaba Group  
+**会议**: ECCV 2024  
+**链接**: [arXiv](https://arxiv.org/abs/2403.06764) | [GitHub](https://github.com/pkunlpicler/FastV)
+
+## 一句话总结
+
+发现 LVLM 深层对 visual token 的注意力极其低效（仅为 system prompt 的 0.21%），提出 FastV 在第 2 层后剪枝 50% 的 image token，实现 45% FLOPs 减少且性能几乎不变。
 
 ## 核心贡献
 
-1. **发现**: 在 LVLM 深层，视觉 token 的注意力计算极其低效
-2. **FastV 方法**: 在早期层学习自适应注意力模式，在后续层 pruning 视觉 token
-3. **Plug-and-play**: 无需训练，直接应用
-4. **高效**: LLaVA-1.5-13B 减少 45% FLOPs，性能几乎无损
+1. **发现问题**: 揭示 LVLM 深层视觉注意力低效现象（anchor token 机制）
+2. **提出 FastV**: Plug-and-play 的 visual token 剪枝方法，无需重训练
+3. **全面验证**: 在图像/视频理解等多任务、多模型上验证有效性，视频场景甚至提升性能
 
-## 方法
+## 📖 批读导航
 
-- 第 2 层后，大部分视觉 token 对输出影响很小
-- 根据注意力分数 pruning 不重要的视觉 token
-- 可调参数控制 efficiency/performance trade-off
+| Section | 内容 |
+|---------|------|
+| [00 - Abstract](sections/00-abstract.md) | 摘要：问题、方法、效果概述 |
+| [01 - Introduction](sections/01-introduction.md) | 动机、核心发现、三大贡献 + Figure 1 |
+| [02 - Related Work](sections/02-related-work.md) | LVLM 架构、LLM 推理优化、VLM token 压缩 |
+| [03 - Inefficient Attention](sections/03-inefficient-attention.md) | 注意力分析实验 + anchor token 发现 + Figures 2-4 |
+| [04 - FastV Method](sections/04-method.md) | 方法详解：动态剪枝 + FLOPs 估算 + Figures 5-6 |
+| [05 - Experiments](sections/05-experiments.md) | 全面实验：Tables 1-7 + Figure 7 + 消融实验 |
+| [06 - Conclusion](sections/06-conclusion.md) | 总结 + 局限性分析 |
 
-## 实验结果
+## 关键数字
 
-- 多个 benchmark 验证（NoCaps, Flickr30k, A-OKVQA, MMMU）
-- 45% FLOPs 减少，性能几乎不变
-- 13B 模型可压缩到比 7B 更低成本但性能更好
-
-## 文件说明
-
-| 文件 | 说明 |
+| 指标 | 数值 |
 |------|------|
-| `full.md` | 完整论文 Markdown |
-| `*_origin.pdf` | 原始 PDF |
-| `content_list_v2.json` | 结构化内容 |
-| `images/` | 提取的图片 |
-| `sections/` | 分章节内容 (旧) |
-| `figures/` | 论文图片 (旧) |
-
-## 代码
-
-GitHub: https://github.com/pkunlpicler/FastV
+| 推荐配置 | K=2, R=50% |
+| FLOPs 减少 | ~45% |
+| 深层 img attention vs sys prompt | 0.21% (472x 差距) |
+| Image token 占输入比例 | ~64% |
+| 13B+FastV 延迟 vs 7B | 0.341s ≈ 0.344s |
+| 视频 token 数 (Video-LLaVA) | 2048 |
