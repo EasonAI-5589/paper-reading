@@ -6,63 +6,57 @@
 
 ## 📄 原文
 
-We introduce RoboBrain 2.0, our latest generation of embodied vision-language foundation models, designed to unify perception, reasoning, and planning for complex embodied tasks in physical environments. It comes in two variants: a lightweight 7B model and a full-scale 32B model.
+We introduce RoboBrain 2.0, our latest generation of embodied vision-language foundation models, designed to unify perception, reasoning, and planning for complex embodied tasks in physical environments. It comes in two variants: a lightweight 7B model and a full-scale 32B model, featuring a heterogeneous architecture with a vision encoder and a language model. Despite its compact size, RoboBrain 2.0 achieves strong performance across a wide spectrum of embodied reasoning tasks. On both spatial and temporal benchmarks, the 32B variant achieves leading results, surpassing prior open-source and proprietary models. In particular, it supports key real-world embodied AI capabilities, including spatial understanding (e.g., affordance prediction, spatial referring, trajectory forecasting) and temporal decision-making (e.g., closed-loop interaction, multi-agent longhorizon planning, and scene graph updating). This report details the model architecture, data construction, multi-stage training strategies, infrastructure and practical applications. We hope RoboBrain 2.0 advances embodied AI research and serves as a practical step toward building generalist embodied agents. The code, checkpoint and benchmark are available at https://superrobobrain.github.io.
 
 > 💡 **vs RoboBrain 1.0 的核心升级**:
 > ```
 > RoboBrain 1.0 (CVPR 2025):
-> ├── 单一 7B 模型 (Qwen2.5-7B)
-> ├── 三个能力: Planning + Affordance + Trajectory
+> ├── 单一 7B (Qwen2.5-7B base, LLaVA 架构)
+> ├── Planning + Affordance + Trajectory
 > ├── 2D 空间理解
-> └── 无时序推理
-> 
+> └── 无时序推理，无 CoT
+>
 > RoboBrain 2.0:
-> ├── 7B + 32B 两个版本
-> ├── 空间能力: pointing, affordance, trajectory, spatial referring, placement
-> ├── 时序能力: closed-loop interaction, multi-agent planning, scene graph updating
+> ├── 7B + 32B 两个版本 (Qwen2.5-VL base)
+> ├── 空间: pointing, affordance, trajectory, spatial referring, placement
+> ├── 时序: closed-loop, multi-agent planning, scene graph updating
 > ├── 3D 空间推理 (depth, 3D bbox)
-> └── Chain-of-Thought reasoning + RLVR 强化学习
+> └── Chain-of-Thought + RLVR (GRPO)
 > ```
 
-Despite its compact size, RoboBrain 2.0 achieves strong performance across a wide spectrum of embodied reasoning tasks. On both spatial and temporal benchmarks, the 32B variant achieves leading results, surpassing prior open-source and proprietary models.
+> 💡 **关键能力分类**:
+> - **Spatial**: affordance prediction, spatial referring, trajectory forecasting
+> - **Temporal**: closed-loop interaction, multi-agent long-horizon planning, scene graph updating
+> - 注意：这两类能力在 1.0 中是分开的（只有 spatial），2.0 才统一
 
-> 💡 **关键结果速览**:
-> - **Spatial**: BLINK SOTA (83.95), RefSpatial-Bench SOTA (54.00), Where2Place SOTA (73.59), RoboSpatial SOTA (72.43)
-> - **Temporal**: Multi-Robot Planning SOTA (81.50), EgoPlan2 SOTA (57.23), RoboBench SOTA (72.16)
-> - 超越 GPT-4o、Gemini-2.5-Pro、Claude-Sonnet-4 等闭源模型
-
----
-
-![Figure 1](../images/a808da69c76bee61e7c520fa20705382a73db1fa534e82b58996e4ca135aa768.jpg)
-*Figure 1: Benchmark comparison — RoboBrain 2.0-32B 在空间和时序推理上均为最佳*
+![](../images/a808da69c76bee61e7c520fa20705382a73db1fa534e82b58996e4ca135aa768.jpg)
+*Figure 1: Benchmark comparison across spatial and temporal reasoning. RoboBrain2.0-32B achieves best performance on both spatial and temporal reasoning benchmarks.*
 
 > 💡 **Figure 1 批读**:
 > ```
-> 空间推理 benchmark:
-> ├── BLINK-Spatial: 87.41 (32B) ← 超越 GPT-o4-mini
-> ├── RoboSpatial: 72.43 (32B) ← 大幅领先
-> ├── RefSpatial-Bench: 54.00 (32B) ← 其他模型基本 < 20
-> └── Where2Place: 73.59 (32B) ← 遥遥领先
-> 
-> 时序推理 benchmark:
-> ├── EgoPlan2: 57.23 (32B) ← 超越 Qwen2.5-VL-32B
-> └── Multi-Robot-Plan: 81.50 (7B) ← 甚至 7B 就超过所有对手
+> Spatial benchmarks (雷达图左):
+> ├── BLINK-Spatial: 83.95 (7B SOTA)
+> ├── RoboSpatial: 72.43 (32B SOTA, 大幅领先)
+> ├── RefSpatial-Bench: 54.00 (32B SOTA, 碾压所有 baseline)
+> ├── Where2Place: 73.59 (32B SOTA)
+> └── ShareRobot-Bench: Afford 35.28, Traj DFD 0.2368
+>
+> Temporal benchmarks (雷达图右):
+> ├── EgoPlan2: 57.23 (32B SOTA)
+> ├── Multi-Robot-Plan: 80.33~81.50
+> └── RoboBench: 72.16 (7B SOTA)
 > ```
+> **关键发现**: 7B 在 BLINK/CV-Bench/RoboBench 上反而比 32B 好，说明小模型在某些任务上训练更充分
 
 ---
 
 ## 💡 Section 总结
 
-### 一句话总结
-RoboBrain 2.0 是一个 7B/32B 的具身视觉语言基础模型，统一空间理解（pointing/affordance/trajectory/referring/placement）和时序推理（closed-loop/multi-agent/scene graph），在 12 个 benchmark 上取得 6 个 SOTA。
+### 核心定位
+RoboBrain 2.0 = **Embodied VLM**（不是 VLA），统一 spatial + temporal reasoning
 
-### 核心升级 (vs v1)
-| 维度 | v1 (CVPR 2025) | v2 (Tech Report) |
-|------|----------------|-------------------|
-| 模型规模 | 7B only | 7B + 32B |
-| 基座 | LLaVA + Qwen2.5-7B | Qwen2.5-VL (7B/32B) |
-| 空间能力 | bbox affordance + 2D traj | pointing + spatial referring + 3D + placement |
-| 时序能力 | ❌ | closed-loop + multi-agent + scene graph |
-| 推理 | ❌ | CoT + RLVR (Reason-RFT) |
-| 训练数据 | ~3M | ~5M+ |
-| 训练阶段 | 6 stages | 3 stages |
+### 关键卖点
+1. **7B + 32B** 两个规模，覆盖不同部署需求
+2. **Spatial + Temporal 统一**：1.0 只有 spatial，2.0 加入 temporal
+3. **CoT + RLVR**：引入推理链和强化学习
+4. **12+ benchmarks SOTA**：6 个 SOTA，其余 near-SOTA
