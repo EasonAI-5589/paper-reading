@@ -1,158 +1,53 @@
 # SODA: Story Oriented Dense Video Captioning Evaluation Framework
 
-> **ECCV 2020**
+**作者**: Soichiro Fujita, Tsutomu Hirao, Hidetaka Kamigaito, Manabu Okumura, Masaaki Nagata  
+**机构**: Tokyo Institute of Technology, NTT Communication Science Laboratories  
+**会议**: ECCV 2020  
+**链接**: [GitHub](https://github.com/fujiso/SODA)
 
-📄 **Paper**: [arxiv:2005.03954](https://arxiv.org/abs/2005.03954)  
-💻 **Code**: https://github.com/fujiso/SODA
+## 一句话总结
 
----
+现有 Dense Video Captioning 评估框架（ActivityNet Challenge 官方 scorer）忽略字幕顺序且不惩罚冗余，SODA 通过**动态规划时序最优匹配 + F-measure** 解决这两个问题。
 
-## 📌 核心贡献
+## 核心贡献
 
-1. **提出 SODA 指标**: 考虑视频故事性的 Dense Video Captioning 评估框架
-2. **时序最优匹配**: 用动态规划找 generated 和 reference captions 的最优对应
-3. **惩罚冗余**: 用 F-measure 惩罚生成过多或过少的 captions
-4. **考虑顺序**: 评估 captions 的时序正确性
+1. **揭示问题**: 现有框架的松散匹配 + 平均 METEOR 导致冗余字幕（几百条 vs 参考 3-4 条）得高分
+2. **提出 SODA**: 用 DP 求时序最优一对一匹配（LCS 变体），用 F-measure 同时惩罚冗余和不足
+3. **IoU 加权**: SODA(c) 让时间定位质量直接参与评分（cost = IoU × METEOR）
+4. **实验验证**: SODA 对字幕数量和顺序都更敏感，与人类判断一致性更高（0.94 vs 0.72）
 
----
-
-## 🚨 问题：现有评估框架的缺陷
-
-### ActivityNet Challenge 官方指标的问题
-
-1. **不考虑故事性**: 只看单个 caption 匹配，忽略整体叙事
-2. **不考虑顺序**: caption 顺序错乱也能得高分
-3. **奖励冗余**: 生成几百个 captions 反而得分更高
-
-```
-例子：
-- Reference: 3-4 个 captions
-- 某些系统: 生成 200+ captions
-- 结果: 冗余系统得分更高！❌
-```
-
----
-
-## 🔧 SODA 的解决方案
-
-### 1. 时序最优匹配 (Dynamic Programming)
-
-```
-Reference:  [g1] ──── [g2] ──── [g3] ──── [g4]
-                ↓        ↓        ↓        ↓
-Generated:  [p1] ──── [p3] ──── [p4] ──── [p5]
-            (跳过 p2，保持时序)
-```
-
-- 找最大化 IoU 总和的匹配
-- **保持时序约束**: 如果 g_i 匹配 p_j，则 g_{i+1} 只能匹配 p_{j+1} 之后的
-
-### 2. F-measure 惩罚冗余
-
-$$
-\text{SODA}_c = F_\beta = \frac{(1+\beta^2) \cdot P \cdot R}{\beta^2 \cdot P + R}
-$$
-
-- **Precision**: 生成的 captions 有多少是正确的
-- **Recall**: reference captions 有多少被覆盖
-- **F-measure**: 平衡两者，惩罚过多/过少
-
----
-
-## 📊 SODA vs 现有框架
-
-| 特性 | ActivityNet 官方 | SODA |
-|------|-----------------|------|
-| 匹配方式 | 所有 IoU > τ 的对 | 时序最优匹配 |
-| 考虑顺序 | ❌ | ✅ |
-| 惩罚冗余 | ❌ | ✅ (F-measure) |
-| 故事完整性 | ❌ | ✅ |
-
-### 实验对比
-
-| 系统 | Caption 数量 | ActivityNet 分数 | SODA 分数 |
-|------|-------------|-----------------|-----------|
-| A | 3 (正常) | 5.2 | **6.8** |
-| B | 100 (冗余) | **6.1** | 2.3 |
-| C | 200 (极冗余) | **6.3** | 1.1 |
-
-> SODA 正确地惩罚了冗余系统！
-
----
-
-## 🧮 计算流程
-
-```
-1. 输入: Generated captions P, Reference captions G
-
-2. 动态规划找最优匹配:
-   - 约束: 保持时序
-   - 目标: 最大化 Σ IoU(g_i, p_j)
-
-3. 计算 METEOR 分数:
-   - 对每对匹配 (g, p) 计算 METEOR
-
-4. 计算 Precision & Recall:
-   - P = Σ METEOR / |P|
-   - R = Σ METEOR / |G|
-
-5. 计算 F-measure:
-   - SODA_c = F_β(P, R)
-```
-
----
-
-## 📈 在 Video Chaptering 中的应用
-
-SODA 被广泛用于 Video Chapter Generation 任务：
-
-| 方法 | SODA ↑ |
-|------|--------|
-| VidChapter Baseline | 12.1 |
-| Chapter-Llama | 19.3 |
-| ARC-Chapter | **30.6** |
-
----
-
-## 📖 分章阅读
+## 📖 批读导航
 
 | Section | 内容 |
 |---------|------|
-| [00-abstract](sections/00-abstract.md) | 摘要 |
-| [01-introduction](sections/01-introduction.md) | 引言 & 问题动机 |
-| [02-related-work](sections/02-related-work.md) | 相关工作 |
-| [03-current-framework](sections/03-current-framework.md) | 现有评测框架 |
-| [04-problems](sections/04-problems.md) | ⚠️ 现有框架的问题 |
-| [05-soda-method](sections/05-soda-method.md) | ✨ SODA 方法 (核心) |
-| [06-experiments](sections/06-experiments.md) | 实验结果 |
-| [07-conclusion](sections/07-conclusion.md) | 结论 & 个人理解 |
+| [00 - Abstract](sections/00-abstract.md) | 问题定义 + SODA 核心思想 |
+| [01 - Introduction](sections/01-introduction.md) | 详细背景 + 三点贡献 |
+| [02 - Related Work](sections/02-related-work.md) | DVC 方法/数据集 + 评估方法现状 |
+| [03 - Current Framework](sections/03-current-framework.md) | 现有框架公式详解（Eq.1-3）+ IoU 匹配例子 |
+| [04 - Problems](sections/04-problems.md) | 松散匹配 + 平均方式的两大问题 |
+| [05 - SODA Method](sections/05-soda-method.md) | DP 最优匹配 + F-measure + IoU 加权（核心方法） |
+| [06 - Experiments](sections/06-experiments.md) | 字幕数量/顺序实验 + 人工评估 |
+| [07 - Conclusion](sections/07-conclusion.md) | 总结 + 对 Video Chaptering 的启示 |
 
-## 📂 文件结构
+## 关键数字
+
+| 指标 | 数值 |
+|------|------|
+| 数据集 | ActivityNet Captions, 4,915 验证视频 |
+| 平均参考字幕数 | 3.52 |
+| E2E Transformer 平均生成数 | 228.21 |
+| LSTM 平均生成数 | 97.10 |
+| Current 框架分数波动 (E2E) | 3.78 → 4.19 (m=0.1 → all) |
+| SODA(c) F1 波动 (E2E) | 1.47 → 0.63 (m=0.1 → all), 峰值 4.02 (m=1.0) |
+| 人工评估准确率 (顺序) | SODA 0.94 vs Current 0.72 |
+| 人工评估准确率 (系统比较) | SODA 0.76 vs Current 0.66 |
+
+## 核心方法图示
 
 ```
-[ECCV 2020] SODA/
-├── README.md           # 本文件 (入口)
-├── sections/           # 分章节阅读
-├── full.md             # MinerU 解析的完整论文
-├── paper.pdf           # 原始 PDF
-├── content_list.json   # 结构化内容
-├── layout.json         # 版面分析
-└── images/             # 论文图片
+现有框架:  IoU > τ → 松散匹配（一对多）→ METEOR 平均（按配对数）
+                     ↓ 问题：不考虑顺序，不惩罚冗余
+
+SODA:      按时间排序 → DP 最优匹配（一对一，保序）→ F-measure（除以 |P| 和 |G|）
+                     ↓ 优势：考虑顺序，惩罚冗余/不足
 ```
-
----
-
-## 📝 引用
-
-```bibtex
-@inproceedings{fujita2020soda,
-  title={SODA: Story Oriented Dense Video Captioning Evaluation Framework},
-  author={Fujita, Soichiro and Hirao, Tsutomu and Kamigaito, Hidetaka and Okumura, Manabu and Nagata, Masaaki},
-  booktitle={ECCV},
-  year={2020}
-}
-```
-
----
-
-*解析时间: 2026-02-07*

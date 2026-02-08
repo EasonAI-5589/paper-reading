@@ -1,123 +1,60 @@
-# 4. Problems of Current Framework
+[← 返回 README](../README.md)
 
-## 4.1 Loose Matching
+# 4 Problems of Current Framework
 
-### 原文
-
-As we explained in the previous section, the current evaluation framework determines the correspondence between $g$ and $p$ only with the IoU threshold, $\tau$. Thus, it causes **loose matching**: a generated caption is matched with many reference captions or a reference caption is matched with many generated captions. The order of generated captions produced by the matching does not correspond to the order of reference captions, i.e., the loose matching disregards the story of the video.
-
-For example, when reference and generated captions are given as shown in Figure 2, the current evaluation framework produces the following matches: $(g_1, p_1), (g_1, p_2), (g_2, p_1), (g_2, p_2), (g_3, p_1), (g_3, p_3), (g_4, p_3)$ for small $\tau$. Thus, the order of the generated captions corresponding to the reference captions is $p_1, p_2, p_1, p_2, p_1, p_3, p_3$, which is invalid because it contains many duplicates, i.e., the captions do not represent the story of the video. The best order of the generated captions that represents the story can be $p_2, p_1, p_3$.
-
-Furthermore, loose matching produces overestimations of METEOR scores. When we have the same sentences with different length proposals, any of them would match with a reference caption for any $\tau$, even though the redundant captions make no sense. Another problematic case is when we generate multiple different sentences for a proposal, the average METEOR score tends to be good.
-
-### 译文
-
-正如我们在上一节中解释的，当前评估框架仅通过 IoU 阈值 $\tau$ 来确定 $g$ 和 $p$ 之间的对应关系。因此，它导致了**松散匹配**：一个生成的描述与多个参考描述匹配，或者一个参考描述与多个生成的描述匹配。匹配产生的生成描述顺序与参考描述的顺序不对应，即松散匹配忽视了视频的故事。
-
-例如，当参考和生成的描述如图 2 所示时，当前评估框架对于小的 $\tau$ 产生以下匹配：$(g_1, p_1), (g_1, p_2), (g_2, p_1), (g_2, p_2), (g_3, p_1), (g_3, p_3), (g_4, p_3)$。因此，对应参考描述的生成描述顺序是 $p_1, p_2, p_1, p_2, p_1, p_3, p_3$，这是无效的，因为它包含许多重复，即这些描述不能代表视频的故事。代表故事的最佳生成描述顺序应该是 $p_2, p_1, p_3$。
-
-此外，松散匹配会导致 METEOR 分数的高估。当我们有相同句子但不同长度的提案时，对于任何 $\tau$，它们中的任何一个都会与参考描述匹配，尽管冗余描述没有意义。另一个有问题的情况是，当我们为一个提案生成多个不同的句子时，平均 METEOR 分数往往会很好。
+## 📌 预览
+两个核心问题的详细分析：(1) 松散匹配导致顺序混乱和过高估计，(2) 平均 METEOR 分数不考虑字幕数量，无法区分好坏字幕。
 
 ---
 
-### 理解与批注
+## 4.1 Loose Matching
 
-#### Loose Matching 的问题
+> 💡 **4.1 要点预览**: 松散匹配导致三个问题：顺序混乱、低置信度 proposal 得高分、冗余字幕得高分。
 
-```
-Reference:  g1 ── g2 ── g3 ── g4  (正确顺序)
-            ↓    ↓    ↓    ↓
-Current:    p1   p1   p1   p3
-            p2   p2   p3   
-                           
-结果顺序: p1, p2, p1, p2, p1, p3, p3  ❌ 包含重复
-正确顺序: p2, p1, p3  ✅
-```
+As we explained in the previous section, the current evaluation framework determines the correspondence between $g$ and $p$ only with the IoU threshold, $\tau$. Thus, it causes loose matching; a generated caption is matched with many reference captions or a reference caption is matched with many generated captions. The order of generated captions produced by the matching does not correspond to the order of reference captions, i.e., the loose matching disregards the story of the video. For example, when reference and generated captions are given as shown in Figure 2, the current evaluation framework produces the following matches, $(g_1, p_1)$, $(g_1, p_2)$, $(g_2, p_1)$, $(g_2, p_2)$, $(g_3, p_1)$, $(g_3, p_3)$, and $(g_4, p_3)$ for small $\tau$. Thus, the order of the generated captions corresponding to the reference captions is $p_1, p_2, p_1, p_2, p_1, p_3, p_3$, which is invalid because it contains many duplicates, i.e., the captions do not represent the story of the video. The best order of the generated captions that represents the story can be $p_2, p_1, p_3$.
 
-> 💡 Current 评测完全**忽略了故事顺序**
+![Figure 2](../images/b86e04263f80a66a3728e09fca734126ae20c7a6068c221700ee61d854e6bdbc.jpg)
+*Fig. 2. Example of system and reference proposals that produce loose matching.*
 
-#### 冗余 Caption 问题
+> 💡 **Figure 2 批读**: 时间轴上，3 个生成 proposal 和 4 个参考 proposal 有大量重叠。松散匹配产生 7 个配对，对应的字幕序列是 p1,p2,p1,p2,p1,p3,p3 — 完全混乱，没有故事性。合理的匹配应该是一对一的 p2→g1, p1→g2, p3→g3/g4。
 
-**场景 1: 相同句子 + 不同 proposal**
-```
-p1: "A man walks" [0-10s]  IoU(g1)=0.9
-p2: "A man walks" [5-15s]  IoU(g1)=0.4
-p3: "A man walks" [3-12s]  IoU(g1)=0.6
+![Figure 3](../images/966dc2358f334687e1f6338751491e6668cfe2fb8b5a07f099d55219cc39536f.jpg)
+*Fig. 3. Examples of system and reference proposals that produce redundant captions.*
 
-τ=0.9: 只匹配 p1
-τ=0.5: 匹配 p1, p3 → 分数更高？！
-```
+Furthermore, loose matching produces overestimations of METEOR scores. When we have the same sentences with different length proposals, any of them would match with a reference caption for any $\tau$, even though the redundant captions make no sense. Consider IoUs and METEOR scores are given as follows: $\text{IoU}(g_1, p_1) = 0.9$, $\text{IoU}(g_1, p_2) = 0.4$, $\text{IoU}(g_1, p_3) = 0.6$, and METEOR$(g_1, p_*) = 0.6$, as shown in the top of Figure 3. When we set $\tau$ to 0.9, only $g_1$ matches to $p_1$, and the average METEOR score is 0.2, while $p_2$ and $p_3$ are eliminated in the matching. However, when we have only $p_2$, $g_1$ is not matched, and the average METEOR score is 0.0. It indicates that the current evaluation sometimes gives higher scores for low-confidence proposals than a single high-confidence proposal. Thus, redundant caption sentences, such as identical sentences with proposals of different lengths, may obtain good METEOR scores.
 
-**场景 2: 多个不同句子**
-```
-p1: "A man walks"      METEOR(g1)=0.0
-p2: "Someone walking"  METEOR(g1)=0.3
-p3: "A person walks"   METEOR(g1)=0.6
+> 💡 **反直觉结果**: 同一句话配不同长度的 proposal，三个一起提交反而比单独提交最好的那个得分更高。原因：多个冗余 proposal "兜底"了，即使单个匹配失败也有其他的补上。
 
-只有 p1: 平均=0.0
-三个都有: 平均=0.3 → 更高！
-```
+Another problematic case is when we generate multiple different sentences for a proposal, the average METEOR score tends to be good. Consider, for example, METEOR scores are given as follows: METEOR$(g_1, p_1) = 0$, METEOR$(g_1, p_2) = 0.3$, and METEOR$(g_1, p_3) = 0.6$, as shown in the bottom of Figure 3. In this example, the average METEOR score is 0.3, while it is 0 when generating only $p_1$. Thus, generating multiple different caption sentences for a proposal tends to prevent a zero Meteor score.
 
-> ⚠️ 生成更多（冗余）caption 反而得分更高
+> 💡 **Figure 3 批读**: 两种"作弊"方式：
+> - **上半部分**: 同一句话 + 不同 proposal 长度 → 冗余兜底
+> - **下半部分**: 同一 proposal + 不同句子 → 平均分被拉高
+>
+> 本质原因都是松散匹配 + 平均计算方式的组合漏洞。
 
 ---
 
 ## 4.2 Averaging METEOR Scores
 
-### 原文
+> 💡 **4.2 要点预览**: 分母用匹配对数 → 不管生成多少字幕，平均分都差不多 → 无法区分好坏。
 
 As shown in Equation (3), the sum of METEOR scores is averaged based on the number of matched pairs between $g$ and $p$. That is, the number of captions generated by a system, $|\mathcal{P}|$, and the number of reference captions, $|\mathcal{G}|$, are disregarded in calculating the evaluation metric. Thus, it cannot take into account the coverage of generated captions (recall) and the accuracy of the captions (precision) either.
 
 As we mentioned above, a better score is obtained by generating more different sentences for a proposal and more identical sentences for different proposals. Most of current DVC systems generate many and redundant caption sentences for a video. The average number of generated caption sentences is around several hundred. Thus, the current evaluation framework is inadequate since we cannot read several hundred sentences in a short time, while, of course, it may be reasonable to assess DVC systems in terms of video indexing, which does not require human reading. This is a critical problem of the current evaluation framework for video story description systems.
 
+> 💡 **核心矛盾**: 现有系统生成**几百条**字幕，参考只有 **3-4 条**，但评估分数基本不变。作为"视频故事描述"的评估，这完全不合理。（不过作者也承认，如果目标是视频检索/索引，多字幕可能反而有用。）
+
 Furthermore, too few caption sentences are also inappropriate because such captions cannot represent the whole story of a video. To penalize such inappropriate captions, we can derive precision and recall by replacing the denominator of Equation (3) with $|\mathcal{P}|$ and $|\mathcal{G}|$, respectively. However, they are invalid since the scores might exceed 1.0.
 
-### 译文
-
-如公式 (3) 所示，METEOR 分数之和基于 $g$ 和 $p$ 之间匹配对的数量进行平均。也就是说，系统生成的描述数量 $|\mathcal{P}|$ 和参考描述数量 $|\mathcal{G}|$ 在计算评估指标时被忽略。因此，它无法考虑生成描述的覆盖率（召回率）和描述的准确性（精确率）。
-
-正如我们上面提到的，通过为一个提案生成更多不同的句子和为不同的提案生成更多相同的句子可以获得更好的分数。大多数当前的 DVC 系统为一个视频生成许多冗余的描述句子。生成的描述句子的平均数量约为几百个。因此，当前评估框架是不充分的，因为我们无法在短时间内阅读几百个句子，当然，如果是评估用于视频索引的 DVC 系统（不需要人类阅读），这可能是合理的。这是当前评估框架对于视频故事描述系统的关键问题。
-
-此外，描述句子过少也是不合适的，因为这样的描述无法代表视频的完整故事。为了惩罚这种不合适的描述，我们可以通过将公式 (3) 的分母替换为 $|\mathcal{P}|$ 和 $|\mathcal{G}|$ 来推导精确率和召回率。然而，它们是无效的，因为分数可能会超过 1.0。
+> 💡 **简单修复行不通**: 直接把分母换成 |P| 或 |G| 会导致分数超过 1.0（因为松散匹配下一个参考可能被多次匹配）。所以需要先解决匹配问题（一对一），然后再用 F-measure。
 
 ---
 
-### 理解与批注
+## 🔖 Section 总结
 
-#### 为什么分数不变？
-
-Current 评测公式：
-$$\text{Score} = \frac{\sum \text{METEOR}}{|\text{匹配对数}|}$$
-
-| 生成数量 | 匹配对数 | 分数 |
-|---------|---------|------|
-| 3 | ~10 | ~0.5 |
-| 100 | ~300 | ~0.5 |
-| 300 | ~900 | ~0.5 |
-
-> 💡 分子分母同比例增长，分数几乎不变！
-
-#### 真实数据
-
-| 系统 | 生成 caption 数 | Reference |
-|------|----------------|-----------|
-| E2E Transformer | 228 | 3-4 |
-| LSTM | 97 | 3-4 |
-
-> ⚠️ 生成数量是参考的 **25-60 倍**，但分数差不多
-
-#### 为什么不能简单修复？
-
-尝试 1: 分母用 |P|
-```
-Score = Σ METEOR / |P|
-问题: 一个 g 被多次匹配，分子可能 > 分母
-```
-
-尝试 2: 分母用 |G|
-```
-Score = Σ METEOR / |G|
-问题: 一个 g 被多次匹配，分子可能 > 分母
-```
-
-> 💡 需要**一对一匹配**才能保证分数 ≤ 1.0 → SODA 的动机
+### 核心洞察
+1. **松散匹配**：一对多配对 → 顺序混乱 + 冗余字幕得高分 + 低置信度反而有利
+2. **平均方式**：分母是匹配对数而非字幕数 → 无法区分 3 条字幕和 300 条字幕
+3. 两个问题相互加强：松散匹配产生更多配对 → 平均分更不受字幕数量影响
+4. 简单修补（换分母）行不通 → 需要从匹配方式根本上改变

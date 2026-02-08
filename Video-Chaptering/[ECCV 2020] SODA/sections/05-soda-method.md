@@ -1,169 +1,102 @@
-# 5. SODA Method
+[← 返回 README](../README.md)
 
-## 5.1 Optimal Matching Using Dynamic Programming
+# 5 Story Oriented Dense video cAptioning evaluation framework (SODA)
 
-### 原文
-
-To determine the matching between generated and reference captions, we regard the matching as a combinatorial optimization problem: finding one-to-one matching between the captions that maximizes the sum of the IoU by considering temporal ordering. Following the current evaluation framework, we also use the threshold $\tau$ for the matching; we define cost $C_{i,j}$ between a reference caption $g_i$ and a generated caption $p_j$ based on the IoU as follows:
-
-$$C_{i,j} = \begin{cases} \text{IoU}(g_i, p_j) & \text{if } \text{IoU}(g_i, p_j) \geq \tau \\ 0 & \text{otherwise} \end{cases}$$
-
-Then, we sort the captions based on temporal ordering, that is, in the order of the beginning time of their proposals, by utilizing function $s(\cdot)$, and define $S[i][j]$, which stores the maximum score of optimal matching between 1st to $i$-th generated captions and the 1st to $j$-th reference truth captions, as follows:
-
-**Initialization:**
-$$S[i][0] = 0 \quad (0 \leq i \leq |\mathcal{P}|)$$
-$$S[0][j] = 0 \quad (0 \leq j \leq |\mathcal{G}|)$$
-
-**Recurrence:**
-$$S[i][j] = \max \begin{cases} S[i-1][j] & \text{(skip } p_i \text{)} \\ S[i-1][j-1] + C_{i,j} & \text{(match } p_i, g_j \text{)} \\ S[i][j-1] & \text{(skip } g_j \text{)} \end{cases}$$
-
-Figure 4 shows an example process to obtain the optimal matching for the example given in Figure 1, with $\tau = 0$. After filling out table $S$ by dynamic programming, $S[4][5]$ stores the optimal matching score, 2.7. Thus, we can obtain the optimal matching between $g_k$ and $p_\ell$ by tracing the path, from [4,5] to [0,0]. In the example, the optimal matching is $(g_1, p_1), (g_3, p_2), (g_4, p_4)$.
-
-### 译文
-
-为了确定生成描述与参考描述之间的匹配，我们将匹配视为一个组合优化问题：通过考虑时序顺序，找到最大化 IoU 之和的一对一匹配。遵循当前评估框架，我们也使用阈值 $\tau$ 进行匹配；我们基于 IoU 定义参考描述 $g_i$ 和生成描述 $p_j$ 之间的代价 $C_{i,j}$ 如下：
-
-$$C_{i,j} = \begin{cases} \text{IoU}(g_i, p_j) & \text{如果 } \text{IoU}(g_i, p_j) \geq \tau \\ 0 & \text{否则} \end{cases}$$
-
-然后，我们通过利用函数 $s(\cdot)$ 按时序顺序（即按提案开始时间的顺序）对描述进行排序，并定义 $S[i][j]$，它存储第 1 到第 $i$ 个生成描述与第 1 到第 $j$ 个参考真值描述之间最优匹配的最大分数，如下：
-
-**初始化：**
-$$S[i][0] = 0 \quad (0 \leq i \leq |\mathcal{P}|)$$
-$$S[0][j] = 0 \quad (0 \leq j \leq |\mathcal{G}|)$$
-
-**递推：**
-$$S[i][j] = \max \begin{cases} S[i-1][j] & \text{(跳过 } p_i \text{)} \\ S[i-1][j-1] + C_{i,j} & \text{(匹配 } p_i, g_j \text{)} \\ S[i][j-1] & \text{(跳过 } g_j \text{)} \end{cases}$$
-
-图 4 显示了对于图 1 中给出的示例，在 $\tau = 0$ 时获得最优匹配的过程示例。通过动态规划填写表 $S$ 后，$S[4][5]$ 存储最优匹配分数 2.7。因此，我们可以通过从 [4,5] 到 [0,0] 回溯路径来获得 $g_k$ 和 $p_\ell$ 之间的最优匹配。在示例中，最优匹配是 $(g_1, p_1), (g_3, p_2), (g_4, p_4)$。
+## 📌 预览
+SODA 的三个核心组件：(1) 动态规划求时序最优一对一匹配，(2) F-measure 惩罚冗余/不足，(3) IoU 加权使评分直接依赖时间定位质量。
 
 ---
 
-### 理解与批注
+## 5.1 Optimal Matching Using Dynamic Programming
 
-#### DP 状态定义
-- `S[i][j]`: 前 i 个生成 caption 和前 j 个参考 caption 的最优匹配分数
-- 先按开始时间排序，保证时序
+> 💡 **5.1 要点预览**: 把匹配问题转化为**组合优化问题**：在保持时序的约束下，找一对一匹配使 IoU 总和最大。用动态规划求解。
 
-#### 状态转移的三种情况
-```
-S[i][j] = max{
-    S[i-1][j],           // 跳过 p_i（不匹配这个生成的）
-    S[i-1][j-1] + C_i,j, // 匹配 (p_i, g_j)
-    S[i][j-1]            // 跳过 g_j（这个 reference 没被匹配）
-}
-```
+To determine the matching between generated and reference captions, we regard the matching as a combinatorial optimization problem: finding one-to-one matching between the captions that maximizes the sum of the IoU by considering temporal ordering. Following the current evaluation framework, we also use the threshold $\tau$ for the matching; we define cost $C_{i,j}$ between a reference caption $g_i$ and a generated caption $p_j$ based on the IoU as follows:
 
-#### 示例
-IoU 矩阵 (τ=0):
+![Equation 4: Cost definition](../images/a56b16cab8979c9cb4dc20e001e63519d9b2bf431ce0554b0719ad18fcbb232a.jpg)
 
-|    | p1  | p2  | p3  | p4  | p5  |
-|----|-----|-----|-----|-----|-----|
-| g1 | 0.7 | 0.1 | 0.4 | 0.9 | 0.1 |
-| g2 | 0.2 | 0.3 | 0.5 | 0.4 | 0.5 |
-| g3 | 0.4 | 1.0 | 0.3 | 0.7 | 0.8 |
-| g4 | 0.8 | 0.7 | 0.6 | 1.0 | 0.1 |
+> 💡 **Cost 定义**: IoU 超过阈值 τ 则 cost = IoU，否则为 0。和现有框架一样用阈值，但后续匹配方式完全不同。
 
-**最优匹配**: (g1, p1), (g3, p2), (g4, p4)  
-**最优分数**: 0.7 + 1.0 + 1.0 = 2.7
+Then, we sort the captions based on temporal ordering, that is, in the order of the beginning time of their proposals, by utilizing function $s(\cdot)$, and define $S[i][j]$, which stores the maximum score of optimal matching between 1st to $i$-th generated captions and the 1st to $j$-th reference truth captions, as follows:
 
-> 💡 关键：匹配保持时序！如果 g1 匹配 p1，g3 只能匹配 p2 之后的
+– Initialization
+
+![Equation 5: DP initialization](../images/a35edefd8884a84e328997f655f6421cecf0dc238e0767399758b59de17b8444.jpg)
+
+– Recurrence
+
+![Equation 6: DP recurrence](../images/0af6695cdfbcee6974a3174b71b16c72ed84a480dba5f849e99b262e99a1f67e.jpg)
+
+> 💡 **DP 递推解读**: $S[i][j]$ 的三种转移：
+> - $S[i-1][j]$: 跳过第 $i$ 个生成字幕（不匹配）
+> - $S[i-1][j-1] + C_{i,j}$: 把 $p_i$ 和 $g_j$ 匹配
+> - $S[i][j-1]$: 跳过第 $j$ 个参考字幕（不匹配）
+>
+> 这就是经典的**最长公共子序列 (LCS)** 的变体！区别在于 LCS 的匹配值是 0/1，这里是 IoU 值。时间复杂度 $O(|\mathcal{P}| \times |\mathcal{G}|)$。
+
+![Figure 4](../images/9c97e58cc38a9466e224ebcde48ef3bdfeabef8e99f5f3521863a9d8d52a5d84.jpg)
+*Fig. 4. Illustration of a dynamic programming table.*
+
+> 💡 **Figure 4 批读**: 用 Fig. 1 的 IoU 矩阵（τ=0）演示 DP 过程。最终 S[4][5] = 2.7，回溯路径得到最优匹配：
+> - $(g_1, p_1)$: IoU = 0.7
+> - $(g_3, p_2)$: IoU = 1.0
+> - $(g_4, p_4)$: IoU = 1.0
+>
+> 对比现有框架的 11 个松散配对，SODA 只找到 3 个**一对一、时序一致**的匹配。g2 没有被匹配（被跳过了）。
+
+Figure 4 shows an example process to obtain the optimal matching for the example given in Figure 1, with $\tau = 0$. After filling out table $S$ by dynamic programming, $S[4][5]$ stores the optimal matching score, 2.7. Thus, we can obtain the optimal matching between $g_k$ and $p_\ell$ by tracing the path, from [4,5] to [0,0]. In the example, the optimal matching is $(g_1, p_1)$, $(g_3, p_2)$, $(g_4, p_4)$. The pseudo code of the algorithm is shown in the supplementary material.
 
 ---
 
 ## 5.2 F-measure for Evaluating Video Story Description
 
-### 原文
+> 💡 **5.2 要点预览**: 有了一对一匹配后，用 Precision（除以 |P|）和 Recall（除以 |G|）来惩罚冗余和不足，最终取 F-measure。
 
 To give a low score for too many or too few captions, the sum of METEOR scores should be normalized by considering the number of generated and reference captions. Thus, we propose an evaluation metric based on F-measure as follows:
 
-$$\text{F-measure}(\mathcal{G}, \mathcal{P}) = \frac{2 \times \text{Precision} \times \text{Recall}}{\text{Precision} + \text{Recall}}$$
+![Equation 7: F-measure](../images/f79720c9a2e838d4838c8009060e719d12d40a21af7fcb562709775d2fd7b46d.jpg)
 
-Here, Precision and Recall are defined on the basis of the optimal matching as follows:
+Here, Precision$(\mathcal{G}, \mathcal{P})$ and Recall$(\mathcal{G}, \mathcal{P})$ are defined on the basis of the optimal matching as follows:
 
-$$\text{Precision}(\mathcal{G}, \mathcal{P}) = \frac{\sum_{g \in \mathcal{G}} f(g, p_{a(g)})}{|\mathcal{P}|}$$
+![Equation 8: Precision](../images/4e032420aa6a8e7e6c06b446d8dd730d561847b8cb914118a798072d0ef6ed37.jpg)
 
-$$\text{Recall}(\mathcal{G}, \mathcal{P}) = \frac{\sum_{g \in \mathcal{G}} f(g, p_{a(g)})}{|\mathcal{G}|}$$
+![Equation 9: Recall](../images/b0549d1a7da20b584ecbc113661553408472121a8859ef6638e35d1945dc1c4e.jpg)
+
+> 💡 **Precision vs Recall**:
+> - **Precision** = METEOR 总和 / |P| → 生成太多字幕时，分母大，precision 低
+> - **Recall** = METEOR 总和 / |G| → 生成太少字幕时，匹配数少，recall 低
+> - **F-measure** 综合两者 → 只有当 |P| ≈ |G| 且匹配质量高时才能拿高分
+>
+> 注意因为是一对一匹配，分子不会超过 min(|P|, |G|) 个 METEOR 分数，所以 Precision 和 Recall 不会超过 1.0。
 
 When systems generate too many captions, Precision scores tend to be low, while Recall scores tend to be high. Thus, the systems cannot obtain good F-measure scores. When systems generate too few captions, they also cannot obtain good F-measure scores since they tend to receive good Precision scores but poor Recall scores.
 
-### 译文
-
-为了对过多或过少的描述给出低分，METEOR 分数之和应该通过考虑生成描述和参考描述的数量来归一化。因此，我们提出了一个基于 F 值的评估指标如下：
-
-$$\text{F-measure}(\mathcal{G}, \mathcal{P}) = \frac{2 \times \text{Precision} \times \text{Recall}}{\text{Precision} + \text{Recall}}$$
-
-这里，精确率和召回率基于最优匹配定义如下：
-
-$$\text{Precision}(\mathcal{G}, \mathcal{P}) = \frac{\sum_{g \in \mathcal{G}} f(g, p_{a(g)})}{|\mathcal{P}|}$$
-
-$$\text{Recall}(\mathcal{G}, \mathcal{P}) = \frac{\sum_{g \in \mathcal{G}} f(g, p_{a(g)})}{|\mathcal{G}|}$$
-
-当系统生成过多描述时，精确率分数往往较低，而召回率分数往往较高。因此，系统无法获得好的 F 值分数。当系统生成过少描述时，它们也无法获得好的 F 值分数，因为它们往往获得好的精确率分数但召回率分数较差。
-
 ---
 
-### 理解与批注
+## 5.3 Evaluation Scores Directly Dependent on IoU
 
-#### 为什么需要 F-measure？
+> 💡 **5.3 要点预览**: 进一步改进——让 IoU 直接参与评分（不只是用于匹配），使时间定位质量和字幕质量同时影响最终分数。
 
-| Caption 数量 | Precision | Recall | F-measure |
-|-------------|-----------|--------|-----------|
-| 太多 (200+) | 低 ↓ | 高 ↑ | 低 ↓ |
-| 太少 (1-2) | 高 ↑ | 低 ↓ | 低 ↓ |
-| **刚好 (3-4)** | 适中 | 适中 | **高 ↑** |
+In evaluating video story descriptions, the IoU plays an important role. Even if METEOR scores between generated and reference captions are perfect, they make no sense if the IoU between the captions is zero. However, in the current evaluation framework, the IoU is utilized only for determining the matching between the captions. Thus, the IoU does not directly affect the sum of METEOR scores. In fact, METEOR scores with larger IoUs and those with smaller ones cannot be distinguished when computing them. To reflect the IoU more directly to evaluation scores, we propose an alternative of the cost in Equation (4), which is utilized to solve dynamic programming as follows:
 
-> 💡 F-measure 同时惩罚过多和过少
+![Equation 11: IoU-weighted cost](../images/439ffffe304630878535c7b5766979b9d90e55983e3dbf887e5b95b18b0ffd04.jpg)
 
-#### 直觉理解
-- **Precision**: 分母是 |P|（生成数量）→ 生成越多，分母越大，分数越低
-- **Recall**: 分母是 |G|（参考数量）→ 生成越少，覆盖越少，分数越低
-- **F-measure**: 两者的调和平均 → 只有数量匹配时才能同时高
-
----
-
-## 5.3 IoU 加权 (SODA_c)
-
-### 原文
-
-In evaluating video story descriptions, the IoU plays an important role. Even if METEOR scores between generated and reference captions are perfect, they make no sense if the IoU between the captions is zero. However, in the current evaluation framework, the IoU is utilized only for determining the matching between the captions. Thus, the IoU does not directly affect the sum of METEOR scores. To reflect the IoU more directly to evaluation scores, we propose an alternative of the cost:
-
-$$C_{i,j} = \text{IoU}(g_i, p_j) \times f(g_i, p_j)$$
+> 💡 **IoU 加权**: 原来 cost = IoU（只用于匹配），现在 cost = IoU × METEOR（用于匹配和评分）。效果：即使 METEOR 高，IoU 低也会拉低分数。这就是 SODA (c) 变体，后面实验证明它最好。
 
 By utilizing this cost, even if the METEOR score is high, the evaluation score can be lowered when the IoU score is low.
 
-### 译文
-
-在评估视频故事描述时，IoU 起着重要作用。即使生成描述和参考描述之间的 METEOR 分数是完美的，如果描述之间的 IoU 为零，它们也没有意义。然而，在当前评估框架中，IoU 仅用于确定描述之间的匹配。因此，IoU 不直接影响 METEOR 分数之和。为了更直接地将 IoU 反映到评估分数中，我们提出了一种替代代价：
-
-$$C_{i,j} = \text{IoU}(g_i, p_j) \times f(g_i, p_j)$$
-
-通过使用这个代价，即使 METEOR 分数很高，当 IoU 分数较低时，评估分数也可以降低。
-
 ---
 
-### 理解与批注
+## 🔖 Section 总结
 
-#### 为什么需要 IoU 加权？
+### SODA 三个变体
+| 变体 | 匹配方式 | 评分 | 特点 |
+|------|----------|------|------|
+| SODA (a) | DP + τ=0.9,0.7,0.5,0.3 取平均 | F-measure | 保守，波动小 |
+| SODA (b) | DP + τ=0 | F-measure | 敏感，波动大 |
+| SODA (c) | DP + τ=0 + IoU×METEOR | F-measure | 最敏感，最推荐 |
 
-原来的问题：
-```
-IoU = 0.1 (几乎不重叠)
-METEOR = 1.0 (文字完全匹配)
-结果: 分数很高 ❌
-```
-
-SODA_c 的解决：
-```
-Cost = IoU × METEOR = 0.1 × 1.0 = 0.1
-结果: 分数很低 ✅
-```
-
-> 💡 SODA_c 是最终推荐的版本，同时考虑时间重叠和文本质量
-
-#### 三个 SODA 变体总结
-
-| 变体 | τ 设置 | Cost 函数 | 特点 |
-|------|--------|----------|------|
-| SODA (a) | 0.9, 0.7, 0.5, 0.3 平均 | IoU | 对 τ 敏感 |
-| SODA (b) | 0 | IoU | 更敏感，无阈值 |
-| **SODA (c)** | 0 | IoU × METEOR | **推荐**，综合考虑 |
+### 核心洞察
+1. DP 匹配本质是 **LCS 变体**，保证一对一 + 时序一致
+2. F-measure 同时惩罚冗余（precision↓）和不足（recall↓）
+3. IoU 加权（SODA(c)）让时间定位质量直接影响评分，是最完整的版本
