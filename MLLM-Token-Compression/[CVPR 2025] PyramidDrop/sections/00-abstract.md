@@ -1,23 +1,30 @@
+[← 返回 README](../README.md)
+
 # Abstract
 
-> 来源: PyramidDrop: Accelerating Your Large Vision-Language Models via Pyramid Visual Redundancy Reduction (CVPR 2025)
+## 📌 预览
+PyramidDrop 提出了一种视觉 token 渐进式丢弃策略，在 LVLM 的不同层逐步减少图像 token 数量，实现训练和推理加速，且性能几乎无损。
 
 ---
 
-## 📄 原文
+In large vision-language models (LVLMs), images serve as inputs that carry a wealth of information. As the idiom "A picture is worth a thousand words" implies, representing a single image in current LVLMs can require hundreds or even thousands of tokens. This results in significant computational costs, which grow quadratically as input image resolution increases, thereby severely impacting the efficiency. Previous approaches have attempted to reduce the number of image tokens either before or within the early layers of LVLMs. However, these strategies inevitably result in the loss of crucial image information. To address this challenge, we conduct an empirical study revealing that all visual tokens are necessary for LVLMs in the shallow layers, and token redundancy progressively increases in the deeper layers. To this end, we propose PyramidDrop, a visual redundancy reduction strategy for LVLMs to boost their efficiency in both inference and training with neglectable performance loss. Specifically, we partition the LVLM into several stages and drop part of the image tokens at the end of each stage with a pre-defined ratio. The dropping is based on a lightweight similarity calculation with a negligible time overhead. Extensive experiments demonstrate that PyramidDrop can achieve over 40% training time reduction and 55% inference FLOPs acceleration on leading LVLMs like LLaVA-NeXT, maintaining comparable multimodal performance. Besides, PyramidDrop can also serve as a plug-and-play strategy to accelerate inference in a free way, with better performance and lower inference cost than counterparts. This project is available at https://github.com/Cooperx521/PyramidDrop to serve as a pivotal resource for advancing the community.
 
-> 💡 **一句话总结**: 提出 PyramidDrop，一个**渐进式** visual token 减少策略——浅层保留全部 token，深层逐步丢弃，形成"金字塔"结构。同时加速训练和推理。
+> 💡 **Abstract 批读**:
+> - **问题**：LVLM 中图像表示需要大量 token（数百~数千），计算成本随分辨率二次增长
+> - **现有方法缺陷**：在 LLM 之前或浅层压缩 token → 不可避免地丢失关键信息
+> - **核心发现**：浅层需要所有视觉 token，深层冗余逐渐增加
+> - **方案**：PyramidDrop — 将 LVLM 分成多个 stage，每个 stage 末尾按预定比例丢弃部分图像 token
+> - **关键数字**：训练时间减少 40%+，推理 FLOPs 加速 55%+，性能几乎无损
+> - **额外优势**：可作为 plug-and-play 推理加速策略，免训练直接使用
 
-> 💡 **核心卖点**:
-> 1. **渐进式减少** — 不是一刀切，而是分阶段逐步减少 image tokens
-> 2. **训练 + 推理双加速** — 不仅推理快，训练也能省 40% 时间
-> 3. **Plug-and-play** — 也可作为 inference-only 策略
-> 4. **基于实证观察** — 浅层 token 全部重要，深层 token 大量冗余
+---
+
+## 🔖 Section 总结
 
 ### 关键数字速查
 | 指标 | 数值 |
 |------|------|
-| 训练加速 | 40%+ |
-| 推理 FLOPs 降低 | 55% |
-| 性能 | 几乎无损 |
-| 模型 | LLaVA-NeXT, LLaVA-1.5 |
+| 训练时间减少 | >40% |
+| 推理 FLOPs 加速 | >55% |
+| 基准模型 | LLaVA-NeXT |
+| 性能影响 | 可忽略 |
