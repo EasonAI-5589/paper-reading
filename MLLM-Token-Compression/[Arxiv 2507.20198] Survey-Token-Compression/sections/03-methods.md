@@ -1,249 +1,268 @@
 [← 返回 README](../README.md)
 
-# 3. Where to Compress Tokens in MLLMs
+# 3 Image-centric Token Compression
 
 ## 📌 预览
-本文最核心的 Section，按 MLLM 架构位置分类 token compression 方法：Vision Encoder (§3.1)、Projector (§3.2)、LLM (§3.3)、Multi-Module Hybrid (§3.4)。每个位置下又细分具体策略。
+本章是全文最核心的方法论章节。按四种机制分类介绍图像 token 压缩：Transformation-based（像素重排/池化/卷积）、Similarity-based（ToMe 等合并方法）、Attention-based（Encoder/Decoder 内的注意力剪枝）、Query-based（Token 蒸馏/跨模态选择）。
 
 ---
 
-Based on the taxonomy illustrated in Figure 2, we systematically categorize existing token compression methods according to where compression is applied within the MLLM architecture. Throughout the processing procedure from visual input to textual output, token compression strategies can be progressively deployed at three architectural modules: (1) the Vision Encoder (§3.1), where compression reduces computational overhead at the visual perception stage; (2) the Projector (§3.2), which integrates token reduction during the transformation from visual to linguistic representation space; and (3) the Large Language Model (§3.3), where compression achieves holistic cross-modal efficiency optimization.
+Multimodal long context token compression methods generally fall into four categories based on their underlying mechanisms: transformation-based approaches directly transform the cross-modality information to compress tokens by altering their scale or representation; similarity-based techniques reduce tokens by leveraging the inherent resemblances between them; attention-based strategies exploit the sparsity of attention within the multimodal data to guide compression; and query-based methods selectively refine multimodal information, guided by prompts, to distill the most relevant tokens. Each of these methods has its own set of advantages and disadvantages, which are summarized in Table 1. Representative image-centric token compression methods are further compared in Table 2.
 
-![Figure 2: Taxonomy of token compression methods](../pages/page-03.png)
-*Figure 2: A taxonomy of token compression methods for MLLMs, organized by the compression position, with leaf nodes illustrating representative works.*
+> 💡 **四大类方法速览**:
+> - **Transformation**: 直接变换表示（池化/卷积/像素重排）→ 保结构但压缩率不灵活
+> - **Similarity**: 合并相似 token → 灵活但可能丢失空间信息
+> - **Attention**: 利用注意力稀疏性剪枝 → 动态但与 FlashAttention 不兼容
+> - **Query**: 用查询引导压缩 → 精准但不适合多轮对话
 
-> 💡 **Figure 2 批读**: 这是全文的核心分类图。按压缩位置分为四大类：
-> - **Vision Encoder**: Inside-Encoder（Dropping/Merging/Multi-Scale）+ Outside-Encoder（Purely-Vision/Text-guided）
-> - **Projector**: Transformation-based（Pooling/Pixel Shuffle/Convolution）+ Query-based（Q-Former 及变体）+ Importance-driven
-> - **LLM**: Prefilling（Importance/Learnable/Merging/Fusion）+ Decoding（KV-cache 压缩）
-> - **Hybrid**: Collaborative + Progressive
+![Table 1](../images/cc81de0dd55ad53451927c2b32324e2d305874dbd30ebf98982a600bc71c2680.jpg)
+*Table 1: Four Categories of Methods Based on Intrinsic Mechanisms: Diagram, Summary, and Pros & Cons.*
 
----
-
-## 3.1 Token Compression in Vision Encoder
-
-In MLLMs, visual data are inherently more redundant than text [191]–[193], leading to a substantially larger number of tokens on the vision side than on the language side. For instance, a single high-resolution image can be divided into thousands of patch tokens [10], [112]. If these tokens are simply concatenated with text tokens and processed as an "interleaved long sequence", the subsequent pre-filling and decoding stages of the LLM incur quadratic computational complexity with respect to the sequence length. Since the vision encoder (VE) is the first module to encode visual inputs, reducing visual tokens at this initial stage yields disproportionately large efficiency gains throughout the entire MLLM system.
-
-> 💡 **为什么在 VE 压缩？** 因为 VE 是最上游的模块，在此处减少 tokens，下游所有模块都受益（Projector 和 LLM 的计算量都降低）。一张高分辨率图可产生数千 patch tokens。
-
-As shown in Figure 3, we first review and categorize vision-side token compression methods applied at the vision encoder module into two broad categories:
-
-- **Inside Vision Encoder Compression (Inside-VE, §3.1.1)**: Compression is applied within the ViT or video encoder itself. Methods in this category either discard redundant tokens or merge similar ones. Since different layers capture multi-scale semantics—ranging from low-level textures to high-level concepts—multi-scale compression schemes have been developed to coordinate compression across layers.
-
-- **Outside Vision Encoder Compression (Outside-VE, §3.1.2)**: Compression occurs after the vision encoder produces its output tokens but before the projector maps these tokens into the language model space. This design is plug-and-play and minimally invasive to the original architecture.
-
-![Figure 3: Vision encoder compression strategies](../pages/page-06.png)
-*Figure 3: Illustration of token compression strategies applied at the vision encoder module in MLLMs.*
-
-> 💡 **Figure 3 批读**: Inside-Encoder 在 ViT 层间做压缩（Token Selection → Token Reduction），Outside-Encoder 在 ViT 输出后做压缩（基于 Vision Similarity 或 Text-Vision Similarity 选择）。
-
-### 3.1.1 Inside-Encoder Compression
-
-Inside-VE compression directly alters token flow within the encoder, reducing self-attention complexity at an early stage and shortening the propagation path of tokens. The design revolves around two questions: (1) how to handle "unimportant" tokens through pruning or merging; and (2) how to coordinate compression across multiple layers or encoders to leverage multi-scale visual features.
-
-#### Visual Token Dropping
-
-Token dropping methods compute importance scores for visual tokens within the vision encoder and retain only the most salient ones, directly discarding the remainder. Implementation typically follows a "ranking + Top-K" paradigm with defined thresholds. To identify important visual tokens within the encoder, existing methods employ three principal scoring strategies:
-
-**Similarity-based scoring.** These methods quantify token redundancy by measuring the similarity between each visual token and a global representation (e.g., CLS token or aggregated feature vector). Tokens exhibiting high similarity are deemed redundant and removed. Representative works include TRIM [66] and SAINT [67], which employ global similarity metrics with layer-adaptive thresholds. TRIM leverages CLIP embeddings to measure the relevance between textual queries and visual tokens, employing an adaptive Interquartile Range (IQR)-based thresholding mechanism to select the most query-relevant tokens. SAINT advances this paradigm by leveraging token similarity within a graph-based formulation to dynamically optimize both pruning rates and redundancy thresholds.
-
-> 💡 **Similarity-based**: 核心思路 — 与全局表征（CLS token）太相似 = 冗余 → 删除。TRIM 用 IQR 自适应阈值，SAINT 用图结构动态优化。
-
-**Attention-based scoring.** These approaches leverage attention weights from the vision transformer to derive token saliency. The first category restricts pruning decisions to vision-only attention patterns. VisPruner [68] and HiPrune [69] leverage the CLS token attention in the vision transformer to assess the visual importance of image partitions. VFlowOpt [70] constructs an importance map by integrating visual attention-derived context relevance with patch-level information entropy to determine which tokens to prune. The second category incorporates cross-modal attention to evaluate token significance. MADTP [73] introduces a Token Importance Score (TIS) that integrates three attention mechanisms—class attention, self-attention, and cross-modal alignment attention—and employs learnable thresholds with sparsemax activation to dynamically determine pruning masks. SmartTrim [72] adopts a cross-modal guidance approach by feeding the CLS token into a lightweight policy network that learns importance scores based on cross-modal information.
-
-> 💡 **Attention-based**: 两个子类：(1) 纯视觉注意力 — VisPruner/HiPrune 用 CLS attention；(2) 跨模态注意力 — MADTP 整合 class/self/cross-modal 三种 attention。
-
-**Heuristic-based scoring.** These methods exploit task-specific priors to guide token selection. EgoPrune [74] leverages domain-specific heuristics from egocentric videos, utilizing geometric stability and field-of-view dynamics to prioritize motion-relevant regions while pruning static backgrounds. METEOR [158] adopts a layer-adaptive strategy based on the prior that shallow and deep layers encode fundamentally different types of information. Specifically, METEOR employs similarity to the average token as the pruning criterion in shallow layers, where low-level redundancies dominate, and class attention scores in deep layers, where semantic information is more concentrated.
-
-> 💡 **Heuristic-based**: 利用领域先验。EgoPrune 针对第一人称视频（运动区域 > 静态背景），METEOR 利用"浅层低级冗余、深层高级语义"这一先验做分层策略。
-
-#### Visual Token Merging
-
-Unlike pruning, which deletes tokens outright, merging aggregates similar tokens into compact representations to preserve information while shortening sequences [34]. A fundamental principle underlying merging operations is proximity-based redundancy: tokens that are close to each other spatially or temporally tend to exhibit high redundancy.
-
-**Proximity-based Merging.** Spatial and temporal adjacency provide natural bases for identifying redundant visual tokens, as neighboring patches or consecutive frames typically share similar features. For spatial merging, structured approaches perform deterministic aggregation through downsampling operations [77] or pixel-shuffle with channel merging [75], while learnable methods adopt adaptive convolution kernels [76] or density-based clustering [81] to capture task-specific patterns beyond uniform averaging. In video understanding, temporal proximity enables cross-frame consolidation through two complementary strategies: joint temporal-spatial aggregation [71], [83], and frame-level fusion with learnable importance weighting [80], [87].
-
-> 💡 **Proximity-based Merging**: 相邻 = 冗余。空间上相邻 patch 合并（downsampling/pixel shuffle）；时间上相邻帧合并（cross-frame consolidation）。
-
-**Similarity-based Merging.** While proximity heuristics provide strong inductive bias, semantic redundancy often transcends geometric or temporal adjacency. Global similarity methods compute token importance via patch-to-class correlation [79] or cluster semantically similar patches [85]. Cross-modal merging methods leverage textual context to refine token merging decisions through bidirectional tokens [82] or pipelines combining semantic and spatial similarity [84].
-
-> 💡 **Similarity-based Merging**: 超越空间邻近，在特征空间中找语义相似的 tokens 合并。可以是纯视觉相似度，也可以引入文本引导。
-
-**Hybrid Strategies.** Combining multiple compression techniques can achieve better efficiency-quality trade-offs. Sequential approaches [86] first apply attention-based pruning to remove coarse-grained redundancy, then use weighted merging to recover information from discarded tokens. Learnable abstraction methods [37] employ a small set of trainable compressed tokens while maintaining cross-attention with high-resolution lookup tokens for fine-grained details.
-
-> 💡 **混合策略**: 先 pruning 粗筛 → 再 merging 精炼。FiCoCo 是典型代表（Filter → Correlate → Compress）。
-
-#### Multi-Scale Visual Compression
-
-Single-scale compression methods operate at fixed granularity, struggling to obtain comprehensive visual details. Multi-scale approaches address this limitation by coordinating compression across layers, encoders, or resolutions.
-
-**Multi-Layer Compression.** Aggregating multi-layer features complements high-level visual semantics with low-level visual details. LLaVA-STF [76] extracts tokens from multiple ViT blocks. METEOR [158] applies hierarchical pruning with layer-adaptive criteria. Chat-UniVi [81] employs three-level cascade aggregation. LaCo [75] performs aggressive early-layer compression followed by pixel shuffle and MLP-based detail recovery.
-
-**Multi-Encoder Compression.** Combining vision encoders with different architectures yields complementary representations. Cambrian-1 [7] demonstrates that integrating DINOv2 with CLIP consistently improves performance. METEOR [158] proposes a multi-encoder framework that eliminates cross-encoder redundancy.
-
-**Multi-Resolution Compression.** Processing inputs at multiple resolutions balances efficiency with visual detail preservation. FastVLM [77] achieves optimal token-resolution balance through FastViTHD. ADMIRE [89] employs dual-path Multi-Resolution Adaptation. For video, LinVT [88] and M3 [91] apply multi-scale temporal pooling. VideoChat-Flash [180] introduces Hierarchical Condensation (HiCo).
-
-> 💡 **Multi-Scale 三个维度**: (1) 多层（提取不同 ViT 层特征）；(2) 多编码器（CLIP + DINOv2 互补）；(3) 多分辨率（高分辨率精细 + 低分辨率全局）。
+> 💡 **Table 1 批读**:
+> - **Transformation**: 保留信息结构好，但压缩率受限于变换方法（通常固定 25%）
+> - **Similarity**: 灵活选择压缩位置，但可能过度泛化丢失细粒度信息、空间结构保留差
+> - **Attention**: 动态剪枝、可解释性强，但显式注意力计算与 FlashAttention 等加速库不兼容
+> - **Query**: 压缩信息更相关精炼，适合特定任务和视频，但不友好于多轮对话（需重新压缩）
 
 ---
 
-### 3.1.2 Outside-Encoder Compression
+## 3.1 Transformation-based Image-centric Compression
 
-Outside-encoder compression occurs after vision encoder output but before the projector. At this stage, visual tokens are encoded but not yet aligned with the language modality. This position offers stronger plug-and-play capability than inside-encoder approaches, requiring no modification to encoder layers.
+Transformation-based image-centric compression methods leverage the spatial redundancy inherent in 2D image representations. Some image token compression techniques are derived from image downsampling operations (e.g., pooling, bilinear interpolation). Based on the specific transformation method, these can be broadly categorized as follows:
 
-#### Purely-Vision Compression
+> 💡 **Transformation 方法本质**: 利用图像的 2D 空间冗余，通过下采样操作压缩 token 数。
 
-Purely-vision methods downsample or aggregate encoder outputs based solely on vision-vision semantic relevance, independent of user queries or prompts. A widely adopted paradigm is "selection-then-merge". VisionZip [93] identifies reusable tokens through importance estimation and representativeness constraints. Fourier-VLM [97] suppresses high-frequency redundancy via low-pass filtering in the frequency domain. LLaVA-STF [76] generates compact visual summaries through cross-layer concatenation and Multi-Block Token Fusion (MBTF).
+### 3.1.1 Pixel Unshuffle
 
-**Visual Attention Bias Problem.** Early works such as LLaVA-PruMerge [84], VTC-CLS [157], and FasterVLM [196] leverage the CLS token for patch attention and representation similarity-based sparsification. However, recent works [71], [96], [133] reveal that attention-based selection exhibits bias toward salient regions (e.g., foreground objects), neglecting global context. HoloV [96] addresses this by incorporating global visual context to balance foreground and background tokens.
+Pixel unshuffle is the inverse operation of pixel shuffle. It transforms a feature map from a high spatial resolution with a small number of channels into a lower-resolution feature map with a larger number of channels. This reduces the number of tokens. The transformation can be mathematically expressed as:
 
-> 💡 **Attention Bias 问题**: 基于注意力的 token 选择会偏向前景显著区域，忽略全局上下文。HoloV 通过引入全局视觉上下文来平衡前景和背景。
+$$\text{Pixel Unshuffle: } H \times W \times D \to \frac{H}{r} \times \frac{W}{r} \times (D \cdot r^2),$$
 
-**Extreme Compression.** For long videos, LLaMA-VID [98] compresses each frame into a single Content Token. Flash-VStream [197] employs K-means clustering. VideoLLaMA 2 [99] integrates frame-level patches via Spatial-Temporal Convolution (STC). LLaVA-PruMerge [84] performs learnable token merging, maintaining near-uncompressed performance under 10x compression.
+where H, W denote the height and width of the token grid, D is the hidden dimension of each token, and r is the downsampling ratio. Here r is a positive integer, typically 2. Therefore, as summarized in Table 1, the token compression ratio for transformation-based methods is usually limited to a few specific values, generally compressing the number of tokens to 25%.
 
-#### Text-Guided Compression
+> 💡 **Pixel Unshuffle 原理**: 把空间分辨率降低 r 倍，通道数增加 r² 倍。r=2 时，token 数变为原来的 1/4（25%）。这是 Pixel Shuffle（超分辨率中的上采样操作）的逆操作。
 
-When textual prompts provide semantic priors, compression can focus on question-relevant regions or frames. PAR [100] parses queries into entities and actions and re-weights visual tokens accordingly. QG-VTC [101] computes question-to-vision similarity to guide token retention, enabling 4× to 8× compression with minimal performance loss. LongVU [56] integrates cross-modal queries with frame or region candidates, first filtering at the segment level and then refining token-level selection.
+Recent works like InternVL series (Chen et al., 2024c;b; Gao et al., 2024b; Zhu et al., 2025a), Qwen2 series (Wang et al., 2024c; Bai et al., 2025), and NVLM (Dai et al., 2024) utilize pixel unshuffle to reduce the tokens generated by the vision tower by a factor of one-quarter. Subsequently, an MLP is employed to align the visual dimension with the text dimension, addressing the mismatch in the hidden dimension.
 
-> 💡 **Text-Guided vs. Purely-Vision**: Text-guided 利用文本先验聚焦相关区域，可实现更高压缩率；但在多轮对话中需重新编码，效率较低。Purely-vision 适合多轮/流式场景。
+> 💡 **谁在用 Pixel Unshuffle**: InternVL 系列、Qwen2 系列、NVLM — 都是顶级 MLLM。先 pixel unshuffle 降 4 倍 token，再用 MLP 对齐隐藏维度。这已经是 MLLM 的标配操作。
 
-**Token Recovery Mechanisms.** Under aggressive compression, dynamic recovery mechanisms enable closed-loop refinement. Recoverable-Compression [102] triggers targeted resampling based on confidence thresholds. MustDrop [92] integrates recovery via uncertainty gating. VTC [103] and Video-XL-Pro [199] optimize compression via visual reconstruction supervision.
+### 3.1.2 Spatial Pooling / Interpolation
 
----
+Unlike pixel unshuffle, pooling and interpolation directly perform 2D downsampling on tokens, without altering the hidden dimension. This process can be defined as:
 
-## 3.2 Token Compression in Projector
+$$\text{Pooling / Interpolation: } H \times W \times D \to \frac{H}{S} \times \frac{W}{S} \times D,$$
 
-The projector module plays a pivotal role in bridging the vision encoder and the language model in MLLMs. It acts as the interface that transforms raw visual embeddings into language-compatible representations.
+where S is the downsampling factor.
 
-![Figure 4: Projector compression strategies](../pages/page-08.png)
-*Figure 4: Illustration of token compression strategies applied at the projector module in MLLMs.*
+> 💡 **与 Pixel Unshuffle 的区别**: 池化/插值不改变隐藏维度 D，直接降低空间分辨率。更简洁。
 
-> 💡 **Figure 4 批读**: Projector 压缩三大类：(a) Transformation-based（Pooling/Convolution 等结构变换）；(b) Query-based（用 learnable queries 通过 cross-attention 提取信息）；(c) Importance-driven（基于重要性评估选择性保留）。
+LLaVA-OneVision (Li et al., 2025a) employs bilinear interpolation for 2D downsampling of aligned tokens, while LLaVA-Video (Zhang et al., 2024d) uses average pooling for downsampling. M³ (Cai et al., 2024a) utilizes a simple pooling operation to learn an inherently multi-granular representation during training. This allows the model to achieve comparable performance with fewer tokens during inference, effectively addressing efficiency concerns. DeCo (Yao et al., 2024) argues that the Q-former (Liu et al., 2023; Li et al., 2023c) is an inefficient visual compressor and similarly achieves token compression through a straightforward average pooling approach, leading to improved convergence efficiency and performance.
 
-### 3.2.1 Transformation-Based Compression
+> 💡 **代表方法**:
+> - **LLaVA-OneVision**: 双线性插值下采样
+> - **LLaVA-Video**: 平均池化下采样
+> - **M³ (Matryoshka)**: 训练时学习多粒度表示，推理时可用更少 token
+> - **DeCo**: 认为 Q-Former 是低效的视觉压缩器，简单平均池化反而更好
 
-Transformation-based methods reduce visual tokens by directly transforming the spatial structure of visual feature maps through lightweight, deterministic transformations.
+### 3.1.3 Spatial Convolution
 
-**Pooling-Based.** Given input feature map $X \in \mathbb{R}^{H \times W \times C}$, pooling window $k \times k$, pooling computes average features over local neighborhoods (Eq. 8). MobileVLM V2 [104] performs 2×2 average pooling. DeCo [105] validates effectiveness of adaptive average pooling. AVG-LLaVA [106] proposes Visual Granularity Scaler with stacked average pooling layers and Visual Granularity Router. For video, TC-LLaVA [107] uses global average pooling, PLLaVA [108] applies adaptive average pooling across spatial and temporal dimensions.
+Convolutional operations offer a more sophisticated approach to token compression compared to simple pooling or interpolation, by learning to abstract local information while reducing spatial dimensions. The transformation can be expressed as:
 
-> 💡 **Pooling**: 最简单直接 — 平均池化降低分辨率。参数 free，计算高效，是很多 baseline 的选择。MobileVLM V2 用 2×2 pooling 就能有效减少 tokens。
+$$\text{Convolution: } H \times W \times D_{in} \to \frac{H}{S} \times \frac{W}{S} \times D_{out},$$
 
-**Pixel Shuffle-Based.** Pixel shuffle trades token count for channel dimensionality (Eq. 9), rearranging high-resolution spatial tokens into fewer tokens with increased channel depth. Reduces spatial token count by $r^2$ while increasing channel dimension accordingly. Adopted by InternVL 1.5 [109] and NVLM [201].
+where S is the stride, which determines the downsampling factor, and D_in, D_out represent the input and output channel dimensions, respectively.
 
-> 💡 **Pixel Shuffle**: 空间分辨率 ↓ $r^2$ 倍，通道维度 ↑ $r^2$ 倍。InternVL 系列的标配方案。保留了所有信息（只是重排），需要后续 MLP 对齐维度。
+Honeybee (Cha et al., 2024) proposes the C-Abstractor, which uses convolution to extract and compress token information while preserving locality. MobileVLM (Chu et al., 2023), on the other hand, employs an LDP module that utilizes depth-wise convolution to reduce the number of tokens by 75%.
 
-**Convolution-Based.** Convolutions selectively integrate local information through learnable weights, preserving more task-relevant details than pooling. Honeybee [113] integrates convolution with average pooling via C-Abstractor. MobileVLM V2 [104] combines pointwise and depthwise convolutions with average pooling.
+> 💡 **卷积的优势**: 相比池化，卷积是参数化的，能学习更精细的局部信息抽象。
+> - **Honeybee (C-Abstractor)**: 卷积提取 + 压缩，保留局部性
+> - **MobileVLM (LDP)**: 深度可分离卷积，token 数减少 75%
 
-### 3.2.2 Query-Based Compression
+### 3.1.4 Comparative Analysis of Transformation Methods
 
-Query-based compression leverages a limited number of learnable query embeddings to attend to dense visual features and distill them into a compact representation.
+These transformation-based image-centric compression methods effectively utilize all image tokens while consciously preserving the spatial local information of 2D features. Pixel unshuffle, pooling, and interpolation are inherently parameter-free, thus introducing no additional weight overhead, a key advantage. In contrast, convolution learn a more sophisticated local abstraction by introducing trainable weights.
 
-**Q-Former.** Introduced in BLIP-2 [115], Q-Former employs a small set of learnable query vectors that interact with frozen visual features via stacked self-attention and cross-attention layers. The queries selectively aggregate task-relevant visual information into a compact set of embeddings, efficiently compressing hundreds of visual tokens into only a few while preserving essential semantics. Adopted and extended by MiniGPT-4 [116] and InstructBLIP [117].
+Another notable difference lies in how these methods handle feature dimensions: pixel unshuffle typically alters the hidden dimension, necessitating a subsequent trained MLP to align with the text dimension. Conversely, pooling and interpolation can be implemented in a training-free manner as they operate directly on the aligned token dimension.
 
-> 💡 **Q-Former 核心思想**: 用少量可学习 query tokens（如 32 个）通过 cross-attention 从大量 visual tokens 中提取关键信息。开创性工作，后续大量变体。
+By extracting more condensed information, they achieve a superior balance between performance and efficiency. However, due to the inherent characteristics of 2D downsampling, their token compression ratios are typically limited to a few specific magnitudes, with a 25% compression rate being the most common.
 
-**Variants of Q-Former.** Qwen-VL [118] adopts single-layer cross-attention, reducing complexity. Honeybee [113] introduces C-Abstractor and D-Abstractor for better locality. MQT [119] allows variable number of query tokens. TG-LLaVA [120] introduces text-guided key visual feature extraction. LLaVA-Mini [181] adds Modality-Pre Fusion module to mitigate information loss.
-
-**Cross-Attention-Based.** CATP [203] performs voting based on cross-attention probabilities. TokenPacker [122] employs coarse-to-fine visual information extraction through Point-to-Region cross-attention. HiRes-LLaVA [123] uses downsampled features as queries. mPLUG-DocOwl2 [124] uses global visual features as queries. QueCC [176] injects textual features into visual representations. AdaFV [204] proposes self-adaptive cross-modality attention mixture. VCM [186] introduces Vision Concept Modeling.
-
-> 💡 **Cross-Attention 方向**: 与 Q-Former 不同，不再依赖固定 learnable queries，而是用 downsampled features 或文本特征作为 queries 与原始视觉特征交互。TokenPacker 的 Point-to-Region 策略是典型代表。
-
-### 3.2.3 Importance-Driven Compression
-
-Importance-driven methods reduce redundancy by estimating each token's importance and selectively retaining the most valuable ones.
-
-**Various Similarity Metrics.** DynTok [125] introduces dynamic compression based on local token similarity, adaptively grouping and merging tokens. LLaVA-Scissor [126] proposes Semantic Connected Components (SCC), reframing token compression as a graph connected components partitioning task.
-
-**Saliency-Based.** SeqCompression [127] demonstrates that saliency-based "Cluster and Aggregate" offers clear performance gains over importance-agnostic strategies.
-
-**Innovative Metrics-Based.** DivPrune [128] formulates token pruning as a Max-Min Diversity Problem (MMDP), constructing a token subset with maximum minimum distance.
-
-> 💡 **Importance-Driven 对比**: Similarity（DynTok, LLaVA-Scissor 看 token 间相似度）vs. Saliency（SeqCompression 看 token 显著性）vs. Diversity（DivPrune 最大化 token 集的多样性）。
+> 💡 **Transformation 方法对比总结**:
+> | 方法 | 参数 | 维度变化 | 是否需训练 |
+> |------|------|---------|-----------|
+> | Pixel Unshuffle | 无 | D → D·r² | 需 MLP 对齐 |
+> | 池化/插值 | 无 | D 不变 | 可 training-free |
+> | 卷积 | 有 | 可变 | 需要训练 |
+> 
+> 共同局限：压缩率通常固定在 25%（4 倍），不够灵活。
 
 ---
 
-## 3.3 Token Compression in LLM
+## 3.2 Similarity-based Image-centric Compression
 
-Currently, the mainstream architectures for MLLMs typically follow a classic design wherein visual information, after being processed by a vision encoder and a projector, generates a large number of vision tokens. Given that the LLM component generally contains significantly more parameters than the vision encoder and projector, the resulting sequence incurs substantial computational overhead when forwarded through the LLM.
+Similarity-based image-centric compression methods reduce the number of visual tokens by identifying and merging similar tokens based on their distance or similarity in an implicit space. This typically involves selecting representative cluster-center tokens to encapsulate visual information.
 
-![Figure 5: LLM compression strategies](../pages/page-11.png)
-*Figure 5: Illustration of token compression strategies applied at the LLM module.*
+> 💡 **核心思路**: 找相似的 token → 合并/聚类 → 用代表性 token 概括视觉信息。
 
-> 💡 **Figure 5 批读**: LLM 内压缩四大类：(a) Importance-based（排序剪枝）；(b) Learnable module-based（可训练模块预测重要性）；(c) Token Merging-based（合并相似 tokens）；(d) Fusion-based（cross-attention 注入，不直接删除）。
+Early works in this area include ToMe (Bolya et al., 2023), an acceleration method for ViTs. ToMe introduces a token merge module between the attention and MLP blocks, calculating token similarity and merging similar tokens via bipartite soft matching. This process creates a new set of tokens, τ, by replacing the most similar tokens with their merged representations.
 
-### 3.3.1 Compression in Prefilling Stage
+$$\mathcal{T} = (\mathcal{T}_{original} \setminus \bigcup_{i=1}^{k} C_i) \cup \{ \text{Merge}(C_i) \}_{i=1}^{k},$$
 
-The prefilling stage refers to the first forward pass of all tokens through the LLM. Once a vision token is removed in the shallow layers, deeper layers can no longer access information from the corresponding image region.
+where each C_i is a set of tokens identified as highly similar by ToMe's matching algorithm.
 
-**Importance-based.** FastV [205] was among the first to observe that vision tokens receive substantially lower attention scores compared to text tokens within the LLM, revealing extreme sparsity in visual token information. Based on this, FastV prunes half of the vision tokens at the second layer using attention from the last textual token. PyramidDrop [206] extended this by identifying that redundancy increases with LLM depth, introducing multi-stage progressive pruning. Subsequent works [71], [134], [136], [137], [207]–[210] adopted text-to-image attention ranking. Beyond simple ranking, SparseVLM [132] and AdaptInfer [213] propose more fine-grained text token selection. TransPrune [214] and VFlowOpt [214] combine attention with information entropy.
+> 💡 **ToMe (Token Merging)**: 最经典的 similarity-based 方法。在 attention 和 MLP block 之间插入 merge 模块，用 bipartite soft matching 找到最相似的 token 对并合并。公式含义：从原始 token 集中移除被合并的 token，加入合并后的新 token。
 
-> 💡 **FastV 的关键发现**: LLM 内部，vision tokens 的注意力分数远低于 text tokens → 说明大量 vision tokens 是冗余的。FastV 在第 2 层就剪掉一半 vision tokens，性能几乎不变！PyramidDrop 进一步发现越深层冗余越多 → 金字塔式渐进剪枝。
+In the context of MLLMs, FOLDER (Wang et al., 2025a) employs a similar approach, inserting a token merge module within the last attention block of the vision encoder. This reduces the number of tokens that were subsequently passed to the LLM decoder. DivPrune (Alvar et al., 2025) reframes the token compression problem as a Max-Min diversity problem (Porumbel et al., 2011), aiming to select a subset of tokens with maximal internal differences. AuroraCap (Chai et al., 2025) adopts a strategy consistent with ToMe, performing token merging within each attention and MLP block of the vision tower. This progressively reduces the number of tokens throughout the ViT model. While the aforementioned methods primarily leverage similarity-based clustering of tokens within the ViT, TopV (Yang et al., 2025a) extends this principle to compress tokens within the LLM layers. TopV comprehensively considers both the similarity and distance functions between features to guide the token compression process, operating directly within the multimodal representation space of the LLM.
 
-**Attention Bias Problem.** Feather [133] first noted that vision tokens near output tokens receive disproportionately high attention scores due to RoPE's long-term decay property. Solutions: Feather computes importance without RoPE; AdaTP [216] uses separate text encoder for cosine similarity; VScan [71] starts pruning from intermediate layers rather than shallow ones.
+> 💡 **MLLM 中的 Similarity 方法**:
+> - **FOLDER**: 在 vision encoder 最后一个 attention block 中合并
+> - **DivPrune**: 换个视角——选择「差异最大化」的 token 子集（Max-Min diversity）
+> - **AuroraCap**: 在 ViT 每一层都做 ToMe，渐进式减少 token
+> - **TopV**: 首个在 LLM 层内部做 similarity-based 压缩的方法（不限于 ViT）
 
-> 💡 **Attention Bias**: RoPE 导致序列末尾的 tokens 获得不成比例的高注意力（位置偏差，而非语义重要性）。这是 attention-based pruning 的系统性问题。
+### 3.2.1 Analysis of Similarity Methods
 
-**Flash Attention Compatibility Problem.** Flash Attention doesn't directly expose attention scores. Common solution: use Flash Attention at all layers but selectively recompute attention maps at pruning layers. Alternative approaches bypass attention scores entirely: TopV [138] uses feature similarity + spatial distance; PACT [139] uses hidden state norms; GreedyPrune [219] uses cosine similarity.
+While similarity-based methods effectively reduce tokens, this merging often overlooks the original spatial information of the tokens, leading to spatial misunderstanding (in Tab. 1). Subsequent work frequently employs methods like DPC-KNN (Du et al., 2016; Rodriguez & Laio, 2014) or techniques focused on local spatial similarity merging to prevent excessive spatial information degradation. Furthermore, when tokens are overgeneralized, similarity-based methods struggle to distinguish between them, easily leading to misjudgment.
 
-> 💡 **Flash Attention 兼容性**: 这是一个实际工程问题。Flash Attention 为了效率不输出 attention scores，而 attention-based pruning 恰恰需要它。解决方案：(1) 只在 pruning 层重算 attention；(2) 用不需要 attention 的替代指标。
-
-**Learnable Module-based.** p-MoD [140] uses a weight predictor to assign importance scores. GlimpsePrune [143] utilizes a visual token importance predictor. DyRate [142] incorporates a lightweight classifier to predict optimal pruning ratio. ATP-LLaVA [177] employs MLP with dual prediction heads for instance-specific thresholds.
-
-**Token Merging-based.** LLaVolta [144] applies average pooling for aggressive compression with progressive training stages. FiCoCo [86] selects important tokens then computes correlation matrix for information-loss-minimizing merging. FrameFusion [145] computes cosine similarity between spatially corresponding tokens across consecutive frames. HoliTom [146] directly merges tokens with lower attention scores.
-
-**Fusion-based.** Flamingo [147] introduced GATED XATTN-DENSE cross-attention layers between LLM layers. mPLUG-Owl3 [148] combines intra-text self-attention with cross-modal attention. CrossLMM [149] uses compressed visual + text tokens as queries with original visual representations as keys/values. VoCo-LLaMA [150] introduces a single Vision Compression token. Victor [222] appends learned visual register tokens.
-
-> 💡 **Fusion-based 的独特之处**: 不直接删除 tokens，而是通过 cross-attention 把视觉信息"融合"进其他 tokens。避免了信息丢失，但增加了每层的计算量。Flamingo 是开创者。
-
-### 3.3.2 Compression in Decoding Stage
-
-Compression in decoding typically refers to KV-cache compression, reducing memory and computational overhead of cached key and value tensors during autoregressive decoding. This has become increasingly significant with multimodal chain-of-thought (CoT) reasoning, where output lengths expand to hundreds or thousands of tokens.
-
-LOOK-M [151] uses cumulative attention scores for token importance, preserving recent window KV pairs plus ranked visual KV pairs. MustDrop [92] stores only retained visual tokens' KV pairs from the final prefilling layer. SparseMM [153] identifies visual heads using OCR-based task, allocating more KV budget to these heads. DyCoke [152] proposes dynamic compression based on text-vision attention per decoding step. Video-XL-2 [58] introduces Bi-level KVs decoding. LiveVLM [155] discards then merges KV pairs per frame. InfiniPot-V [154] integrates Temporal-axis Redundancy and Value Norm. StreamMem [156] implements fixed-size KV memory.
-
-> 💡 **KV-cache 压缩**: 随着 CoT 推理普及，输出越来越长，KV-cache 成为内存瓶颈。核心思路：基于 attention/重要性保留关键 KV pairs，丢弃或合并冗余的。SparseMM 的"视觉头"识别思路很独特。
+> 💡 **Similarity 方法的局限**:
+> 1. **空间信息丢失**: 合并打乱了 token 的原始空间位置，导致空间理解错误
+> 2. **过度泛化**: 当 token 被过度合并后难以区分，容易误判
+> 3. **缓解方法**: DPC-KNN（密度峰值聚类）、局部空间相似性合并
 
 ---
 
-## 3.4 Token Compression in Multi-Module
+## 3.3 Attention-based Image-centric Compression
 
-Beyond individual components, an increasing number of approaches explore compression strategies across multiple modules for higher efficiency.
+Attention-based token compression methods leverage the inherent sparsity of visual feature attention to guide token pruning. Tokens with low attention scores can often be considered removable without significantly impacting the original computation. Specifically, these methods utilize the attention mechanism to identify and preserve pivotal tokens. It is worth noting that this shares the same underlying philosophy as sparse attention methods (Yuan et al., 2025; Zhang et al., 2025d; Lu et al., 2025; Yin et al., 2025), which focus on executing the critical attention computations, yet manifest at a different scale: the former operates on token quantity while the latter operates on computational pathways. In vision language models, both the vision encoder and the LLM decoder incorporate transformers. Consequently, attention-based compression strategies can be broadly categorized into those applied within the encoder and those within the decoder.
 
-### 3.4.1 Collaborative Compression
+> 💡 **Attention-based 的核心思想**: 注意力分数低的 token 可以安全移除。与 sparse attention 的区别是：token 压缩减少 token 数量，sparse attention 减少计算路径。
+> 
+> **两个方向**: Encoder 内（ViT）和 Decoder 内（LLM）。
 
-CrossGET [82] inserts compression modules between self-attention and FFN layers of both visual and language branches. LLaMA-VID [98] leverages cross-modal interaction to generate context and content tokens, representing each video frame by only two tokens. PAR [100] categorizes redundancy into external (task-irrelevant) and internal (within-task redundant), addressing each with different strategies.
+### 3.3.1 Attention in Encoder
 
-### 3.4.2 Progressive Compression
+Methods focusing on the vision encoder primarily select visual tokens based on attention scores within a single image or crops, relying on the capabilities of the vision transformer (ViT). This reduces the number of visual tokens before they're passed to the LLM. To achieve this, the set of retained tokens, τ_encoder, is determined by selecting the top k tokens based on their attention scores relative to the [CLS] token:
 
-MustDrop [92] adopts multi-stage compression across vision encoding, prefilling, and decoding stages. DyCoke [152] employs two-stage: inter-frame merging → dynamic KV-cache pruning. FiCoCo [86] formulates three-stage "filter, correlate, and compress" process.
+$$\mathcal{T}_{encoder} = \text{TopK}_k(\{ \text{Attention}(\mathbf{v}_i, \mathbf{v}_{cls}) | \mathbf{v}_i \in \mathcal{V} \}),$$
 
-> 💡 **Multi-Module 趋势**: 从单一模块压缩 → 系统级端到端压缩。MustDrop 是典型（vision → prefilling → decoding 三阶段），代表了从"局部优化"到"全局协调"的演进方向。
+where V is the original set of visual tokens, v_i is the i-th visual token, and v_cls is the [CLS] token. This strategy ensures that only the most salient visual information, as highlighted by the [CLS] attention, is carried forward for further processing.
+
+> 💡 **Encoder 内压缩原理**: 用 [CLS] token 对每个视觉 token 的注意力分数排序，保留 Top-K。[CLS] token 聚合了全局信息，attention score 高的 token 含更重要的视觉信息。
+
+Prumerge (Shang et al., 2025) selects cluster centers for visual tokens based on [CLS] attention in the encoder. It then merges the remaining less attentive tokens using K-nearest neighbors (KNN) clustering and a weighted cluster center update mechanism. VisionZip (Yang et al., 2025c) retains visual tokens with high attention scores and subsequently merges the remaining tokens through clustering. VisPruner (Zhang et al., 2025f) similarly preserves a subset of high-attention visual tokens. Then it progressively removes duplicates based on similarity in multiple rounds, ultimately retaining an additional set of diverse tokens. GlobalCom² (Liu et al., 2025c) employs a hierarchical strategy. It coordinates the attention scores of thumbnail tokens to guide the pruning of high-resolution crops, thereby achieving effective global context reduction.
+
+> 💡 **Encoder Attention 方法**:
+> - **PruMerge**: [CLS] attention 选中心 → KNN 合并剩余 → 加权更新聚类中心。融合了 attention 和 similarity 两种思路
+> - **VisionZip**: 保留高 attention token + 聚类合并低 attention token
+> - **VisPruner**: 保留高 attention + 多轮去重（渐进式）
+> - **GlobalCom²**: 层次化策略——用缩略图 attention 指导高分辨率裁切的剪枝
+
+![Table 2](../images/862567fac68e771e6a08fc281670d6047c24fab14e8f7126a074b084fdfd1d03.jpg)
+*Table 2: Comparison of Training-Free Token Compression Methods for Image LLMs in Understanding Tasks*
+
+> 💡 **Table 2 批读** — Training-Free 图像压缩方法对比:
+> - **基线 LLaVA-v1.5-7B**: 576 视觉 token，VQA² 78.5，MME 1510.7
+> - **最激进压缩 (32 token)**: VisPruner 32 token，VQA² 仍有 52.2（降幅明显）
+> - **性能-效率甜蜜点**: 128-144 token 区间（VisionZip++ 128 token VQA² 76.6，接近原始 78.5）
+> - **训练方法的极限**: LLaVA-Mini 仅 1 个视觉 token VQA² 77.6！说明训练时压缩可以做得非常极端
+> - **关键发现**: Training-free 方法在 ~22% token 保留率时接近无损性能
+
+### 3.3.2 Attention in Decoder
+
+Unlike attention-based compression within the encoder, methods focusing on attention in the decoder leverage the capabilities of the LLMs to guide token compression. Here, attention is computed across all tokens within the LLM's attention window, which includes not only visual tokens but also textual tokens. This allows the LLM to determine the importance of visual and textual information in a joint space, leading to more contextaware token pruning.
+
+A common approach for compression in the decoder involves selecting the most salient visual tokens. The set of retained tokens, τ_decoder, is typically determined by choosing the top k visual tokens based on the average attention they receive from all other tokens in that layer's attention window:
+
+$$\bar{\mathcal{A}}(\mathbf{v}_i) = \frac{1}{|\mathcal{S}|} \sum_{\mathbf{s}_j \in \mathcal{S}} \text{Attention}(\mathbf{v}_i, \mathbf{s}_j),$$
+
+$$\mathcal{T}_{decoder} = \text{TopK}_k(\{ \bar{\mathcal{A}}(\mathbf{v}_i) | \mathbf{v}_i \in \mathcal{V} \}),$$
+
+where V denotes the set of visual tokens, and S represents the entire set of tokens present in the current layer's attention window (which may include visual, textual, or special tokens). This method allows the model to prioritize the visual information that is most relevant in the ongoing context.
+
+> 💡 **Decoder 内压缩 vs Encoder 内压缩**:
+> - Encoder: 只看视觉 token 内部的 attention（[CLS] → visual tokens）
+> - Decoder: 综合所有 token（视觉+文本+系统）的 attention 来评估视觉 token 重要性
+> - Decoder 方法能利用文本上下文信息，因此更「task-aware」
+
+FastV (Chen et al., 2024a) is among the first to identify a significant inefficiency in large vision language models (LVLMs), namely the extremely low attention efficiency of visual tokens. For instance, in LLaVA-v1.5, visual tokens received only 0.21% of the attention obtained by system prompts after the second layer. FastV posits that this is due to an overabundance of visual signals, leading to specific features aggregating onto "anchor" tokens via shallow self-attention mechanisms. Consequently, pruning 50% of visual tokens based on attention scores after the second layer maintains maximal performance. PyramidDrop (Xing et al., 2025) structures the token compression process within the LLM into multiple stages. It employs progressive token compression to avoid excessive loss of visual information in shallower layers. VTW (Lin et al., 2025c) takes a more aggressive pruning approach, arguing that visual tokens can be entirely removed after a certain layer within the LLM. The specific layer for visual token removal is determined using a calibration dataset. FitPrune (Ye et al., 2025a) focuses on reducing the length of visual tokens per layer. It considers both the self-attention of visual tokens and their cross-attention with text tokens to guide compression. The goal is to find an optimal pruning "recipe" that minimizes the distributional gap before and after pruning. ST³ (Zhuang et al., 2025) dynamically reduces tokens during the generation process. It also progressively prunes inattentive visual tokens as the layer goes deeper. ATP-LLaVA (Ye et al., 2025b) introduces an adaptive token pruning (ATP) module within the decoder layers. This module trains threshold heads to adaptively predict pruning thresholds for the current layer and instance, thereby removing redundant or text-irrelevant visual tokens. ZipVL (He et al., 2025) achieves progressive compression by determining the compression ratio for each layer based on its attention score distribution. This allows for a granular and adaptive reduction of visual tokens throughout the model.
+
+> 💡 **Decoder Attention 方法详解**:
+> - **FastV** (开创性工作): 发现 LLaVA-v1.5 中视觉 token 在第 2 层后只获得 0.21% 的注意力！剪掉 50% 视觉 token 性能不降
+> - **PyramidDrop**: 多阶段渐进压缩，避免浅层过度压缩
+> - **VTW**: 更激进——某层之后完全移除所有视觉 token
+> - **FitPrune**: 同时考虑视觉 self-attention 和视觉-文本 cross-attention，最小化剪枝前后的分布差距
+> - **ST³**: 解码生成过程中动态减少 token
+> - **ATP-LLaVA**: 训练 threshold heads 自适应预测每层每实例的剪枝阈值
+> - **ZipVL**: 根据每层 attention 分布自适应确定压缩率
+
+### 3.3.3 Critical Challenge for Pruning in Decoder
+
+While these methods leverage attention scores within the LLM decoder to offer sophisticated ways to compress visual tokens, they face a significant practical challenge: the explicit need to access attention scores. This direct access is often incompatible with highly optimized acceleration libraries like FlashAttention (Dao et al., 2022; Dao, 2024), which compute attention implicitly or in a fused manner for speed. This incompatibility can be mitigated by performing an additional, separate attention calculation solely for pruning purposes. However, for progressive pruning strategies such as FitPrune, ST3, and ZipVL, this additional computational overhead becomes significantly more pronounced, potentially negating the efficiency gains.
+
+> 💡 **Decoder 剪枝的致命问题 — FlashAttention 不兼容**:
+> - FlashAttention 把矩阵乘法和 softmax 融合加速，不暴露中间 attention scores
+> - 但 attention-based 剪枝方法需要显式访问 attention scores
+> - 渐进式剪枝（FitPrune, ST³, ZipVL）尤其受影响，因为每层都需要额外的注意力计算
+> - **这是一个工程 vs 算法的 gap**，限制了这些方法的实际部署
 
 ---
 
-![Table 1: Summary of representative token compression works](../pages/page-05.png)
-*Table 1: Summary of representative token compression works (venues up to Oct. 2025). Includes modality, compression position, text query-based indicator, and re-train/plug-in distinction.*
+## 3.4 Query-based Image-centric Compression
 
-> 💡 **Table 1 批读**: 这张表汇总了 54 个代表性方法，关键维度：
-> - **Compression Position**: 多数集中在 Vision Encoder 和 LLM
-> - **Text Query-based**: 约一半方法依赖文本引导
-> - **Re-train vs. Plug-in**: 近期趋势偏向 plug-in（无需重训练）
-> - **时间线**: 2024 年后方法数量显著增加，2025 年涌现大量 CVPR/ICCV/NeurIPS 工作
+Visual information often contains a substantial amount of features irrelevant to the given query. Querybased image-centric compression leverages the query prompt to guide the compression of visual tokens. These methods can be broadly categorized into two types: (1) Token Distillation: These methods compress visual tokens by distilling visual tokens into a specific, reduced number of tokens. (2) Cross-Modal Selection: These approaches compress tokens by matching between modality-aligned visual and text tokens.
+
+> 💡 **Query-based 两个子类**:
+> 1. **Token Distillation**: 用可学习 query 蒸馏视觉 token → 固定数量的紧凑 token
+> 2. **Cross-Modal Selection**: 利用文本-视觉对齐做跨模态筛选
+
+### 3.4.1 Token Distillation
+
+Token distillation originates from the early projector designs of MLLM. The goal is to distill visual tokens to learn the most text-relevant visual representations, reduce visual tokens while also aligning modalities.
+
+The Q-Former series (Liu et al., 2023; Li et al., 2023c), a pioneering approach, uses learnable queries and cross-attention to extract pertinent visual cues from visual features. Similarly, mPLUG-Owl (Ye et al., 2023), MiniGPT-4 (Zhu et al., 2024), Flamingo (Alayrac et al., 2022), and Qwen-VL (Bai et al., 2023) all employ variations of learnable query-based architectures to condense visual information into a smaller fixed set of tokens that are then aligned with the language model. LLaMA-VID (Li et al., 2024d) employs a highly aggressive approach to visual token compression. For a single image or video frame, it utilizes context attention where the text query aggregates text-related visual cues from the visual embedding. Ultimately, it represents an entire image's information using only two tokens. LLaVA-Mini (Zhang et al., 2025g) achieves comparable performance by pre-fusing visual information directly into text tokens, requiring just one visual token. While previous methods relied on external modules for visual token compression, VoCo-LLaMA (Ye et al., 2025c) is notable as the first approach to use LLMs themselves for visual token compression. It distills the LLM's understanding of visual tokens into the processing of VoCo tokens via attention distillation. Victor (Wen et al., 2024) introduces a small number of learnable "register tokens" after the visual tokens. It then uses the shallow layers of a large model to distill visual information into these registers, discarding all original visual tokens to significantly improve inference and training efficiency.
+
+> 💡 **Token Distillation 方法演进**:
+> - **Q-Former** (BLIP-2): 开山之作，learnable queries + cross-attention 蒸馏视觉 token
+> - **Flamingo / mPLUG-Owl / MiniGPT-4 / Qwen-VL**: 各种 learnable query 变体
+> - **LLaMA-VID**: 极限压缩——整张图片 → 2 个 token！
+> - **LLaVA-Mini**: 更极限——1 个视觉 token，通过预融合视觉信息到文本 token
+> - **VoCo-LLaMA**: 首次用 LLM 自身做视觉 token 压缩（attention distillation）
+> - **Victor**: learnable register tokens 在浅层吸收视觉信息，然后丢弃原始视觉 token
+
+### 3.4.2 Cross-Modal Selection
+
+Cross-modal selection aims to reduce the number of tokens in one modality by leveraging aligned tokens from another. This compression is achieved by identifying and retaining only the most relevant information across modalities, leading to more efficient and effective processing. Several notable approaches have been proposed to address this challenge:
+
+SparseVLM (Zhang et al., 2024c) employs visual tokens to pre-select relevant text tokens. By leveraging the visual modality as an initial filter, SparseVLM efficiently narrows down the textual search space, focusing on information pertinent to the visual content. AdaFV (Han et al., 2025) employs a dual-metric approach for selecting the most informative visual tokens. It calculates both text-to-image similarity and visual saliency extracted from the vision encoder. By combining these two indicators, AdaFV identifies visual tokens that are not only semantically aligned with the text but also visually prominent or significant. TRIM (Song et al., 2025a) introduces a unique method that begins by identifying outlier tokens based on the similarity between text and visual tokens; these outliers are deemed important. Subsequently, a clustering algorithm is utilized to merge the remaining, less critical tokens. This approach prioritizes distinct, highly relevant tokens before consolidating the rest.
+
+> 💡 **Cross-Modal Selection 方法**:
+> - **SparseVLM**: 反向操作——用视觉 token 筛选文本 token（大多数方法是用文本筛选视觉）
+> - **AdaFV**: 双指标——text-image 相似度 + 视觉显著性，两者结合选 token
+> - **TRIM**: 先找异常值 token（text-visual 相似度高的） → 聚类合并剩余 token
+
+### 3.4.3 Analysis of Similarity Methods
+
+While query-based methods can precisely retain query-relevant tokens compared to the three prior approaches, they are unsuitable for multi-turn QA scenarios. This is because the initial query's token retention is based on its specific question. A subsequent query may target different tokens, necessitating a re-execution of the token compression process. This makes the approach highly inefficient for multi-turn conversations.
+
+> 💡 **Query-based 的致命弱点**: 不适合多轮对话！因为每个 query 保留的 token 不同，新问题可能需要之前被丢弃的 token，必须重新执行压缩。这在实际聊天场景中非常低效。
 
 ---
 
 ## 🔖 Section 总结
 
-### 按位置的压缩方法对比
-| 压缩位置 | 优势 | 劣势 | 代表方法 |
-|----------|------|------|----------|
-| **Vision Encoder** | 上游压缩，下游全受益 | 可能丢失低级视觉信息 | VisionZip, TRIM, ToMe |
-| **Projector** | 自然的压缩点，兼容性好 | 压缩率受限于设计 | Q-Former, TokenPacker, Pixel Shuffle |
-| **LLM** | 利用跨模态信息 | 浅层仍需处理全部 tokens | FastV, PyramidDrop, SparseVLM |
-| **Hybrid** | 最高压缩率+最佳质量 | 复杂度高，调参困难 | MustDrop, DyCoke, FiCoCo |
+### 关键数字速查
+| 指标 | 数值 |
+|------|------|
+| Transformation 典型压缩率 | 25%（4 倍） |
+| FastV 发现的视觉 attention 比例 | 0.21%（第 2 层后） |
+| FastV 安全剪枝比例 | 50% |
+| LLaMA-VID 每张图 token 数 | 2 |
+| LLaVA-Mini 每张图 token 数 | 1 |
+| Training-free 甜蜜点 | ~128 token（从 576 压到 22%） |
 
-### 核心洞察
-1. **VE 压缩效益最大**: 在最上游减少 tokens，整个 pipeline 都加速
-2. **Attention Bias 是系统性问题**: 无论在 VE 还是 LLM，基于 attention 的方法都有偏差
-3. **Plug-in 趋势明显**: 越来越多 training-free 方法，降低部署门槛
-4. **多模块协同是未来**: 从单点优化走向端到端系统优化
+### 四类方法对比速查
+| 方法类型 | 优势 | 劣势 | 代表作 |
+|---------|------|------|--------|
+| Transformation | 保结构、无参数 | 压缩率固定 | InternVL, Qwen2 |
+| Similarity | 灵活 | 丢空间信息 | ToMe, DivPrune |
+| Attention | 动态、可解释 | FlashAttention 不兼容 | FastV, PyramidDrop |
+| Query | 精准 task-aware | 不适合多轮对话 | Q-Former, LLaMA-VID |

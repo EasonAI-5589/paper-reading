@@ -1,142 +1,148 @@
 [← 返回 README](../README.md)
 
-# 4. How to Select the Desirable Token Compression Strategy
+# 4 Video-centric Token Compression
 
 ## 📌 预览
-本 Section 从 5 个决策维度分析如何选择合适的 token compression 策略：(1) 视频时序压缩；(2) 纯视觉 vs. 文本引导；(3) Token Merging vs. Dropping；(4) Plug-in vs. Re-training；(5) 高效训练 vs. 高效推理。
+视频相比图像多了时间维度的冗余。本章介绍视频 token 压缩的四类方法：Transformation（2D/3D 池化和卷积）、Similarity（帧聚类+token 合并）、Attention（编码器/解码器注意力剪枝）、Query（token 蒸馏和跨模态选择）。
 
 ---
 
-The proliferation of token compression designs necessitates guidelines to help practitioners select optimal strategies for specific deployment scenarios. As Figure 6 illustrates, this section provides a comprehensive comparison of critical selection factors.
+Processing long high-definition (HD) videos poses significant challenges for VLMs due to the immense number of tokens generated, far exceeding those from high-resolution images. Unlike image-centric compression, video inherently possesses an additional temporal redundancy. While capturing complete temporal information typically requires a frame rate of at least 24 frames per second (FPS), processing a 10-minute HD video at even 1 FPS still yields token sequences orders of magnitude larger than those from high-resolution images, rendering conventional transformer-based MLLMs impractical for real-world deployment over the videos.
 
-![Figure 6: Decision taxonomy](../pages/page-14.png)
-*Figure 6: Decision taxonomy for selecting an appropriate token compression strategy.*
+> 💡 **视频的特殊挑战**: 即使 1 FPS 采样 10 分钟 HD 视频，token 量仍远超高分辨率图像。视频有图像没有的**时间冗余**。
 
-> 💡 **Figure 6 批读**: 五个决策维度构成选择路线图：Temporal Enhancement → Purely-Visual vs. Text-guided → Merging vs. Dropping → Plug-in vs. Re-training → Training vs. Inference。
+To address this, current video LLMs commonly employ a 1 FPS sampling rate to reduce token counts. Furthermore, unlike methods for single images, which often encode both the global image and a series of local patches for detailed feature extraction, video processing often foregoes this detailed frame-level segmentation to keep token numbers manageable. Even with these strategies, the quantity of video tokens remains substantial. During model training and understanding, transformation-based methods, such as the pooling technique used in LLaVA-Video (Zhang et al., 2024d), are usually employed to reduce tokens and aid the model's comprehension of video content.
 
----
+> 💡 **当前视频 LLM 的基础策略**:
+> 1. 采样率降到 1 FPS
+> 2. 不做 local patch 细粒度编码（不像图像那样编码缩略图+裁切）
+> 3. 训练时加 transformation 压缩（如 LLaVA-Video 的池化）
+> 即便如此，token 量依然庞大。
 
-## 4.1 Temporal-Enhanced Compression for Video Input
+Beyond training-time optimizations, alternative approaches primarily focus on post-training optimization. Specifically, similarity-based and attention-based methods offer generic compression techniques for pretrained video MLLMs. These methods process encoded token sequences without modifying model weights, enabling plug-and-play acceleration across diverse architectures. By dynamically identifying critical spatiotemporal regions and pruning redundant tokens, these techniques significantly enhance the practicality of video MLLMs for real-world applications.
 
-Compared with static images, video input introduces an additional temporal dimension that substantially increases computational demands. Three central challenges emerge:
+> 💡 **Training-free vs Training-based**: Transformation 方法通常需要训练；Similarity 和 Attention 方法通常是 post-training（plug-and-play），更实用。
 
-1. **Spatial-temporal interaction**: How to jointly compress across spatial and temporal dimensions (§4.1.1)
-2. **Temporal structure preservation**: How to retain spatiotemporal structure for fine-grained perception tasks (§4.1.2)
-3. **Scalability to extreme lengths**: How to scale to hour-long videos with tens of thousands of frames (§4.1.3)
+To fully grasp token compression for video LLMs, it is recommended to first review Section 3, which details spatial compression methods. Next, we will primarily discuss techniques addressing the temporal domain. Similar to image-centric methods, selected video-centric token compression methods are compared in Table 3.
 
-### 4.1.1 Spatial-Temporal Compression
+![Table 3](../images/3afca147aaca737c7a50c3dd76b7c59f47c84651de15ddc48cf68c057e2b6446.jpg)
+*Table 3: Comparison of Training-Free Token Compression Methods for Video LLMs in Understanding Tasks*
 
-![Table 2: Temporal-enhanced compression strategies](../pages/page-15.png)
-*Table 2: Overview of temporal-enhanced compression strategies for video input.*
-
-> 💡 **Table 2 批读**: 视频压缩策略分三大类：
-> - **Fixed**: Pooling / Convolution / Query-based / Sequential Models — 固定压缩率
-> - **Dynamic**: Token Merging / Token Dropping — 根据内容自适应
-> - **Hybrid**: Global-Local Fusion / Slow-Fast / Memory-bank — 组合策略
-> 
-> **关键对比**: Fixed 简单高效但忽略内容差异；Dynamic 自适应但计算开销大；Hybrid 是当前最优实践。
-
-**Fixed Temporal Compression.** Early Video-LLMs adopted uniform frame sampling or downsampling. Pooling-based designs (PLLaVA, Video-ChatGPT) average patches across adjacent frames. Convolution-based designs (VideoLLaMA2, Qwen2-VL) integrate temporal information more explicitly via 3D spatio-temporal convolution. Query-based designs (Clapper, LinVT) learn compact query tokens through attention. Sequential models (BLIP-3-Video, STORM) leverage O(n) complexity to efficiently encode long video sequences.
-
-**Dynamic Temporal Compression.** Dynamic methods adaptively adjust retained tokens based on video content. *Temporal Token Merging*: TESTA, AuroraCap, DyCoke merge redundant tokens across frames. InTI introduces dynamic weights for spatially co-located tokens. *Temporal Token Pruning*: LongVU proposes three-stage compression with temporal-dependency-based spatial pruning. TimeChat-Online retains only temporally dynamic information.
-
-**Hybrid Strategies.** Global-local fusion clusters video segments into key events then performs intra-event aggregation (PruneVid, Chat-UniVi, FiLA-Video). Slow-fast dual streams (SlowFast-LLaVA, LLaVA-Video) process through slow pathway (low frame rate, high spatial detail) and fast pathway (high frame rate, compact tokens). Memory-bank mechanisms (Flash-VStream, MovieChat) combine sliding windows with long-term and short-term memory.
-
-> 💡 **视频压缩的演进**: Pooling（最简单）→ 3D Conv（保留时序）→ Query-based（语义压缩）→ Dynamic（自适应）→ Slow-Fast/Memory（系统级设计）。越来越复杂但越来越有效。
-
-### 4.1.2 Temporal Structure Preservation
-
-During video compression, merging and pruning can blur or discard spatiotemporal positional information. Three approaches to preserve temporal structure:
-
-**Temporal Positional Embeddings.** BLIP-3-Video processes frames with timestamp positional encodings. TimeChat-Online retains original Video-RoPE for important tokens. PVC uses relative timestamps via MLP.
-
-**Temporal Encoding Modules.** STORM leverages Mamba-based state-space layers with bidirectional scanning. PVC adopts progressive encoding where each frame supplements previous frames.
-
-**Special Timestamp Tokens.** Video-XL-2 interleaves timestamp tokens within visual token sequences. Qwen3-VL adopts textual token-based time encoding (e.g., `<3.0 seconds>`).
-
-> 💡 **时序保持**: 压缩不能丢失"什么时候发生了什么"的信息。三种方案：位置编码（隐式）、时序编码模块（Mamba）、时间戳 token（显式）。Qwen3-VL 用文本时间戳是很巧妙的方案。
-
-### 4.1.3 Extreme-Long Video Compression
-
-In hour-long video scenarios, MLLMs must process thousands of frames.
-
-MovieChat pioneered dual-memory mechanisms enabling 10,000+ frames on 24GB GPU. Video-XL series evolution: Video-XL (dynamic partitioning, 2048 frames, 16x compression) → Video-XL-Pro (ReCoT framework, 8000+ frames) → Video-XL-2 (KV cache sparsification, 10,000+ frames on single GPU). Query-aware strategies: LinVT, ReTaKe. System-level: Long-VMNet (fixed-size memory bank, <1GB for 10-hour videos). TimeViper uses hybrid Mamba-Transformer for 10,000+ frames.
-
-> 💡 **极长视频**: 关键是多维协同 — (1) 自适应关键帧采样减少输入；(2) 多模块协作渐进压缩；(3) Query-aware 动态调整；(4) KV-cache 稀疏化加速推理。Video-XL 系列展示了清晰的演进路线。
+> 💡 **Table 3 批读** — Video LLM 压缩方法对比（基于 LLaVA-OneVision）:
+> - **50% 保留率**: DyCoke、FastV、LLaVA-Scissor 性能几乎无损（VideoMME ~57.5 vs 基线 58.6）
+> - **25% 保留率**: HoliTom 表现最优（VideoMME 58.9，EgoSchema 61.2），甚至接近基线
+> - **10% 保留率**: HoliTom 仍保持 VideoMME 56.8，展现极强的压缩鲁棒性
+> - **关键发现**: 视频 token 冗余极高，保留 25% 即可接近无损；10% 仍能保持 ~97% 性能
 
 ---
 
-## 4.2 Purely-Visual vs. Text-guided Compression
+## 4.1 Transformation-based Video-centric Compression
 
-![Table 3: Purely-Visual vs. Text-Guided comparison](../pages/page-17.png)
-*Table 3: Comparison between Purely-Visual and Text-Guided token compression strategies.*
+Like image LLMs, video LLMs use encoders for visual tokens. Consequently, transformation-based videocentric compression methods fundamentally operate on the principles established in Section 3.1, with the added capability of performing 3D transformations. A multitude of models showcase cross-modal applicability, performing effectively in both image and video inference tasks. Following the structure of Section 3.1, we will now detail transformation-based video-centric compression methods.
 
-> 💡 **Table 3 批读**:
-> - **Purely-Visual**: 适合多轮对话、流式视频、视觉描述。部署简单（one-time compression）
-> - **Text-Guided**: 适合单轮对话、长视频 QA、高压缩率场景、视觉定位
-> - **实践建议**: 先 purely-visual 粗压缩 → 再 text-guided 精筛选
+### 4.1.1 2D/3D Pooling
 
-**Purely-visual Compression.** Rely solely on visual cues. Reduce tokens for duplicate objects, uniform backgrounds, or semantically equivalent regions. Text-agnostic and one-time compression → efficient for multi-turn dialogue, streaming video. Easy deployment.
+In video LLMs, token pooling is a crucial strategy for managing the high dimensionality of video data. While 2D spatial pooling, as seen in LLaVA-Video (Zhang et al., 2024d), can effectively reduce the token count within individual frames, its efficacy alone may be limited for long-duration videos. A growing number of video LLMs, including PLLaVA (Xu et al., 2024a), Video-ChatGPT (Maaz et al., 2024), SlowFastLLaVA (Xu et al., 2025d), and LongVLM (Weng et al., 2024), consequently emphasize temporal pooling, which involves downsampling at the frame level.
 
-**Text-Guided Compression.** Use cross-modal information to select text-relevant tokens. Achieve high compression ratios while maintaining accuracy in VQA, grounding, and long-video reasoning. However, re-encoding needed for each new query → limited efficiency in multi-turn settings.
+> 💡 **视频池化的两个维度**:
+> - **空间池化 (2D)**: 减少每帧的 token 数（同图像）
+> - **时间池化**: 减少帧数/帧级 token → 对长视频更关键
 
-**Takeaway.** Purely-visual and text-guided are complementary. A practical design: first derive compact visual representations via purely-visual compression, then apply text-guided selection within the language module.
+Notably, PLLaVA demonstrates that model performance exhibits greater sensitivity to temporal pooling than to spatial pooling, highlighting its critical role. For extremely long video sequences, LLaMA-VID (Li et al., 2024d) employs a more aggressive adaptive pooling approach. This method intelligently maintains original resolution for single-image inputs but compresses each video frame to a single token during extended sequence processing, achieving substantial data reduction while aiming to preserve essential information.
 
----
+> 💡 **PLLaVA 的发现**: 模型对**时间池化**比空间池化更敏感！→ 时间维度压缩需更谨慎。LLaMA-VID 对长视频每帧压到 1 个 token，极限压缩。
 
-## 4.3 Token Merging vs. Token Dropping
+This dual focus on spatial and increasingly on temporal pooling underscores their combined importance in enabling efficient processing and comprehensive understanding of video content, particularly as video durations extend. SlowFast-LLaVA (Xu et al., 2025d) incorporates a two-stream SlowFast projector into a LLaVA-style architecture, using a slow pathway to sample fewer, spatially rich frames and a fast pathway to sample more, spatially compressed frames, then concatenates both for the LLM—achieving efficient long-form video understanding with reduced token count while preserving spatiotemporal details.
 
-![Table 4: Merging vs. Dropping comparison](../pages/page-18.png)
-*Table 4: Comparison between token merging and token dropping strategies.*
+> 💡 **SlowFast-LLaVA**: 借鉴视频理解经典 SlowFast 架构——Slow 路径（少帧、高空间分辨率）+ Fast 路径（多帧、低空间分辨率）→ 拼接后送入 LLM。兼顾空间细节和时间覆盖。
 
-> 💡 **Table 4 批读**:
-> - **Merging**: 保留整体和细粒度语义，适合压缩低级视觉特征和空间冗余。但可能模糊空间/时间局部性
-> - **Dropping**: 保留稀疏/显著语义，适合压缩高级视觉特征。但可能丢失细微上下文线索
-> - **LLMC+ 发现**: 对空间冗余，dropping 通常优于 merging（在 VE 和 LLM 中都是）
+### 4.1.2 2D/3D Convolution
 
-**Attention-based or Similarity-based strategies.** Early works used attention scores, but recent studies exposed limitations: DART and FEATHER reported positional bias (favoring lower-right region tokens); HoloV highlighted over-fitting to "highlighted tokens". Recent approaches increasingly adopt similarity-based token selection for more stable compression.
+Similar to pooling, convolution can also be employed for downsampling video tokens, but it does so in a parameterized manner. Instead of simply aggregating information like pooling, convolution layers learn filters to process and condense spatial and temporal features. VideoLLaMA 2 (Cheng et al., 2024c), for instance, thoroughly investigated both 2D and 3D pooling and convolution approaches. Their experiments showed that 3D convolution yielded the best balance of performance and efficiency for video token downsampling. This suggests that learning intricate spatiotemporal relationships through convolutions is more effective for comprehensive video understanding compared to pooling alone.
 
-**Takeaway.** Merging and dropping are complementary. Merging suits dense/temporally redundant inputs; dropping suits sparse, high-level semantics. Future: adaptive hybrid designs that dynamically switch.
+> 💡 **VideoLLaMA 2 的实验结论**: 3D 卷积 > 2D 卷积 > 池化（在视频 token 下采样任务上）。3D 卷积能学习复杂时空关系，效果更好。
 
----
+![Figure 4](../images/655ffae1271775dbf7bf63021bc4b47cf475e836c20906ded8f4dfd5fc088819.jpg)
+*Figure 4: Trade-off between Retained Ratio and Performance across Modalities. Left: We visualize changes in token retention and model performance on the VQA² (Goyal et al., 2017) for image LLMs using each method's reported setup with LLaVA-1.5-7B (Liu et al., 2023). Right: For video LLMs, we plot the video-token retention ratio and the corresponding performance deltas on the VideoMME benchmark (Fu et al., 2025a), following each method's reported configuration with LLaVA-OV-7B (Li et al., 2025a). As different methods target distinct compression regimes, we primarily report results at the compression rates specified in their original papers.*
 
-## 4.4 Plug-in Methods vs. Re-training Methods
-
-![Table 5: Plug-in vs. Re-training comparison](../pages/page-18.png)
-*Table 5: Comparison between plug-in and re-training methods.*
-
-> 💡 **Plug-in vs. Re-training**:
-> - **Plug-in**: Training-free，轻量高效，易部署。但在细粒度任务上性能下降
-> - **Re-training**: 性能上限更高，但需额外训练，跨模型迁移性差
-> - **趋势**: Hybrid — 用 plug-in 做早期空间压缩 + re-trained 模块做语义精炼 + KV-cache 剪枝加速解码
+> 💡 **Figure 4 批读** — Token 保留率 vs 性能权衡:
+> - **图像 (左)**: 大多数方法在 25%~50% 保留率时性能降幅 <2 分。PruMerge+ 在 25% 保留率时几乎无损
+> - **视频 (右)**: 类似趋势，但视频对压缩更鲁棒——10% 保留率时性能降幅仍可接受
+> - **核心洞察**: 视频 token 冗余度显著高于图像，压缩空间更大
 
 ---
 
-## 4.5 Efficient Training vs. Efficient Inference
+## 4.2 Similarity-based Video-centric Compression
 
-![Table 6-7: Training vs. Inference comparison](../pages/page-19.png)
-*Table 6: Comparison between Efficient Training and Efficient Inference strategies. Table 7: Representative MLLMs and their training compression strategies.*
+Given the temporal redundancy inherent in video, where adjacent frames often exhibit high visual similarity, temporal compression is frequently prioritized over or integrated with spatial compression. To effectively handle this temporal redundancy, video frames are typically first clustered.
 
-> 💡 **Table 6-7 批读**: 
-> - **高效训练**: 方法设计相对简单，但验证成本高。主流 MLLM（InternVL 用 Pixel Shuffle，Qwen2VL 用 Conv，Seed1.5-VL 用 Average Pooling）采用简单压缩
-> - **高效推理**: 方法更多样化，验证成本低，是当前研究热点
-> - **为什么训练侧创新少？** (1) Flash Attention 兼容性；(2) 训练验证成本高；(3) 压缩策略的归纳偏置可能损害通用能力
+> 💡 **视频 similarity 方法的特点**: 先处理时间冗余（帧间相似性），再处理空间冗余。通常先聚类帧，再在帧内聚类 token。
+
+Chat-UniVi (Jin et al., 2024) initially pools each video frame into a single frame-level representation token. It then utilizes DPC-KNN (Du et al., 2016; Rodriguez & Laio, 2014) (density peak clustering based on K-nearest neighbors) to amalgamate non-essential frames based on these frame representation tokens. Within each resulting cluster, tokens from multiple frames are further clustered to obtain concise spatiotemporal visual representations. Similarly, FastVID (Shen et al., 2025a) divides video frames solely based on the similarity of their adjacent frame representation tokens. It then employs DPC-KNN within these clustered frames to merge tokens, thereby reducing spatiotemporal redundancy. PruneVid (Huang et al., 2025c) adopts the same frame clustering methodology as Chat-UniVi. The key distinction is that it performs an initial merging of temporally static tokens before executing the spatiotemporal token consolidation. HoliTom (Shao et al., 2025) argues that relying on a single frame-level representation token for video frame clustering can lead to suboptimal detail capture, and that the preliminary merging of static temporal tokens is disconnected from the original frame clustering method. HoliTom re-conceptualizes temporal redundancy compression as an optimization problem aimed at maximizing the compressible temporal redundant features within all clustered frames, thus addressing temporal compression more holistically. DyCoke (Tao et al., 2025a) groups frames into sets of four, directly performing temporal pruning within each group.
+
+> 💡 **视频 Similarity 方法演进**:
+> - **Chat-UniVi**: 每帧 → 1 个代表 token → DPC-KNN 聚类帧 → 帧内 token 聚类
+> - **FastVID**: 按相邻帧相似度分组 → DPC-KNN 合并 token
+> - **PruneVid**: 先合并时间静态 token → 再做时空聚合（比 Chat-UniVi 多一步预处理）
+> - **HoliTom**: 批评「单 token 代表一帧」不够好 → 把时间冗余压缩建模为优化问题
+> - **DyCoke**: 简单分组（每 4 帧一组）→ 组内时间剪枝
+
+While some methods do not explicitly cluster video frames, FrameFusion (Fu et al., 2025b), for example, acts as a token compression technique for video LLMs. It directly merges temporally redundant tokens exceeding a specific threshold in the shallow layers of the model.
+
+> 💡 **FrameFusion**: 不做帧聚类，直接在 LLM 浅层合并时间冗余超过阈值的 token。更简洁直接。
+
+---
+
+## 4.3 Attention-based Video-centric Compression
+
+Current attention-based token compression methods in video LLMs and image LLMs share significant similarities. When attention is applied within the encoder to guide token compression, videos are typically treated as a sequence of images fed into an image encoder, making these approaches similar to image-centric token compression. For a more concise discussion of such attention-based methods, please refer to Section 3.3.
+
+In contrast, methods employing attention within the decoder process video frames sequentially, concatenating their tokens over time. For longer videos, particularly in the context of streaming video LLMs, windowed attention is commonly used to mitigate computational overhead by focusing on local temporal visual information. However, it's notable that even these windowed attention-based methods within the decoder often share the same foundational principles as those discussed in Section 3.3.
+
+> 💡 **视频 Attention 方法**: 与图像方法高度相似。Encoder 内压缩时视频被当作图像序列处理；Decoder 内压缩时帧按时间拼接，长视频常用 windowed attention。详细方法论见 Section 3.3。
+
+---
+
+## 4.4 Query-based Video-centric Compression
+
+### 4.4.1 Token Distillation
+
+Token distillation in video LLMs commonly relies on specialized adaptor modules, such as the Q-former (Liu et al., 2023; Li et al., 2023c) or Token Turing Machines (Ryoo et al., 2023). These modules typically process video tokens with the learnable query tokens to be attended.
+
+Token Turing Machines (TTMs) (Ryoo et al., 2023) maintain a compact external memory of summary tokens, sequentially compressing both new input tokens and memory at each timestep via a Transformerbased read/write mechanism, allowing scalable and efficient processing of long video sequences. BLIP-3-Video (Ryoo et al., 2024) introduces an explicit temporal encoder that abstracts hundreds of frame-level visual tokens into as few as 16–32 spatiotemporal tokens using learnable pooling and sequential models, enabling efficient video understanding with limited token usage. LinVT (Gao et al., 2024a) proposes a plug-and-play Linear Video Tokenizer, which linearly aggregates frame-level visual tokens into a compact set of video tokens through spatio-temporal scoring, multi-scale pooling, and text-conditioned aggregation, enabling existing image-LLMs to efficiently process videos and dynamically extract question-relevant information. LongVMNet (Gurukar & Kadav, 2025) accelerates long-form video understanding by using a neural sampler to select discriminative visual tokens from clips and storing them in a fixed-size memory bank for each video; downstream queries are answered by processing only these memory tokens, greatly reducing computational cost while preserving key spatiotemporal information. STORM (Jiang et al., 2025a) inserts a Mamba-based (Gu & Dao, 2024a) temporal encoder between the image encoder and LLM, using spatiotemporal scanning and pooling to inject temporal context into frame tokens and then aggressively compresses tokens by temporal and spatial pooling, enabling efficient long video understanding with minimal token loss. To understand more methods and applications of token distillation in video LLMs, please also refer to Section 3.4 for a detailed explanation.
+
+> 💡 **视频 Token Distillation 方法**:
+> - **TTM (Token Turing Machines)**: 维护外部 memory → 每个时间步读写压缩 → 可扩展处理长视频
+> - **BLIP-3-Video**: 时间编码器把数百帧 token → 16~32 个时空 token
+> - **LinVT**: 线性聚合 + 文本条件聚合 → plug-and-play，让 image-LLM 处理视频
+> - **LongVMNet**: 神经采样器选 token → 固定大小 memory bank → query 只处理 memory
+> - **STORM**: Mamba 时间编码器 + 激进的时空池化
+
+### 4.4.2 Cross-Modal Selection
+
+In video large language models (video LLMs), a query is commonly used to guide the selection of salient frames. In extreme cases, only a handful of frames are relevant to the posed question, allowing the tokens from the vast majority of remaining frames to be discarded. When dealing with an immense number of frames, finding query-relevant information can be akin to searching for a "needle in a haystack" for the LLM. Query-based token compression methods can pre-filter query-relevant tokens, significantly alleviating the computational burden on the LLM.
+
+LongVU (Shen et al., 2025b) exemplifies this approach. It calculates the relevance of each video frame to the query via cross-modal interaction. This relevance score then dictates a lower compression ratio for key frames, better preserving critical information, all while ensuring the total number of tokens remains within the maximum context length of the LLM.
+
+> 💡 **视频 Cross-Modal Selection**:
+> - 视频中的"大海捞针"问题：可能只有几帧和问题相关
+> - **LongVU**: 计算每帧与 query 的相关性 → 关键帧低压缩率、非关键帧高压缩率 → 总 token 数控制在 context window 内
+> - 这种自适应压缩策略对长视频理解非常有价值
 
 ---
 
 ## 🔖 Section 总结
 
-### 决策路线图速查
-| 决策维度 | 推荐选择 |
-|----------|----------|
-| 视频 vs. 图像 | 视频需要时序增强压缩（Slow-Fast, Memory-bank） |
-| Purely-Visual vs. Text-guided | 先 purely-visual 粗压缩 → 再 text-guided 精筛 |
-| Merging vs. Dropping | 互补使用；空间冗余用 dropping，时间冗余用 merging |
-| Plug-in vs. Re-training | Hybrid：plug-in 做早期压缩 + re-train 做语义精炼 |
-| Training vs. Inference | 训练侧用简单方法（pooling/pixel shuffle），推理侧空间大 |
+### 关键数字速查
+| 指标 | 数值 |
+|------|------|
+| 视频当前采样率 | 通常 1 FPS |
+| 25% 保留率性能 | VideoMME ~58.9 (vs 基线 58.6) |
+| 10% 保留率性能 | VideoMME ~56.8 (仍可接受) |
+| BLIP-3-Video 压缩 | 数百帧 → 16~32 tokens |
 
 ### 核心洞察
-1. **没有银弹**: 每种方法都有适用场景，关键是匹配需求
-2. **互补组合是趋势**: Merging + Dropping，Purely-Visual + Text-guided，Plug-in + Re-training
-3. **训练侧保守**: 主流 MLLM 训练时仅用最简单的压缩（pooling/pixel shuffle）
-4. **推理侧活跃**: 大量创新集中在推理加速，验证成本低是主因
+1. 视频 token 冗余度远高于图像，压缩空间更大（10% 保留率仍可接受）
+2. 时间维度压缩比空间维度更重要（PLLaVA 实验验证）
+3. Similarity 方法在视频中更突出——帧间相似性是天然的压缩信号
+4. SlowFast 双路径架构是一种优雅的设计——空间细节和时间覆盖的权衡

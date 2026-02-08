@@ -1,65 +1,69 @@
 [← 返回 README](../README.md)
 
-# 7. Open Challenges and Future Work
+# 7 Applications
 
 ## 📌 预览
-四大未解决挑战：理论基础缺失、缺乏任务/内容自适应、实际任务性能下降、评估标准不完善。
+Token 压缩在四大应用领域的实际价值：GUI Agent、医疗影像、机器人/自动驾驶、高效推理。
 
 ---
 
-## 7.1 Lack of Theoretical Understanding
+The potential of multimodal token compression extends beyond technical enhancements, emerging as a universal efficiency engine for data-intensive AI systems. Multimodal models frequently process extreme-length token sequences exhibiting high task-agnostic redundancy according to empirical analyses. Capitalizing on recent breakthroughs, we delineate four high-impact application domains:
 
-Although token compression has achieved notable empirical success, most existing approaches remain largely experience-driven and lack rigorous theoretical grounding. Apart from a few works, such as DeCo [105] and DART [183], which analyze how compression influences representation learning within MLLMs, the majority of methods rely on heuristic intuition and limited empirical validation. Consequently, they often exhibit poor transferability across datasets, architectures, and modalities, as well as insufficient robustness under distribution shift.
-
-A key weakness lies in the absence of a principled theory of token importance. Current practices—such as ranking tokens by attention weights, pairwise similarity, or mutual information—lack causal or generalization-based justification. These metrics indicate correlation rather than necessity.
-
-> 💡 **理论空白**: 为什么某些 tokens 可以被安全删除？目前没有理论解释。Attention-based 排序只是"相关性"而非"因果必要性"。这意味着现有方法可能在某些分布上失效。未来需要从 sufficiency、causality、robustness 角度建立理论。
+> 💡 Token 压缩不只是学术研究——在实际应用中，它是处理海量多模态数据的必要条件。
 
 ---
 
-## 7.2 Lack of Task- and Content-Aware Adaptivity
+## 7.1 GUI Agents and Human-Computer Interaction
 
-Most existing strategies operate in a task-agnostic and content-agnostic manner, applying a fixed compression ratio regardless of task type or visual complexity. However, the granularity of information required varies substantially. As M3 [91] observed, for most benchmarks crafted from natural scenes (such as COCO), 9 tokens per image suffice. In contrast, dense visual perception tasks such as document understanding or OCR require 144-576 tokens per image.
+Graphical user interface (GUI) agents perceive and interact with visual interfaces, interpret natural language instructions, analyze GUI states, and execute corresponding actions. These agents have to parse screen streams in real-time, producing extensive token sequences that often exceed computational limits (Zhang et al., 2024b; Wang et al., 2024a). Multimodal token compression enhances the efficiency of GUI agents. This approach mitigates context overflow in extended operation sequences by dynamically compressing redundant visual elements (e.g., extra white space or simple backgrounds). For some small but important control elements, it should also eliminate other irrelevant visual elements and highlight their importance. For instance, ShowUI (Lin et al., 2025a) is the first model to apply token selection strategy to GUI agents. ShowUI segments GUI screenshots into connected components by clustering pixels with similar RGB values, significantly reducing the total number of discrete elements. During both training and inference phases, the system employs an adaptive token selection strategy that probabilistically prunes redundant tokens within these components, thereby optimizing computational efficiency while preserving functional semantics However, excessive compression risks inducing operational ambiguity, necessitating careful calibration.
 
-> 💡 **自适应压缩的必要性**: 自然场景 9 tokens 就够，但 OCR 任务需要 144-576 tokens。固定压缩率不可能同时满足两者。VisionThink [190] 用 RL 让模型自主决定是否需要更高分辨率输入 — 这是一个有前景的方向。
-
-Future research should explore task- and content-aware compression, where the model dynamically determines the degree and manner of token reduction. VisionThink [190] proposes a reinforcement learning-based approach enabling autonomous decision on whether higher-resolution visual input is necessary.
-
----
-
-## 7.3 Performance Degradation in Practical Tasks
-
-Although many token compression methods demonstrate competitive results on general Visual QA tasks, often maintaining comparable accuracy even when reducing visual tokens to 1/3 or 1/4, this performance stability does not generalize well to real-world applications. Tasks requiring fine-grained perception, such as OCR [293], [294], document understanding [295], and dense reasoning over structured visual layouts, tend to experience substantial accuracy drops after compression.
-
-> 💡 **性能下降的本质**: Token compression 在 general VQA 上看起来很好（token 减到 1/3 还能保持精度），但这可能只是因为 VQA benchmark 本身不需要太多视觉信息。一旦到 OCR、文档理解等需要精细视觉信息的任务，压缩的危害就暴露了。这是当前方法"刷榜"的一个陷阱。
+> 💡 **GUI Agent 应用**:
+> - GUI 截图中大量空白/简单背景是冗余的，但小控件（按钮等）信息密度高
+> - **ShowUI**: 首个在 GUI Agent 中用 token 选择策略的模型——RGB 聚类分割连通区域 → 自适应剪枝冗余 token
+> - 风险：过度压缩可能导致操作歧义（丢失小但关键的 UI 元素）
 
 ---
 
-## 7.4 Limitations of Existing Evaluation
+## 7.2 Healthcare and Medical Imaging
 
-Three key limitations in current evaluation practices:
+The effective synthesis of multimodal medical data is pivotal to advancing contemporary medical diagnosis and research. MLLMs can integrate radiographic findings, medical histories, and ancillary diagnostic tests to generate differential diagnoses, which clinicians can correlate with patient records and physician notes to enhance diagnostic accuracy (Liang et al., 2024). Furthermore, MLLMs can automatically draft preliminary radiology reports, potentially reducing the workload of radiologists (Beddiar & Oussalah, 2023; Bazi et al., 2023; He et al., 2020). A major challenge for MLLMs in medical imaging is the processing of high-resolution images, such as Whole-slide Images (WSIs) in pathology, which can contain billions of pixels. To overcome this, TCP-LLaVA (Lyu et al., 2025) uses a set of trainable compression tokens to aggregate and condense crucial information from thousands of visual and textual inputs. Instead of feeding every single image patch token into the language model, only these compressed tokens are forwarded for answer generation. Token compression holds vast potential for widespread application in the field of healthcare and medical imaging, enabling the efficient analysis of complex, high-resolution images.
 
-1. **Lack of systematic task categorization.** Benchmarks are grouped into broad categories, offering limited insight into how compression affects specific capabilities (e.g., spatial relation reasoning or object motion tracking) and content domains (e.g., table or chart interpretation).
+> 💡 **医疗影像应用**:
+> - 病理 WSI 可达数十亿像素 → 必须压缩才能用 MLLM 处理
+> - **TCP-LLaVA**: trainable compression tokens 聚合数千个视觉+文本 token → 只送压缩 token 给 LLM
+> - 医疗场景对 token 压缩的需求是刚性的（不压缩根本无法运行）
 
-2. **Inefficient evaluation processes.** Current evaluations employ at least ten benchmarks with tens of thousands of examples. Many benchmarks exhibit substantial overlap in evaluation focus, leading to redundant assessments.
+---
 
-3. **Absence of consistent evaluation standards.** The selection of benchmarks and metrics varies widely across studies, each emphasizing different strengths. This inconsistency hinders fair cross-method comparison.
+## 7.3 Robotics and Autonomous Systems
 
-> 💡 **评估标准问题**: 
-> - 缺乏细粒度能力拆解（"空间推理"和"运动追踪"被混在一起评）
-> - Benchmark 之间重叠多，10 个 benchmark 可能只测了 3 种能力
-> - 各方法选择性报告有利的 benchmark，难以公平比较
-> 
-> **启示**: 需要一个专门面向 token compression 的评测框架，包含细粒度能力维度和统一标准。
+Leveraging the significant capabilities of video LLMs in long-form video comprehension enables their deployment in robotics (Wei et al., 2025) and autonomous driving systems (Ma et al., 2024b; Zhou et al., 2024; Zhu et al., 2025b). However, the inherent computational complexity of long-duration video processing creates fundamental latency-efficiency tradeoffs that challenge real-time implementation. Token compression addresses this by prioritizing salient spatio-temporal dynamics (e.g., agent movements, action trajectories) and fine-grained per-frame details, enabling computationally efficient video understanding for these domains. VTS (Ma et al., 2024b) proposes a token pruning strategy for autonomous driving scenarios. VTS employs a proposal model based on a lightweight convolutional neural network that is able to adaptively identify keyframes and pry less informative tokens (e.g., invariant backgrounds and stationary objects). StreamVLN (Wei et al., 2025) further enhances inference efficiency for real-time navigation by employing a voxel-based spatial pruning strategy at test time to reduce memory tokens. This approach makes real-time navigation feasible.
+
+> 💡 **机器人/自动驾驶应用**:
+> - 实时性要求极高 → 延迟-效率权衡是核心矛盾
+> - **VTS**: 轻量 CNN 识别关键帧 + 剪枝不变背景/静止物体
+> - **StreamVLN**: 体素空间剪枝策略减少 memory token → 实现实时导航
+
+---
+
+## 7.4 Efficient Reasoning
+
+Token compression improves efficiency by removing redundant input tokens. However, in many cases, the main source of computational cost shifts from input to output, most notably in reasoning models (Team et al., 2025; Guo et al., 2025a; Jaech et al., 2024), where lengthy generation chains are common. The "slowthinking" paradigm improves reasoning ability but results in lengthy reasoning chains (Feng et al., 2025a; Sui et al., 2025; Chen et al., 2025; Feng et al., 2025c;b). Some efficient reasoning methods compress these chains using similar techniques (e.g., attention mechanisms, semantic importance) (Ma et al., 2025a; Xia et al., 2025; Liu et al., 2024b; Fang et al., 2025), typically requiring fine-tuning via Supervised Fine-Tuning (SFT) or Reinforcement Learning (RL). Beyond token compression, other approaches improve reasoning efficiency by compressing model (Magister et al., 2022; Li et al., 2023b; Feng et al., 2024; Zhang et al., 2025e) or accelerating decoding (Sun et al., 2024c; Ma et al., 2024a; Luo et al., 2025a; Xu et al., 2025a; Ding et al., 2025).
+
+> 💡 **高效推理应用**:
+> - 推理模型（如 DeepSeek-R1, o1）的瓶颈从输入转向输出——推理链很长
+> - Token 压缩思路可以迁移到输出侧：压缩 CoT 推理链
+> - 方法：attention-based 选择关键推理步骤、语义重要性筛选
+> - 需要 SFT/RL 微调（不像输入压缩可以 training-free）
 
 ---
 
 ## 🔖 Section 总结
 
-### 四大挑战速查
-| 挑战 | 核心问题 | 未来方向 |
-|------|----------|----------|
-| 理论缺失 | 没有"为什么能压缩"的理论 | 因果分析、sufficiency 理论 |
-| 缺乏自适应 | 固定压缩率不适应不同任务 | Task-aware + Content-aware 动态压缩 |
-| 实际性能下降 | OCR/文档等细粒度任务掉点严重 | 任务特定的压缩策略 |
-| 评估不完善 | Benchmark 重叠、标准不一 | 统一评测框架 + 细粒度能力维度 |
+### 四大应用领域速查
+| 领域 | 核心需求 | 代表方法 |
+|------|---------|---------|
+| GUI Agent | 实时屏幕流解析 | ShowUI |
+| 医疗影像 | 超高分辨率图像处理 | TCP-LLaVA |
+| 机器人/自动驾驶 | 低延迟实时视频理解 | VTS, StreamVLN |
+| 高效推理 | 压缩输出推理链 | CoT-Valve |

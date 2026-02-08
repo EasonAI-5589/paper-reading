@@ -1,36 +1,24 @@
 [← 返回 README](../README.md)
 
-# 8. Conclusion
+# 8 Conclusion
 
 ## 📌 预览
-总结全文，强调 token compression 从单模块到多模块、从固定到自适应、从图像到视频的演进趋势。
+总结全文贡献，指出核心挑战和未来方向。
 
 ---
 
-MLLMs represent a significant advancement in cross-modal understanding, yet computational efficiency remains a critical bottleneck. Token compression emerges as a promising solution by reducing redundancy across MLLM components, enhancing both training and inference efficiency while alleviating long-context reasoning complexity.
+This paper presents the first structured survey of token compression techniques for Multimodal Large Language Models (MLLMs), establishing a taxonomy based on modality-specific redundancy and underlying compression mechanisms. While current methods demonstrate promising efficiency gains, several critical challenges remain on the path toward scalable and robust MLLMs. Future research must move beyond simple redundancy reduction to address the preservation of cross-modal alignment under high compression ratios and the maintenance of causal reasoning capabilities in temporal sequences. Furthermore, the field necessitates the development of specialized benchmarks designed to rigorously evaluate multi-frame comprehension and long-term context retention. We hope this survey serves as a roadmap, guiding the community to tackle these open problems and push the boundaries of processing increasingly complex multimodal data.
 
-> 💡 **Token compression 的定位**: 不是可选的优化技巧，而是 MLLM 规模化部署的"必要条件"。
-
-The field has evolved from single-module to multi-module compression, from fixed-rate to adaptive dynamic approaches, and from static images to complex video sequences.
-
-> 💡 **三个演进维度**:
-> 1. **单模块 → 多模块**: 从只在 VE 或 LLM 压缩 → 全 pipeline 协同压缩
-> 2. **固定率 → 自适应**: 从统一 4x 压缩 → 根据内容/任务动态调整
-> 3. **图像 → 视频**: 从空间压缩 → 时空联合压缩
-
-However, key challenges persist: the absence of unified evaluation frameworks for token compression, limited integration with mainstream training or inference acceleration libraries, and insufficient synergy with other MLLM efficiency techniques.
-
-> 💡 **剩余挑战**: (1) 评测标准不统一；(2) 与 Flash Attention 等工程框架的兼容性不足；(3) 与量化、蒸馏等其他效率技术的协同不够。
-
-This survey provides a systematic foundation for advancing efficient, scalable, and practically deployable multimodal large language models through strategic token compression methodologies.
+> 💡 **结论要点**:
+> 1. 首篇 MLLM token 压缩系统综述，建立了模态×机制的 taxonomy
+> 2. 核心挑战：高压缩率下保持跨模态对齐 + 时间序列的因果推理能力
+> 3. 需要专用 benchmark 评估多帧理解和长上下文保持
+> 4. 定位：领域 roadmap，引导社区解决 open problems
 
 ---
 
-## 🔖 Section 总结
+# 9 Acknowledgment
 
-### 全文核心 Takeaways
-1. **Token compression 是 MLLM 效率优化的核心方向**
-2. **按位置分类**: Vision Encoder / Projector / LLM / Hybrid — 各有优劣
-3. **五个决策维度**: 时序增强、Visual vs. Text-guided、Merging vs. Dropping、Plug-in vs. Re-training、Training vs. Inference
-4. **趋势**: 多模块协同 + 自适应 + 视频场景
-5. **挑战**: 理论基础、自适应性、细粒度任务性能、评估标准
+This paper is supported by Young Scientists Fund of the National Natural Science Foundation of China (NSFC) (No. 62506305), Zhejiang Leading Innovative and Entrepreneur Team Introduction Program (No. 2024R01007), Key Research and Development Program of Zhejiang Province (No. 2025C01026), Scientific Research Project of Westlake University (No. WU2025WF003), Chinese Association for Artificial Intelligence (CAAI) & Ant Group Research Fund - AGI Track (No. 2025CAAI-ANT-13). It is also supported by the research funds of National Talent Program and Hangzhou Municipal Talent Program.
+
+> 💡 **资助信息**: 国自然青年基金 + 浙江省 + 西湖大学 + CAAI-蚂蚁 AGI 基金。通讯作者 Huan Wang 在西湖大学。
