@@ -63,7 +63,7 @@ the ASR transcript of a long audio segment occupies far fewer tokens than its ra
 Training Objective. We perform supervised instruction tuning on VidAtlas and VidChapter-7M using all prompt templates. The training objective is the standard autoregressive next-token prediction loss over the target sequence. Given a multimodal input sequence consisting of a prompt $X _ { \mathrm { p r o m p t } }$ , video frames $X _ { \mathrm { v i d e o } }$ , and an ASR transcript $X _ { \mathrm { a s r } }$ (video stream $X _ { \mathrm { v i d e o } }$ and ASR streams $X _ { \mathrm { a s r } }$ are optional), the model is trained to maximize the log-likelihood of the target output sequence $Y = ( y _ { 1 } , y _ { 2 } , . . . , y _ { n } )$ (e.g., a list of chapter titles, a structured chapter object, or a timestamped description):
 
 $$
-\mathcal {L} = - \sum_ {i = 1} ^ {n} \log P \left(y _ {i} \mid y _ {<   n}, X _ {\text {p r o m p t}}, X _ {\text {v i d e o}}, X _ {\text {a s r}}\right),
+L = - \sum_{i=1}^{n} \log P(y_i \mid y_{< i}, X_{\text{prompt}}, X_{\text{video}}, X_{\text{asr}})
 $$
 
 where $y _ { < i }$ represents the preceding ground-truth tokens. During training, the vision encoder is frozen to enable a larger context length, while all parameters of the large language model are optimized with the training objective.
@@ -97,15 +97,15 @@ To address these challenges, we propose GRACE, a metric tailored for video chapt
 Figure 5 SODA (one-to-one) 与 GRACE (many-to-one) 匹配策略对比。One-to-one 匹配可能遗漏重要事件（如 $p_2$ 和 $g_2$），而 many-to-one 策略考虑所有预测和 GT 事件，评估更鲁棒。
 
 $$
-\operatorname {G R A C E} = \sum_ {\left(P _ {i}, G _ {i}\right) \in M (P, G)} \varphi \left(P _ {i}, G _ {i}\right) \cdot \operatorname {B E R T s c o r e} \left(P _ {i}, G _ {i}\right) \tag {1}
+\text{GRACE} = \sum_{(P_i, G_i) \in M(P, G)} \varphi(P_i, G_i) \cdot \text{BERTscore}(P_i, G_i) \tag{1}
 $$
 
 $$
-\varphi \left(P _ {i}, G _ {i}\right) = \frac {1}{\left| P _ {i} \right| \left| G _ {i} \right|} \sum_ {p \in P _ {i}, g \in G _ {i}} \mathrm {I O U} (p, g) \tag {2}
+\varphi(P_i, G_i) = \frac{1}{|P_i| \cdot |G_i|} \sum_{p \in P_i, g \in G_i} \text{IOU}(p, g) \tag{2}
 $$
 
 $$
-\mathbf {s t .} P _ {i} \cap P _ {j} = \emptyset , \cup \left(P _ {i}\right) = P, G _ {i} \cap G _ {j} = \emptyset , \cup \left(G _ {i}\right) = G, \min  \left(\left| P _ {i} \right|, \left| G _ {i} \right|\right) = 1 \tag {3}
+\text{s.t. } P_i \cap P_j = \emptyset, \cup(P_i) = P, \quad G_i \cap G_j = \emptyset, \cup(G_i) = G, \quad \min(|P_i|, |G_i|) = 1 \tag{3}
 $$
 
 > 💡 **GRACE 指标详解**:
@@ -133,7 +133,7 @@ While supervised fine-tuning (SFT) achieves strong performance, the standard cro
 The core of this phase is a reward function designed to directly incentivize precise chapter boundary prediction. We leverage our proposed GRACE metric, which holistically evaluates both temporal alignment and semantic content. However, to specifically sharpen the model's ability to predict accurate timestamps of segmented chapters, we formulate a simplified, temporal-only reward by omitting the semantic BERTscore component from Equation (1). For a given ground-truth chapter set $G$ and a model-generated set $P$ , the reward $R$ is calculated by summing the temporal alignment scores $\varphi$ over the optimal matching $M ( P , G )$ found via DTW:
 
 $$
-R = \sum_ {\left(P _ {i}, G _ {i}\right) \in M (P, G)} \varphi \left(P _ {i}, G _ {i}\right). \tag {4}
+R = \sum_{(P_i, G_i) \in M(P, G)} \varphi(P_i, G_i) \tag{4}
 $$
 
 > 💡 **GRPO 奖励函数**:
