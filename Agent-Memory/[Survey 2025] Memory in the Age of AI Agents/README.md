@@ -1,82 +1,60 @@
 # Memory in the Age of AI Agents: A Survey
 
-**作者**: Yuyang Hu†, Shichun Liu†, Yanwei Yue†, Guibin Zhang†◊ (Project Organizer), Boyang Liu, ... (75+ authors)  
-**来源**: arXiv 2512.13564 (2025.12)  
-**机构**: National University of Singapore, Renmin University of China, Fudan University, Peking University, Oxford University 等  
-**链接**: [arXiv](https://arxiv.org/abs/2512.13564) | [GitHub](https://github.com/Shichun-Liu/Agent-Memory-Paper-List)
+## 元信息
+
+| 项目 | 内容 |
+|------|------|
+| **标题** | Memory in the Age of AI Agents: A Survey — Forms, Functions and Dynamics |
+| **作者** | Yuyang Hu†, Shichun Liu†, Yanwei Yue†, Guibin Zhang†ò, Boyang Liu, ... (50+ 作者) |
+| **机构** | NUS, 人大, 复旦, 北大, NTU, 同济, UCSD, HKUST(GZ), Griffith, Georgia Tech, OPPO, Oxford |
+| **类型** | Survey |
+| **arXiv** | [2512.13564](https://arxiv.org/abs/2512.13564) |
+| **GitHub** | [Agent-Memory-Paper-List](https://github.com/Shichun-Liu/Agent-Memory-Paper-List) |
+| **日期** | 2025 |
 
 ## 一句话总结
-提出 **Forms–Functions–Dynamics** 三维统一分类框架，系统梳理 LLM Agent 记忆系统的载体形式（Token-level / Parametric / Latent）、功能用途（Factual / Experiential / Working）和动态生命周期（Formation / Evolution / Retrieval），并明确区分 Agent Memory 与 LLM Memory、RAG、Context Engineering 的概念边界。
+
+提出 **Forms–Functions–Dynamics** 三角分类框架，系统梳理 agent memory 研究：按 **form**（token-level / parametric / latent）、**function**（factual / experiential / working）、**dynamics**（formation / evolution / retrieval）三个维度组织现有工作，并明确了 agent memory 与 LLM memory、RAG、context engineering 的边界。
 
 ## 核心贡献
-1. **三维统一分类法**：从 Forms × Functions × Dynamics 三个正交维度组织现有工作，超越传统 long/short-term 二分法
-2. **概念边界澄清**：首次系统区分 Agent Memory vs. LLM Memory vs. RAG vs. Context Engineering
-3. **形式-功能匹配分析**：深入讨论 Token-level / Parametric / Latent 各自适合的任务场景
-4. **全面资源汇编**：整理 30+ benchmarks 和 25+ 开源框架（MemGPT, Mem0, Zep 等）
-5. **8 大前沿展望**：RL 融合、生成式记忆、自动化管理、多模态、多智能体共享、世界模型、可信记忆、人类认知连接
 
-## 📖 批读导航
+1. **多维分类框架**: 提出 Forms–Functions–Dynamics 三角，超越传统 long/short-term 二分法
+2. **概念边界厘清**: 系统对比 Agent Memory vs. LLM Memory / RAG / Context Engineering
+3. **形式化定义**: 统一的 memory lifecycle 抽象（Formation F / Evolution E / Retrieval R 三算子）
+4. **前沿方向**: 八大 frontier — retrieval→generation、automated management、RL+memory、multimodal、multi-agent shared memory、world model memory、trustworthy memory、human-cognitive connections
+5. **资源汇编**: 25+ benchmarks + 25+ open-source frameworks 的全面对比
 
-| Section | 内容 |
-|---------|------|
-| [00 - Abstract](sections/00-abstract.md) | 摘要 + Figure 1（全景分类图） |
-| [01 - Introduction](sections/01-introduction.md) | 动机：为什么需要新分类法 + 5 个核心问题 |
-| [02 - Scope](sections/02-scope.md) | Agent/Memory 形式化 + 与 LLM Memory / RAG / Context Engineering 区别 (Figure 2) |
-| [03 - Memory Forms](sections/03-memory-forms.md) | Token-level (1D/2D/3D) + Parametric + Latent (Figure 3-5, Table 1-3) |
-| [04 - Memory Functions](sections/04-memory-functions.md) | Factual + Experiential + Working Memory (Figure 6-7, Table 4-6) |
-| [05 - Memory Dynamics](sections/05-memory-dynamics.md) | Formation + Evolution + Retrieval (Figure 8-10, Table 7) |
-| [06 - Benchmarks](sections/06-benchmarks.md) | 30+ memory/lifelong/self-evolving benchmarks (Table 8) |
-| [07 - Frameworks](sections/07-frameworks.md) | MemGPT / Mem0 / Zep 等 25+ 开源框架对比 (Table 9) |
-| [08 - Frontiers](sections/08-frontiers.md) | 8 大前沿方向：RL 融合、生成式记忆、多模态等 (Figure 11) |
-| [09 - Conclusion](sections/09-conclusion.md) | 总结 + 全文核心 takeaway |
+## Section 导航
+
+| Section | 文件 | 主题 | 关键内容 |
+|---------|------|------|----------|
+| Abstract | [00-abstract.md](sections/00-abstract.md) | 摘要与目录 | 论文元信息、作者、摘要、目录结构 |
+| §1 | [01-introduction.md](sections/01-introduction.md) | Introduction | 研究动机、新分类法的必要性、五个核心问题、贡献 |
+| §2 | [02-preliminaries.md](sections/02-preliminaries.md) | Preliminaries | 形式化定义（agent/memory）、AM vs LLM Memory/RAG/CE |
+| §3 | [03-memory-forms.md](sections/03-memory-forms.md) | Form | Token-level (1D/2D/3D) / Parametric / Latent memory |
+| §4 | [04-memory-functions.md](sections/04-memory-functions.md) | Functions | Factual / Experiential / Working memory |
+| §5 | [05-memory-dynamics.md](sections/05-memory-dynamics.md) | Dynamics | Formation / Evolution / Retrieval 全生命周期 |
+| §6 | [06-resources.md](sections/06-resources.md) | Resources | 25+ benchmarks + 25+ frameworks 对比 |
+| §7 | [07-frontiers.md](sections/07-frontiers.md) | Frontiers | 8 大前沿方向 |
+| §8 | [08-conclusion.md](sections/08-conclusion.md) | Conclusion | 总结与展望 |
+| Refs | [09-references.md](sections/09-references.md) | References | 完整参考文献 |
 
 ## 关键数字
 
 | 指标 | 数值 |
 |------|------|
-| 引用文献数 | 400+ |
-| 分类维度 | 3（Forms × Functions × Dynamics） |
-| 记忆形式 | 3 大类 9 小类 |
-| 功能分类 | 3 大类（Factual / Experiential / Working） |
-| 动态过程 | 3 阶段（Formation → Evolution → Retrieval） |
-| Formation 操作类型 | 5 种 |
-| 开源框架 | 25+ |
-| Benchmark | 30+ |
+| 正文页数 | ~76 页 |
+| 参考文献 | ~400+ 篇 |
+| 图表 | 11 Figures + 9 Tables |
+| Memory Forms | 3 (Token-level / Parametric / Latent) |
+| Memory Functions | 3 (Factual / Experiential / Working) |
+| Memory Dynamics | 3 (Formation / Evolution / Retrieval) |
+| Benchmarks 汇总 | 25+ |
+| Frameworks 汇总 | 25+ |
 | 前沿方向 | 8 个 |
 
-## 分类框架速览
+## 核心框架图
 
-```
-                        Forms (载体)
-                    ┌─────────────────┐
-                    │  Token-level    │ ← 外部可见、可编辑的离散单元
-                    │   ├── 1D Flat   │    (MemGPT, Mem0, Voyager)
-                    │   ├── 2D Planar │    (A-MEM, KGT, PREMem)
-                    │   └── 3D Hier.  │    (GraphRAG, HippoRAG, Zep)
-                    ├─────────────────┤
-                    │  Parametric     │ ← 编码在模型参数中
-                    │   ├── Internal  │    (ROME, Character-LM)
-                    │   └── External  │    (K-Adapter, WISE, LoRA)
-                    ├─────────────────┤
-                    │  Latent         │ ← 隐藏状态/KV cache/激活值
-                    │   ├── Generate  │    (Gist, Titans, MemGen)
-                    │   ├── Reuse     │    (Memorizing Transformers)
-                    │   └── Transform │    (SnapKV, H2O, PyramidKV)
-                    └─────────────────┘
+![Figure 1: Overview of agent memory taxonomy](images/59c7dcb89b84c5659faf913c40baa21d0d721fb0004a4a3bb8b6dfab62df4dc9.jpg)
 
-    Functions (用途)                    Dynamics (运作)
-┌───────────────────┐            ┌───────────────────┐
-│ Factual Memory    │            │ Formation         │
-│  "Agent知道什么"   │            │  提取: 摘要/蒸馏/  │
-│  → User / Env     │            │  结构化/潜态/参数化 │
-├───────────────────┤    ←→     ├───────────────────┤
-│ Experiential Mem  │            │ Evolution         │
-│  "Agent如何进步"   │            │  精炼: 合并/更新/  │
-│  → Case/Strategy/ │            │  遗忘             │
-│    Skill/Hybrid   │            ├───────────────────┤
-├───────────────────┤            │ Retrieval         │
-│ Working Memory    │            │  利用: 时机/查询/  │
-│  "Agent在想什么"   │            │  策略/后处理       │
-│  → Single/Multi   │            └───────────────────┘
-└───────────────────┘
-```
+*Figure 1: Forms–Functions–Dynamics 三角分类总览。Memory artifacts 按其主要 form 和 function 定位，并映射了代表性系统。*
