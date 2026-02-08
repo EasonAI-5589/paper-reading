@@ -1,49 +1,26 @@
+[← 返回 README](../README.md)
+
 # 6. Conclusion
 
-> 来源: SparseVLM (ICML 2025)
+## 📌 预览
+总结 SparseVLM 的核心贡献和关键数字。
 
 ---
 
-## 📄 原文
+This paper introduced a text-aware training-free token optimization approach called SparseVLM which significantly decreased the test-time computations of various VLMs. Unlike prior methods, SparseVLM optimized VLMs without introducing extra parameters and fine-tuning costs. We achieved a more compact visual representation by employing the rank of attention matrices to determine pruning ratios and by recycling the pruned tokens via the reconstruction mechanism to reduce the information loss. Experiments demonstrated that e.g. the LLaVA when equipped with SparseVLM achieved 37.0% reduction in latency with a compression ratio of 77.8% while maintaining 97% of the original accuracy. Moreover, our method exceeded FastV accuracy by 14.7% in video understanding tasks. Our SparseVLM can provide practical benefits for deploying off-the-shelf VLMs on edge devices and in the cloud setting.
 
-This paper introduced a text-aware training-free token optimization approach called SparseVLM which significantly decreased the test-time computations of various VLMs. Unlike prior methods, SparseVLM optimized VLMs without introducing extra parameters and fine-tuning costs.
-
-> 💡 **总结**:
-> - LLaVA: 37% latency 降低，77.8% 压缩率，保持 97% 准确率
-> - 比 FastV 好 14.7%（视频任务）
-> - 可部署到边缘设备和云端
+> 💡 **Conclusion 批读**:
+> - **核心卖点**: training-free + text-aware + 即插即用
+> - **最佳数字**: 77.8% 压缩率，latency -37%，精度 97%
+> - **应用场景**: 边缘设备部署、云端推理加速
+> - **vs FastV**: 视频任务上领先 14.7%
 
 ---
 
-## 💡 我的整体评价
+## Acknowledgments
 
-### 优点
-1. **动机清晰**: text-guided 是自然且合理的改进方向
-2. **Training-free**: 实用性强，可直接用于任何 VLM
-3. **实验充分**: 3 个 VLM，8 个图像 benchmark，4 个视频 benchmark
-4. **消融到位**: 每个组件都有独立验证
+This work was supported by the National Science and Technology Major Project (No. 2022ZD0117800) and by the National Natural Science Foundation of China under Grant 62472008.
 
-### 局限性
-1. **Rank 计算开销**: 每层算 rank 需要 SVD，对大 token 序列可能不便宜
-2. **FlashAttention 兼容**: 需要额外提取 attention 矩阵，实际部署可能有工程挑战
-3. **只测了 7B 模型**: 没有在更大模型（13B/70B）上验证
-4. **聚类超参数**: τ, θ, k 需要调优，论文没详细讨论敏感性
+## Impact Statement
 
-### 与其他工作的关系
-```
-Token Compression 方法谱系:
-├── Training-required
-│   ├── VoCo-LLaMA (CVPR 2025) — 训练 pruning 网络
-│   └── Matryoshka (ICLR 2025) — 多尺度训练
-│
-└── Training-free
-    ├── FastV (ECCV 2024) — attention-based, text-agnostic
-    ├── ToMe (ICLR 2023) — token merging
-    ├── PyramidDrop (CVPR 2025) — 层级递减
-    └── SparseVLM (ICML 2025) — text-guided + recycling ⭐
-```
-
-### 对 STAR-Pro 的启示
-- Text-guided 的思路可以借鉴：视频理解中，不同问题应关注不同帧/区域
-- Token recycling 可能对长视频理解有帮助
-- Training-free 的方式如果能和 training-based 结合，效果可能更好
+Our SparseVLM provides practical advantages for deploying off-the-shelf large vision-language models on edge devices and cloud platforms. While our work does not present any evident societal implications, we believe it is unnecessary to emphasize this aspect in the current context.
