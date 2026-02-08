@@ -62,6 +62,7 @@ Eason 的文献阅读仓库，按课题组织。每篇论文都有「批读格�
 |------|------|----------|
 | [MemGen](./Memory/%5BICLR%202026%5D%20MemGen/) | ICLR 2026 | 生成式隐式记忆，推理-记忆交织，超 ExpeL/AWM 38% |
 | [Mem-T](./Memory/%5BArxiv%202601.23014%5D%20Mem-T/) | arXiv 2601.23014 | 层次化记忆数据库 + 密集化奖励训练 Memory Agent |
+| [Memory Survey](./Agent-Memory/%5BSurvey%202025%5D%20Memory%20in%20the%20Age%20of%20AI%20Agents/) | arXiv 2512.13564 | **综述** - Forms×Functions×Dynamics 三维分类框架, 400+文献 |
 
 ---
 
