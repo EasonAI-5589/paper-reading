@@ -1,786 +1,370 @@
-# BUILDING SETS, CHOW RINGS, AND THEIR HILBERT SERIES
+# π0.5: a Vision-Language-Action Model with Open-World Generalization
 
-CHRISTOPHER EUR, LUIS FERRONI, JACOB P. MATHERNE, ROBERTO PAGARIA, AND LORENZO VECCHI
+Physical Intelligence
 
-Abstract. We establish formulas for the Hilbert series of the Feichtner–Yuzvinsky Chow ring of a polymatroid using arbitrary building sets. For braid matroids and minimal building sets, our results produce new formulas for the Poincar´e polynomial of the moduli space $\overline { { \mathcal { M } } } _ { 0 , n + 1 }$ of pointed stable rational curves, and recover several previous results by Keel, Getzler, Manin, and Aluffi–Marcolli–Nascimento. We also use our methods to produce examples of matroids and building sets for which the corresponding Chow ring has Hilbert series with non-log-concave coefficients. This contrasts with the real-rootedness and log-concavity conjectures of Ferroni–Schr¨oter for matroids with maximal building sets, and of Aluffi–Chen–Marcolli for braid matroids with minimal building sets.
+Kevin Black, Noah Brown, James Darpinian, Karan Dhabalia, Danny Driess, Adnan Esmail, Michael Equi, Chelsea Finn, Niccolo Fusai, Manuel Y. Galliker, Dibya Ghosh, Lachy Groom, Karol Hausman, Brian Ichter, Szymon Jakubczak, Tim Jones, Liyiming Ke, Devin LeBlanc, Sergey Levine, Adrian Li-Bell, Mohith Mothukuri, Suraj Nair, Karl Pertsch, Allen Z. Ren, Lucy Xiaoyang Shi, Laura Smith, Jost Tobias Springenberg, Kyle Stachowicz James Tanner, Quan Vuong, Homer Walke, Anna Walling, Haohuan Wang, Lili Yu, Ury Zhilinsky https://pi.website/blog/pi05
 
-# 1. Introduction
+![](images/74b8db6c1c0ac0c41c9efc3541188ac9bbdb491193d6b10180f50b31083318c5.jpg)  
+Fig. 1: The $\pi _ { 0 . 5 }$ model transfers knowledge from a heterogeneous range of data sources, including other robots, high-level subtask prediction, verbal instructions, and data from the web, in order to enable broad generalization across environments and objects. $\pi _ { 0 . 5 }$ can control a mobile manipulator to clean kitchens and bedrooms in new homes that were not present in the training data, performing complex multi-stage behaviors with durations of 10 to 15 minutes.
 
-A polymatroid M is a pair $( E , \operatorname { r k } )$ consisting of a finite set $E$ , called the ground set, and a function rk: $2 ^ { E } \to \mathbb { Z } _ { \geq 0 }$ , called the rank function, satisfying the following properties:
+Abstract—In order for robots to be useful, they must perform practically relevant tasks in the real world, outside of the lab. While vision-language-action (VLA) models have demonstrated impressive results for end-to-end robot control, it remains an open question how far such models can generalize in the wild. We describe $\pi _ { 0 . 5 }$ , a new model based on $\pi _ { 0 }$ that uses co-training on heterogeneous tasks to enable broad generalization. $\pi _ { 0 . 5 }$ uses data from multiple robots, high-level semantic prediction, web data, and other sources to enable broadly generalizable realworld robotic manipulation. Our system uses a combination of co-training and hybrid multi-modal examples that combine image observations, language commands, object detections, semantic subtask prediction, and low-level actions. Our experiments show that this kind of knowledge transfer is essential for effective generalization, and we demonstrate for the first time that an end-to-end learning-enabled robotic system can perform longhorizon and dexterous manipulation skills, such as cleaning a kitchen or bedroom, in entirely new homes.
 
-• $\operatorname { r k } ( \varnothing ) = 0$ , • if $A _ { 1 } \subseteq A _ { 2 }$ , then $\operatorname { r k } ( A _ { 1 } ) \leq \operatorname { r k } ( A _ { 2 } )$ , and $\bullet$ for all $A _ { 1 } , A _ { 2 } \subseteq E$ , one has
+# I. INTRODUCTION
 
-$$
-\operatorname { r k } ( A _ { 1 } ) + \operatorname { r k } ( A _ { 2 } ) \geq \operatorname { r k } ( A _ { 1 } \cup A _ { 2 } ) + \operatorname { r k } ( A _ { 1 } \cap A _ { 2 } ) .
-$$
-
-If furthermore $\operatorname { r k } ( A ) \leq | A |$ for every $A \subseteq E$ , then $\mathsf { M }$ is a matroid. A flat of $\mathsf { M }$ is a subset $F \subseteq E$ such that $\operatorname { r k } ( F \cup \{ e \} ) > \operatorname { r k } ( F )$ for all $e \in E \setminus F$ . The set of all flats of $\mathsf { M }$ ordered by inclusion is a lattice, denoted $\mathcal { L } ( \boldsymbol { \mathsf { M } } )$ . We will always assume that a polymatroid M is loopless, i.e. that $\emptyset \in { \mathcal { L } } ( \mathbb { M } )$ . We refer to [Wel76, Sch03] for detailed treatments of polymatroids.
-
-A subset ${ \mathcal { G } } \subseteq { \mathcal { L } } ( { \mathsf { M } } )$ of nonempty flats is a building set if it satisfies a factorability condition (see Definition 2.1). To any polymatroid $\mathsf { M }$ and building set $\mathcal { G }$ , Feichtner and Yuzvinsky [FY04] associated a Chow ring $D ( \mathsf { M } , \mathsf { \mathcal { G } } )$ (see Definition 2.6), motivated by the geometry of wonderful compactifications of De Concini and Procesi [DCP95]. It is an Artinian graded ring $D ( \mathsf { M } , \mathscr { G } ) = \bigoplus _ { i } D ^ { i } ( \mathsf { M } , \mathscr { G } )$ whose Hilbert series is denoted
-
-$$
-\mathrm { H } _ { \mathsf { M } } ^ { \mathcal { G } } ( x ) : = \sum _ { i \geq 0 } \dim \left( D ^ { i } ( \mathsf { M } , \mathcal { G } ) \right) x ^ { i } .
-$$
-
-Let us highlight two particular instances of the Chow ring $D ( \mathsf { M } , \mathsf { \mathcal { G } } )$ :
-
-• When M is a matroid, the Chow ring $D ( \mathsf { M } , \mathcal { G } _ { \mathrm { m a x } } )$ with respect to the maximal building set $\mathcal { G } _ { \mathrm { m a x } }$ is the Chow ring of the matroid M as given in [AHK18, Definition 1.3]. It is a central object in the Hodge theory of matroids [AHK18] that resolved the Heron–Rota–Welsh conjecture [Rot71, Her72, Wel76] on the logconcavity of the coefficients of the characteristic polynomial of a matroid.
-
-• When $\mathsf { M }$ is a braid matroid $\mathsf { K } _ { n }$ , i.e. the graphic matroid associated to a complete graph on $n$ vertices, the ring $D ( \mathsf { K } _ { n } , \mathcal { G } _ { \operatorname* { m i n } } )$ with respect to the minimal building set $\mathcal { G } _ { \mathrm { m i n } }$ is isomorphic to the Chow ring of the Deligne–Knudsen–Mumford moduli space $\overline { { \mathcal { M } } } _ { 0 , n + 1 }$ of stable rational curves with $( n + 1 )$ marked points.
-
-A myriad of works have studied the Hilbert series $\mathrm { H } _ { \mathsf { M } } ^ { \mathcal { G } } ( x )$ in these two cases:
-
-• For matroids with maximal building sets, see [BES24, BHM $^ +$ 22, FS24, FMSV24] for proofs of combinatorial interpretations, valuativity, and general recursions; [Stu24, FMV24] for inequalities for Chow polynomials in the broader context of graded posets; [ANR25, Lia24] for equivariant counterparts; and [HRS21, Hos24, BV25] for results that• For the braid matroid $\mathsf { K } _ { n }$ tain to special cases such as uniform matroids., three different formulas for the Hilbert series $\mathrm { H } _ { \mathsf { K } _ { n } } ^ { \mathcal { G } _ { \mathrm { m i n } } } ( x )$ Marcolli, and Nascimento [AMN24], all via the geometry of the space $\overline { { \mathcal { M } } } _ { 0 , n + 1 }$ .
-
-The ring $D ( \mathsf { M } , \mathsf { \mathcal { G } } )$ is known to satisfy a trio of properties known as the K¨ahler package [PP23, Section 4]; see also [ADH23] and [CHL $^ +$ 25]. One of the components of the package, the Hard Lefschetz theorem, implies that the sequence of coefficients of the polynomial $\mathrm { H } _ { \mathsf { M } } ^ { \mathcal { G } } ( x )$ is symmetric and unimodal. Under the additional assumption that M is a matroid and $\mathcal { G }$ is the maximal building set, it was conjectured by Ferroni and Schr¨oter in [FS24] that the corresponding Hilbert series are real-rooted polynomials. Real-rootedness is the strongest in the hierarchy of properties depicted in Figure 1 (see [Br¨a15, Bre94, Sta89]). The weaker property of $\gamma$ -positivity was established in this special case [FMSV24].
-
-![](images/9ceb01a44094b9bfc570ef419503895052e7e30208eb6e53e2581e3fb9618581.jpg)  
-Figure 1. Hierarchy of properties for palindromic polynomials
-
-In the general setting of arbitrary building sets, all of the properties appearing in Figure 1, except unimodality, fail to be true. The failure of real-rootedness and $\gamma$ -positivity is easily found: when $\mathsf { M }$ is a uniform matroid of rank $k \geq 3$ and $\mathcal { G } = \mathcal { G } _ { \operatorname* { m i n } }$ , one has $\mathrm { H } _ { \mathsf { M } } ^ { \mathcal { G } } ( x ) = 1 + x + \cdot \cdot \cdot + x ^ { k - 1 }$ . The failure of log-concavity will be given in Theorem 1.6 (with more details in Section 6). The construction of this example is an application of some recursions we develop that generalize those in [FMSV24] to the case of arbitrary building sets.
-
-1.1. Main results. Our first main results consist of a pair of recursive formulas for the Hilbert series $\mathrm { H } _ { \mathsf { M } } ^ { \mathcal { G } } ( x )$ of the Chow ring of an arbitrary building set $\mathcal { G }$ on a polymatroid $\mathsf { M }$ . Let us fix additional notation to state it. The characteristic polynomial of a polymatroid $\mathsf { M }$ , denoted $\chi _ { \mathsf { M } } ( x )$ , is defined as
-
-$$
-\chi _ { \mathsf { M } } ( x ) = \sum _ { F \in \mathcal { L } ( \mathsf { M } ) } \mu ( \emptyset , F ) x ^ { \mathrm { r k } ( E ) - \mathrm { r k } ( F ) } ,
-$$
-
-where $\mu$ denotes the M¨obius function of the poset $\mathcal { L } ( \boldsymbol { \mathsf { M } } )$ (see [Sta12, Chapter 3]). The set of $\mathcal { G }$ -factors of a building set $\mathcal { G }$ on $\mathsf { M }$ , denoted $f ( \mathcal G )$ , consists of all maximal elements in the subset $\mathcal { G }$ of the poset $\mathcal { L } ( \boldsymbol { \mathsf { M } } )$ . For a flat $F$ of $\mathsf { M }$ , a building set $\mathcal { G }$ naturally induces building sets $\mathcal { G } | _ { F }$ and $\mathcal { G } / F$ on the restriction $\mathsf { M } | _ { F }$ and the contraction $\mathsf { M } / F$ polymatroids, respectively (see Definition 2.3). If $\mathsf { M }$ is the empty polymatroid, we set $\mathrm { H } _ { \mathsf { M } } ^ { \mathcal { G } } ( x ) = 1$ .
-
-Theorem 1.1 For every nonempty polymatroid M and every building set $\mathcal { G }$ , the following two recursions hold:
-
-$$
-\mathrm { H } _ { \mathsf { M } } ^ { \mathsf { \mathcal { E } } } ( x ) = \sum _ { \substack { \emptyset \neq F \in \mathcal { L } ( \mathsf { M } ) } } \frac { - \chi _ { \mathsf { M } | _ { F } } ( x ) } { ( 1 - x ) ^ { | f ( \mathfrak { G } | _ { F } ) | } } \cdot \mathrm { H } _ { \mathsf { M } / F } ^ { \mathsf { \mathcal { G } } / F } ( x ) ,
-$$
-
-and
-
-$$
-\mathrm { H } _ { \mathsf { M } } ^ { \mathsf { \mathcal { G } } } ( x ) = \sum _ { E \neq F \in { \mathcal { L } } ( \mathsf { M } ) } \mathrm { H } _ { \mathsf { M } | _ { F } } ^ { \mathsf { { g } } | _ { F } } ( x ) \cdot \frac { - \chi _ { \mathsf { M } / F } ( x ) } { ( 1 - x ) ^ { | f ( \mathsf { \mathcal { G } } / F ) | } } .
-$$
-
-We prove these recursions using the main result of Feichtner and Yuzvinsky in [FY04], which consists of a Gr¨obner basis computation leading to a basis of $D ( \mathsf { M } , \mathsf { \mathcal { G } } )$ as a $\mathbb { Q }$ -vector space. Theorem 1.1 is equivalent to the statement (Theorem 3.6) that two particular elements in the incidence algebra of $\mathcal { L } ( \boldsymbol { \mathsf { M } } )$ are inverses. Thus, using the formalism of incidence algebras, we derive a non-recursive formula as a sum over chains of flats.
-
-Corollary 1.2 The Hilbert series of $D ( \mathsf { M } , \mathsf { \mathcal { G } } )$ equals
-
-$$
-\mathrm { H } _ { \mathsf { M } } ^ { \mathsf { g } } ( x ) = \sum _ { m \geq 0 } \sum _ { \substack { \emptyset = F _ { 0 } \subset \cdots \subset F _ { m + 1 } = E } } ( - 1 ) ^ { m } \prod _ { i = 1 } ^ { m + 1 } \frac { \chi _ { \mathsf { M } | _ { F _ { i } } / F _ { i - 1 } } ( x ) } { ( 1 - x ) ^ { | f ( \mathcal { G } | _ { F _ { i } } / F _ { i - 1 } ) | } } .
-$$
-
-In the preceding statement, the sum runs over all possible chains of flats anchored at the bottom and top elements. We also provide a more efficient way of computing the polynomial $\mathrm { H } _ { \mathsf { M } } ^ { \mathcal { G } } ( x )$ , in terms of $\mathcal { G }$ -nested sets (Definition 2.5) that are spanning in the sense that the join of its elements is the ground set $E$ .
-
-Theorem 1.3 The Hilbert series of $D ( \mathsf { M } , \mathsf { \mathcal { G } } )$ equals
-
-$$
-\mathrm { H } _ { \mathsf { M } } ^ { \mathcal { G } } ( x ) = \sum _ { S } \prod _ { F \in S } \overline { { \chi } } _ { \mathsf { M } | _ { F } / \operatorname* { s u p } ( S , F ) } ( x ) ,
-$$
-
-where the sum runs over all spanning $\mathcal { G }$ -nested sets, and $\operatorname { s u p } ( S , F )$ denotes the join of all the elements in $S \subseteq { \mathcal { G } }$ which are strictly smaller than $F$ .
-
-The formulas in Corollary 1.2 and Theorem 1.3 are useful for computing Hilbert series of rings $D ( \mathsf { M } , \mathsf { \mathcal { G } } )$ when the characteristic polynomials of the intervals of $\mathcal { L } ( \boldsymbol { \mathsf { M } } )$ obey a predictable pattern. A central example is when ${ \textsf { M } } = \mathsf { K } _ { n }$ : in this case, the reduced characteristic polynomials of intervals of flats are products of polynomials of the form $( x - 2 ) ( x - 3 ) \cdots ( x - r )$ . When $\mathcal { G } = \mathcal { G } _ { \operatorname* { m i n } }$ is the minimal building set, the wonderful variety (see Section 3.5) is the moduli space $\mathcal { M } _ { 0 , n + 1 }$ . Our results lead us to a new closed formula for its Poincar´e polynomial.
-
-Theorem 1.4 The Poincar´e polynomial of $\overline { { \mathcal { M } } } _ { 0 , n + 1 }$ is
-
-$$
-P _ { \overline { { \mathcal M } } _ { 0 , n + 1 } } ( x ) = \sum _ { \lambda \vdash [ n - 1 ] } \frac { ( n - 1 + \ell ( \lambda ) ) ! } { ( n - 1 ) ! } \prod _ { i = 1 } ^ { \ell ( \lambda ) } \frac { \overline { { \chi } } _ { \lambda _ { i } + 1 } ( x ) } { \lambda _ { i } + 1 } ,
-$$
-
-where the sum is over set partitions of the set $[ n - 1 ] = \{ 1 , \dots , n - 1 \}$ into $\ell ( \lambda )$ nonempty parts, $\lambda _ { i }$ is the cardinality of the $i$ -th part, and $\overline { { { \chi } } } _ { m } ( x ) : = ( x - 2 ) ( x - 3 ) \cdot \cdot \cdot ( x - m + 1 )$ .
-
-From Theorem 1.3, we also deduce a new proof of a recent result by Aluffi, Marcolli, and Nascimento.
-
-Theorem 1.5 ([AMN24, Theorem 1.1]) The Poincar´e polynomial of $\overline { { \mathcal { M } } } _ { 0 , n + 1 }$ satisfies
-
-$$
-P _ { \overline { { \mathcal { M } } } _ { 0 , n + 1 } } ( x ) = ( 1 - x ) ^ { n } \sum _ { k \geq 0 } \sum _ { j \geq 0 } s ( k + n , k + n - j ) S ( k + n - j , k + 1 ) x ^ { k + j } ,
-$$
-
-where $s ( n , k )$ and $S ( \boldsymbol n , \boldsymbol k )$ denote, respectively, the signed Stirling numbers of the first kind and the Stirling numbers of the second kind.
-
-Furthermore, from our formulas we can also recover generating functions and recurrences for $P _ { \overline { { \mathcal { M } } } _ { 0 , n + 1 } } ( x )$ due to Manin and Getzler (see Proposition 4.5 and Proposition 4.6).
-
-For the Chow ring of a matroid M with the maximal building set $\mathcal { G } _ { \mathrm { m a x } }$ , an open conjecture of Ferroni–Schr¨oter [FS24] posits that the Hilbert series $\mathrm { H } _ { \mathsf { M } } ^ { \mathsf { G } _ { \mathrm { m a x } } } ( x )$ is real-rooted. However, for general building sets this property and the weaker property of $\gamma$ -positivity do not hold. We provide a negative answer to the analogous question for log-concavity.
-
-Theorem 1.6 There exists a matroid M such that $\mathrm { H } _ { \mathsf { M } } ^ { \mathcal { G } _ { \mathrm { m i n } } } ( x )$ has non-log-concave coefficients. For any sufficiently large $n$ , there exists a building set $\mathcal { G }$ on the Boolean matroid $\mathsf { U } _ { n , n }$ such that $\mathrm { H } _ { \mathsf { U } _ { n , n } } ^ { \mathcal { G } } ( x )$ has non-log-concave coefficients.
-
-The claimed examples are provided in Section 6. For the construction of these examples, it is useful to note the underlying geometry (in the realizable case) behind the formulas in Theorem 1.1. This underlying geometry of sequential blow-ups is explained in Section 3.5. For those wishing to avoid the geometry of blow-ups, the combinatorial counterpart (which holds regardless of realizability) is provided by Theorem 5.1, which relates the Hilbert series of Chow rings of different building sets.
-
-# Acknowledgments
-
-We are grateful to the organizers of the Oberwolfach workshop “Arrangements, matroids, and logarithmic vector fields”—this project was initiated at that MFO workshop. The authors also thank Emil Verkama for insightful discussions. Chris Eur was partially supported by the National Science Foundation grant DMS-2246518. Luis Ferroni is a member at the Institute for Advanced Study, funded by the Minerva Research Foundation. Jacob Matherne received support from a Simons Foundation Travel Support for Mathematicians Award MPS-TSM-00007970. Roberto Pagaria is partially supported by PRIN 2022 “ALgebraic and TOPological combinatorics (ALTOP)” CUP J53D23003660006 and by INdAM - GNSAGA Project CUP E53C23001670001.
-
-# 2. Preliminaries
-
-We collect preliminary facts about building sets and their Chow rings.
-
-2.1. Building sets. Let us consider a loopless polymatroid M, and assume that we have some distinguished subset of flats $\mathcal { G } \subseteq \mathcal { L } ( \mathsf { M } )$ . We will write
-
-$$
-\mathcal { G } _ { \leq F } : = \{ G \in \mathcal { G } : G \subseteq F \} ,
-$$
-
-for each $F \in \mathcal { L } ( \mathsf { M } )$ . We define
-
-f(G) := the set of maximal elements in the subset $\mathcal { G }$ of the poset $\mathcal { L } ( \boldsymbol { \mathsf { M } } )$ .
-
-The set $f ( \mathcal G )$ will be referred to as the set of $\mathcal { G }$ -factors.
-
-Definition 2.1 Let $\mathsf { M }$ be a loopless polymatroid, and let $\mathcal { L } ( \boldsymbol { \mathsf { M } } )$ be its lattice of flats. A subset ${ \mathcal { G } } \subseteq { \mathcal { L } } ( \mathsf { M } ) \setminus \{ \emptyset \}$ is said to be a (geometric) building set if for any $F \in \mathcal { L } ( \mathsf { M } )$ the morphism of lattices
-
-$$
-\varphi _ { F } \colon \prod _ { G \in f ( \mathscr { G } _ { \leq F } ) } [ \emptyset , G ] \to [ \emptyset , F ]
-$$
-
-induced by the inclusions is an isomorphism, and the following equality holds:
-
-$$
-\operatorname { r k } ( F ) = \sum _ { G \in f ( \mathcal { G } _ { \leq F } ) } \operatorname { r k } ( G ) .
-$$
-
-Remark 2.2 We emphasize that we do not require the ground set $E$ to be part of a building set, in contrast to some other works. Our definition of a building set coincides with the original definition by De Concini and Procesi [DCP95].
-
-There are two distinguished building sets. The first, called the maximal building set, consists of all nonempty flats, i.e.,
-
-$$
-\mathcal { G } _ { \mathrm { m a x } } : = \mathcal { L } ( \mathsf { M } ) \setminus \{ \emptyset \} .
-$$
-
-The second, called the minimal building set, consists of all nonempty connected flats, i.e.,
-
-$$
-\mathfrak { G } _ { \mathrm { m i n } } : = \{ F \in \mathcal { L } ( \mathsf { M } ) \setminus \{ \varnothing \} : \mathsf { M } | _ { F } \mathrm { ~ i s ~ c o n n e c t e d } \} .
-$$
-
-Recall here that a polymatroid $\mathsf { M }$ is connected if the lattice $\mathcal { L } ( \boldsymbol { \mathsf { M } } )$ cannot be nontrivially decomposed as a Cartesian product.
-
-For a flat $F$ of a polymatroid $\mathsf { M } = ( E , \mathrm { r k } )$ , the restriction $\mathsf { M } | _ { F }$ is the polymatroid $\bigl ( F , \operatorname { r k } | _ { F } \bigr )$ , and the contraction $\mathsf { M } / F$ is the polymatroid $( E \setminus F , \mathrm { r k } ^ { \prime } )$ where $\operatorname { r k } ^ { \prime } ( A ) : = \operatorname { r k } ( A \cup$ $F ) - \operatorname { r k } ( F )$ . The lattices of flats of $\mathsf { M } | _ { F }$ and $\mathsf { M } / F$ are isomorphic to the intervals $[ \sigma , F ]$ and $[ F , E ]$ of $\mathcal { L } ( \boldsymbol { \mathsf { M } } )$ , respectively. These operations extend to building sets, as follows.
-
-Definition 2.3 Given a flat $F$ of $\mathsf { M }$ and a building set $\mathcal { G }$ of $\mathcal { L } ( \boldsymbol { \mathsf { M } } )$ , we define the sets
-
-$$
-\begin{array} { r } { \pmb { \mathcal { G } } | _ { F } : = \{ G \in \pmb { \mathcal { G } } : G \subseteq F \} \subseteq \pmb { \mathcal { L } } ( \mathbf { M } | _ { F } ) } \end{array}
-$$
-
-and
-
-$$
-\begin{array} { r } { \ L \mathcal { G } / F : = \{ G \lor F : G \in \mathcal { G } \mathrm { ~ a n d ~ } G \mathcal { G } F \} \subseteq \mathcal { L } ( \mathsf { M } / F ) } \end{array}
-$$
-
-where ∨ stands for the join operation of a lattice.
-
-It can be proved that $\mathcal { G } | _ { F }$ is a building set on $\mathcal { L } ( \mathsf { M } | _ { F } )$ and $\mathcal { G } / F$ is a building set on $\mathcal { L } ( \boldsymbol { \mathsf { M } } / F )$ . Note that $\mathcal { G } | _ { F } = \mathcal { G } _ { \leq F }$ ; we will use the symbol $\mathcal { G } | _ { F }$ when we want to emphasize that we are considering a building set on the restricted polymatroid.
-
-Remark 2.4 If $\mathcal { G } = \mathcal { G } _ { \operatorname* { m a x } }$ is the maximal building set for $\mathsf { M }$ , then $\mathcal { G } | _ { F }$ and $\mathcal { G } / F$ are maximal building sets of the restriction and contraction respectively. We caution however that when $\mathcal { G } = \mathcal { G } _ { \operatorname* { m i n } }$ is the minimal building set, $\mathcal { G } / F$ may not be the minimal building set in the contraction, since contracting a flat may not preserve connectivity.
-
-2.2. Nested sets and Chow rings. The choice of a building set $\mathcal { G }$ on the lattice of flats $\mathcal { L } ( \boldsymbol { \mathsf { M } } )$ of a polymatroid M induces a special class of sets called $\mathcal { G }$ -nested sets. They are defined as follows.
-
-Definition 2.5 A subset $S \subseteq { \mathcal { G } }$ is said to be $\mathcal { G }$ -nested if, for each subset of incomparable flats $\{ F _ { 1 } , \ldots , F _ { m } \} \subseteq S$ of cardinality at least 2, the join $F _ { 1 } \lor \cdots \lor F _ { m }$ does not lie in $\mathcal { G }$ .
-
-Clearly, if $S$ is $\mathcal { G }$ -nested, then any subset of $S$ is $\mathcal { G }$ -nested. In particular, the family of all $\mathcal { G }$ -nested sets forms a simplicial complex that we will denote $\mathcal { N } ( \mathsf { M } , \mathsf { \mathcal { G } } )$ and call the nested set complex associated to $\mathcal { G }$ . When $\mathcal { G } = \mathcal { G } _ { \operatorname* { m a x } }$ , the nested set complex coincides with the order complex of ${ \mathcal { L } } ( \mathsf { M } ) \setminus \{ \emptyset \}$ .
-
-The central objects of study in this paper are the Chow rings arising from a polymatroid and a building set. These rings (in a slightly more general set up) were introduced by Feichtner and Yuzvinsky in [FY04].
-
-Definition 2.6 Let $\mathcal { G }$ be a building set on $\mathcal { L } ( \boldsymbol { \mathsf { M } } )$ . We define the Chow ring $D ( \mathsf { M } , \mathsf { \mathcal { G } } )$ as the graded quotient algebra
-
-$$
-D ( { \mathcal { L } } ( { \mathsf { M } } ) , { \mathcal { G } } ) = \mathbb { Q } [ x _ { G } : G \in { \mathcal { G } } ] { \bigg / } I ,
-$$
-
-where $I$ is the homogeneous ideal generated by the relations
-
-$$
-\prod _ { i = 1 } ^ { m } x _ { G _ { i } } \qquad \mathrm { f o r } ~ \{ G _ { 1 } , \dots , G _ { m } \} ~ \mathrm { n o t } ~ { \mathcal { G } } _ { \mathrm { - n e s t e d , } }
-$$
-
-and
-
-$$
-\sum _ { G \geq F } x _ { G } \qquad { \mathrm { f o r ~ } } F { \mathrm { ~ a n ~ a t o m ~ o f ~ } } { \mathcal { L } } ( \mathsf { M } ) .
-$$
-
-The rings $D ( \mathsf { M } , \mathsf { \mathcal { G } } )$ are graded and Artinian, i.e., they are finite dimensional as $\mathbb { Q }$ -vector spaces, and under the decomposition $D ( \mathsf { M } , \mathsf { \mathcal { G } } ) = \bigoplus _ { i = 0 } ^ { \operatorname { r k } ( E ) - 1 } D ^ { i } ( \mathsf { M } , \mathsf { \mathcal { G } } )$ Lrk(E)−1i=0 Di(M, G) given by the grading, we have that $D ^ { \iota } ( { \mathsf { M } } , { \mathcal { G } } ) = 0$ for all $i \geq \operatorname { r k } ( E )$ . Recall our notation for the Hilbert series:
-
-$$
-\mathrm { H } _ { \mathsf { M } } ^ { \mathsf { \mathcal { G } } } ( x ) : = \sum _ { i = 0 } ^ { \operatorname { r k } ( E ) - 1 } \dim \left( D ^ { i } ( \mathsf { M } , \mathsf { \mathcal { G } } ) \right) x ^ { i } .
-$$
-
-One of the main results by Feichtner and Yuzvinsky, which follows from the construction of a Gr¨obner basis for the ideal $I$ in Definition 2.6, is that the rings $D ( \mathsf { M } , \mathsf { \mathcal { G } } )$ possess an additive basis given by a specific list of monomials. Since this is useful for computing the Hilbert series, we restate it here.
-
-Theorem 2.7 ([FY04, Corollary 1] and [PP23, Corollary 2.8]) For every polymatroid M and building set $\mathcal { G }$ , the following monomials constitute a basis of $D ( \mathsf { M } , \mathsf { \mathcal { G } } )$ as a $\mathbb { Q }$ -vector space:
-
-$$
-x _ { F _ { 1 } } ^ { e _ { 1 } } x _ { F _ { 2 } } ^ { e _ { 2 } } \cdot \cdot \cdot x _ { F _ { m } } ^ { e _ { m } } ,
-$$
-
-where $S : = \{ F _ { 1 } , \ldots , F _ { m } \}$ is $\mathcal { G }$ -nested, and
-
-$$
-0 \leq e _ { i } < \mathrm { r k } ( F _ { i } ) - \mathrm { r k } ( \operatorname* { s u p } ( S , F _ { i } ) )
-$$
-
-for each $1 \leq i \leq m$ , where $\operatorname* { s u p } ( S , F ) : = \bigvee _ { G \in S \atop G < F } G$
-
-The monomials appearing in the preceding statement will be customarily called the “FY-monomials” associated to $\mathsf { M }$ and $\mathcal { G }$ . Notice that when $\mathcal { G } = \mathcal { G } _ { \operatorname* { m a x } }$ , a nested set is just a flag of flats $S = \{ F _ { 1 } \subsetneq \cdots \subsetneq F _ { m } \}$ , and the rank condition in the theorem reads $0 \leq e _ { i } \leq \mathrm { r k } ( F _ { i } ) - \mathrm { r k } ( F _ { i - 1 } ) - 1$ for all $1 \leq i \leq m$ .
-
-The main goal of this section is to extend [FMSV24, Theorem 1.4] to general building sets. To this end, we will work in the incidence algebra of the lattice of flats of a polymatroid. Specifically, if $\mathcal { L } ( \boldsymbol { M } )$ is the lattice of flats of a polymatroid, the incidence algebra $\mathcal { I }$ of $\mathcal { L } ( \boldsymbol { \mathsf { M } } )$ is the free $\mathbb { Z } [ x ]$ -module spanned by all closed intervals of $\mathcal { L } ( \boldsymbol { \mathsf { M } } )$ . The product of two elements $a , b \in { \mathcal { I } }$ is given by the convolution
-
-$$
-( a \cdot b ) _ { F G } : = \sum _ { H \in [ F , G ] } a _ { F H } \cdot b _ { H G } ,
-$$
-
-for every choice of flats $F \subseteq G$ , where $a F G$ denotes the polynomial that $a$ associates to the closed interval $[ F , G ]$ . The two-sided identity in this algebra is the element $\delta \in \mathcal { I }$ defined by $\delta _ { F G } : = 1$ for $F = G$ and 0 otherwise. Another very useful object that we will use repeatedly is the so-called zeta function $\zeta \in \mathcal { I }$ , which is defined by $\zeta _ { F G } : = 1$ for every $F \subseteq G$ . We will assume that the reader is familiar with the basics of incidence algebras, and we refer to [Sta12, Chapter 3] for undefined terminology.
-
-3.1. $\mathcal { G }$ -reduced characteristic polynomials. We now introduce a generalization of the reduced characteristic polynomial, which takes into account general building sets.
-
-Definition 3.1 Let $\mathsf { M }$ be a polymatroid on $E$ , and let $\mathcal { G }$ be a building set on $\mathcal { L } ( \boldsymbol { \mathsf { M } } )$ . The $\mathcal { G }$ -reduced characteristic polynomial of $\mathsf { M }$ is defined as
-
-$$
-\overline { { \chi } } _ { \mathsf { M } } ^ { \sharp } ( x ) : = \left\{ \begin{array} { l l } { - 1 } & { \mathrm { i f ~ \mathsf { M } ~ i s ~ t h e ~ e m p t y ~ p o l y m a t r o i d , ~ a n d } } \\ { - \frac { \chi _ { \mathsf { M } } ( x ) } { ( 1 - x ) ^ { | f ( \sharp ) | } } } & { \mathrm { o t h e r w i s e . } } \end{array} \right.
-$$
-
-If $\mathsf { M }$ is nonempty and $\mathcal { G } = \mathcal { G } _ { \operatorname* { m a x } }$ , then $| f ( \mathcal { G } ) | = | \{ E \} | = 1$ , so the $\mathcal { G } _ { \mathrm { m a x } }$ -reduced characteristic polynomial agrees with the usual reduced characteristic polynomial $\overline { { \chi } } _ { \mathsf { M } } ( x ) : =$ $\chi _ { \mathsf { M } } ( x ) / ( x - 1 )$ . Since a building set $\mathcal { G }$ on $\mathcal { L } ( \boldsymbol { \mathsf { M } } )$ induces building sets on each interval $[ F , G ] \subseteq { \mathcal { L } } ( \mathsf { M } )$ , we can define the following key object in the incidence algebra of $\mathcal { L } ( \boldsymbol { \mathsf { M } } )$ .
-
-Definition 3.2 Let $\mathcal { G }$ be a building set on $\mathcal { L } ( \boldsymbol { \mathsf { M } } )$ . The $\mathcal { G }$ -reduced characteristic function on $\mathcal { L } ( \boldsymbol { \mathsf { M } } )$ is the incidence algebra element $\overline { { \chi } } ^ { \mathcal { G } } \in \mathcal { I }$ defined by
-
-$$
-\overline { { \chi } } _ { F G } ^ { \mathcal { G } } : = \overline { { \chi } } _ { \sf M | _ { G } / F } ^ { \mathcal { G } | _ { G } / F } ( x )
-$$
-
-for every pair of flats $F \subsetneq G$ of $\mathcal { L } ( \boldsymbol { \mathsf { M } } )$ , and $\overline { { \chi } } _ { F G } ^ { \mathcal { G } } : = - 1$ whenever $F = G$ .
-
-The unusual choice for how to define the $\mathcal { G }$ -reduced characteristic polynomial of a singleton interval is important, and it is motivated by a similar choice made in [FMSV24] of defining the usual reduced characteristic polynomial of an empty matroid as $- 1$ . Before proving our main results, we need a further ingredient.
-
-Definition 3.3 Let $\mathsf { M }$ be a polymatroid on $E$ . The $\alpha$ -polynomial associated to a building set $\mathcal { G }$ on $\mathcal { L } ( \boldsymbol { \mathsf { M } } )$ is defined as follows:
-
-$$
-\alpha _ { \mathsf { M } } ^ { \mathsf { g } } ( x ) : = ( - 1 ) ^ { | f ( \mathsf { g } ) | - 1 } \prod _ { F \in f ( \mathsf { \mathcal { G } } ) } ( x + x ^ { 2 } + \cdot \cdot \cdot + x ^ { \mathrm { r k } ( F ) - 1 } ) .
-$$
-
-The $\alpha$ -function is the element $\alpha ^ { \mathcal { G } }$ in the incidence algebra $\mathcal { I }$ defined by
-
-$$
-\alpha _ { F G } ^ { \mathcal { G } } : = \alpha _ { \mathsf { M } | _ { G } / F } ^ { \mathcal { G } | _ { G } / F } ( x )
-$$
-
-for every pair of flats $F \subsetneq G$ , and $\alpha _ { F G } : = - 1$ whenever $F = G$ .
-
-The following lemma will play an important role in the proof of the main theorems in this section.
-
-Lemma 3.4 We have the following identity in the incidence algebra:
-
-$$
-{ \boldsymbol { \zeta } } \cdot { \overline { { \chi } } } ^ { \mathcal { G } } = \alpha ^ { \mathcal { G } } .
-$$
-
-Proof. It follows from the definitions that for every pair of flats $F \subseteq G$ of $\mathsf { M }$ , we have $f ( \mathscr { G } | _ { G } / F ) = f ( \mathscr { G } | _ { G } ) \setminus f ( \mathscr { G } | _ { F } )$ . Let us set $f ( \mathcal { G } | _ { G } ) = \{ G _ { 1 } , G _ { 2 } , \dots , G _ { k } \}$ .
-
-$$
-\begin{array} { r l } { \langle \boldsymbol { \mathcal { X } } : \boldsymbol { \mathcal { X } } ^ { 0 } \rangle _ { \mathrm { F L G } ^ { \ell - 1 } } - } & { \displaystyle \sum _ { F \leq i \leq L } \frac { 1 } { \Gamma ( \boldsymbol { \mathcal { X } } ^ { 0 } ) \leq \Gamma ^ { 1 / 2 } } \frac { X \mu ( \boldsymbol { \mathcal { O } } ^ { ( 1 ) } ) } { \Gamma ^ { 1 / 2 } } } \\ { = } & { - \displaystyle \sum _ { F \leq i \leq R } \displaystyle \sum _ { \boldsymbol { \mathcal { X } } ^ { 0 } \geq \boldsymbol { \mathcal { X } } ^ { 0 } \geq \boldsymbol { \mathcal { X } } ^ { 0 } } \frac { 1 } { \Gamma ^ { 1 / 2 } - 1 } \frac { X \mu ( \boldsymbol { \mathcal { O } } ^ { ( 1 ) } ) } { 1 - \boldsymbol { \mathcal { X } } ^ { 0 } } } \\ & { - \displaystyle \sum _ { F \leq i \leq R } \prod _ { \boldsymbol { \mathcal { X } } ^ { 0 } \geq \boldsymbol { \mathcal { X } } ^ { 0 } \geq \boldsymbol { \mathcal { X } } ^ { 0 } } \Bigg ( 1 - \overline { { X } } _ { \boldsymbol { \mathcal { O } } ^ { 0 } } ( \boldsymbol { \mathcal { X } } ^ { 0 } ) } \\ & { - \frac { 1 } { \Gamma ^ { 1 / 2 } } \mathrm { R e } \mathrm { i } \overline { { ( \boldsymbol { \mathcal { X } } ^ { 0 } + \boldsymbol { \mathcal { X } } ^ { 0 } ) } } } \\ &  - \displaystyle \lbrace - 1 ) ^  \mathrm { f } / \mathrm { f } / \mathrm { f } / \mathrm { f } / \mathrm { f } \mathrm { f } / \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \mathrm { f } \ \end{array}
-$$
-
-The sum in the second line is over all choices of flats $( F _ { 1 } , \dots , F _ { k } ) \in [ F , G _ { 1 } ] \times \dots \times [ F , G _ { k } ]$ , and the factor inside is set to be 1 when $F \nsubseteq G _ { i }$ for some $i$ ; this explains the appearance of exactly $\left| f ( \mathcal { G } | _ { G } / F ) \right|$ minus signs in the fourth line. Meanwhile, in the last line we used [FMSV24, Lemma 2.5]. 
-
-# 3.2. Recursions for Hilbert series of Chow rings.
-
-Definition 3.5 Let $\mathcal { G }$ be a building set on $\mathcal { L } ( \boldsymbol { \mathsf { M } } )$ . The $\mathcal { G }$ -Chow polynomial of a nonempty polymatroid M is defined as the Hilbert series $\mathrm { H } _ { \mathsf { M } } ^ { \mathcal { G } } ( x )$ of $D ( \mathsf { M } , \mathsf { \mathcal { G } } )$ . The $\mathcal { G }$ -Chow function is the element $\mathrm { H } ^ { \mathcal { G } }$ in the incidence algebra $\mathcal { I }$ of $\mathcal { L } ( \boldsymbol { M } )$ defined by
-
-$$
-\begin{array} { r } { \mathrm { H } _ { F G } ^ { \mathcal { G } } : = \mathrm { H } _ { \mathsf { M } | G / F } ^ { \mathcal { G } | _ { G } / F } ( x ) , } \end{array}
-$$
-
-for every pair of flats $F \subsetneq G$ , and $\mathrm { H } _ { F G } ^ { \mathcal { G } } : = 1$ whenever $F = G$
-
-The following is the crucial result enabling the computation of Hilbert series of Chow rings using arbitrary building sets.
-
-Theorem 3.6 Let $\mathcal { G }$ be a building set on $\mathcal { L } ( \boldsymbol { \mathsf { M } } )$ . The $\mathcal { G }$ -Chow function and the $\mathcal { G }$ -reduced characteristic function are inverses of each other in $\mathcal { I }$ up to a sign. That is,
-
-$$
-\begin{array} { r } { \mathrm { H } ^ { \mathcal { G } } = - \left( \overline { { \chi } } ^ { \mathcal { G } } \right) ^ { - 1 } . } \end{array}
-$$
-
-Proof. First, let us show that $\alpha ^ { \mathcal { G } } \cdot \mathrm { H } ^ { \mathcal { G } } = - \zeta$ . For the sake of simplicity, and without loss of generality, we will prove that $( \alpha ^ { \mathcal { G } } \cdot \mathrm { H } ^ { \mathcal { G } } ) _ { \mathcal { O } E } = - \zeta _ { \mathcal { O } E }$ . The case of more general intervals follows from this one.
-
-$h ( F ) \in [ 1 , \operatorname { r k } ( F ) - 1 ]$ For each $G \in { \mathcal { L } } ( { \mathsf { M } } )$ . The function  total degree of , consider the set $\alpha _ { \scriptscriptstyle O G } ^ { \mathcal { G } | _ { G } }$ is (up to monomial of functions $h \colon f ( \mathcal { G } | _ { G } ) \to \mathbb { N }$ rating function of . The left hand s such that $A ( G )$   
-with respect to the the QF ∈f(G|G) xh(FF   
-the identity we claim is
-
-$$
-\sum _ { G \in \mathcal { L } ( \mathsf { M } ) } \alpha _ { \emptyset G } ^ { \mathcal { G } } \mathrm { H } _ { G E } ^ { \mathcal { G } } ,
-$$
-
-and it counts (without considering the signs) the possible choices of an element of $A ( G )$ and of an FY-monomial in $[ G , E ]$ . Notice that, for each $G$ , there is a bijection $\psi$ between $\mathcal { G } / G$ -nested sets and $\mathcal { G }$ -nested sets containing $f ( \mathscr { G } | _ { G } )$ . Let $\mathrm { F Y } ( \mathsf { M } , \mathcal { G } )$ be the set of FYmonomials associated to $\mathsf { M }$ and $\mathcal { G }$ , and define an injection
-
-$$
-\varphi _ { G } \colon A ( G ) \times \mathrm { F Y } ( \mathsf { M } / G , \mathcal { G } / G )  \mathrm { F Y } ( \mathsf { M } , \mathcal { G } )
-$$
-
-by
-
-$$
-\varphi _ { G } \left( h , \prod _ { F \in { \cal N } } x _ { F } ^ { k ( F ) } \right) = \prod _ { F \in f ( \mathcal { G } | _ { G } ) } x _ { F } ^ { h ( F ) } \prod _ { F \in { \cal N } } x _ { \psi ( F ) } ^ { k ( F ) } .
-$$
-
-The range of $\varphi _ { G }$ is the set of all FY-monomials associated to a nested set $N$ such that $f ( \mathcal G | _ { G } ) \subseteq \operatorname* { m i n } ( N )$ . The sets $\operatorname { I m } \varphi _ { G }$ cover $\mathrm { F Y } ( \mathsf { M } , \mathcal { G } )$ and an FY-monomial $m ( N , k ) =$ QF ∈N xk(F is contained in $2 ^ { | \mathrm { m i n } ( N ) | }$ sets corresponding to the element ∨ $T$ for any $T \subseteq$ $\operatorname* { m i n } ( N )$ . Therefore,
-
-$$
-( \alpha \cdot \mathrm { H } ) _ { \mathcal { Q } E } ^ { \mathcal { G } } = \sum _ { m ( N , K ) \in \mathrm { F Y } ( \mathrm { M } , \mathcal { G } ) } \left( \sum _ { T \subseteq \operatorname* { m i n } ( N ) } ( - 1 ) ^ { | T | - 1 } \right) x ^ { \mathrm { d e g } ( m ( N , k ) ) } = - 1 .
-$$
-
-This completes the proof.
-
-3.3. Explicit formulas for the Hilbert series. Using Theorem 3.6, we can deduce the following recursions for computing Hilbert series of Chow rings of polymatroids with arbitrary building sets, which is one of the main results of the present paper.
-
-Theorem 1.1 For every nonempty polymatroid M and every building set $\mathcal { G }$ , the following two recursions hold:
-
-$$
-\mathrm { H } _ { \mathsf { M } } ^ { \mathsf { \mathcal { E } } } ( x ) = \sum _ { \substack { \emptyset \neq F \in \mathbf { \mathcal { L } } ( \mathsf { M } ) } } \frac { - \chi _ { \mathsf { M } | _ { F } } ( x ) } { ( 1 - x ) ^ { | f ( \mathfrak { G } | _ { F } ) | } } \cdot \mathrm { H } _ { \mathsf { M } / F } ^ { \mathsf { \mathcal { G } } / F } ( x ) ,
-$$
-
-and
-
-$$
-\mathrm { H } _ { \mathsf { M } } ^ { \mathsf { \mathcal { G } } } ( x ) = \sum _ { E \neq F \in { \mathcal { L } } ( \mathsf { M } ) } \mathrm { H } _ { \mathsf { M } | _ { F } } ^ { \mathsf { { g } } | _ { F } } ( x ) \cdot \frac { - \chi _ { \mathsf { M } / F } ( x ) } { ( 1 - x ) ^ { | f ( \mathsf { \mathcal { G } } / F ) | } } .
-$$
-
-Proof. Because of how we defined the element $\mathbf { H } ^ { \mathcal { G } } \in \mathcal { I }$ , the Hilbert series of the ring $D ( \mathsf { M } , \mathsf { \mathcal { G } } )$ equals $\mathrm { H } _ { \mathcal { O E } } ^ { \mathcal { G } }$ . By applying Theorem 3.6, we have that $\overline { { \chi } } ^ { \mathcal { G } } \cdot \mathrm { H } ^ { \mathcal { G } } = - \delta$ . In particular, since $E \neq \emptyset$ , we have that
-
-$$
-\begin{array} { r } { \left( \overline { { \chi } } ^ { \mathcal { G } } \cdot \mathrm { H } ^ { \mathcal { G } } \right) _ { \varnothing E } = 0 . } \end{array}
-$$
-
-Expanding, we obtain that
-
-$$
-\sum _ { F \in \mathcal { L } ( \mathsf { M } ) } \overline { { \chi } } _ { \mathcal { O } F } ^ { \mathcal { G } } \mathrm { H } _ { F E } ^ { \mathcal { G } } = 0 ,
-$$
-
-and the identity follows from separating the summand corresponding to $F = \varnothing$ .
-
-The proof of the other identity is completely analogous, but using instead that $\mathbf { H } ^ { \mathcal { G } } \cdot \overline { { \chi } } ^ { \mathcal { G } } =$ $- \delta$ and isolating the summand corresponding to $F = E$ . 
-
-![](images/c6e8bd1d8158212a29646e26844cfebd2045a97290d93f5cd6566092ae1ec189.jpg)  
-Figure 2. The lattice of flats of a polymatroid M
-
-Example 3.7 Consider the loopless polymatroid $\mathsf { M }$ on $E = \{ a , b , c \}$ described in [PP23, Section 7]. Its lattice of flats is depicted in Figure 2. Consider the building set ${ \mathcal { G } } =$ $\{ a , b , c , a b c \}$ . One can enumerate the FY-monomials to see that
-
-$$
-\mathrm { H } _ { \mathsf { M } } ^ { \mathcal { G } } ( x ) = 1 + 4 x + 5 x ^ { 2 } + 4 x ^ { 3 } + x ^ { 4 } .
-$$
-
-$\mathrm { H } _ { \mathsf { M } / F } ^ { \mathcal { G } / F } ( x )$ ow how to compute this polynomial using Theorem 1.1. We begin by computing in descending order of rank. Since for polymatroids of rank at most 1 the Hilbert series of the Chow ring is identically 1, we have that $\mathrm { H } _ { \mathsf { M } / a b c } ^ { \mathcal { G } / a b c } ( x ) = \mathrm { H } _ { \mathsf { M } / a b } ^ { \mathcal { G } / a b } ( x ) = \mathrm { H } _ { \mathsf { M } / c } ^ { \mathcal { G } / c } ( x ) = 1$ We can now compute $\mathrm { H } _ { \mathsf { M } / a } ^ { \mathcal { G } / a } ( x )$ (and $\mathrm { H } _ { \mathsf { M } / b } ^ { \mathcal { G } / b } ( x )$ in an identical fashion) as
-
-$$
-\begin{array} { l } { { \displaystyle { \mathrm { H } } _ { \mathrm { M } / a } ^ { \mathcal { G } / a } ( x ) = - \frac { \chi _ { \mathsf { M } | _ { a b } / a } ( x ) } { ( 1 - x ) ^ { | f ( \mathcal { G } | _ { a b } / a ) | } } { \mathrm { H } } _ { \mathrm { M } / a b } ^ { \mathcal { G } / a b } ( x ) - \frac { \chi _ { \mathsf { M } / a } ( x ) } { ( 1 - x ) ^ { | f ( \mathcal { G } / a ) | } } H _ { \mathsf { M } / a b c } ^ { \mathcal { G } / a b c } ( x ) } }  \\ { { \displaystyle \qquad = - \frac { x ^ { 2 } - 1 } { 1 - x } - \frac { x ^ { 3 } - x } { 1 - x } } } \\ { { \displaystyle \qquad = 1 + 2 x + x ^ { 2 } . } } \end{array}
-$$
-
-Lastly, we observe that $| f ( \mathcal { G } | _ { a b } ) | = 2$ , so
-
-$$
-{ \frac { \chi _ { \sf M | _ { a b } } ( x ) } { ( 1 - x ) ^ { | f ( \mathcal { G } | _ { a b } ) | } } } = { \frac { ( x ^ { 2 } - 1 ) ^ { 2 } } { ( 1 - x ) ^ { 2 } } } = ( x + 1 ) ^ { 2 } .
-$$
-
-Therefore,
-
-$$
-\begin{array} { l } { { \displaystyle { \mathrm { H } } _ { \mathrm { M } } ^ { \mathfrak { g } } ( x ) = - \frac { \chi _ { \mathrm { M } \vert _ { a } } ( x ) } { 1 - x } { \mathrm { H } } _ { \mathrm { M } / a } ^ { \mathfrak { g } / { a } } ( x ) - \frac { \chi _ { \mathrm { M } \vert _ { b } } ( x ) } { 1 - x } { \mathrm { H } } _ { \mathrm { M } / b } ^ { \mathfrak { g } / { b } } ( x ) - \frac { \chi _ { \mathrm { M } \vert _ { c } } ( x ) } { 1 - x } { \mathrm { H } } _ { \mathrm { M } / c } ^ { \mathfrak { g } / { c } } ( x ) } } \\ { { \displaystyle ~ - \frac { \chi _ { \mathrm { M } \vert _ { a b } } ( x ) } { ( 1 - x ) ^ { 2 } } { \mathrm { H } } _ { \mathrm { M } / a b } ^ { \mathfrak { g } / { a b } } ( x ) - \frac { \chi _ { \mathrm { M } } ( x ) } { 1 - x } } } \\ { { \displaystyle ~ = ( x + 1 ) ( x + 1 ) ^ { 2 } + ( x + 1 ) ( x + 1 ) ^ { 2 } + ( x ^ { 3 } + x ^ { 2 } + x + 1 ) \cdot 1 } } \\ { { \displaystyle ~ - ( x + 1 ) ^ { 2 } \cdot 1 + ( x ^ { 4 } + x ^ { 3 } - x ^ { 2 } - x - 1 ) } } \\ { { \displaystyle ~ = 1 + 4 x + 5 x ^ { 2 } + 4 x ^ { 3 } + x ^ { 4 } } . } \end{array}
-$$
-
-We now rewrite Theorem 3.6 to obtain a non-recursive formula for $\mathrm { H } _ { \mathsf { M } } ^ { \mathcal { G } } ( x )$ as a sum over chains of flats.
-
-Corollary 1.2 The Hilbert series of $D ( \mathsf { M } , \mathsf { \mathcal { G } } )$ equals
-
-$$
-\mathrm { H } _ { \mathrm { M } } ^ { \mathcal { G } } ( x ) = \sum _ { m \geq 1 } \sum _ { \mathcal { O } = F _ { 0 } \subset \cdots \subsetneq F _ { m } = E } ( - 1 ) ^ { m } \prod _ { i = 1 } ^ { m } \frac { \chi _ { \mathrm { M } | _ { F _ { i } } / F _ { i - 1 } } ( x ) } { ( 1 - x ) ^ { | f ( \mathcal { G } | _ { F _ { i } } / F _ { i - 1 } ) | } } .
-$$
-
-Proof. Combining the identity in Theorem 3.6 with a general formula describing inverses in the incidence algebra as sums over chains (see [ER95, Lemma 5.3]) gives the result. $\boxed { \begin{array} { r l } \end{array} }$
-
-Example 3.8 Consider ${ \mathsf { M } } = { \mathsf { K } } _ { 4 }$ , the graphic matroid associated to the complete graph on 4 vertices. As we explain at the beginning of Section 4, flats of this matroid are in natural bijection with partitions of $\{ 1 , 2 , 3 , 4 \}$ . These are the possible chains in $\mathcal { L } ( \boldsymbol { \mathsf { M } } )$ , where we denote flats by partitions of [4]:
-
-• one flag of type $1 | 2 | 3 | 4 \subsetneq 1 2 3 4$ , • 6 flags of type $1 | 2 | 3 | 4 \subsetneq i j | k | l \subsetneq 1 2 3 4$ , • 4 flags of type $1 | 2 | 3 | 4 \subsetneq i j k | l \subsetneq 1 2 3 4$ , • 3 flags of type $1 | 2 | 3 | 4 \subsetneq i j | k l \subsetneq 1 2 3 4$ , • 12 flags of type $1 | 2 | 3 | 4 \subsetneq i j | k | l \subsetneq i j k | l \subsetneq 1 2 3 4$ , $\bullet$ 6 flags of type $1 | 2 | 3 | 4 \subsetneq i j | k | l \subsetneq i j | k l \subsetneq 1 2 3 4$ .
+Stuff your eyes with wonder... See the world. It’s more fantastic than any dream made or paid for in factories.
 
-Let us write $\chi _ { m } ( x ) = ( x - 1 ) ( x - 2 ) \cdot \cdot \cdot ( x - m + 1 )$ for the characteristic polynomial of $\mathsf { K } _ { m }$ . The formula in the preceding corollary states that
+Ray Bradbury, Fahrenheit 451
 
-$$
-\begin{array} { r l } & { \mathrm { H } _ { \mathrm { K } _ { 4 } } ^ { \mathcal { G } _ { \mathrm { m i n } } } ( x ) = \overline { { \chi } } _ { 4 } + 6 \overline { { \chi } } _ { 2 } \overline { { \chi } } _ { 3 } + 4 \overline { { \chi } } _ { 3 } \overline { { \chi } } _ { 2 } - 3 \overline { { \chi } } _ { 2 } \overline { { \chi } } _ { 2 } \overline { { \chi } } _ { 2 } + 1 2 \overline { { \chi } } _ { 2 } \overline { { \chi } } _ { 2 } \overline { { \chi } } _ { 2 } + 6 \overline { { \chi } } _ { 2 } \overline { { \chi } } _ { 2 } \overline { { \chi } } _ { 2 } } \\ & { \qquad = ( x - 2 ) ( x - 3 ) + 1 0 ( x - 2 ) + 1 5 } \\ & { \qquad = x ^ { 2 } + 5 x + 1 . } \end{array}
-$$
-
-3.4. A more efficient non-recursive formula. Let $S$ be a $\mathcal { G }$ -nested set. We recall from the notation in the statement of Theorem 2.7 that
-
-$$
-\operatorname* { s u p } ( S , F ) : = \bigvee _ { F _ { j } \in S \atop F _ { j } < F } F _ { j } .
-$$
-
-Following the terminology in [Cor25a, Definition 2.12], we say that a $\mathcal { G }$ -nested set $S$ is spanning if the join of all the elements in $S$ is the ground set $E$ or, equivalently, if $S$ contains all the maximal elements of $\mathcal { G }$ . We have the following formula for computing $\mathrm { H } _ { \mathsf { M } } ^ { \lessgtr } ( x )$ in terms of spanning $\mathcal { G }$ -nested sets.
-
-Theorem 1.3 The Hilbert series of $D ( \mathsf { M } , \mathsf { \mathcal { G } } )$ equals
-
-$$
-\mathrm { H } _ { \mathsf { M } } ^ { \mathcal { G } } ( x ) = \sum _ { S } \prod _ { F \in S } \overline { { \chi } } _ { \mathsf { M } | _ { F } / \operatorname* { s u p } ( S , F ) } ( x ) ,
-$$
-
-where the sum runs over all spanning $\mathcal { G }$ -nested sets.
-
-Proof. We show this by induction on the rank of the polymatroid M. We analyze two cases according to whether $E$ belongs to $\mathcal { G }$ or not.
-
-If $E \in { \mathcal { G } }$ , then, by the induction hypothesis applied to the recursion (4), we have
+Open-world generalization represents one of the biggest open problems in physical intelligence: embodied systems such as robotic arms, humanoids, and autonomous vehicles only truly become useful when they can leave the lab and handle the diverse situations and unexpected events that occur in the real world. Learning-based systems offer a path to enabling broad generalization, particularly with recent advances that have enabled scalable learning systems in domains ranging from natural language processing [79, 21, 10, 78] to computer vision [34, 66, 35, 43]. However, the diversity of situations that a robot might encounter in the real world requires more than just scale: we need to design training recipes that can provide the breadth of knowledge that will allow robots to generalize at many levels of abstraction. For example, if a mobile robot is asked to clean up a kitchen that it has never seen before, some behaviors generalize readily if they are well represented in the data with a sufficient range of scenes and objects (e.g., picking up a knife or plate), others might require adapting or modifying existing skills to use them in a new way or in a new sequence, and yet others might require understanding the semantics of the scene based on prior knowledge (e.g., which drawer to open, or which object on the counter is most likely to be a drying rack). How can we structure a training recipe for a robotic learning system that can enable this kind of flexible generalization?
 
-$$
-\mathrm { H } _ { \mathsf { M } } ^ { \mathsf { \mathcal { G } } } ( x ) = \sum _ { E \neq F \in \mathcal { L } ( \mathsf { M } ) } \left( \sum _ { \begin{array} { l } { S ^ { \prime } \mathrm { s p a n n i n g ~ } G \in S ^ { \prime } } \\ { \mathcal { G } _ { \mid F ^ { - \mathrm { n e s t e d } } } } \end{array} } \prod _ { G \in S ^ { \prime } } \overline { { \chi } } _ { \mathsf { M } \mid G } / \operatorname* { s u p } ( S ^ { \prime } , G ) \right) \overline { { \chi } } _ { \mathsf { M } / F } ^ { \mathcal { G } / F } ( x ) .
-$$
+![](images/f8f500c8147c2b724e0dc526437f114645dc561f0a297336c4195d766293bd32.jpg)  
+Fig. 2: $\pi _ { 0 . 5 }$ cleaning a new kitchen. The robot is tasked with cleaning a kitchen in a home that was not in the training data. The model is given general tasks (close the cabinets, put the items in the drawer, wipe the spill, and put the dishes in the sink), which it performs by both predicting subtasks to accomplish (e.g., pick up the plate) and emitting low-level actions.
 
-Since $E \in { \mathcal { G } }$ , we have that $\overline { { \chi } } _ { \sf M / F } ^ { \mathcal { G } / F } ( x ) = \overline { { \chi } } _ { \sf M / F } ( x )$ . Notice that for each spanning $\mathcal { G } | _ { F }$ -nested set $S ^ { \prime }$ appearing in the sum between parentheses, the set $S = S ^ { \prime } \cup \{ E \}$ is $\mathcal { G }$ -nested and $F = \operatorname* { s u p } ( S , E )$ . Therefore, we can write $\overline { { \chi } } _ { \mathsf { M } / F } ( x ) = \overline { { \chi } } _ { \mathsf { M } | _ { E } / \operatorname { s u p } ( S , E ) } ( x )$ and group it with the factors inside the sum, thus finishing the induction step in this case.
-
-If, instead, $E \notin { \mathcal { G } }$ let $f ( { \mathcal { G } } ) = \{ F _ { 1 } , \ldots , F _ { k } \}$ be the $\mathcal { G }$ -factors. There is a correspondence between $\mathcal { G }$ -nested sets and the disjoint union of $\mathcal { G } | _ { F _ { i } }$ -nested sets for $i = 1 , \dots k$ ; moreover, this correspondence extends to FY-monomials. Hence, the identities
-
-$$
-\mathrm { H } _ { \mathsf { M } } ^ { \mathcal { G } } ( x ) = \prod _ { j = 1 } ^ { k } \mathrm { H } _ { \mathsf { M } | _ { F _ { j } } } ^ { \mathcal { G } | _ { F _ { j } } } ( x )
-$$
+A person can draw on a lifetime of experience to synthesize appropriate solutions to each of these challenges. Not all of this experience is firsthand, and not all of it comes from rote practice – for example, we might use facts that we were told by others or read in a book, together with bits of insight from other tasks we have performed in different contexts, combined with direct experience in the target domain. Analogously, we might hypothesize that generalizable robotic learning systems must be able to transfer experience and knowledge from a variety of information sources. Some of these sources are firsthand experience with direct relevance to the task at hand, some require transfer from other robot embodiments, environments, or domains, and some represent entirely different data types, such as verbal instructions, perceptual tasks based on web data, or prediction of high-level semantic commands. The heterogeneity of these different sources of data present a major obstacle, but fortunately recent advances in visionlanguage-action (VLA) models provide us with a toolkit that can make this possible: by casting different modalities into the same sequence modeling framework, VLAs can be adapted to train on robot data, language data, computer vision tasks, and combinations of the above.
 
-and
+In this paper, we leverage this observation to design a cotraining framework for VLAs that can utilize heterogeneous and diverse knowledge sources to enable broad generalization.
 
-$$
-\sum _ { \substack { S \mathrm { \scriptsize ~ s p a n n i n g } } } \prod _ { \substack { F \in S } } \overline { { \chi } } _ { \mathsf { M } | _ { F } / \operatorname* { s u p } ( S , F ) } = \prod _ { j = 1 } ^ { k } \sum _ { \substack { S \mathrm { \scriptsize ~ s p a n n i n g } } } \prod _ { \substack { F \in S } } \overline { { \chi } } _ { \mathsf { M } | _ { F } / \operatorname* { s u p } ( S , F ) }
-$$
+Building on the $\pi _ { 0 }$ VLA, we propose to include a range of different data sources to create the $\pi _ { 0 . 5 }$ model (“pi oh five”), which can control mobile manipulators to perform a variety of household tasks even in homes that were never seen during training. $\pi _ { 0 . 5 }$ draws on experience from many sources: in addition to a medium-sized dataset collected directly with mobile manipulators in a variety of real homes (about 400 hours), $\pi _ { 0 . 5 }$ uses data from other non-mobile robots, data of related tasks collected under laboratory conditions, training examples that require predicting “high-level” semantic tasks based on robot observation, verbal language instructions provided to the robot by human supervisors, and a variety of multi-modal examples created from web data, such as image captioning, question answering, and object localization (see Figure 1). The overwhelming majority of training examples provided to $\pi _ { 0 . 5 }$ $( 9 7 . 6 \%$ during the first training phase) do not come from mobile manipulators performing household tasks, but from these other sources, such as other robots or data from the web. Nonetheless, $\pi _ { 0 . 5 }$ is able to control mobile manipulators in entirely new homes not seen during training, perform intricate tasks such as hanging up towels or making beds, and can carry out long-horizon manipulation skills 10 to 15 minutes in length, cleaning an entire kitchen or bedroom based on only a high-level prompt.
 
-hold and allow us to conclude by using the induction hypothesis.
+The design of $\pi _ { 0 . 5 }$ follows a simple hierarchical architecture: we first pre-train the model on the heterogeneous mixture of training tasks, and then fine-tune it specifically for mobile manipulation with both low-level action examples and high-level “semantic” actions, which correspond to predicting subtask labels such as “pick up the cutting board” or “rearrange the pillow.” At runtime, during each step of inference, the model first predicts the semantic subtask, inferring the behavior that is appropriate to perform next based on the task structure and the semantics of the scene, and then predicts the low-level robot action chunk based on this subtask. This simple architecture provides both the ability to reason about long-horizon multi-stage tasks and the ability to leverage different sources of knowledge for the two levels: the low-level action inference procedure readily benefits from action data collected by other robots, including simpler static robots in other environments, while the high-level inference procedure benefits from semantic examples from the web, high-level annotation prediction, and even verbal commands that can be provided to the robot by human “supervisors” that walk the robot through complex tasks step by step, instructing it (much like how they might instruct a person) on the appropriate subtasks to perform to complete a complex task such as cleaning a room. We illustrate this design in Figure 1.
 
-3.5. The geometry of the formulas. We explain the geometry behind our formulas for $\mathrm { H } _ { \mathsf { M } } ^ { \lessgtr } ( x )$ . For simplicity, let us explain the recursion (4) under the assumption that $\mathsf { M }$ is a matroid and that $\mathcal { G }$ contains the ground set $E$ . This geometric picture will also be helpful in constructing examples in Section 6.
+Our central contribution is a system for training a highly generalizable VLA, $\pi _ { 0 . 5 }$ , together with a proof of concept that generalization can emerge from this model when it is trained on appropriately diverse data. We provide a detailed empirical evaluation of both $\pi _ { 0 . 5 }$ ’s generalization capabilities and the relevance of different co-training ingredients. To our knowledge, our work is the first to demonstrate an end-to-end learning-enabled robotic system that can perform long-horizon and dexterous manipulation skills, such as cleaning a kitchen or bedroom, in entirely new homes. Our experiments and comparisons further show that this is enabled by transferring knowledge from other robots, high-level semantic prediction, verbal language instruction from human supervisors, web data, and other sources.
 
-Suppose the matroid $\mathsf { M }$ has a realization by a linear subspace $L \subseteq \mathbb { C } ^ { E }$ . That is, the rank function of $\mathsf { M }$ is given by
+# II. RELATED WORK
 
-$\operatorname { r k } ( S ) = \dim ( \operatorname { t h e ~ i m a g e ~ o f ~ } L \operatorname { ~ u n d e r ~ t h e ~ p r o j e c t i o n ~ } \mathbb { C } ^ { E } \to \mathbb { C } ^ { S } ) .$
+Generalist robot manipulation policies. Recent works have demonstrated that broadening the training data distribution for robot manipulation policies from narrow, single-task datasets to diverse datasets that span many scenes and tasks [17, 25, 80, 63, 41, 6, 30, 67, 1] allows the resulting policies to not only solve a wider range of tasks out of the box, but also improves their ability to generalize to new scenes and tasks [9, 63, 62, 22]. Training such generalist policies requires new modeling approaches that can handle the scale and diversity of datasets that often span hundreds of different tasks and scenes. Vision-language-action models (VLAs) [23, 92, 42, 8, 83, 90, 55, 45, 3, 75, 64, 76, 84, 7, 37] offer an appealing solution: by fine-tuning pre-trained visionlanguage models for robot control, VLAs can leverage the semantic knowledge acquired from web-scale pretraining and bring it to bear on the robotics problem. When combined with highly expressive action decoding mechanisms like flow matching [8], diffusion [55, 84, 52], or advanced action tokenization schemes [64], VLAs can perform a wide range of complex manipulation tasks in the real world. However, despite impressive language following abilities, VLAs are still typically evaluated in environments that closely match their training data. While some studies suggest that simple skills like picking up objects or opening drawers can be made to generalize simply by collecting robot data in a broader set of environments [14, 67, 28, 49, 64], it is challenging to apply the same approach to more complex, long-horizon tasks like cleaning up a kitchen, where achieving broad coverage of plausible scenarios via brute-force scaling of robot data collection is infeasible. In our experiments, we evaluate $\pi _ { 0 . 5 }$ in entirely new scenes, such as new kitchens and bedrooms that were not seen in training, showing that our VLA can generalize to entirely new scenes by leveraging not only direct first-hand experience on the target mobile manipulator platform, but also information from other data sources. These sources include data from other (non-mobile) robots, highlevel semantic subtask prediction, and data from the web.
 
-We assume that $L$ is not contained in a coordinate hyperplane, i.e. that $\mathsf { M }$ is loopless. Denote by $\mathbb { P } \overset { \circ } { L } : = \mathbb { P } L \cap \mathbb { P } ( ( \mathbb { C } ^ { * } ) ^ { E } )$ the projective hyperplane arrangement complement. For $F$ a flat of $\mathsf { M }$ , let $L _ { F } : = L \cap \{ x _ { i } = 0 : i \in F \}$ and $L ^ { F } : = L / L _ { F }$ . We consider $L _ { F }$ and $L ^ { F }$ as subspaces of $\mathbb { C } ^ { E \backslash F }$ and $\mathbb { C } ^ { F }$ respectively, so that they define arrangement complements $\mathbb { P } \overset { \circ } { L } _ { F }$ and $\mathbb { P } \mathring { L } ^ { F }$ , with corresponding matroids $\mathsf { M } / F$ and $\mathsf { M } | _ { F }$ , respectively. Note that $\| ^ { \flat } L _ { E } = \emptyset$ and $\mathbb { P } L ^ { E } = \mathbb { P } L$ .
+Non-robot data co-training. A number of prior works have sought to use diverse non-robot data to improve the generalization of robot policies. Prior methods have explored initializing vision encoders from computer vision datasets [85, 58, 57, 18], or leveraging off-the-shelf task planners [38, 48, 73, 81]. VLA policies are typically initialized from a pre-trained visionlanguage model, which has been exposed to large amounts of internet vision and language data [23, 92, 42]. Notably, the VLA architecture is flexible and allows to map between input and output sequences of multi-modal vision, language, and action tokens. As such, VLAs broaden the design space of possible transfer approaches beyond simple weight initialization, by supporting the co-training of a single, unified architecture on not just robot action imitation data, but any dataset that interleaves one or multiple of the aforementioned modalities. Prior works have demonstrated that co-training VLAs with data mixtures used for VLM training [23, 92, 86] can improve their generalization ability, e.g., when interacting with new objects or unseen scene backgrounds. In this work, we go beyond VLM data co-training and design a system for cotraining VLAs with a broader set of robotics-relevant supervision sources, including data from other robots, high-level semantic subtask predictions, and verbal language instructions. While multitask training and co-training are not new ideas, we show that the specific combination of data sources in our system enables mobile robots to perform complex and longhorizon behaviors in entirely new environments. We believe that this level of generalization, particularly when accounting for the complexity of the tasks, goes significantly beyond the results demonstrated in prior works.
 
-Given a building set $\mathcal { G }$ containing $E$ , let $\{ G _ { 1 } , \dots , G _ { m } \}$ be a total order on $\mathcal { G }$ that refines the order on $\mathcal { L } ( \boldsymbol { \mathsf { M } } )$ . The wonderful variety $\underline { W } _ { L } ^ { \lessgtr }$ introduced in [DCP95] is the sequential blow-up of (the strict transforms of) the $\mathbb { P } L _ { G _ { i } }$ , that is,
+Robot reasoning and planning with language. A number of prior works have shown that augmenting end-to-end policies with high-level reasoning can significantly improve performance for long-horizon tasks [2, 36, 44, 74, 71, 4, 16, 11, 53, 88, 51, 59, 13, 70, 91, 65, 72, 47, 76, 89], particularly when high-level subtask inference can benefit from large pretrained LLMs and VLMs. Our method also uses a two-stage inference procedure, where we first infer a high-level semantic subtask (e.g., “pick up the plate”), and then predict the action based on this subtask. Many prior methods have employed two separate models for this purpose, with a VLM predicting semantic steps and a separate low-level policy executing those steps [2, 71, 13, 24, 70, 72, 47]. Our method uses the same exact model for both high-level and low-level inference, in a recipe that more closely resembles chain-of-thought [82] or test-time compute [39] methods, though unlike embodied chain-of-thought methods [88, 46, 61], the high-level inference process still runs at a lower frequency than low-level action inference.
 
-$$
-\underline { { W } } _ { L } ^ { \mathcal { G } } : = \operatorname { B l } _ { \widetilde { \mathbb { P } } L _ { G _ { 1 } } } \big ( \cdot \cdot \cdot ( \operatorname { B l } _ { \widetilde { \mathbb { P } } L _ { G _ { m - 1 } } } ( \operatorname { B l } _ { \mathbb { P } L _ { G _ { m } } } \mathbb { P } L ) ) \cdot \cdot \cdot \big ) .
-$$
+Robotic learning systems with open-world generalization. While most robotic learning systems are evaluated in environments that closely match the training data, a number of prior works have explored broader open-world generalization. When the robot’s tasks are restricted to a more narrow set of basic primitives, such as picking up objects, methods that allow for task-specific assumptions (e.g., grasp prediction, or incorporating model-based planning and control) have been shown to generalize broadly, even to entirely new homes [40, 20, 60, 56, 29]. However, such methods do not readily generalize to the full range of possible tasks that a generalist robot might need to perform. More recently, large-scale datasets collected across many domains [41, 68, 63, 67, 14, 49] have been shown to enable generalization of simple but end-to-end learned tasks to new environments [33, 31, 67, 69, 26, 49, 28, 64]. However, the tasks in these demonstrations are still relatively simple, typically less than a minute in length and often with relatively low success rates. We show that $\pi _ { 0 . 5 }$ can perform long, multistage tasks, such as putting all of the dishes in the sink or picking all of the clothing off the floor of a new bedroom, while generalizing to entirely new homes.
 
-The cohomology ring of $\underline { W } _ { L } ^ { \lessgtr }$ is isomorphic to $D ( \mathsf { M } , \mathsf { \mathcal { G } } )$
+![](images/929ff7c04d23b0f987c2716e742fa07a20bb9edfbb03c2c34c533bb6e95e39c4.jpg)  
+Fig. 3: Model overview. $\pi _ { 0 . 5 }$ is trained in two stages. First, a pre-training stage combines all of the different data sources to produce an initial VLA with discrete tokens. This stage uses data from diverse robotic platforms, high-level semantic action prediction, and data from the web. Robotic data uses the FAST action tokenizer to represent actions as discrete tokens [64]. Second, a post-training stage specializes the model for low-level and high-level inferences for mobile manipulation, leveraging the most task-relevant data, including verbal instructions from human supervisors. This stage uses flow matching to represent the action distribution, enabling efficient real-time inference and the ability to represent fine-grained continuous action sequences. At inference time, the model first infers a high-level subtask, and then predicts the actions based on this subtask.
 
-Let $P _ { X } ( q )$ denote the virtual Poincar´e polynomial of a variety $X$ over $\mathbb { C }$ , characterized by the following two properties (see, for instance, [Ful93, Section 4.5]): (i) If $X$ is complete and smooth, then $\begin{array} { r } { P _ { X } ( q ) = \sum _ { i \geq 0 } \dim { H ^ { i } } ( X , \mathbb { Q } ) q ^ { i } } \end{array}$ ; and (ii) if $\begin{array} { r } { X = \bigcup _ { j } Y _ { j } } \end{array}$ is a decomposition of $X$ into finitely many locally closed subsets $Y _ { j }$ , then $\begin{array} { r } { P _ { X } = \sum _ { j } P _ { Y _ { j } } } \end{array}$ . Note that $P _ { \underline { { W } } _ { L } ^ { \mathcal { G } } } ( q ) \ = \ \mathrm { H } _ { \mathsf { M } } ^ { \mathcal { G } } ( q ^ { 2 } )$ . Since $E \in { \mathcal { G } }$ , the recursion (4) states
+# III. PRELIMINARIES
 
-$$
-\mathrm { H } _ { \mathsf { M } } ^ { \mathsf { \mathcal { G } } } ( x ) = \sum _ { F \neq E } \mathrm { H } _ { { \mathsf { M } } | _ { F } } ^ { \mathsf { \mathcal { G } } | _ { F } } ( x ) \cdot \overline { { \chi } } _ { \mathsf { M } / F } ( x ) ,
-$$
+Vision-language-action models (VLAs) are typically trained via imitation learning on diverse robot demonstration datasets $\mathcal { D }$ , by maximizing the log-likelihood of an action $\mathbf { a } _ { t }$ (or, more generally, an action chunk $\mathbf { a } _ { t : t + H } )$ given an observation $\mathbf { o } _ { t }$ and a natural language task instruction $\ell$ max $\begin{array} { r } { { / } \mathbb { E } _ { ( \mathbf { a } _ { t : t + H } , \mathbf { o } _ { t } , \ell ) \sim \mathcal { D } } \log \big ( \pi _ { \theta } ( \mathbf { a } _ { t : t + H } | \mathbf { o } _ { t } , \ell ) \big ) } \end{array}$ . The observation typically contains one or more images $\mathbf { I } _ { t } ^ { 1 } , . . . , \mathbf { I } _ { t } ^ { n }$ and proprioceptive state $\mathbf { q } _ { t }$ , which captures the position of the robot’s joints. VLA architectures follow the design of modern language and vision-language models, with modality-specific tokenizers that map inputs and outputs to discrete (“hard”) or continuous (“soft”) token representations, and a large, autoregressive transformer backbone that is trained to map from input to output tokens. The weights of these models are initialized from pre-trained vision-language models. By encoding policy inputs and outputs into tokenized representations, the imitation learning problem described above can be cast as a simple next-token-prediction problem over a sequence of observation, instruction and action tokens, and we can leverage the scalable tools of modern machine learning to optimize it. In practice, the choice of tokenizers for image and text inputs follows those of modern vision-language models. For actions, prior work has developed effective, compressionbased tokenization approaches [64], which we use in this work during pretraining. A number of recent VLA models have also proposed to represent the action distribution via diffusion [55, 84, 52] or flow matching [8], providing a more expressive representation over continuous-valued action chunks. During the post-training phase of our model, we will build on the design of the $\pi _ { 0 }$ model [8], which represents the action distribution via flow matching. In this design, the tokens corresponding to actions receive the partially denoised actions from the previous step of flow matching as input, and output the flow matching vector field. These tokens also use a different set of model weights, which we refer to as an “action expert,” analogously to a mixture of experts architecture. This action expert can specialize to flow matching-based action generation, and can be significantly smaller than the rest of the LLM backbone.
 
-which now follows from the following observations:
+# IV. THE $\pi _ { 0 . 5 }$ MODEL AND TRAINING RECIPE
 
-• The projection map $\pi \colon \underline { W } _ { L } ^ { \mathcal G } \to \mathbb P L$ is a composition of blow-down maps, under   
-which the strict transform of $\mathbb { P } L _ { F }$ is × W L [ DCP95, Theorem 4.3], so that   
-π−1(P˚LF ) ≃ W LF × .   
-• We have a decomposition $\begin{array} { r } { \mathbb { P } L = \bigcup _ { F \neq E } \mathbb { P } \overset { \circ } { L } _ { F } } \end{array}$ into locally closed subvarieties, which gives a decomposition $\begin{array} { r } { \underline { { W } } _ { L } ^ { \mathcal { G } } = \bigsqcup _ { F \not = E } \pi ^ { - 1 } ( \mathbb { P } \check { L } _ { F } ) } \end{array}$ .   
-• The virtual Poincar´e polynomial $P _ { \mathbb { P } \mathring { L } _ { F } } ( q )$ of $\mathbb { P } \overset { \circ } { L } _ { F }$ is equal to the reduced characteristic polynomial $\overline { { \chi } } _ { \mathsf { M } / F } ( \boldsymbol { q } ^ { 2 } )$ (see for instance [Kat16, Section 7.2]).
+We provide an overview of the $\pi _ { 0 . 5 }$ model and training recipe in Figure 3. The model weights are initialized from a standard VLM trained on data from the web, and training then proceeds in two stages: a pre-training stage intended to adapt the model to diverse robotic tasks, and a post-training stage intended to specialize it to mobile manipulation and equip it with the mechanisms for efficient test-time inference. During pre-training, all tasks, including tasks with robot actions, are represented with discrete tokens, which leads to simple, scalable, and efficient training [64]. During post-training, we adapt the model to also have an action expert, as with $\pi _ { 0 }$ , in order to both represent actions with finer granularity and enable more compute-efficient inference for real-time control. At inferencetime, the model first produces a high-level subtask for the robot to perform and then, conditioned on this subtask, predicts the low-level actions via the action expert. We describe the model architecture below, followed by a description of each of the phases and their corresponding training tasks.
 
-# 4. Formulas for $\overline { { \mathcal { M } } } _ { 0 , n + 1 }$
+# A. The $\pi _ { 0 . 5 }$ architecture
 
-In this section we will apply our results to the case in which ${ \sf M } = { \sf K } _ { n }$ is the graphic matroid associated to the complete graph on $n$ vertices, and $\mathcal { G } = \mathcal { G } _ { \operatorname* { m i n } }$ . These matroids are often called braid matroids since they admit realizations by the braid arrangements of type $A$ . In this realization, the wonderful variety as recalled in Section 3.5 is the moduli space $\mathcal { M } _ { 0 , n + 1 }$ of $( n + 1 )$ -pointed stable rational curves [DCP95, Section 4.3]. The Poincar´e polynomial $P _ { \overline { { \mathcal { M } } } _ { 0 , n + 1 } } ( x )$ of the cohomology ring of $\overline { { \mathcal { M } } } _ { 0 , n + 1 }$ therefore satisfies
+The $\pi _ { 0 . 5 }$ architecture can flexibly represent both action chunk distributions and tokenized text outputs, with the latter used both for co-training tasks (e.g., question-answering) and for outputting high-level subtask predictions during hierarchical inference. The distribution captured by the model can be written as $\pi _ { \theta } ( \mathbf { a } _ { t : t + H } , \hat { \ell } | \mathbf { o } _ { t } , \ell )$ , where $\mathbf o _ { t } = [ \mathbf I _ { t } ^ { 1 } , . . . , \mathbf I _ { t } ^ { n } , \mathbf q _ { t } ]$ consists of the images from all of the cameras and the robot’s configuration (joint angles, gripper pose, torso lift pose, and base velocity), $\ell$ is the overall task prompt (e.g., “put away the dishes”), $\hat { \ell }$ represents the model’s (tokenized) textual output, which could be either a predicted high-level subtask (e.g., “pick up the plate”) or the answer to a vision-language prompt in web data, and $\mathbf { a } _ { t : t + H }$ is a predicted action chunk. We decompose the distribution as
 
 $$
-\mathrm { H } _ { \mathsf { K } _ { n } } ^ { \mathcal { G } _ { \mathrm { m i n } } } ( x ) = P _ { \overline { { \mathcal { M } } } _ { 0 , n + 1 } } ( x ) .
+\pi _ { \boldsymbol { \theta } } ( \mathbf { a } _ { t : t + H } , \hat { \ell } | \mathbf { o } _ { t } , \ell ) = \pi _ { \boldsymbol { \theta } } ( \mathbf { a } _ { t : t + H } | \mathbf { o } _ { t } , \hat { \ell } ) \pi _ { \boldsymbol { \theta } } ( \hat { \ell } | \mathbf { o } _ { t } , \ell ) ,
 $$
-
-There have been several works on this Poincar´e polynomial [Kee92, Man95, Get95, AMN24]. We apply our formulas from Section 3 to deduce a new formula for $P _ { \overline { { \mathcal { M } } } _ { 0 , n + 1 } } ( x )$ and recover previous results about $P _ { \overline { { \mathcal { M } } } _ { 0 , n + 1 } } ( x )$ .
-
-4.1. A formula in terms of partitions. Let us begin with an elementary but useful observation: the flats of $\mathsf { K } _ { n }$ of rank $i$ are in bijection with the partitions of $[ n ] = \{ 1 , \dots , n \}$ into $n - i$ nonempty subsets. The bijection is given by assigning to the partition $S _ { 1 } \sqcup \cdots \sqcup$ $S _ { n - i } = [ n ]$ the set of edges in the union $\mathsf { K } _ { S _ { 1 } } \sqcup \cdots \sqcup \mathsf { K } _ { S _ { n - i } }$ of complete graphs. Thus, the connected flats of $\mathsf { K } _ { n }$ correspond to partitions of $[ n ]$ in which there is at most one part that is not a singleton. The meet (resp. join) on the lattice of flats $\mathcal { L } ( \mathsf { K } _ { n } )$ can be interpreted as the coarsest common refinement (resp. finest common coarsening) of partitions of $[ n ]$ . For braid matroids, because a minor $\mathsf { M } | _ { G } / F$ by flats $F$ and $G$ is again always a direct sum of smaller braid matroids (up to simplification of some parallel elements), one deduces that $\mathcal { G } _ { \mathrm { m i n } } | _ { G } / F$ is the minimal building set for the minor $\mathsf { M } | _ { G } / F$ . From now on, we write $\lambda \vdash [ a ]$ to denote a set partition $\lambda$ of the set $\{ 1 , \ldots , a \}$ .
-
-To apply Theorem 1.3, we need a description of (spanning) $\mathcal { G } _ { \mathrm { m i n } }$ -nested sets of $\mathsf { K } _ { n }$ ; this is accompished by the next proposition. This result has been rediscovered multiple times in the literature; see, e.g., Erd¨os–Sz´ekely [ES89, Theorem 1] or, for a more explicit explanation, [Gai15, Theorem 2.1] by Gaiffi. We include a formulation more adequate for our purposes, and a proof for the sake of completeness.
 
-Proposition 4.1 There is a bijection between the set of spanning $\mathcal { G } _ { \mathrm { m i n } }$ -nested sets of cardinality m in $\mathsf { K } _ { n }$ and the collection of set partitions of $[ n + m - 1 ]$ into m parts, none of which has size one. Moreover, for each spanning $\mathcal { G } _ { \mathrm { m i n } }$ -nested set, the sizes of the parts of the partition are determined as follows: each $F \in S$ corresponds to a part of size $k$ where $\mathsf { K } _ { k }$ is the simplification of the minor $\mathsf { K } _ { n } | _ { F } / \operatorname* { s u p } ( F , S )$ .
+where the action distribution does not depend on $\ell$ , only on $\hat { \ell }$ . Thus, high-level inference captures $\pi _ { \boldsymbol { \theta } } ( \widehat { \ell } | _ { \mathbf { o } _ { t } , \ell } )$ , and low-level inference captures $\pi _ { \boldsymbol { \theta } } \big ( \mathbf { a } _ { t : t + H } \big | \mathbf { o } _ { t } , \widehat { \ell } \big )$ , with both distributions represented by the same model.
 
-Proof. Let us construct an explicit bijection. Consider the set $A = [ n ] \cup \{ w _ { 1 } , \dotsc , w _ { m - 1 } \}$ consisting of $n + m - 1$ elements, i.e., the vertices of $\mathsf { K } _ { n }$ and $m - 1$ additional elements. Consider a spanning $\mathcal { G }$ -nested set $S$ , and linearly order the flats of $S$ as $G _ { 1 } , \ldots , G _ { m }$ first by rank, then, among elements of the same rank, by their minimal element. Reading the list in this order, we build a partition of $A$ as follows:
+The model corresponds to a transformer that takes in $N$ multimodal input tokens $x _ { 1 : N }$ (we use the term token loosely here, referring to both discretized and continuous inputs) and produces a sequence of multimodal outputs $y _ { 1 : N }$ , which we can write as $y _ { 1 : N } = f { \big ( } x _ { 1 : N } , A ( x _ { 1 : N } ) , \rho ( x _ { 1 : N } ) { \big ) }$ . Each $x _ { i }$ can be a text token $( x _ { i } ^ { w } \in \mathbb { N } )$ , an image patch $( \boldsymbol { \dot { x } } _ { i } ^ { I } \in \mathbb { R } ^ { p \times p \times 3 } )$ , or an intermediate denoising value of a robot action in flow matching $( x _ { i } ^ { a } \in \mathbb { R } ^ { d } )$ ). The observations $\mathbf { o } _ { t }$ and $\ell$ form the prefix part of $x _ { 1 : N }$ . Depending on the token type, as indicated by $\rho ( x _ { i } )$ , each token can be processed not only by a different encoder, but also by different expert weights within the transformer. For example, image patches are fed through a vision encoder, and text tokens are embedded with an embedding matrix. Following $\pi _ { 0 }$ [8], we linearly project action tokens $\boldsymbol { x } _ { i } ^ { a }$ into the transformer embedding space and use separate expert weights in the transformer to process the action tokens. The attention matrix $A ( x _ { 1 : N } ) \in [ 0 , 1 ] ^ { N \times N }$ indicates if a token can attend to another token. Compared to standard causal attention in LLMs, image patch, textual prompt, and continuous action tokens use bidirectional attention.
 
-• If $| S | = 1$ , then the spanning property implies that $S = \{ E \}$ . The corresponding partition of $A$ that we assign in this case is $\{ A \}$ . • If $| S | > 1$ , we set a part in our partition to be $G _ { 1 }$ . To get the remaining parts, proceed as follows. First, replace all the flats $G \in S$ such that $G \supseteq G _ { 1 }$ by $( G \backslash$ $G _ { 1 } ) \cup \{ w _ { 1 } \}$ . Then, construct a partition of size $m - 1$ of $( [ n ] \setminus G _ { 1 } ) \cup \{ w _ { 2 } , \dots , w _ { m - 1 } \}$ : inductively, this corresponds to a $\mathcal { G } _ { \mathrm { m i n } }$ -nested set of cardinality $m - 1$ in $\mathsf { K } _ { n - | G _ { 1 } | }$ .
+As we want our model to output both text (to answer questions about the scene or to output next tasks to accomplish) and actions (to act in the world), the output of $f$ is split into text token logits and action output tokens, respectively $\left( y _ { 1 : M } ^ { \ell } , y _ { 1 : H } ^ { a } \right)$ . The first $M$ correspond to text token logits that can be used to sample $\hat { \ell }$ and the later $H$ tokens are produced by a separate action expert, as in $\pi _ { 0 }$ , and projected via a linear mapping to continuous outputs used to obtain $\mathbf { a } _ { t : t + H }$ (see next section). Note that $M + H \leq N$ , i.e., not all outputs are associated with a loss. The robot proprioceptive state is discretized and input to the model as text tokens. More details about the architecture are in Appendix E.
 
-By ordering the partition of $A$ using the order where all blocks without $w _ { i }$ ’s are less than the blocks with them, and then ordering this second group by the minimal $w _ { i }$ , one can uniquely reconstruct the spanning $\mathcal { G } _ { \mathrm { m i n } }$ -nested set $S$ . 
+# B. Combining discrete & continuous action representations
 
-Example 4.2 Let $n = 6$ and $m = 4$ . To illustrate the bijection in the previous proposition, we list some partitions of length 4 of the set $\{ 1 , 2 , 3 , 4 , 5 , 6 , w _ { 1 } , w _ { 2 } , w _ { 3 } \}$ with at least two elements in each block, along with their corresponding spanning $\mathcal { G } _ { \mathrm { m i n } }$ -nested sets $S$ .
+Similarly to $\pi _ { 0 }$ , we use flow-matching [50] to predict continuous actions in the final model. Given aτ,ωt:t+H = τ at:t+H + $( 1 - \tau ) \omega$ , $\omega \sim \mathcal { N } ( 0 , \mathbf { I } )$ , where $\tau \in [ 0 , 1 ]$ is the flow matching time index, the model is trained to predict the flow vector field $\omega - \mathbf { a } _ { t }$ . However, as shown in [64], VLA training can be much faster when actions are represented by discrete tokens, particularly when using a tokenization scheme that is efficient for compressing the action chunks (e.g., FAST). Unfortunately, such discrete representations are less well-suited for realtime inference, because they require expensive autoregressive decoding for inference [64]. Therefore, an ideal model design would train on discretized actions but still allow for use of flow matching to produce continuous actions at inference time.
 
-• For $S = \{ 1 2 , 5 6 , 1 2 3 4 , 1 2 3 4 5 6 \}$ , the partition is $\{ \{ 1 , 2 \} , \{ 5 , 6 \} , \{ 3 , 4 , w _ { 1 } \} , \{ w _ { 2 } , w _ { 3 } \} \}$ .   
-• For $S = \{ 1 2 , 5 6 , 1 2 5 6 , 1 2 3 4 5 6 \}$ , the partition is $\{ \{ 1 , 2 \} , \{ 5 , 6 \} , \{ w _ { 1 } , w _ { 2 } \} , \{ 3 , 4 , w _ { 3 } \} \}$ .   
-• For $S = \{ 1 2 , 5 6 , 3 4 5 6 , 1 2 3 4 5 6 \}$ , the partition is $\{ \{ 1 , 2 \} , \{ 5 , 6 \} , \{ 3 , 4 , w _ { 2 } \} , \{ w _ { 1 } , w _ { 3 } \} \}$ .   
-$\bullet$ For $S = \{ 1 2 , 3 4 , 5 6 , 1 2 3 4 5 6 \}$ , the partition is $\{ \{ 1 , 2 \} , \{ 3 , 4 \} , \{ 5 , 6 \} , \{ w _ { 1 } , w _ { 2 } , w _ { 3 } \} \}$ .
+Our model is therefore trained to predict actions both through autoregressive sampling of tokens (using the FAST tokenizer) and iterative integration of the flow field, combining the best of both worlds. We use the attention matrix to ensure that the different action representations do not attend to each other. Our model is optimized to minimize the combined loss
 
-We will write $\chi _ { m } ( x ) = ( x - 1 ) ( x - 2 ) \cdot \cdot \cdot ( x - m + 1 )$ for the characteristic polynomial of $\mathsf { K } _ { m }$ , and $\overline { { \chi } } _ { m } ( x ) = ( x - 2 ) \cdot \cdot \cdot ( x - m + 1 )$ for the reduced characteristic polynomial. To avoid overloading the notation, we will also write $\chi _ { \sigma _ { i } } ( x )$ for the polynomial $\chi _ { \left| \sigma _ { i } \right| } ( x )$ whenever $\sigma _ { i }$ denotes a block in a partition of a set.
-
-As an immediate consequence of the bijection described in the previous statement, we obtain the following formula for $P _ { \overline { { \mathcal { M } } } _ { 0 , n + 1 } } ( x )$ .
-
-Corollary 4.3 The following identity holds:
-
-$$
-P _ { \overline { { \mathcal { M } } } _ { 0 , n + 1 } } ( x ) = \sum _ { m \geq 1 } \sum _ { \sigma \vdash \left[ n - 1 + m \right] } \prod _ { i = 1 \atop \ell ( \sigma ) = m } ^ { \ell ( \sigma ) } \overline { { \chi } } _ { \sigma _ { i } } ( x ) .
-$$
-
-Proof. The assertion follows by combining Theorem 1.3 with the characterization of $\mathcal { G } _ { \mathrm { m i n } }$ nested sets of $\mathsf { K } _ { n }$ proved in Proposition 4.1. 
-
-Now we state a technical lemma that will allow us to rewrite the formula in the previous corollary as a sum over set partitions of $[ n - 1 ]$ instead of $[ n + m - 1 ]$ for varying $m$ .
-
-Lemma 4.4 Let $p _ { \sigma }$ be the number of set partitions of $[ n ]$ of type $\sigma = ( \sigma _ { 1 } , \sigma _ { 2 } , \ldots , \sigma _ { s } ) \vdash n$ . Consider the number $m _ { \sigma }$ of set partitions of $[ n + s ]$ of type $( \sigma _ { 1 } + 1 , \sigma _ { 2 } + 1 , \ldots , \sigma _ { s } + 1 )$ . Then, the following equality holds:
-
 $$
-m _ { \sigma } = \frac { ( n + s ) ! } { n ! \prod _ { i = 1 } ^ { s } ( \sigma _ { i } + 1 ) } p _ { \sigma } .
+\begin{array} { r l } & { \mathbb { E } _ { \mathcal { D } , \tau , \omega } \Big [ H \big ( x _ { 1 : M } , f _ { \theta } ^ { \ell } ( \mathbf { o } _ { t } , \ell ) \big ) } \\ & { \qquad + \alpha \left\| \omega - \mathbf { a } _ { t : t + H } - f _ { \theta } ^ { a } ( \mathbf { a } _ { t : t + H } ^ { \tau , \omega } , \mathbf { o } _ { t } , \ell ) \right\| ^ { 2 } \Big ] , } \end{array}
 $$
-
-Proof. We must partition $[ n + s ]$ into $s$ parts, none of which has size 1. To do this, first delete $s$ elements from $[ n + s ]$ : there are  n + s  such choices. Call $A$ the set of $n$ numbers in $[ n + s ]$ that remain after the $s$ chosen elements are deleted. We partition $A$ using type $( \sigma _ { 1 } , \dots , \sigma _ { s } )$ in exactly $p _ { \sigma }$ different ways. Each such partition can be augmented to a partition of $[ n + s ]$ of type $( \sigma _ { 1 } + 1 , \ldots , \sigma _ { s } + 1 )$ by adding back the $s$ elements that we removed from $[ n + s ]$ to get $A$ , one to each part. There are $s !$ ways of adding these elements to the parts of $A$ . However, to avoid multiple counting, we must take into account the number of ways that a specific element of a part of our new partition of $[ n + s ]$ could have been picked, i.e., we have to divide by $\textstyle \prod _ { i = 1 } ^ { s } ( \sigma _ { i } + 1 )$ , which leaves us with the equality claimed in the statement. 
 
-Now we put the pieces together to prove Theorem 1.4.
+where $H ( x _ { 1 : M } , y _ { 1 : M } ^ { \ell } )$ is the cross entropy loss between the text tokens and predicted logits (including the FAST encoded action tokens), $y _ { 1 : H } ^ { a } = f _ { \theta } ^ { a } ( \mathbf { a } _ { t : t + H } ^ { \tau , \omega } , \mathbf { o } _ { t } , \ell )$ is the output from the (smaller) action expert, and $\alpha \in \mathbb { R }$ is a trade-off parameter. This scheme enables us to first pre-train our model as a standard VLM transformer model by mapping actions to text tokens $( \alpha = 0$ ), and then add additional action expert weights predicting continuous action tokens in a non-autoregressive fashion for fast inference in a post-training stage. We find that following this procedure, which is further explained below, leads to stable pre-training and excellent language following abilities of the VLA model. At inference time we then use standard autoregressive decoding for text tokens $\hat { \ell }$ followed by 10 denoising steps, conditioned on text tokens, to produce actions $\mathbf { a } _ { t : t + H }$ .
 
-Theorem 1.4 The Poincar´e polynomial of $\overline { { \mathcal { M } } } _ { 0 , n + 1 }$ is
+![](images/4d6c8f315f334c5eefcb036ccfdb30771e4bef10b8af11ec0e8967562a1e0e9f.jpg)  
+Fig. 4: Examples from pre-training and post-training tasks. $\pi _ { 0 . 5 }$ is pre-trained on data from mobile manipulators (MM), non-mobile robots in diverse environments (ME), and cross-embodiment data collected under laboratory conditions (CE), as well as high-level subtask prediction (HL), and multi-modal web data (WD). In a post-training phase, we additionally use verbal instructions (VI), and omit the laboratory cross-embodiment data (CE) to focus the model on mobile manipulation and diverse environments. The figure displays an exemplary subset of the tasks in each category.
 
-$$
-P _ { \overline { { \mathcal M } } _ { 0 , n + 1 } } ( x ) = \sum _ { \lambda \vdash [ n - 1 ] } \frac { ( n - 1 + \ell ( \lambda ) ) ! } { ( n - 1 ) ! } \prod _ { i = 1 } ^ { \ell ( \lambda ) } \frac { \overline { { \chi } } _ { \lambda _ { i } + 1 } ( x ) } { \lambda _ { i } + 1 } .
-$$
+# C. Pre-training
 
-Proof. This follows from Corollary 4.3 using Lemma 4.4.
+In the first training stage, $\pi _ { 0 . 5 }$ is trained with a broad range of robot and non-robot data, which we summarize below and illustrate in Figure 4. It is trained as a standard auto-regressive transformer, performing next-token prediction of text, object locations, and FAST encoded action tokens.
 
-4.2. A formula by Aluffi–Marcolli–Nascimento. Our next goal is to give a new and self-contained proof of a recent result by Aluffi, Marcolli, and Nascimento [AMN24, Theorem 1.1]. We follow their notation and write $s ( n , k )$ for the (signed) Stirling numbers of the first kind and $S ( \boldsymbol n , \boldsymbol k )$ for the Stirling numbers of the second kind.
+Diverse Mobile Manipulator data (MM). We use about 400 hours of data of mobile manipulators performing household tasks in about 100 different home environments, some of which are shown in Figure 7, using the robots in Section IV-E. This slice of the training set is the most directly relevant to our evaluation tasks, which consist of similar cleaning and tidying tasks in new, unseen, home environments.
 
-Theorem 1.5 The following formula for the Poincar´e polynomial of $\overline { { \mathcal { M } } } _ { 0 , n + 1 }$ holds:
+Diverse Multi-Environment non-mobile robot data (ME). We also collected non-mobile robot data, either with a single arm or two arms, in a variety of home environments. These arms were fixed to surfaces or mounting platforms, and because they are significantly lighter and easier to transport, we were able to gather a more diverse dataset in a wider range of homes with them. However, this ME data comes from a different embodiment than the mobile robots.
 
-$$
-P _ { \overline { { \mathcal { M } } } _ { 0 , n + 1 } } ( x ) = \left( 1 - x \right) ^ { n } \sum _ { k \geq 0 } \sum _ { j \geq 0 } s ( k + n , k + n - j ) S ( k + n - j , k + 1 ) x ^ { k + j } .
-$$
+Cross-Embodiment laboratory data (CE). We collected data for a wide range of tasks (e.g., bussing a table, folding shirts) in the laboratory, with simpler tabletop environments and a variety of robot types. Some of these tasks are highly relevant to our evaluation (e.g., putting dishes in a bin), while others are not (e.g., grinding coffee beans). This data includes singlearm and dual-arm manipulators, and both static and mobile bases. We also include the open-source OXE dataset [15]. This dataset is an extended version of the dataset used by $\pi _ { 0 } [ 8 ]$ .
 
-Proof. We start from the formula of Corollary 4.3. Since $P _ { \overline { { \mathcal { M } } } _ { 0 , n + 1 } } ( x )$ is palindromic of degree $n - 2$ , we obtain
+High-Level subtask prediction (HL). Breaking down highlevel task commands such as “clean the bedroom” into shorter subtasks like “adjust the blanket” and “pick up pillow”, similar to chain-of-thought prompting for language models, can help a trained policy reason about the current scene and better determine the next action. For robot data in MM, ME, and CE where the task involves multiple subtasks, we manually annotate all data with semantic descriptions of the subtasks and train $\pi _ { 0 . 5 }$ to jointly predict the subtask labels (as text) as well as the actions (conditioned on the subtask label) based on the current observation and high-level command. This naturally leads to a model that can act both as a high-level policy (outputting subtasks) and low-level policy that executes actions for these subtasks. We also label relevant bounding boxes shown in the current observation and train $\pi _ { 0 . 5 }$ to predict them before predicting the subtask.
 
-$$
-\begin{array} { r l } {  { \boldsymbol { H } _ { \mathcal { H } _ { \mathrm { t o t } + 1 } } ( \boldsymbol { T } ) - \boldsymbol { T } ^ { * * } \boldsymbol { \mathcal { T } } _ { \mathrm { H _ { t o t } } } ( \boldsymbol { T } ^ { * * } ) } } \\ & { = \boldsymbol { T } ^ { * * } \sum _ { \boldsymbol { \Theta } \in \mathcal { N } _ { \neq } \ne \boldsymbol { 0 } , \atop \boldsymbol { \Theta } \in \mathcal { N } _ { \neq } \ne \boldsymbol { 0 } , \atop \boldsymbol { \Theta } \in \mathcal { N } _ { \neq } \ne \boldsymbol { 0 } , \atop \boldsymbol { \Theta } \in \mathcal { N } _ { \neq } \ne \boldsymbol { 0 } , \atop \boldsymbol { \Theta } \in \mathcal { N } _ { \neq } \mathcal { N } _ { \neq } \mathcal { N } _ { \neq } \dots \mathcal { N } _ { \neq } \mathcal { N } _ { \neq } \dots } } \\ & { = \sum _ { \boldsymbol { \Theta } \ge \boldsymbol { \Theta } \in \mathcal { N } _ { \neq } \ne \boldsymbol { 0 } , \atop \boldsymbol { \Theta } \in \mathcal { N } _ { \neq } \dots \ne \boldsymbol { 0 } , \boldsymbol { \Theta } \atop \boldsymbol { \Theta } \in \mathcal { N } _ { \neq } \dots \times \boldsymbol { \Theta } } \sum _ { \boldsymbol { \Theta } \in \mathcal { N } _ { \neq } \atop \boldsymbol { \Theta } \in \mathcal { N } _ { \neq } \dots \times \boldsymbol { \Theta } } ^ { \boldsymbol { \Theta } \cdot 2 } \prod _ { \boldsymbol { \Phi } \ne \boldsymbol { \Theta } \in \mathcal { N } _ { \neq } \setminus \boldsymbol { \Theta } } w ^ { - 1 } } \\ &  = ( 1 - w ) ^ { n } \sum _ { \boldsymbol { \Theta } \ge \boldsymbol { \Theta } \in \mathcal { N } _ { \neq } \operatorname* { m a x } } \sum _ { \boldsymbol { \Theta } \ne \boldsymbol { 0 } , \atop \boldsymbol { \Theta } \in \mathcal { N } _ { \neq } \operatorname* { m a x } } ( \sum _ { \boldsymbol { \Theta } \in \mathcal { N } _ { \neq } \operatorname* { m a x } } ( \boldsymbol { \Theta } - \boldsymbol { \Theta } \boldsymbol { \Theta } \boldsymbol { \Theta } \boldsymbol { \Theta } \boldsymbol { \Theta } \boldsymbol { \Theta }  \end{array}
-$$
+Multi-modal Web Data (WD). Finally we include a diverse set of web data involving image captioning (CapsFusion [87], COCO [12]), question answering (Cambrian-7M [77], PixMo [19], VQAv2 [32]), and object localization in pre-training. For object localization, we further extend the standard datasets with additional web data of indoor scenes and household objects with bounding box annotations.
 
-where the partition $\lambda$ is obtained from $\sigma$ by adding $k$ singletons in all possible ways. By reindexing the first sum, we obtain
+For all action data, we train the model to predict target joint and end-effector poses. To differentiate the two, we add ‘<control mode $>$ joint/end effector <control mode $> ^ { \ ' }$ to the text prompt. All action data is normalized to $[ - 1 , 1 ]$ using the $1 \%$ and $9 9 \%$ quantile of each action dimension of the individual dataset. We set the dimensionality of the action a to a fixed number to accommodate the largest action space among all the datasets. For robots with lower-dimensional configuration and action spaces, we zero-pad the action vectors.
 
-$$
-P _ { \overline { { \mathcal { M } } } _ { 0 , n + 1 } } ( x ) = ( 1 - x ) ^ { n } \sum _ { k \geq 0 } \sum _ { \stackrel { \lambda \vdash \left[ n + k \right] } { \ell ( \lambda ) = k + 1 } } x ^ { n - 1 + k } \prod _ { i = 1 } ^ { k + 1 } \chi _ { \lambda _ { i } } ( x ^ { - 1 } ) .
-$$
+# D. Post-training
 
-To finish the proof, we note the following elementary identity:
+After pre-training the model with discrete tokens for $2 8 0 \mathrm { k }$ gradient steps, we perform a second stage of training that we refer to as post-training. The purpose of this stage is to both specialize the model to our use-case (mobile manipulation in homes), and to add an action expert that can produce continuous action chunks via flow matching. This stage jointly trains with next-token prediction, to preserve text prediction capabilities, and flow matching for the action expert (which is initialized with random weights at the beginning of posttraining). We optimize the objective in Equation (1), with $\alpha = 1 0 . 0$ for $8 0 \mathrm { k }$ additional steps. The post-training action dataset consists of the MM and ME robot data, filtered down to successful episodes that are below a fixed length threshold. We include web data (WD) to preserve the model’s semantic and visual capabilities, and the slice of HL data corresponding to the multi-environment datasets. Additionally, to improve the model’s ability to predict appropriate high-level subtasks, we collect verbal instruction demonstrations (VI), which are constructed by expert users providing “language demonstrations,” selecting appropriate sub-task commands to command the robot to perform mobile manipulation tasks step by step. These examples are collected by “teleoperating” the robot in real time with language to perform tasks with the learned low level policy, essentially providing demonstrations of good high-level subtask outputs for a trained policy.
 
-$$
-\sum _ { j } x ^ { j } s ( a , a - j ) S ( a - j , b ) = x ^ { a - b } \sum _ { \lambda \vdash [ a ] \atop \ell ( \lambda ) = b } \prod _ { i = 1 } ^ { b } \chi _ { \lambda _ { i } } ( x ^ { - 1 } ) .
-$$
+# E. Robot system details
 
-To see this, notice that both sides count the number of permutations $\sigma \in \mathfrak { S } _ { a }$ together with a partition of its set of cycles into exactly $b$ blocks. The parameter $- x$ records the number
+The robot systems used in our mobile manipulation experiments are illustrated in Figure 5. We conducted all of our experiments using two types of mobile manipulators. Both platforms are equipped with two 6 DoF arms with parallel jaw grippers and wrist-mounted monocular RGB cameras, a wheeled holonomic base, and a torso lift mechanism. The state and action spaces for the base correspond to linear (2D) and angular (1D) velocity, and the torso lift mechanism is either 1D (up/down) or 2D (up/down and forward/backward). In addition to the two wrist cameras, the robots have a forward and backward facing camera mounted between the arms. We use all four cameras for high-level inference, and the wrist and forward cameras for the low-level inference process. The total dimensionality of the state and action spaces is 18 or 19, depending on the platform.
 
-of cycles of the permutation. Now, applying the identity in Equation (8) to the formula for $P _ { \overline { { \mathcal { M } } } _ { 0 , n + 1 } } ( x )$ obtained in Equation (7) yields the equality
+![](images/28885acd59d6e5d24dd5e74691f287b882a977647ee16a2d97718b3cb2833a03.jpg)  
+Fig. 5: Robot system overview. We use two mobile manipulator platforms – each has four cameras (forward, backward, and both wrists), two 6 DoF arms with parallel jaw grippers, a mobile base, and a torso lift mechanism. The $\pi _ { 0 . 5 }$ model controls the joints and grippers of each arm, base velocity, and the lift position, resulting in 18-19 DoF state and action spaces.
 
-$$
-P _ { \overline { { \mathcal { M } } } _ { 0 , n + 1 } } ( x ) = \left( 1 - x \right) ^ { n } \sum _ { k \geq 0 } \sum _ { j \geq 0 } s ( k + n , k + n - j ) S ( k + n - j , k + 1 ) x ^ { k + j } ,
-$$
+The control system is very simple: the $\pi _ { 0 . 5 }$ model directly commands target poses for the arms, gripper, and torso lift, and the target base velocities at $5 0 \ : \mathrm { H z }$ (with action chunking). These targets are tracked with simple PD controllers, without any additional trajectory planning or collision detection. All manipulation and navigation control is fully end-to-end.
 
-as desired.
+# V. EXPERIMENTAL EVALUATION
 
-4.3. Generating functions and recursions. Several different formulas for the above polynomials (and their exponential generating functions) were obtained by Getzler [Get95], Manin [Man95], and Keel [Kee92]. In this section, we show how our Theorem 3.6, when restricted to ${ \mathsf { M } } = { \mathsf { K } } _ { n }$ and $\mathcal { G } = \mathcal { G } _ { \operatorname* { m i n } }$ , can be used to recover these formulas.
+The $\pi _ { 0 . 5 }$ model is designed to generalize broadly to new environments. While it is common to evaluate VLAs in environments that match the training data, we conduct all of our experiments in novel environments that were not seen in training. For quantitative comparisons, we use a set of mock home environments to provide a controlled and reproducible setup, while the most realistic final evaluation is conducted in three real homes that were not part of the training set (see Figure 6). Our experiments focus on the following questions:
 
-Proposition 4.5 Let $H$ be the exponential generating function of the Poincar´e polynomial of $\overline { { \mathcal { M } } } _ { 0 , n + 1 }$ :
+1) Can $\pi _ { 0 . 5 }$ effectively generalize to complex multi-stage tasks in entirely new homes?   
+2) How does the generalization of $\pi _ { 0 . 5 }$ scale with the number of distinct environments in the training data?   
+3) How do the individual co-training ingredients in the $\pi _ { 0 . 5 }$ training mixture contribute to its final performance?   
+4) How does $\pi _ { 0 . 5 }$ compare to the $\pi _ { 0 }$ VLA?   
+5) How important is the high-level inference component of $\pi _ { 0 . 5 }$ , and how does it compare to flat, low-level inference as well as oracle high-level baselines?
 
-$$
-H = \sum _ { n \geq 1 } { P _ { { \overline { { \mathcal M } } } _ { 0 , n + 1 } } ( x ) \frac { t ^ { n } } { n ! } } = \sum _ { n \geq 1 } { \mathrm H } _ { \mathsf K _ { n } } ^ { \mathcal G _ { \operatorname* { m i n } } } ( x ) \frac { t ^ { n } } { n ! } .
-$$
+# A. Can $\pi _ { 0 . 5 }$ generalize to real homes?
 
-(i) The incidence algebra equality $- \overline { { \chi } } ^ { \mathcal { G } _ { \mathrm { m i n } } } \cdot \mathrm { H } ^ { \mathcal { G } _ { \mathrm { m i n } } } = \delta$ is equivalent to the compositional formula [Get95, p. 228]
+To answer Question (1), we evaluated $\pi _ { 0 . 5 }$ in three real homes that were not present in the training set, using both types of robots. In each of the homes, the robots were instructed to perform a bedroom and kitchen cleaning task. The evaluation rubrics for each task are provided in Appendix B and roughly correspond to the percentage of steps in each task that were completed successfully (e.g., placing half the dishes in the sink corresponds to around $50 \%$ ). The results in Figure 7 (a) Example rollouts. We visualize an exemplary $\pi _ { 0 . 5 }$ episode for one task from each home. Top to bottom: putting items in a drawer in Home 1, followed by putting dishes in the sink in Home 2, and putting clothes in the laundry basket in Home 3. The human instruction for each is given on the left, and the high-level subtask prediction from $\pi _ { 0 . 5 }$ is shown beneath each frame in blue.
 
-$$
-H \left( t - { \frac { ( 1 + t ) ^ { x } - 1 - x t } { x ( x - 1 ) } } \right) = t .
-$$
+![](images/023592561e11fd4d3b3984fc79fa26d71ac07617176c0d51065e63fc2c4f9ade.jpg)
 
-(ii) The incidence algebra equality $\mathrm { H } ^ { \mathcal { G } _ { \mathrm { m i n } } } \cdot \overline { { \chi } } ^ { \mathcal { G } _ { \mathrm { m i n } } } = - \delta$ is equivalent to the functional equation [Man95, Theorem 0.3.1 (0.7)]
+![](images/82768b55916925208c53e4859e2824c0f0575d467150fc39662497697386ae03.jpg)  
+Fig. 6: Evaluation environments. We evaluate $\pi _ { 0 . 5 }$ in entirely new kitchens and bedrooms that were not seen during training, with novel objects, backgrounds, and layouts. We use a set of mock rooms for controlled, reproducible quantitative comparisons (left) and real homes for a realistic final evaluation (right).   
+(b) Quantitative evaluation. We show the task progress per task and environment averaged over 10 trials. We find that $\pi _ { 0 . 5 }$ ’s performance in the mock evaluation setups is representative of its performance in real homes.
 
-$$
-( 1 + H ) ^ { x } = x ^ { 2 } H + 1 - x ( x - 1 ) t .
-$$
+![](images/b5f460561d76d0b9395190f94601f3bdefac957cf3d8c6a9b65023ca5b2ea952.jpg)
 
-Proof. The characteristic polynomial is $\overline { { { \chi } } } \kappa _ { n } ( x ) = ( x - 2 ) ( x - 3 ) \cdot \cdot \cdot ( x - n + 1 )$ . Therefore, the exponential generating series of $- \overline { { \chi } } _ { \sf K _ { n } } ^ { \mathcal { G } _ { \mathrm { m i n } } } ( x )$ can be rewritten in closed form as
+Fig. 7: Evaluation in real homes. We evaluated $\pi _ { 0 . 5 }$ in three kitchens and three bedrooms in real homes that were not seen during training. We evaluate the tasks ‘items in drawer’, ‘laundry basket’, and ‘dishes in sink,’ and find $\pi _ { 0 . 5 }$ to be successful at these tasks in these completely new, real homes.
 
-$$
-G : = \sum _ { n \geq 1 } - \overline { { \chi } } _ { \mathsf { K } _ { n } } ^ { \mathsf { \mathcal { G } } _ { \operatorname* { m i n } } } ( x ) \frac { t ^ { n } } { n ! } = t - \frac { ( 1 + t ) ^ { x } - 1 - x t } { x ( x - 1 ) } .
-$$
+show that $\pi _ { 0 . 5 }$ was able to consistently succeed on a variety of tasks in each home (we note that, additionally, the model is capable of performing many more tasks than used in our quantitative evaluation). Many of the tasks involve multiple stages (e.g., moving multiple objects) lasting about 2 to 5 minutes. For these trials, the model is provided with a simple high-level command (e.g., “place the dishes in the sink”), and the high-level inference process autonomously determines appropriate steps (e.g., “pick up the cup”). This level of inthe-wild generalization goes significantly beyond the results demonstrated with prior vision-language-action models, both in terms of the degree of novelty that the model must handle, and the task duration and complexity.
 
-The compositional formula [Sta99, Theorem 5.1.4] can be applied to the identity $- \overline { { \chi } } ^ { \mathcal { G } _ { \mathrm { m i n } } }$ $\mathrm { H } ^ { \mathcal { G } _ { \mathrm { m i n } } } = \delta$ , from which the statement $H ( G ( t ) ) = t$ follows immediately.
+# B. How does generalization scale with the number of scenes?
 
-For the second statement, we reason analogously but with the dual identity $\mathrm { H } ^ { \mathcal { G } _ { \mathrm { m i n } } }$ $\overline { { \chi } } ^ { \mathcal { G } _ { \mathrm { m i n } } } = - \delta$ . We obtain that $G ( H ( t ) ) = t$ or, in other words,
+In the next set of experiments, we aim to measure how generalization scales with the number of environments seen in the training data. We vary the number of environments in the mobile manipulation data and measure its impact on generalization by training with data from 3, 12, 22, 53, 82, and 104 locations. Since applying the entire pre-training and post-training recipe to each of these datasets is prohibitively compute-intensive, for these experiments we pre-train on the mixture of robot action prediction data without mobile manipulation data, and then compare models post-trained on datasets that comprise mobile manipulation data from varying numbers of environments. While the datasets split by location in principle differ in size, in practice the number of training steps (40k) is chosen such that each model sees the same number of unique data samples, which allows us to control for dataset size when varying the number of locations used within a post-training experiment.
 
-$$
-H - \frac { ( 1 + H ) ^ { x } - 1 - x H } { x ( x - 1 ) } = t .
-$$
+Each model is evaluated in the mock environments shown in Figure 6, which are not seen in training. We conduct two types of evaluations. First, to evaluate overall performance on multi-stage tasks, we use the standard rubric in Appendix B and the mock test homes to evaluate each model’s end-to-end performance on putting dishes in the sink, packing items into a drawer, putting away laundry, and making a bed. Second, we conduct a more fine-grained evaluation of each model’s ability to follow language instructions and interact with novel objects, where the robot must pick up specific objects from a kitchen counter based on language commands. These experiments use both in-distribution objects from similar categories as those in the training data (but new instances), as well as out-of-distribution objects from unseen categories. The latter necessitates broad semantic generalization.
 
-The result follows by rearranging the terms.
+![](images/f2bf0fdba9249f710937a4ba5c81c3e19441e6a7f9028cc7150e9a0d4fd46a4b.jpg)  
+Fig. 8: Evaluating performance with different numbers of locations. Performance over the four test tasks — “dishes in sink”, “items in drawer”, “laundry basket”, “make bed” — improves with more training environments. The dashed green line and green bar show a baseline model that includes the test homes in the training set. Compared to this model, our best model achieves similar performance, despite not seeing any data from the test homes.
 
-Proposition 4.6 The polynomial PM $P _ { \overline { { \mathcal { M } } } _ { 0 , n + 1 } } ( x ) = \mathrm { H } _ { \mathsf { K } _ { n } } ^ { \mathcal { G } _ { \operatorname* { m i n } } } ( x )$ +1(x) = HGminKn ( is uniquely determined by either of the two following recursions:
+The results of the first experiment are shown in Figure 8. The average performance among the tasks generally improves with more training locations. To quantify how much the final model (with 104 locations) bridges the generalization gap, we include a control (shown in green) that is trained directly on data from the test homes. This control attains similar performance as the final 104-location model, suggesting that our co-training recipe effectively enables broad generalization, reaching similar performance to a model trained on the test environment. To confirm that this generalization performance requires our full co-training recipe, we additionally include two baselines that do not use any of the other co-training tasks in the pre-training phase, but instead train directly on either data from the test environment (light green) or mobile manipulation data from the 104 training locations (light yellow). The performance for both those baselines is significantly worse — this indicates that the other data sources leveraged by our full training recipe are essential for good generalization, even when the policy has seen robot data from test homes. When not using data from test homes, pre-training with our recipe is especially important, as can be seen by the large gap between the green bars and light yellow bar in Figure 8.
 
-$$
-\begin{array} { r l r } & { } & { { \displaystyle { \mathrm { H } } _ { \mathsf { K } _ { n } } ^ { \mathcal { G } _ { \operatorname* { m i n } } } ( x ) } = { \mathrm { H } } _ { \mathsf { K } _ { n - 1 } } ^ { \mathcal { G } _ { \operatorname* { m i n } } } ( x ) + x \sum _ { j = 2 } ^ { n - 1 } \binom { n - 1 } { j } { \mathrm { H } } _ { \mathsf { K } _ { j } } ^ { \mathcal { G } _ { \operatorname* { m i n } } } ( x ) \cdot { \mathrm { H } } _ { \mathsf { K } _ { n - j } } ^ { \mathcal { G } _ { \operatorname* { m i n } } } ( x ) , } \\ & { } & { = ( 1 + x ) { \mathrm { H } } _ { \mathsf { K } _ { n - 1 } } ^ { \mathcal { G } _ { \operatorname* { m i n } } } ( x ) + \displaystyle { \frac { x } { 2 } } \sum _ { j = 2 } ^ { n - 2 } \binom { n } { j } { \mathrm { H } } _ { \mathsf { K } _ { j } } ^ { \mathcal { G } _ { \operatorname* { m i n } } } ( x ) \cdot { \mathrm { H } } _ { \mathsf { K } _ { n - j } } ^ { \mathcal { G } _ { \operatorname* { m i n } } } ( x ) , } \end{array}
-$$
+The results of the second experiment (language following) are shown in Figure 9. We report the language following rate, which measures how often the robot selects the object indicated in the language command, and success rate, which measures how often the robot successfully places that object in the correct location (either inside the drawer or inside the sink, depending on the test scenario). We separately measure performance on object categories seen in training (but new object instances) and unseen (“out-of-distribution”) object categories. Details of this experiment are shown and discussed in Appendix C. Figure 9 shows that, as the number of locations in the training data increases, both language following performance and success rate improve. As expected, the performance on in-distribution objects improves more quickly than that of out-of-distribution objects. As each new environment introduces new household items, the model becomes generally more robust and starts to generalize to task categories that were not present in the training data.
 
-for $n \geq 3$ , and $\mathrm { H } _ { \mathsf { K } _ { 1 } } ^ { \mathcal { G } _ { \mathrm { m i n } } } ( x ) = \mathrm { H } _ { \mathsf { K } _ { 2 } } ^ { \mathcal { G } _ { \mathrm { m i n } } } ( x ) = 1$
+![](images/59bf9c844eb4ec60a48eede3fd9383ee71a8c35b3a765b1c8bd85cc53077178a.jpg)  
+Fig. 9: Evaluating language following with different numbers of training locations. We evaluate language following rate and success rate for picking up user-indicated items and placing them into drawers or sinks, averaged over seen object categories (“in-distribution”) or unseen categories (“out-ofdistribution”). Performance increases steadily as we increase the number of training locations.
 
-Proof. The recursion in Equation (9) (and thus, as we will explain below, also Equation (10)) follows from the functional equations proved in the previous statement: this proof is carried out in [Man95, Corollary 0.3.2]. We take the opportunity, however, to prove it combinatorially via the FY-monomials. Consider an FY-monomial with associated $\mathcal { G } _ { \mathrm { m i n } }$ -nested set $S$ , and let $G \in S$ be the smallest flat whose nontrivial part contains $n$ , if it exists. Let k , so that the FY-monomial is be the elements of $S _ { < G }$ and . $H _ { 1 } , \ldots , H _ { h }$ be the elements of $S _ { \ Z G }$ $\Pi _ { i = 1 } ^ { k } x _ { F _ { i } } ^ { e _ { i } } x _ { G } ^ { e } \prod _ { j = 1 } ^ { h } x _ { H _ { j } } ^ { e _ { j } }$ Notice that Qki=1 xeiFixe−1G\{n} is i  jan FY-monomial for the complete induced subgraph on $G \setminus \{ n \}$ and $\Pi _ { j = 1 } ^ { h } x _ { H _ { j } \vee G } ^ { e _ { j } }$ is an FY-monomial for the matroid $\mathsf { K } _ { n } / G$ with respect to the minimal building set. The first summand of Equation (9) corresponds to FY-monomials where such $G$ does not exist; the other summands correspond to the connected flats $G$ of rank $j$ whose nontrivial part contains $n$ .
+# C. How important is each part of our co-training recipe?
 
-The recursion appearing in Equation (10) was proved by Keel in [Kee92, p. 550]. It can be deduced from (9) by first rearranging the term in the sum corresponding to $j = n - 1$ :
+To study Question (3), we compare our full $\pi _ { 0 . 5 }$ model to other training mixtures to study the importance of each mixture component, again using end-to-end task performance in the mock homes and the language following evaluation described in Section V-B. As a reminder, our full recipe uses data from mobile manipulators in many environments (MM), static manipulators in many environments (ME), and diverse cross-embodiment data collected in laboratory settings (CE). It also includes high-level data where the prediction corresponds to a high-level language command (HL), and web data corresponding to captioning, VQA, and object localization tasks (WD). Post-training also uses verbal instruction data (VI), which we analyze in Section V-E. In these experiments, we ablate different parts of the mixture:
 
-$$
-\begin{array} { r l } & { \displaystyle \mathrm { H } _ { \mathsf { K } _ { n } } ^ { \mathcal { G } _ { \operatorname* { m i n } } } ( x ) = \mathrm { H } _ { \mathsf { K } _ { n - 1 } } ^ { \mathcal { G } _ { \operatorname* { m i n } } } ( x ) + x \sum _ { j = 2 } ^ { n - 1 } \binom { n - 1 } { j } \mathrm { H } _ { \mathsf { K } _ { j } } ^ { \mathcal { G } _ { \operatorname* { m i n } } } ( x ) \cdot \mathrm { H } _ { \mathsf { K } _ { n - j } } ^ { \mathcal { G } _ { \operatorname* { m i n } } } ( x ) } \\ & { \qquad = ( 1 + x ) \mathrm { H } _ { \mathsf { K } _ { n - 1 } } ^ { \mathcal { G } _ { \operatorname* { m i n } } } ( x ) + x \sum _ { j = 2 } ^ { n - 2 } \binom { n - 1 } { j } \mathrm { H } _ { \mathsf { K } _ { j } } ^ { \mathcal { G } _ { \operatorname* { m i n } } } ( x ) \cdot \mathrm { H } _ { \mathsf { K } _ { n - j } } ^ { \mathcal { G } _ { \operatorname* { m i n } } } ( x ) . } \end{array}
-$$
+1) no WD: this ablation excludes web data.   
+2) no ME: this ablation excludes multi-environment nonmobile data.   
+3) no CE: this ablation excludes the laboratory crossembodiment data.   
+4) no ME or CE: this ablation excludes both data sources from other robots, such that the model is trained on only data from the target mobile manipulator platform as well as web data.
 
-Then, using the change of variables $i = n - j$ on the sum of the right hand side, this is equivalent to
+The results on the full mock home tasks are shown in Figure 10 (detailed breakdown of performance on each task in Appendix D). First, we see in the results that excluding either of the two cross-embodiment data sources (ME and CE) significantly degrades performance, indicating that $\pi _ { 0 . 5 }$ benefits considerably from cross-embodiment transfer, from both other environments (ME) and other tasks (CE). Excluding both sources harms performance even more. Interestingly, the difference in performance with the no WD ablation is not statistically significant in this experiment, though we show later that web data has a large impact on language following (below) and high-level subtask inference (Section V-E).
 
-$$
-\begin{array} { r l r } & { } & { \mathrm { H } _ { \mathsf { K } _ { n } } ^ { \mathcal { G } _ { \operatorname* { m i n } } } ( x ) = ( 1 + x ) \mathrm { H } _ { \mathsf { K } _ { n - 1 } } ^ { \mathcal { G } _ { \operatorname* { m i n } } } ( x ) + x \displaystyle \sum _ { i = 2 } ^ { n - 2 } \binom { n - 1 } { n - i } \mathrm { H } _ { \mathsf { K } _ { n - i } } ^ { \mathcal { G } _ { \operatorname* { m i n } } } ( x ) \cdot \mathrm { H } _ { \mathsf { K } _ { i } } ^ { \mathcal { G } _ { \operatorname* { m i n } } } ( x ) } \\ & { } & { = ( 1 + x ) \mathrm { H } _ { \mathsf { K } _ { n - 1 } } ^ { \mathcal { G } _ { \operatorname* { m i n } } } ( x ) + x \displaystyle \sum _ { j = 2 } ^ { n - 2 } \binom { n - 1 } { j - 1 } \mathrm { H } _ { \mathsf { K } _ { n - j } } ^ { \mathcal { G } _ { \operatorname* { m i n } } } ( x ) \cdot \mathrm { H } _ { \mathsf { K } _ { j } } ^ { \mathcal { G } _ { \operatorname* { m i n } } } ( x ) , } \end{array}
-$$
+![](images/05a60a39a1bb0a2ef80f9a5804337a333715ceb74b214a5b954159860bb8db97.jpg)  
+Fig. 10: Training recipe ablations, mock homes. We evaluate variants of our model that exclude different parts of the training mixture on all four test tasks (10 trials per policy and task). Including cross-embodiment data, both in diverse environments (ME) and for diverse tasks in laboratory settings (CE) is important for good performance, with large degradation when either or both of these data sources are removed. Web data (WD) does not make a significant difference in these experiments, but we will see in Figures 11 and 13 that it impacts object generalization and high-level performance.
 
-where in the second step we used the identity  n − 1 $\textstyle { \binom { n - 1 } { n - i } } = { \binom { n - 1 } { i - 1 } }$ and the change of variables $i = j$ . Keel’s formula (10) follows from adding Equations (11) and (12), applying Pascal’s identity $\textstyle { \binom { n - 1 } { j } } + { \binom { n - 1 } { j - 1 } } = { \binom { n } { j } }$ , and dividing by two. 
+![](images/d0ff45a98ab1e206a0ed6aec30feaee16e53765d62c75337c317b89c772892d3.jpg)  
+Fig. 11: Training recipe ablations, language following. Evaluating language following with in-distribution and out-of-distribution objects after training on different numbers of locations. Including web data (WD) is important for outof-distribution (OOD) performance in particular. Cross-embodiment (CE) and diverse environment (ME) data both have a large impact on in-distribution and out-of-distribution performance.
 
-# 5. Conversion between building sets
+The results of the language following experiment, shown in Figure 11, show a similar trend as Figure 10 — excluding ME or/and CE data leads to a significant degradation in performance. What differs now is that removing web data (no WD) causes significantly worse performance on out-ofdistribution (OOD) objects — we conjecture that training with web data, which contains very broad knowledge of physical objects, allows the model to understand and follow language commands involving unseen object categories.
 
-Given two building sets $\mathcal { G }$ and $\mathcal { G } ^ { \prime }$ on $\mathcal { L } ( \boldsymbol { \mathsf { M } } )$ , we now explain how to relate $\mathrm { H } _ { \mathsf { M } } ^ { \lessgtr } ( x )$ and $\mathrm { H } _ { \mathsf { M } } ^ { \mathcal { G } ^ { \prime } } ( x )$ . It will suffice to consider the case when $\mathcal { G }$ and $\mathcal { G } ^ { \prime }$ differ by one element (see the first part of Proposition 5.2). We thus show the following.
+# $D$ . How does $\pi _ { 0 . 5 }$ compare to other VLAs?
 
-Theorem 5.1 If $\mathcal { G }$ and ${ \mathcal { G } } ^ { \prime } = { \mathcal { G } } \setminus \{ G \}$ are building sets of $\mathcal { L } ( \boldsymbol { \mathsf { M } } )$ differing by one element $G$ , then
+We compare $\pi _ { 0 . 5 }$ to the original $\pi _ { 0 }$ VLA as well as an improved version of $\pi _ { 0 }$ which we denote as $\pi _ { 0 }$ -FAST $^ +$ Flow. This version is trained via the joint diffusion and FAST action prediction formulation from Equation (1), but on action data only, without the HL or WD datasets. These models provide a strong point of comparison, since $\pi _ { 0 }$ has been demonstrated to perform strongly on complex and dexterous mobile manipulation tasks, and the enhancement in $\pi _ { 0 } { - } \mathrm { F A S T { + } F l o v }$ b brings it as close to $\pi _ { 0 . 5 }$ as possible. $\pi _ { 0 . 5 }$ builds on these models with a combination of co-training tasks. For a fair comparison, all models receive the same cross-embodiment robot training set and are trained for a comparable number of steps. The differences then are: (1) $\pi _ { 0 . 5 }$ additionally uses HL and WD data; (2) $\pi _ { 0 . 5 }$ uses a hybrid training procedure, with discrete tokenized training in the pre-training phase, and training with a flow matching action expert only in the posttraining phase, while $\pi _ { 0 }$ always uses the action expert. $\pi _ { 0 } \cdot$ - FAST $^ +$ Flow follows the hybrid training recipe but is trained only with data containing robot actions and thus cannot perform high-level inference. The results in Figure 12 show that $\pi _ { 0 . 5 }$ significantly outperforms both $\pi _ { 0 }$ and our enhanced version. This result holds even when we allow for longer training up to $3 0 0 \mathrm { k }$ training steps of $\pi _ { 0 }$ , confirming that as in Pertsch et al. [64] training with FAST tokens is more effective in terms of compute than pure diffusion based training.
 
-$$
-\mathrm { H } _ { \mathsf { M } } ^ { \mathcal { G } } ( x ) = \mathrm { H } _ { \mathsf { M } } ^ { \mathcal { G } ^ { \prime } } ( x ) + ( x + \cdots + x ^ { | f ( \mathcal { G } ^ { \prime } | _ { G } ) | - 1 } ) \mathrm { H } _ { \mathsf { M } | _ { G } } ^ { \mathcal { G } ^ { \prime } | _ { G } } ( x ) \mathrm { H } _ { \mathsf { M } / G } ^ { \mathcal { G } ^ { \prime } / G } ( x ) .
-$$
+![](images/83920fd3695b3dd7c1c61b641f199c165cbdb676be0749afeb9dda508219e85e.jpg)  
+Fig. 12: Comparing $\pi _ { 0 . 5 }$ with other models. Our full model significantly outperforms both $\pi _ { 0 }$ and $\pi _ { 0 }$ -FAST $+$ Flow in the mock home test environments.
+
+# E. How important is high-level inference?
+
+Finally, we evaluate the importance of high-level inference, and compare the performance of several alternative high-level inference methods. The high-level inference mechanism in $\pi _ { 0 . 5 }$ takes in a high-level command (e.g., “clean the bedroom”) and outputs the subtask to complete (e.g., “pick up pillow”), which is then used as context for inferring the lowerlevel actions, analogously to chain of thought inference [82]. While $\pi _ { 0 . 5 }$ uses a unified architecture where the same model performs both high-level and low-level inference, we can also construct baseline methods that either forego the highlevel inference process and feed the task prompt directly into the low-level system, as is common in standard VLA models [92, 8], or use another model for high-level inference to ablate the importance of different dataset components in terms of their impact on the high-level policy. We consider the following methods and ablations, all of which use the full $\pi _ { 0 . 5 }$ low-level inference process with different high-level policies:
+
+1) $\pi _ { 0 . 5 }$ model for high-level and low-level inference.   
+2) no WD: an ablation of $\pi _ { 0 . 5 }$ that excludes web data.
+
+![](images/2fe3ffc3389ae5ea0a215a939e8349e7509950d865e27a8b6390de6e6bab4874.jpg)  
+Fig. 13: Evaluation of the high-level inference process. While the full $\pi _ { 0 . 5 }$ model with high-level and low-level inference attains the best results, using only low-level inference (“implicit HL”) with the full $\pi _ { 0 . 5 }$ model also benefits from the inclusion of high-level subtask examples in training. In contrast, excluding verbal instructions (no VI) or web data (no WD) leads to a significant degradation in performance, and zero-shot prompting a large API-based model (GPT-4) performs worse.
+
+3) no VI: an ablation of $\pi _ { 0 . 5 }$ that excludes the verbal instruction (VI) data.   
+4) implicit HL: no high-level inference at runtime but includes high-level data in training, which may teach the model about subtasks implicitly.   
+5) no HL: no high-level inference, and no high-level data in training at all.   
+6) GPT-4: use GPT-4 as the high-level policy, evaluating the importance of training the high-level policy on robot data. To align the model with our domain, we prompt GPT-4 with a description of the task and a list of the most used labels to choose from.   
+7) human HL: use an expert human as an “oracle” highlevel policy, to provide an upper bound on performance.
+
+The results of these experiments are shown in Figure 13. The full $\pi _ { 0 . 5 }$ model performs the best, and outperforms even the human HL “oracle” baseline. Perhaps surprisingly, the second best model is the implicit HL ablation, which does not perform any high-level inference, but includes the full data mixture, i.e. also subtask prediction, in training. This strongly suggests the importance of the co-training recipe used by our model: while there is a benefit to explicitly infer highlevel subtasks, a significant portion of that benefit is already obtained simply by including subtask prediction data in the training mixture. The no HL ablation, excluding HL task even in training, performs significantly worse. The results also show that the relatively small verbal instruction dataset, which only constitutes about $11 \%$ of the high-level mobile manipulation examples, is critical to strong performance as the no VI ablation is significantly weaker. The no WD ablation is also significantly worse, indicating that much of the benefit of web data (perhaps unsurprisingly) lies in improving the high-level policy. Finally, the zero-shot GPT-4 ablation attains the worst performance, indicating the importance of adapting VLMs with robot data. We provide a detailed breakdown of performance on each task in Appendix D, Figure 17.
+
+# VI. DISCUSSION AND FUTURE WORK
+
+We described $\pi _ { 0 . 5 }$ , a co-trained model that builds on the $\pi _ { 0 }$ VLA to integrate a variety of data sources and enable generalization to new environments. The $\pi _ { 0 . 5 }$ VLA can control mobile manipulators to perform tasks in homes that were never seen in the training data, cleaning kitchens and bedrooms, making beds, hanging towels, and performing other multistage and dexterous behaviors. $\pi _ { 0 . 5 }$ is trained on about 400 hours of mobile manipulation data, but includes a much larger amount of data from other robots, including non-mobile manipulators in diverse environments and data collected under laboratory conditions. It is also co-trained jointly with data from the web, as well as high-level prediction data for outputting language commands based on robot observations. The generalization capabilities of $\pi _ { 0 . 5 }$ demonstrate that this cotraining recipe facilitates effective transfer, enabling highly generalizable control of a mobile manipulator with only a medium-sized mobile manipulation dataset.
+
+$\pi _ { 0 . 5 }$ is not without its limitations. While our VLA exhibits broad generalization, it still makes mistakes. Some environments present persistent challenges (e.g., unfamiliar handles on drawers, or cabinets that are physically hard for the robot to open), some behaviors present challenges with partial observability (e.g., the robot arm occluding a spill that should be wiped), and in some cases the high-level subtask inference is easily distracted (e.g., closing and opening a drawer multiple times while putting away items). Addressing these challenges with better co-training, transfer, and larger datasets is a promising direction for future work. Other future work directions could address the technical constraints of our method. While $\pi _ { 0 . 5 }$ can perform a variety of behaviors to clean up kitchens and bedrooms, it processes relatively simple prompts. The complexity of the prompts that the model can accommodate is determined by the training data, and more complex preferences and instructions could be incorporated by producing more intricate and diverse annotations, either with human labelers or synthetically. The model also uses a relatively modest context, and incorporating richer context and memory could make the model significantly more capable in settings with more partial observability, such as tasks that require navigating between different rooms or remembering where objects are stored. More broadly, $\pi _ { 0 . 5 }$ explores a particular combination of heterogeneous data sources, but the specific sources of data can be explored even more broadly. For instance, the ability of our system to learn from verbal instructions provides a powerful new supervision modality, and future work could explore this and other ways that people can provide robots with additional contextual knowledge. We hope that our work will serve as a foundation for a new generation of VLAs that exhibit broad generalization to diverse real-world environments.
+
+# ACKNOWLEDGEMENTS
+
+We thank our robot operators for data collection, evaluations, logistics, and video recording. See Appendix A for a full contributions statement.
+
+# REFERENCES
+
+Xingye Da, Runyu Ding, Linxi Fan, Yu Fang, Dieter Fox, Fengyuan Hu, Spencer Huang, et al. Gr00t n1: An open foundation model for generalist humanoid robots. arXiv preprint arXiv:2503.14734, 2025.   
+[8] Kevin Black, Noah Brown, Danny Driess, Adnan Esmail, Michael Equi, Chelsea Finn, Niccolo Fusai, Lachy Groom, Karol Hausman, Brian Ichter, Szymon Jakubczak, Tim Jones, Liyiming Ke, Sergey Levine, Adrian Li-Bell, Mohith Mothukuri, Suraj Nair, Karl Pertsch, Lucy Xiaoyang Shi, James Tanner, Quan Vuong, Anna Walling, Haohuan Wang, and Ury Zhilinsky. $\pi _ { 0 }$ : A vision-language-action flow model for general robot control. arXiv preprint arXiv:2410.24164, 2024.   
+[9] Anthony Brohan, Noah Brown, Justice Carbajal, Yevgen Chebotar, Joseph Dabis, Chelsea Finn, Keerthana Gopalakrishnan, Karol Hausman, Alex Herzog, Jasmine Hsu, Julian Ibarz, Brian Ichter, Alex Irpan, Tomas Jackson, Sally Jesmonth, Nikhil Joshi, Ryan Julian, Dmitry Kalashnikov, Yuheng Kuang, Isabel Leal, KuangHuei Lee, Sergey Levine, Yao Lu, Utsav Malla, Deeksha Manjunath, Igor Mordatch, Ofir Nachum, Carolina Parada, Jodilyn Peralta, Emily Perez, Karl Pertsch, Jornell Quiambao, Kanishka Rao, Michael Ryoo, Grecia Salazar, Pannag Sanketi, Kevin Sayed, Jaspiar Singh, Sumedh Sontakke, Austin Stone, Clayton Tan, Huong Tran, Vincent Vanhoucke, Steve Vega, Quan Vuong, Fei Xia, Ted Xiao, Peng Xu, Sichun Xu, Tianhe Yu, and Brianna Zitkovich. Rt-1: Robotics transformer for real-world control at scale. In arXiv preprint arXiv:2212.06817, 2022.   
+[10] Tom B. Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared Kaplan, Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda Askell, Sandhini Agarwal, Ariel Herbert-Voss, Gretchen Krueger, Tom Henighan, Rewon Child, Aditya Ramesh, Daniel M. Ziegler, Jeff Wu, Clemens Winter, Christopher Hesse, Mark Chen, Eric Sigler, Mateusz Litwin, Scott Gray, Benjamin Chess, Jack Clark, Christopher Berner, Sam McCandlish, Alec Radford, Ilya Sutskever, and Dario Amodei. Language models are few-shot learners. In Advances in Neural Information Processing Systems, 2020.   
+[11] Hongyi Chen, Yunchao Yao, Ruixuan Liu, Changliu Liu, and Jeffrey Ichnowski. Automating robot failure recovery using vision-language models with optimized prompts. arXiv preprint arXiv:2409.03966, 2024.   
+[12] Xinlei Chen, Hao Fang, Tsung-Yi Lin, Ramakrishna Vedantam, Saurabh Gupta, Piotr Dollar, and C Lawrence ´ Zitnick. Microsoft coco captions: Data collection and evaluation server. arXiv preprint arXiv:1504.00325, 2015.   
+[13] An-Chieh Cheng, Yandong Ji, Zhaojing Yang, Zaitian Gongye, Xueyan Zou, Jan Kautz, Erdem Bıyık, Hongxu Yin, Sifei Liu, and Xiaolong Wang. Navila: Legged robot vision-language-action model for navigation. arXiv preprint arXiv:2412.04453, 2024.   
+[14] Cheng Chi, Zhenjia Xu, Chuer Pan, Eric Cousineau, Benjamin Burchfiel, Siyuan Feng, Russ Tedrake, and Shuran Song. Universal manipulation interface: Inthe-wild robot teaching without in-the-wild robots. In Proceedings of Robotics: Science and Systems (RSS), 2024.   
+[15] OX-Embodiment Collaboration, A Padalkar, A Pooley, A Jain, A Bewley, A Herzog, A Irpan, A Khazatsky, A Rai, A Singh, et al. Open X-Embodiment: Robotic learning datasets and RT-X models. arXiv preprint arXiv:2310.08864, 1(2), 2023.   
+[16] Yinpei Dai, Jayjun Lee, Nima Fazeli, and Joyce Chai. Racer: Rich language-guided failure recovery policies for imitation learning. International Conference on Robotics and Automation (ICRA), 2025.   
+[17] Sudeep Dasari, Frederik Ebert, Stephen Tian, Suraj Nair, Bernadette Bucher, Karl Schmeckpeper, Siddharth Singh, Sergey Levine, and Chelsea Finn. Robonet: Large-scale multi-robot learning. CoRL, 2019.   
+[18] Sudeep Dasari, Mohan Kumar Srirama, Unnat Jain, and Abhinav Gupta. An unbiased look at datasets for visuomotor pre-training. In Conference on Robot Learning, pages 1183–1198. PMLR, 2023.   
+[19] Matt Deitke, Christopher Clark, Sangho Lee, Rohun Tripathi, Yue Yang, Jae Sung Park, Mohammadreza Salehi, Niklas Muennighoff, Kyle Lo, Luca Soldaini, et al. Molmo and pixmo: Open weights and open data for state-of-the-art multimodal models. arXiv preprint arXiv:2409.17146, 2024.   
+[20] Dempsey. Reviews-consumer technology. the teardownamazon astro consumer robot. Engineering & Technology, 18(2):70–71, 2023.   
+[21] Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova. Bert: Pre-training of deep bidirectional transformers for language understanding. In Proceedings of the 2019 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies, 2019.   
+[22] Ria Doshi, Homer Walke, Oier Mees, Sudeep Dasari, and Sergey Levine. Scaling cross-embodied learning: One policy for manipulation, navigation, locomotion and aviation. In Conference on Robot Learning, 2024.   
+[23] Danny Driess, Fei Xia, Mehdi SM Sajjadi, Corey Lynch, Aakanksha Chowdhery, Brian Ichter, Ayzaan Wahid, Jonathan Tompson, Quan Vuong, Tianhe Yu, et al. Palme: An embodied multimodal language model. arXiv preprint arXiv:2303.03378, 2023.   
+[24] Jiafei Duan, Wentao Yuan, Wilbert Pumacay, Yi Ru Wang, Kiana Ehsani, Dieter Fox, and Ranjay Krishna. Manipulate-anything: Automating real-world robots using vision-language models. arXiv preprint arXiv:2406.18915, 2024.   
+[25] Frederik Ebert, Yanlai Yang, Karl Schmeckpeper, Bernadette Bucher, Georgios Georgakis, Kostas Daniilidis, Chelsea Finn, and Sergey Levine. Bridge data: Boosting generalization of robotic skills with crossdomain datasets. arXiv preprint arXiv:2109.13396, 2021.   
+[26] Kiana Ehsani, Tanmay Gupta, Rose Hendrix, Jordi Salvador, Luca Weihs, Kuo-Hao Zeng, Kunal Pratap Singh, Yejin Kim, Winson Han, Alvaro Herrasti, et al. Spoc: Imitating shortest paths in simulation enables effective navigation and manipulation in the real world. arXiv preprint arXiv:2312.02976, 2023.   
+[27] Patrick Esser, Sumith Kulal, Andreas Blattmann, Rahim Entezari, Jonas Muller, Harry Saini, Yam Levi, Dominik ¨ Lorenz, Axel Sauer, Frederic Boesel, et al. Scaling rectified flow transformers for high-resolution image synthesis. In Forty-first International Conference on Machine Learning, 2024.   
+[28] Haritheja Etukuru, Norihito Naka, Zijin Hu, Seungjae Lee, Julian Mehu, Aaron Edsinger, Chris Paxton, Soumith Chintala, Lerrel Pinto, and Nur Muhammad Mahi Shafiullah. Robot utility models: General policies for zero-shot deployment in new environments. arXiv preprint arXiv:2409.05865, 2024.   
+[29] Hao-Shu Fang, Chenxi Wang, Hongjie Fang, Minghao Gou, Jirong Liu, Hengxu Yan, Wenhai Liu, Yichen Xie, and Cewu Lu. Anygrasp: Robust and efficient grasp perception in spatial and temporal domains. IEEE Transactions on Robotics, 39(5):3929–3945, 2023.   
+[30] Hao-Shu Fang, Hongjie Fang, Zhenyu Tang, Jirong Liu, Chenxi Wang, Junbo Wang, Haoyi Zhu, and Cewu Lu. Rh20t: A comprehensive robotic dataset for learning diverse skills in one-shot. In 2024 IEEE International Conference on Robotics and Automation (ICRA), pages 653–660. IEEE, 2024.   
+[31] Theophile Gervet, Soumith Chintala, Dhruv Batra, Jitendra Malik, and Devendra Singh Chaplot. Navigating to objects in the real world. Science Robotics, 8(79): eadf6991, 2023.   
+[32] Yash Goyal, Tejas Khot, Douglas Summers-Stay, Dhruv Batra, and Devi Parikh. Making the V in VQA matter: Elevating the role of image understanding in visual question answering. In Computer Vision and Pattern Recognition (CVPR), 2017.   
+[33] Abhinav Gupta, Adithyavairavan Murali, Dhiraj Prakashchand Gandhi, and Lerrel Pinto. Robot learning in homes: Improving generalization and reducing dataset bias. Advances in neural information processing systems, 31, 2018.   
+[34] Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun. Deep residual learning for image recognition. In Proceedings of the IEEE conference on computer vision and pattern recognition, pages 770–778, 2016.   
+[35] Kaiming He, Xinlei Chen, Saining Xie, Yanghao Li, Piotr Dollar, and Ross Girshick. Masked autoencoders are ´ scalable vision learners. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pages 15979–15988, 2022.   
+[36] Yingdong Hu, Fanqi Lin, Tong Zhang, Li Yi, and Yang Gao. Look before you leap: Unveiling the power of gpt4v in robotic vision-language planning. arXiv preprint arXiv:2311.17842, 2023.   
+[37] Huang Huang, Fangchen Liu, Letian Fu, Tingfan Wu, Mustafa Mukadam, Jitendra Malik, Ken Goldberg, and Pieter Abbeel. Otter: A vision-language-action model with text-aware visual feature extraction. arXiv preprint arXiv:2503.03734, 2025.   
+[38] Wenlong Huang, Pieter Abbeel, Deepak Pathak, and Igor Mordatch. Language models as zero-shot planners: Extracting actionable knowledge for embodied agents. In International conference on machine learning, pages 9118–9147. PMLR, 2022.   
+[39] Aaron Jaech, Adam Kalai, Adam Lerer, Adam Richardson, Ahmed El-Kishky, Aiden Low, Alec Helyar, Aleksander Madry, Alex Beutel, Alex Carney, et al. Openai o1 system card. arXiv preprint arXiv:2412.16720, 2024.   
+[40] Joseph L Jones. Robots at the tipping point: the road to irobot roomba. IEEE Robotics & Automation Magazine, 13(1):76–78, 2006.   
+[41] Alexander Khazatsky, Karl Pertsch, Suraj Nair, Ashwin Balakrishna, Sudeep Dasari, Siddharth Karamcheti, Soroush Nasiriany, Mohan Kumar Srirama, Lawrence Yunliang Chen, Kirsty Ellis, Peter David Fagan, Joey Hejna, Masha Itkina, Marion Lepert, Yecheng Jason Ma, Patrick Tree Miller, Jimmy Wu, Suneel Belkhale, Shivin Dass, Huy Ha, Arhan Jain, Abraham Lee, Youngwoon Lee, Marius Memmel, Sungjae Park, Ilija Radosavovic, Kaiyuan Wang, Albert Zhan, Kevin Black, Cheng Chi, Kyle Beltran Hatch, Shan Lin, Jingpei Lu, Jean Mercat, Abdul Rehman, Pannag R Sanketi, Archit Sharma, Cody Simpson, Quan Vuong, Homer Rich Walke, Blake Wulfe, Ted Xiao, Jonathan Heewon Yang, Arefeh Yavary, Tony Z. Zhao, Christopher Agia, Rohan Baijal, Mateo Guaman Castro, Daphne Chen, Qiuyu Chen, Trinity Chung, Jaimyn Drake, Ethan Paul Foster, Jensen Gao, David Antonio Herrera, Minho Heo, Kyle Hsu, Jiaheng Hu, Donovon Jackson, Charlotte Le, Yunshuang Li, Kevin Lin, Roy Lin, Zehan Ma, Abhiram Maddukuri, Suvir Mirchandani, Daniel Morton, Tony Nguyen, Abigail O’Neill, Rosario Scalise, Derick Seale, Victor Son, Stephen Tian, Emi Tran, Andrew E. Wang, Yilin Wu, Annie Xie, Jingyun Yang, Patrick Yin, Yunchu Zhang, Osbert Bastani, Glen Berseth, Jeannette Bohg, Ken Goldberg, Abhinav Gupta, Abhishek Gupta, Dinesh Jayaraman, Joseph J Lim, Jitendra Malik, Roberto Mart´ın-Mart´ın, Subramanian Ramamoorthy, Dorsa Sadigh, Shuran Song, Jiajun Wu, Michael C. Yip, Yuke Zhu, Thomas Kollar, Sergey Levine, and Chelsea Finn. Droid: A large-scale inthe-wild robot manipulation dataset. In Proceedings of Robotics: Science and Systems, 2024.   
+[42] Moo Jin Kim, Karl Pertsch, Siddharth Karamcheti, Ted Xiao, Ashwin Balakrishna, Suraj Nair, Rafael Rafailov, Ethan Foster, Grace Lam, Pannag Sanketi, et al. Openvla: An open-source vision-language-action model. arXiv preprint arXiv:2406.09246, 2024.   
+[43] Alexander Kirillov, Eric Mintun, Nikhila Ravi, Hanzi Mao, Chloe Rolland, Laura Gustafson, Tete Xiao, Spencer Whitehead, Alexander C. Berg, Wan-Yen Lo, Piotr Dollar, and Ross Girshick. Segment anything. arXiv ´ preprint arXiv:2304.02643, 2023.   
+[44] Boyi Li, Philipp Wu, Pieter Abbeel, and Jitendra Malik. Interactive task planning with language models, 2023.   
+[45] Qixiu Li, Yaobo Liang, Zeyu Wang, Lin Luo, Xi Chen, Mozheng Liao, Fangyun Wei, Yu Deng, Sicheng Xu, Yizhong Zhang, et al. Cogact: A foundational vision-language-action model for synergizing cognition and action in robotic manipulation. arXiv preprint arXiv:2411.19650, 2024.   
+[46] Xiang Li, Cristina Mata, Jongwoo Park, Kumara Kahatapitiya, Yoo Sung Jang, Jinghuan Shang, Kanchana Ranasinghe, Ryan Burgert, Mu Cai, Yong Jae Lee, et al. Llara: Supercharging robot learning data for visionlanguage policy. arXiv preprint arXiv:2406.20095, 2024.   
+[47] Yi Li, Yuquan Deng, Jesse Zhang, Joel Jang, Marius Memmel, Raymond Yu, Caelan Reed Garrett, Fabio Ramos, Dieter Fox, Anqi Li, et al. Hamster: Hierarchical action models for open-world robot manipulation. arXiv preprint arXiv:2502.05485, 2025.   
+[48] Jacky Liang, Wenlong Huang, Fei Xia, Peng Xu, Karol Hausman, Brian Ichter, Pete Florence, and Andy Zeng. Code as policies: Language model programs for embodied control. In 2023 IEEE International Conference on Robotics and Automation (ICRA), pages 9493–9500. IEEE, 2023.   
+[49] Fanqi Lin, Yingdong Hu, Pingyue Sheng, Chuan Wen, Jiacheng You, and Yang Gao. Data scaling laws in imitation learning for robotic manipulation. arXiv preprint arXiv:2410.18647, 2024.   
+[50] Yaron Lipman, Ricky TQ Chen, Heli Ben-Hamu, Maximilian Nickel, and Matt Le. Flow matching for generative modeling. arXiv preprint arXiv:2210.02747, 2022.   
+[51] Fangchen Liu, Kuan Fang, Pieter Abbeel, and Sergey Levine. Moka: Open-vocabulary robotic manipulation through mark-based visual prompting. In First Workshop on Vision-Language Models for Navigation and Manipulation at ICRA 2024, 2024.   
+[52] Jiaming Liu, Hao Chen, Pengju An, Zhuoyang Liu, Renrui Zhang, Chenyang Gu, Xiaoqi Li, Ziyu Guo, Sixiang Chen, Mengzhen Liu, et al. Hybridvla: Collaborative diffusion and autoregression in a unified vision-languageaction model. arXiv preprint arXiv:2503.10631, 2025.   
+[53] Peiqi Liu, Yaswanth Orru, Jay Vakil, Chris Paxton, Nur Muhammad Mahi Shafiullah, and Lerrel Pinto. Okrobot: What really matters in integrating open-knowledge models for robotics. arXiv preprint arXiv:2401.12202, 2024.   
+[54] Qiang Liu. Rectified flow: A marginal preserving approach to optimal transport. arXiv preprint arXiv:2209.14577, 2022.   
+[55] Songming Liu, Lingxuan Wu, Bangguo Li, Hengkai Tan, Huayu Chen, Zhengyi Wang, Ke Xu, Hang Su, and Jun Zhu. Rdt-1b: a diffusion foundation model for bimanual manipulation. arXiv preprint arXiv:2410.07864, 2024.   
+[56] Jeffrey Mahler, Jacky Liang, Sherdil Niyaz, Michael Laskey, Richard Doan, Xinyu Liu, Juan Aparicio Ojea, and Ken Goldberg. Dex-net 2.0: Deep learning to plan robust grasps with synthetic point clouds and analytic grasp metrics. arXiv preprint arXiv:1703.09312, 2017.   
+[57] Arjun Majumdar, Karmesh Yadav, Sergio Arnaud, Jason Ma, Claire Chen, Sneha Silwal, Aryan Jain, VincentPierre Berges, Tingfan Wu, Jay Vakil, et al. Where are we in the search for an artificial visual cortex for embodied intelligence? Advances in Neural Information Processing Systems, 36:655–677, 2023.   
+[58] Suraj Nair, Aravind Rajeswaran, Vikash Kumar, Chelsea Finn, and Abhinav Gupta. R3m: A universal visual representation for robot manipulation. In CoRL, 2022.   
+[59] Soroush Nasiriany, Fei Xia, Wenhao Yu, Ted Xiao, Jacky Liang, Ishita Dasgupta, Annie Xie, Danny Driess, Ayzaan Wahid, Zhuo Xu, et al. Pivot: Iterative visual prompting elicits actionable knowledge for vlms. arXiv preprint arXiv:2402.07872, 2024.   
+[60] Hai Nguyen and Charles C Kemp. Autonomously learning to visually detect where manipulation will succeed. Autonomous Robots, 36:137–152, 2014.   
+[61] Dantong Niu, Yuvan Sharma, Giscard Biamby, Jerome Quenum, Yutong Bai, Baifeng Shi, Trevor Darrell, and Roei Herzig. Llarva: Vision-action instruction tuning enhances robot learning. arXiv preprint arXiv:2406.11815, 2024.   
+[62] Octo Model Team, Dibya Ghosh, Homer Walke, Karl Pertsch, Kevin Black, Oier Mees, Sudeep Dasari, Joey Hejna, Charles Xu, Jianlan Luo, Tobias Kreiman, You Liang Tan, Pannag Sanketi, Quan Vuong, Ted Xiao, Dorsa Sadigh, Chelsea Finn, and Sergey Levine. Octo: An open-source generalist robot policy. In Proceedings of Robotics: Science and Systems, Delft, Netherlands, 2024.   
+[63] Open X-Embodiment Collaboration, Abhishek Padalkar, Acorn Pooley, Ajinkya Jain, Alex Bewley, Alex Herzog, Alex Irpan, Alexander Khazatsky, Anant Rai, Anikait Singh, Anthony Brohan, Antonin Raffin, Ayzaan Wahid, Ben Burgess-Limerick, Beomjoon Kim, Bernhard Scholkopf, Brian Ichter, Cewu Lu, Charles Xu, ¨ Chelsea Finn, Chenfeng Xu, Cheng Chi, Chenguang Huang, Christine Chan, Chuer Pan, Chuyuan Fu, Coline Devin, Danny Driess, Deepak Pathak, Dhruv Shah, Dieter Buchler, Dmitry Kalashnikov, Dorsa Sadigh, Edward ¨ Johns, Federico Ceola, Fei Xia, Freek Stulp, Gaoyue Zhou, Gaurav S. Sukhatme, Gautam Salhotra, Ge Yan, Giulio Schiavi, Hao Su, Hao-Shu Fang, Haochen Shi, Heni Ben Amor, Henrik I Christensen, Hiroki Furuta, Homer Walke, Hongjie Fang, Igor Mordatch, Ilija Radosavovic, Isabel Leal, Jacky Liang, Jaehyung Kim, Jan Schneider, Jasmine Hsu, Jeannette Bohg, Jeffrey Bingham, Jiajun Wu, Jialin Wu, Jianlan Luo, Jiayuan Gu, Jie Tan, Jihoon Oh, Jitendra Malik, Jonathan Tompson, Jonathan Yang, Joseph J. Lim, Joao Silv ˜ erio, Jun- ´ hyek Han, Kanishka Rao, Karl Pertsch, Karol Hausman, Keegan Go, Keerthana Gopalakrishnan, Ken Goldberg, Kendra Byrne, Kenneth Oslund, Kento Kawaharazuka, Kevin Zhang, Keyvan Majd, Krishan Rana, Krishnan Srinivasan, Lawrence Yunliang Chen, Lerrel Pinto, Liam Tan, Lionel Ott, Lisa Lee, Masayoshi Tomizuka, Maximilian Du, Michael Ahn, Mingtong Zhang, Mingyu Ding, Mohan Kumar Srirama, Mohit Sharma, Moo Jin Kim, Naoaki Kanazawa, Nicklas Hansen, Nicolas Heess, Nikhil J Joshi, Niko Suenderhauf, Norman Di Palo, Nur Muhammad Mahi Shafiullah, Oier Mees, Oliver Kroemer, Pannag R Sanketi, Paul Wohlhart, Peng Xu, Pierre Sermanet, Priya Sundaresan, Quan Vuong, Rafael Rafailov, Ran Tian, Ria Doshi, Roberto Mart´ın-Mart´ın, Russell Mendonca, Rutav Shah, Ryan Hoque, Ryan Julian, Samuel Bustamante, Sean Kirmani, Sergey Levine, Sherry Moore, Shikhar Bahl, Shivin Dass, Shuran Song, Sichun Xu, Siddhant Haldar, Simeon Adebola, Simon Guist, Soroush Nasiriany, Stefan Schaal, Stefan Welker, Stephen Tian, Sudeep Dasari, Suneel Belkhale, Takayuki Osa, Tatsuya Harada, Tatsuya Matsushima, Ted Xiao, Tianhe Yu, Tianli Ding, Todor Davchev, Tony Z. Zhao, Travis Armstrong, Trevor Darrell, Vidhi Jain, Vincent Vanhoucke, Wei Zhan, Wenxuan Zhou, Wolfram Burgard, Xi Chen, Xiaolong Wang, Xinghao Zhu, Xuanlin Li, Yao Lu, Yevgen Chebotar, Yifan Zhou, Yifeng Zhu, Ying Xu, Yixuan Wang, Yonatan Bisk, Yoonyoung Cho, Youngwoon Lee, Yuchen Cui, Yueh hua Wu, Yujin Tang, Yuke Zhu, Yunzhu Li, Yusuke Iwasawa, Yutaka Matsuo, Zhuo Xu, and Zichen Jeff Cui. Open X-Embodiment: Robotic learning datasets and RT-X models. https: //arxiv.org/abs/2310.08864, 2023.   
+[64] Karl Pertsch, Kyle Stachowicz, Brian Ichter, Danny Driess, Suraj Nair, Quan Vuong, Oier Mees, Chelsea Finn, and Sergey Levine. FAST: Efficient action tokenization for vision-language-action models. Robotics: Science and Systems, 2025.   
+[65] Dicong Qiu, Wenzong Ma, Zhenfu Pan, Hui Xiong, and Junwei Liang. Open-vocabulary mobile manipulation in unseen dynamic environments with 3d semantic maps. arXiv preprint arXiv:2406.18115, 2024.   
+[66] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sastry, Amanda Askell, Pamela Mishkin, Jack Clark, et al. Learning transferable visual models from natural language supervision. In International conference on machine learning, pages 8748–8763. PMLR, 2021.   
+[67] Nur Muhammad Mahi Shafiullah, Anant Rai, Haritheja Etukuru, Yiqian Liu, Ishan Misra, Soumith Chintala, and Lerrel Pinto. On bringing robots home. arXiv preprint arXiv:2311.16098, 2023.   
+[68] Dhruv Shah, Ajay Sridhar, Arjun Bhorkar, Noriaki Hirose, and Sergey Levine. Gnm: A general navigation model to drive any robot. In 2023 IEEE International Conference on Robotics and Automation (ICRA), pages 7226–7233. IEEE, 2023.   
+[69] Dhruv Shah, Ajay Sridhar, Nitish Dashora, Kyle Stachowicz, Kevin Black, Noriaki Hirose, and Sergey Levine. ViNT: A foundation model for visual navigation. In 7th Annual Conference on Robot Learning, 2023. URL https://arxiv.org/abs/2306.14846.   
+[70] Rutav Shah, Albert Yu, Yifeng Zhu, Yuke Zhu, and Roberto Mart´ın-Mart´ın. Bumble: Unifying reasoning and acting with vision-language models for building-wide mobile manipulation. arXiv preprint arXiv:2410.06237, 2024.   
+[71] Lucy Xiaoyang Shi, Zheyuan Hu, Tony Z Zhao, Archit Sharma, Karl Pertsch, Jianlan Luo, Sergey Levine, and Chelsea Finn. Yell at your robot: Improving on-the-fly from language corrections. arXiv preprint arXiv:2403.12910, 2024.   
+[72] Lucy Xiaoyang Shi, Brian Ichter, Michael Equi, Liyiming Ke, Karl Pertsch, Quan Vuong, James Tanner, Anna Walling, Haohuan Wang, Niccolo Fusai, et al. Hi robot: Open-ended instruction following with hierarchical vision-language-action models. arXiv preprint arXiv:2502.19417, 2025.   
+[73] Ishika Singh, Valts Blukis, Arsalan Mousavian, Ankit Goyal, Danfei Xu, Jonathan Tremblay, Dieter Fox, Jesse Thomason, and Animesh Garg. Progprompt: Generating situated robot task plans using large language models. In 2023 IEEE International Conference on Robotics and Automation (ICRA), pages 11523–11530. IEEE, 2023.   
+[74] Austin Stone, Ted Xiao, Yao Lu, Keerthana Gopalakrishnan, Kuang-Huei Lee, Quan Vuong, Paul Wohlhart, Brianna Zitkovich, Fei Xia, Chelsea Finn, et al. Open-world object manipulation using pre-trained vision-language models. arXiv preprint arXiv:2303.00905, 2023.   
+[75] Andrew Szot, Bogdan Mazoure, Omar Attia, Aleksei Timofeev, Harsh Agrawal, Devon Hjelm, Zhe Gan, Zsolt Kira, and Alexander Toshev. From multimodal llms to generalist embodied agents: Methods and lessons. arXiv preprint arXiv:2412.08442, 2024.   
+[76] Gemini Robotics Team, Saminda Abeyruwan, Joshua Ainslie, Jean-Baptiste Alayrac, Montserrat Gonzalez Arenas, Travis Armstrong, Ashwin Balakrishna, Robert Baruch, Maria Bauza, Michiel Blokzijl, et al. Gemini robotics: Bringing ai into the physical world. arXiv preprint arXiv:2503.20020, 2025.   
+[77] Peter Tong, Ellis Brown, Penghao Wu, Sanghyun Woo, Adithya Jairam Vedagiri IYER, Sai Charitha Akula, Shusheng Yang, Jihan Yang, Manoj Middepogu, Ziteng Wang, et al. Cambrian-1: A fully open, vision-centric exploration of multimodal llms. Advances in Neural Information Processing Systems, 37:87310–87356, 2024.   
+[78] Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier Martinet, Marie-Anne Lachaux, Timothee Lacroix, Bap- ´ tiste Roziere, Naman Goyal, Eric Hambro, Faisal Azhar, \` et al. Llama: Open and efficient foundation language models. arXiv preprint arXiv:2302.13971, 2023.   
+[79] Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N Gomez, Ł ukasz Kaiser, and Illia Polosukhin. Attention is all you need. In Advances in Neural Information Processing Systems, volume 30, 2017.   
+[80] Homer Rich Walke, Kevin Black, Tony Z Zhao, Quan Vuong, Chongyi Zheng, Philippe Hansen-Estruch, Andre Wang He, Vivek Myers, Moo Jin Kim, Max Du, et al. BridgeData v2: A dataset for robot learning at scale. In Conference on Robot Learning, pages 1723– 1736. PMLR, 2023.   
+[81] Shu Wang, Muzhi Han, Ziyuan Jiao, Zeyu Zhang, Ying Nian Wu, Song-Chun Zhu, and Hangxin Liu. Llmˆ 3: Large language model-based task and motion planning with motion failure reasoning. In 2024 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), pages 12086–12092. IEEE, 2024.   
+[82] Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Fei Xia, Ed Chi, Quoc V Le, Denny Zhou, et al. Chain-of-thought prompting elicits reasoning in large language models. Advances in neural information processing systems, 35:24824–24837, 2022.   
+[83] Junjie Wen, Yichen Zhu, Jinming Li, Minjie Zhu, Kun Wu, Zhiyuan Xu, Ning Liu, Ran Cheng, Chaomin Shen, Yaxin Peng, Feifei Feng, and Jian Tang. Tinyvla: Towards fast, data-efficient vision-languageaction models for robotic manipulation. arXiv preprint arXiv:2409.12514, 2024.   
+[84] Junjie Wen, Yichen Zhu, Jinming Li, Zhibin Tang, Chaomin Shen, and Feifei Feng. Dexvla: Visionlanguage model with plug-in diffusion expert for general robot control. arXiv preprint arXiv:2502.05855, 2025.   
+[85] Tete Xiao, Ilija Radosavovic, Trevor Darrell, and Jitendra Malik. Masked visual pre-training for motor control. arXiv preprint arXiv:2203.06173, 2022.   
+[86] Jianwei Yang, Reuben Tan, Qianhui Wu, Ruijie Zheng, Baolin Peng, Yongyuan Liang, Yu Gu, Mu Cai, Seonghyeon Ye, Joel Jang, et al. Magma: A foundation model for multimodal ai agents. arXiv preprint arXiv:2502.13130, 2025.   
+[87] Qiying Yu, Quan Sun, Xiaosong Zhang, Yufeng Cui, Fan Zhang, Yue Cao, Xinlong Wang, and Jingjing Liu. Capsfusion: Rethinking image-text data at scale. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pages 14022–14032, 2024.   
+[88] Michał Zawalski, William Chen, Karl Pertsch, Oier Mees, Chelsea Finn, and Sergey Levine. Robotic control via embodied chain-of-thought reasoning. In Conference on Robot Learning, 2024.   
+[89] Qingqing Zhao, Yao Lu, Moo Jin Kim, Zipeng Fu, Zhuoyang Zhang, Yecheng Wu, Zhaoshuo Li, Qianli Ma, Song Han, Chelsea Finn, et al. Cot-vla: Visual chainof-thought reasoning for vision-language-action models. Computer Vision and Pattern Recognition (CVPR), 2025.   
+[90] Haoyu Zhen, Xiaowen Qiu, Peihao Chen, Jincheng Yang, Xin Yan, Yilun Du, Yining Hong, and Chuang Gan. 3dvla: 3d vision- orld model. arXiv preprint arXiv:2403.09631, 2024.   
+[91] Peiyuan Zhi, Zhiyuan Zhang, Yu Zhao, Muzhi Han, Zeyu Zhang, Zhitian Li, Ziyuan Jiao, Baoxiong Jia, and Siyuan Huang. Closed-loop open-vocabulary mobile manipulation with gpt-4v. arXiv preprint arXiv:2404.10220, 2024.   
+[92] Brianna Zitkovich, Tianhe Yu, Sichun Xu, Peng Xu, Ted Xiao, Fei Xia, Jialin Wu, Paul Wohlhart, Stefan Welker, Ayzaan Wahid, et al. Rt-2: Vision-languageaction models transfer web knowledge to robotic control. In Conference on Robot Learning, pages 2165–2183. PMLR, 2023.
 
-For the proof, we need the following description of $D ( \mathsf { M } , \mathsf { \mathcal { G } } )$ as the Chow ring of a fan (see [FY04]). The Bergman fan of $\mathsf { M }$ with respect to $\mathcal { G }$ is the fan $\Sigma _ { \mathcal { G } }$ in $\mathbb { R } ^ { E }$ consisting of the cones ${ \mathbb { R } } _ { \geq 0 } \{ \mathbf { e } _ { G } : G \in S \}$ , one for each $\mathcal { G }$ -nested set $S$ . Here, we denoted by $\mathbf { e } _ { G }$ the sum $\textstyle \sum _ { i \in G } \mathbf { e } _ { i }$ of standard basis vectors. The ring $D ( \mathsf { M } , \mathsf { \mathcal { G } } )$ is equal to the Chow ring $A ^ { \bullet } ( \Sigma _ { \mathcal { G } } )$ of the fan $\Sigma _ { \mathcal { G } }$ . We now note the following.
+# APPENDIX
 
-Proposition 5.2 [FM05, Proof of Theorem 4.2] Let ${ \mathcal { G } } \supset { \mathcal { H } }$ be two building sets of $\mathcal { L } ( \boldsymbol { M } )$ , and let $G$ be a minimal element of $\mathcal { G } \backslash \mathcal { H }$ . Then, ${ \mathcal { G } } ^ { \prime } : = { \mathcal { G } } \setminus \{ G \}$ is a building set. Moreover, the fan $\Sigma _ { \mathcal { G } }$ is the stellar subdivision of the fan $\Sigma _ { \mathcal { G } ^ { \prime } }$ at the face corresponding to the nested set $f ( \mathcal { G } ^ { \prime } | _ { G } )$ of factors of $G$ in $\mathcal { G } ^ { \prime }$ .
+# A. Contributions
 
-We thus need to understand how Chow rings of fans change under stellar subdivisions. The following lemma allows us to do this.
+Data collection and operations. Noah Brown, Michael Equi, Chelsea Finn, Lachy Groom, Suraj Nair, Lucy Xiaoyang Shi, Anna Walling.   
+Annotation and supplemental data. Danny Driess, Chelsea Finn, Niccolo Fusai, Lachy Groom, Brian Ichter, Karl Pertsch, Allen Z. Ren, Laura Smith, Kyle Stachowicz, Quan Vuong, Anna Walling, Lili Yu.   
+Policy training and research. Kevin Black, Danny Driess, Michael Equi, Chelsea Finn, Niccolo Fusai, Dibya Ghosh, Brian Ichter, Liyiming Ke, Sergey Levine, Suraj Nair, Karl Pertsch, Allen Z. Ren, Lucy Xiaoyang Shi, Laura Smith, Jost Tobias Springenberg, Kyle Stachowicz, Quan Vuong, Homer Walke, Lili Yu.   
+Policy infrastructure. Kevin Black, Karan Dhabalia, Danny Driess, Manuel Y. Galliker, Dibya Ghosh, Adrian Li-Bell, Quan Vuong, Haohuan Wang, Ury Zhilinsky.   
+Robot hardware. Noah Brown, Adnan Esmail, Tim Jones, Devin LeBlanc, Mohith Mothukuri.   
+Robot infrastructure. James Darpinian, Adnan Esmail, Manuel Y. Galliker, Karol Hausman, Szymon Jakubczak, James Tanner.   
+Writing and illustration. Kevin Black, Danny Driess, Chelsea Finn, Karol Hausman, Brian Ichter, Sergey Levine, Karl Pertsch, Allen Z. Ren, Lucy Xiaoyang Shi, Jost Tobias Springenberg.
 
-Lemma 5.3 Let $A ^ { \bullet } ( \Sigma )$ denote the Chow ring of a smooth fan $\Sigma$ with rational coefficients. For a cone $\sigma \in \Sigma$ of dimension $\ell$ , let $\widetilde { \Sigma }$ be the stellar subdivision of $\Sigma$ at $\sigma$ , and let $\overline { { \mathrm { s t } } } _ { \sigma } ( \Sigma )$ be the closed star of $\Sigma$ at $\sigma$ (i.e. the fan consisting of the cones of $\Sigma$ containing $\sigma$ ). Then, as graded vector spaces, we have
+# B. Task evaluation rubric
 
-$$
-A ^ { \bullet } ( \widetilde { \Sigma } ) \simeq A ^ { \bullet } ( \Sigma ) \oplus \bigoplus _ { i = 1 } ^ { \ell - 1 } A ^ { \bullet } ( \overline { { { \mathrm { s t } } } } _ { \sigma } ( \Sigma ) ) [ - i ] .
-$$
+For a quantitative evaluation of our method we performed rigorous evaluation of a subset of four tasks that are included in the training dataset (but evaluated in entirely new scenes and configurations). Among these are two kitchen cleanup tasks and two bedroom cleanup tasks. Each task is evaluated with a consistent set of items for each of the policies within a comparison (but items varied between locations) in three different homes and three different mock kitchens and mock bedrooms respectively (a total of 12 different locations). For each evaluation and each policy, unless otherwise stated, we perform 10 evaluations per task; note that each of these evaluation episodes can span multiple minutes and they are thus time intensive. We present results as percent of total points achieved in each evaluation rubric (as outlined below) and present either per task metrics or metrics averaged across all tasks in four different locations, that are consistent for all policies in a comparison, leading to a total of 40 evaluations per policy for our standard evaluations. Evaluations were carried out by interleaving execution of policies to control for environmental changes. Some evaluations include cancelled episodes due to robot failures, time limitations or other causes, which are removed. In all cases we control the sample size to be close and report statistical significance according to a twosided t-test assuming variable number of trials within the plots. The language following evaluations follow a different protocol as described in the main text.
 
-Proof. This follows from [Kee92, Theorem 1 in Appendix], which is stated for Chow rings of blow-ups of smooth varieties along smooth varieties satisfying a certain surjectivity condition (which holds for toric varieties). In our case, the stellar subdivision corresponds to the blow-up of the toric variety $X _ { \Sigma }$ along the torus-invariant subvariety corresponding to the cone $\sigma$ . 
+The evaluation metrics for the kitchen cleanup tasks, which include placing dishes into a sink and storing items in a drawer, are detailed below.
 
-The last remaining ingredient concerns the star fans of Bergman fans.
+• Dishes in Sink: The task begins with 4 dishes (e.g., plates, bowls, cutting boards, utensils) placed near a sink. The robot’s goal is to place all of them in the sink. $+ 1$ For each item picked up. $+ 1$ For each item placed in the sink. Maximum score: 8 points.   
+Items in Drawer: The task begins with an item on a countertop. The robot must place the item into a drawer beneath the counter. $+ 1$ Picking up the object. $+ 1$ Opening the drawer. $+ 1$ Putting the object into the drawer. $+ 1$ Closing the drawer (if the object is inside).
 
-Lemma 5.4 Let $G$ be a nonempty flat of M not necessarily in a building set $\mathcal { G } ^ { \prime }$ , and let $f ( \mathcal { G } ^ { \prime } | _ { G } ) = \{ G _ { 1 } ^ { \prime } , . . . , G _ { \ell } ^ { \prime } \}$ be the $\mathcal { G } ^ { \prime }$ -factors. Then, the closed star of $\Sigma _ { \mathcal { G } ^ { \prime } }$ at the cone corresponding to $f ( \mathcal { G } ^ { \prime } | _ { G } )$ is isomorphic to the fan $\Sigma _ { \pmb { \mathscr { G } } ^ { \prime } | _ { G _ { 1 } ^ { \prime } } } \times \cdot \cdot \cdot \times \Sigma _ { \pmb { \mathscr { G } } ^ { \prime } | _ { G _ { \ell } ^ { \prime } } } \times \Sigma \pmb { \mathscr { G } } ^ { \prime } / G$ .
+Maximum score: 4 points.
 
-Proof. This follows from a repeated application of [BEPV24, Theorem 1.6], which states that for any $G ^ { \prime } \in \mathcal { G } ^ { \prime }$ , the closed star of $\Sigma _ { \mathcal { G } ^ { \prime } }$ at the ray $\mathbb { R } _ { \geq 0 } \{ \mathbf { e } _ { G ^ { \prime } } \}$ is isomorphic to the product $\Sigma _ { \mathcal { G } ^ { \prime } | _ { G ^ { \prime } } } \times \Sigma _ { \mathcal { G } ^ { \prime } / G ^ { \prime } }$ . 
+Next, we outline the evaluation metrics for the bedroom cleanup tasks: putting laundry away and making a bed.
 
-Proof of Theorem 5.1. Let $\{ G _ { 1 } ^ { \prime } , \ldots , G _ { \ell } ^ { \prime } \}$ be the $\mathcal { G } ^ { \prime }$ -factors of $\mathcal { G } ^ { \prime } | _ { G }$ . Note the isomorphism $\Sigma _ { \pmb { \mathscr { G } } ^ { \prime } | _ { G _ { 1 } ^ { \prime } } } \times \cdot \cdot \times \Sigma _ { \pmb { \mathscr { G } } ^ { \prime } | _ { G _ { \ell } ^ { \prime } } } \times \Sigma _ { \pmb { \mathscr { G } } ^ { \prime } / G } \simeq \Sigma _ { \pmb { \mathscr { G } } ^ { \prime } | _ { G } } \times \Sigma _ { \pmb { \mathscr { G } } ^ { \prime } / G }$ . Combining the second part of Proposition 5.2 with the two preceding lemmas yields the desired result.
+• Laundry in Basket: The task begins with an article of clothing lying on the ground. The robot’s goal is to pick up the laundry and place it in the laundry basket. $+ 1$ Navigating to and picking up the clothing. $+ 1$ Placing the clothing into or on the laundry basket. $+ 1$ Clothing is fully inside the basket. Maximum score: 3 points.   
+Make the Bed: The bed starts unmade. The robot must tidy the blanket and place two pillows at the head of the bed. $+ 1$ Straightening the blanket so it covers the sheets. $+ 1$ Placing one pillow at the head of the bed. $+ 1$ Placing the second pillow at the head of the bed. $+ 1$ Blanket is straightened very neatly. $+ 1$ Both pillows are placed very neatly. Maximum score: 5 points.
 
-# 6. The failure of inequalities
+# C. Language following experiment setup
 
-In this section, we discuss the potential failure of the properties in Figure 1 for the Hilbert series of the ring $D ( \mathsf { M } , \mathsf { \mathcal { G } } )$ .
+The language following experiments use two unseen kitchen scenes to test how well the model follows more specific user commands, such as “put the scissors in the drawer” or “put the cutting board into the sink”. Each trial requires the robot to interpret the instruction, identify the correct object amidst distractors, and perform the task. We evaluate on two scenarios:
 
-6.1. Failure of log-concavity. We provide examples where the coefficients of $\mathrm { H } _ { \mathsf { M } } ^ { \mathcal { G } } ( x )$ do not form a log-concave sequence. It will be useful to consider $\mathrm { H } _ { \mathsf { M } } ^ { \mathcal { G } } ( x )$ as the Poincar´e polynomial of a wonderful variety constructed via a sequential blow-up, which was reviewed in Section 3.5. The strategy common to all of our examples is the following simple observation: if a sequence $( a , b , c )$ is log-concave but $2 b < a + c$ (i.e. not concave), then $( a + \ell , b + \ell , c + \ell )$ is not log-concave for all large $\ell > 0$ , since $( b + \ell ) ^ { 2 } - ( a + \ell ) ( c + \ell ) = ( b ^ { 2 } - a c ) + ( 2 b - a - c ) \ell$ .
+1) Items in the drawer: common kitchen items (tongs, wooden serving spoon, can opener, scissors, and small yellow mustard). 2) Items in the sink: common dining items (cup, bowl, plate, plastic spoon, and cutting board).
 
-Example 6.1 ( $\mathrm { H } _ { \mathsf { M } } ^ { \mathcal { G } } ( x )$ need not have log-concave coefficients) Let $\mathsf { M }$ be the uniform matroid of rank 9 on the ground set $E = [ 8 ] \sqcup [ { \overline { { 1 0 } } } ]$ of 18 elements, where $[ 8 ] = \{ 1 , \dots , 8 \}$ and $[ \overline { { 1 0 } } ] = \{ \overline { { 1 } } , \dots , \overline { { 1 0 } } \}$ . Let
+In each trial, the robot is presented with five objects and is instructed to move one of them. To discourage shortcut behaviors, the target object is placed further away than the distractors, such that a policy that is unable to interpret the command should achieve only ${ \sim } 2 0 \%$ language following accuracy. We report two metrics, averaged over both scenarios: language following rate, which measures whether the correct object was selected, and task success rate, which evaluates whether the object was successfully placed in the specified location. We further investigate how the number of distinct training environments influences the model’s ability to generalize to previously unseen objects. We design a similar Items in the drawer task with novel household items (a funnel, a pill bottle, a grill lighter, a lighter, and a pair of safety goggles). None of these object categories were present in the training set, ensuring that this task tests the robot’s performance on out-of-distribution objects. We show the example initial scene of each task in Figure 14.
 
-$$
-\mathcal { G } = E \cup \{ 1 2 , 1 2 3 , 1 2 3 4 , \dots , 1 2 3 4 5 6 7 8 \} \cup \binom { [ \overline { { 1 0 } } ] } { 8 } \cup \{ E \} ,
-$$
+Along with data ablation experiments in Figure 11 and location scaling experiments in Figure 9, Figure 15 presents language following results across model classes. We find that $\pi _ { 0 . 5 }$ follows language at a slightly higher rate than $\pi _ { 0 } \cdot$ - FAST $^ +$ Flow, and a much higher rate than $\pi _ { 0 }$ , indicating the importance of discrete token training on language following abilities.
 
-which one verifies to be a building set on $\mathsf { M }$ by noting that every interval $[ \sigma , F ]$ for a proper flat $F \neq E$ is a Boolean lattice.
+![](images/6313aa81b8661c5723ba28998f2aab922b9154bba95200911105755a4165b18a.jpg)  
+Fig. 14: Example initial states of different language following experiments.
 
-As uniform matroids are realizable over $\mathbb { C }$ , following the construction of wonderful varieties given in Section 3.5, we find that the Chow polynomial $\mathrm { H } _ { \mathsf { M } } ^ { \mathcal { G } } ( x )$ is the Poincar´e polynomial of the variety obtained as a sequential blow-up of $\mathbb { P } ^ { \mathrm { 8 } }$ , in two steps:
+![](images/ec6885237bc0f68916ade95fb4a924f9a2c8f32b6a3498ffc35dd1e648202197.jpg)  
+Fig. 15: Comparing $\pi _ { 0 . 5 }$ with other models on language following. We evaluate language following capabilities of $\pi _ { 0 . 5 }$ , $\pi _ { 0 }$ , and $\pi _ { 0 }$ -FAST+Flow, finding $\pi _ { 0 . 5 }$ outperforms each, and $\pi _ { 0 }$ by a wide margin.
 
-(1) First, one blows up a complete flag $\mathbb { P } L _ { 1 2 3 4 5 6 7 8 } \subsetneq \cdots \subsetneq \mathbb { P } L _ { 1 2 } \subsetneq \mathbb { P } L _ { 1 }$ in $\mathbb { P } ^ { 8 }$ , starting with the point, then (the strict transform of) the line, then the plane, etc. (2) Then, one blows up ${ \binom { 1 0 } { 8 } } = 4 5$ more points not lying on the hyperplane $\mathbb { P } L _ { 1 }$ .
+![](images/0791598b26a85bdfb3f990c6ab82f6c60c4050a170fc63c2a76ce9d662eff6b5.jpg)  
+Fig. 16: Per-task performance breakdown for training recipe ablations. We evaluate each training mixture variant on four representative household tasks: Items in Drawer, Dishes in Sink, Laundry Basket, and Make Bed. Removing cross-embodiment data (ME or CE) leads to significant degradation in specific tasks, particularly Items in Drawer and Dishes in Sink. Web data (WD) shows greater effect on the task (Items in Drawer) where the broad knowledge of the scene is desired.
 
-By induction, one verifies that blowing up a complete flag in a projective space yields a variety whose Betti numbers are the binomial coefficients. In our case, we have that after step (1) the Betti numbers read $( 1 , 8 , 2 8 , 5 6 , 7 0 , 5 6 , 2 8 , 8 , 1 )$ . Note that $2 \cdot 2 8 - ( 5 6 + 8 ) =$ $- 8 < 0$ . Then, for step (2), when one blows up a point, we note that the Betti numbers change by adding 1 to each of the entries that are not the first or the last. In our case, one may also deduce this geometric fact from Theorem 5.1. In particular, the final Betti numbers read $( 1 , 8 + 4 5 , 2 8 + 4 5 , 5 6 + 4 5 , . . . )$ ), and at the third entry, we find that logconcavity fails since $7 3 ^ { 2 } - 5 3 \cdot 1 0 1 = - 2 4 < 0$ .
+# D. Per-task performance breakdown
 
-Example 6.2 $\mathrm { \cdot } \mathrm { H } _ { \mathsf { M } } ^ { \mathcal { G } _ { \mathrm { m i n } } } ( x )$ need not have log-concave coefficients) The geometry in the previous example of blowing up a complete flag in $\mathbb { P } ^ { \mathrm { 8 } }$ and then blowing up 45 additional general points can be realized as a minimal building set on a matroid in the following way. We do this in two steps, corresponding to the steps (1) and (2) in the geometry described in the previous example. We will use notions in matroid theory such as free extensions and principal extensions by flats, which can be found in [Oxl11, Chapter 7].
+a) Co-training recipe ablations: To better understand the influence of different training data sources on specific task categories, we provide a per-task performance breakdown (Figure 16). Here we consider four representative household tasks: Items in Drawer, Dishes in Sink, Laundry Basket, and Make Bed. In summary, the results indicate that crossembodiment transfer and diverse data co-training are critical for generalization across a range of tasks, with varying degrees of reliance depending on task requirements.
 
-(1) First, we construct a matroid $\mathsf { M } _ { 9 }$ of rank 9 on the ground set $\{ 1 , 2 , 2 ^ { \prime } , 3 , 3 ^ { \prime } , . . . , 9 , 9 ^ { \prime } \}$ as follows. Let $\mathsf { M } _ { 1 } = \mathsf { U } _ { 1 , \{ 1 \} }$ , the Boolean matroid of rank 1 on the set $\{ 1 \}$ . Then, for $i > 1$ , we inductively define $\mathsf { M } _ { i } : = ( \mathsf { M } _ { i - 1 } \oplus i ) + i ^ { \prime }$ . That is, $\mathsf { M } _ { i }$ is obtained from $\mathsf { M } _ { i - 1 }$ by adding a coloop named $i$ , and then taking the free extension of $\mathsf { M } _ { i - 1 } \oplus i$ by an additional element $i ^ { \prime }$ . In general, for a loopless matroid $\mathsf { M }$ on ground set $E$ , the connected flats of the free extension $\mathsf { M } + e$ are the proper connected flats of $\mathsf { M }$ and $E \cup e$ . Hence, we find that the connected flats of $\mathsf { M } _ { 9 }$ are $\{ 1 , 1 2 2 ^ { \prime } , 1 2 2 ^ { \prime } 3 3 ^ { \prime } , \ldots , 1 2 2 ^ { \prime } 3 3 ^ { \prime } \ldots 9 9 ^ { \prime } \}$ . That is, the matroid $\mathsf { M } _ { 9 }$ has the property that its connected flats form a complete chain in $\mathcal { L } ( \boldsymbol { \mathsf { M } } _ { 9 } )$ .
+For Items in Drawer, performance drops substantially when cross-embodiment data (ME or CE) or web data (WD) is removed, with the largest degradation observed when all are excluded. This task requires recognizing and understanding a very broad class of common objects, and such knowledge may be learned from diverse data sources. In contrast, Dishes in Sink remains relatively robust to the removal of web data (WD) but degrades when cross-embodiment data (ME or CE) is excluded, anchoring the intuition that this task primarily requires general manipulation strategies learned from robotic data. Laundry Basket and Make Bed also exhibit performance degradation when cross-embodiment data is removed, but are generally less sensitive to other changes in the data mixture.
 
-(2) Now, we extend the matroid $\mathsf { M } _ { 9 }$ (on a ground set of size 19) to a matroid (of the same rank, 9) on $1 9 + 4 5 \cdot 9 = 4 2 4$ elements, such that the set of connected flats will consist of those from $\mathsf { M } _ { 9 }$ together with an additional 45 flats of corank 1. For a matroid $\mathsf { M }$ of rank $r$ on a ground set $E$ , denote by $\mathsf { M } + \mathsf { U } _ { r - 1 , r }$ the matroid on ground set $E \sqcup [ r ]$ constructed as follows. First, perform $( r - 1 )$ -many times the free extension of $\mathsf { M }$ to obtain $\mathsf { M } + \{ 1 , \ldots , r - 1 \}$ , and then take the principal extension of the resulting matroid by the flat $\{ 1 , \ldots , r - 1 \}$ . (That is, we extend M by $r$ -many elements as freely as possible with the sole constraint that the $r$ -many elements that were added do not form a basis). Note that if a flat $F \subseteq E \sqcup [ r ]$ of $\mathsf { M } + \mathsf { U } _ { r - 1 , r }$ properly intersects $[ r ]$ , then $F \cap [ r ]$ consists of coloops of $F$ , since by construction no element of $[ r ]$ is in the closure of any proper flat of $\mathsf { M }$ . Thus, the proper connected flats of $\mathsf { M } + \mathsf { U } _ { r - 1 , r }$ are the proper connected flats of M and $[ r ]$ . The matroid we seek is $\mathsf { M } _ { 9 } + \mathsf { U } _ { 8 , 9 } + \ldots + \mathsf { U } _ { 8 , 9 }$ (where $+ \mathsf { U } _ { 8 , 9 }$ is performed 45 times).
+b) High-level model analysis: For a more granular view of how different high-level inference methods affect specific task categories, we again provide a per-task breakdown (Figure 17). We evaluate the full $\pi _ { 0 . 5 }$ model and all high-level inference baselines across four representative tasks: Items in Drawer, Dishes in Sink, Laundry Basket, and Make Bed. The results show that explicit high-level inference improves performance across tasks, with the full $\pi _ { 0 . 5 }$ model achieving the best overall results.
 
-This matroid on 424 elements can be realized over any infinite field as follows. Begin with a $9 \times 1 9$ matrix of the form
+For Items in Drawer and Dishes in Sink, high-level inference is critical: performance drops substantially with the no $H L$ variant, indicating the importance of structured subtask prediction and long-horizon planning. In these two tasks, the $\pi _ { 0 . 5 }$ model also outperforms $G P T – 4 H L$ , showing the benefit of in-domain fine-tuning and demonstrating that the high-level model learns strategies that help the low-level policy succeed. In Items in Drawer, performance also declines sharply when web data is removed — this echos the result from the cotraining recipe ablation and highlights the importance of semantic knowledge for generalizing to less seen objects. For Laundry Basket and Dishes in Sink, the model is less sensitive to the choice of the high-level policy. These tasks are either relatively shorter in horizon or require less detailed semantic reasoning.
 
-$$
-A _ { 9 } = \left[ \begin{array} { c c c c c c c } { 1 } & { 0 } & { * } & { 0 } & { * } & { 0 } & { * } & \\ & { 1 } & { 1 } & { 0 } & { * } & { 0 } & { * } & \\ & & & { 1 } & { 1 } & { 0 } & { * } & \\ & & & & { 1 } & { 1 } & & \\ & & & { \vdots } & & & { \ddots } \end{array} \right] ,
-$$
+![](images/f6243375a2c124e32540830cba4d82f5608903a7b2469549278ee94d564faa3e.jpg)  
+Fig. 17: Per-task performance breakdown for high-level inference methods. We evaluate the full $\pi _ { 0 . 5 }$ model and various high-level inference baselines across four representative household tasks.
 
-where the $^ *$ entries are generic. (The row span of) this matrix realizes the matroid $\mathsf { M } _ { 9 }$ . Then, for $i = 1 , \dots , 4 5$ , let $U _ { i }$ each be a distinct generic choice of a $9 \times 9$ matrix of rank 8. The matroid we seek is realized by (the row span of) the matrix
+# E. Model technical details
 
-$$
-[ A _ { 9 } | U _ { 1 } | \cdots | U _ { 4 5 } ] .
-$$
+The $\pi _ { 0 . 5 }$ model builds upon $\pi _ { 0 }$ and adopts the PaliGemma VLM [5] as the backbone for visual-language understanding as well as an “action expert” for fast action generation. The VLM backbone takes in a sequence of images $[ \mathbf { I } _ { t } ^ { 1 } , \ldots , \mathbf { I } _ { t } ^ { n } ]$ and a language prompt $\ell$ as in $\pi _ { 0 }$ , but also the robot’s proprioceptive state $q _ { t }$ in tokenized form and tokenized actions [64], which will be auto-regressively predicted. The action expert is a smaller transformer that takes in a sequence of noisy action tokens $\mathbf { a } _ { t : t + H } ^ { \tau , \omega }$ for an action horizon of 50, i.e. $H \ = \ 4 9$ , and is trained with the flow matching objective. The noisy action chunk (with action dimension $d )$ is first projected to the transformer embedding dimension using a single linear layer. Unlike $\pi _ { 0 }$ that fuses the flow-matching timestep $\tau$ with the noisy action before being fed into the transformer, $\pi _ { 0 . 5 }$ uses a separate MLP for projecting $\tau$ only and then applies adaptive RMSNorm to inject the timestep information to each layer of the action expert. The timestep MLP takes in the form of swish $( W _ { 2 } \cdot \mathrm { s w i s h } ( W _ { 1 } \cdot \phi ( \tau ) ) )$ , where $\phi : \mathbb { R }  \mathbb { R } ^ { w }$ is a sinusoidal positional encoding function [79] and $W _ { 1 } , W _ { 2 } \in \mathbb { R } ^ { w \times w }$ . The action expert outputs action tokens $y _ { 1 : H } ^ { a }$ , which are then decoded into the target vector field using a final linear projection.
 
-The resulting wonderful variety corresponding to the minimal building set is the sequential blow-up of $\mathbb { P } ^ { \aleph }$ identical to the one described in Example 6.2, and hence the Chow polynomial $\mathrm { H } _ { \mathsf { M } } ^ { \mathcal { G } } ( x )$ fails to have log-concave coefficients.
+The dimensions of the two transformers are the same as $\pi _ { 0 }$ : $\{ w i d t h { = } 2 0 4 8$ , depth ${ } _ { ! = 1 8 }$ , mlp dim $^ { 1 = 1 6 , 3 8 4 }$ , num head $\scriptstyle = 1 8 ,$ 3 num kv head $s { = } 1$ , head dim $\scriptstyle 1 = 2 5 6 \}$ for the 2B VLM initial-4 ized from PaliGemma weights, and the same except for5 $\left\{ w i d t h { = } 1 0 2 4 , m l p \_ d i m { = } 4 0 9 6 \right\}$ for the action expert with $3 0 0 \mathrm { M } _ { \mathrm { 6 } }$ parameters.
 
-Example 6.3 $( \mathrm { H } _ { \mathsf { U } _ { n , n } } ^ { \mathcal { G } } ( x )$ need not have log-concave coefficients) We provide a building set on a Boolean matroid for which the Chow polynomial has non-log-concave coefficients. That is, the $h$ -vector of the corresponding nestohedron need not be log-concave. For this connection to nestohedra, we point to [PRW08].
+![](images/e68f8eebb98334169fe9198759679343988b5319eb0b30e6abb197d2503f6267.jpg)  
+Fig. 18: Example of the $\pi _ { 0 . 5 }$ attention masking pattern.
 
-First, let us consider the following geometric scenario. For $d > 0$ and $N > d$ , we consider blowing up a flag of subspaces in $\mathbb P ^ { N }$ of dimensions $0 , 1 , \ldots , d$ . Note that for any $n > 0$ , the first $n$ Betti numbers of this blow-up are independent of $N$ provided that $N$ is large enough. In fact, they are the partial sums of binomial coefficients:
+Embeddings from the VLM and action expert interact only through self-attention. A full prefix mask is used on images, prompt tokens, and proprioceptive state; FAST action tokens attend to this prefix and auto-regressively on previous action tokens. Embeddings from the action expert embeddings attend to the prefix and to one another, but do not attend to FAST action tokens to avoid information leakage between the two representations of actions. In effect, information flows unidirectionally from the VLM to the action expert; no VLM embedding attends to the action expert. An example of the attention mask at each layer is visualized in Figure 18.
 
-$$
-\left( { \binom { d + 1 } { 0 } } , { \binom { d + 1 } { 0 } } + { \binom { d + 1 } { 1 } } , { \binom { d + 1 } { 0 } } + { \binom { d + 1 } { 1 } } + { \binom { d + 1 } { 2 } } + { \binom { d + 1 } { 2 } } , \ldots \right) .
-$$
+We follow $\pi _ { 0 }$ for sampling the flow-matching timestep $\tau$ . In summary we deviate from standard uniform sampling $\tau { \bf \Delta } \sim \mathcal { U } ( 0 , 1 )$ [50, 54] or methods emphasizing midrange timesteps [27], and instead use a time-step sampling distribution that emphasizes low time-steps [8], given by $p ( \tau ) =$ $\begin{array} { r } { \mathrm { B e t a } ( \frac { s - \tau } { s } ; \alpha = 1 . 5 , \beta = 1 ) } \end{array}$ . Timesteps above the threshold $s$ are excluded from sampling, as they are not needed if the integration step $\delta$ satisfies $\delta > 1 - s$ . We use $s = 0 . 9 9 9$ in our experiments, which accommodates up to 1,000 integration steps $( \delta > 0 . 0 0 1 $ ).
 
-For instance, when $d \ : = \ : 5$ , the sequence reads $( 1 , 7 , 2 2 , 4 2 , \dots )$ . Then, if we blow-up additional points, for instance 39 additional points, we obtain that $( 2 2 + 3 9 ) ^ { 2 } - ( 7 + 3 9 ) \cdot$ · $( 4 2 + 3 9 ) = - 5 < 0$ .
-
-This geometric scenario can be realized as the construction of a wonderful variety from a building set on a Boolean matroid, as follows. Take $\mathsf { M } = \mathsf { U } _ { 4 5 , [ 4 5 ] }$ , the Boolean matroid of rank 45 on the set [45]. The collection of subsets $\{ [ 4 4 ] , [ 4 3 ] , \dots , [ 3 9 ] \} \cup \{ [ 4 5 ] \setminus \{ i \} : i \in$ [39]} along with the atoms and the ground set [45] forms a building set. The ordering ([44], [43], . . . , [39], [45] $\backslash \{ 1 \} , \ldots , [ 4 5 ] \backslash \{ 3 9 \} )$ refines the partial order by reverse inclusion, and the resulting sequential blow-up gives the desired geometric scenario above.
-
-6.2. Koszulity, gamma-positivity, and real-rootedness. A result by Coron [Cor25b, Theorem 3.12] states that if the lattice of flats $\mathcal { L } ( \boldsymbol { \mathsf { M } } )$ of a matroid is supersolvable, then the Chow ring $D ( \mathsf { M } , \mathcal { G } _ { \operatorname* { m i n } } )$ is Koszul. This generalizes a result by Dotsenko [Dot22] for the braid matroid $\mathsf { K } _ { n }$ . On the other hand, Mastroeni and McCullough showed that for all matroids $\mathsf { M }$ , the ring $D ( \mathsf { M } , \mathcal { G } _ { \mathrm { m a x } } )$ is Koszul.
-
-As is explained in [FMSV24, Section 5.4], whenever the degree of the Hilbert series of a graded Artinian Koszul algebra is not more than 4, then it has only real zeros. Furthermore, by [FMSV24, Theorem 1.8], for any matroid M we have that $\mathrm { H } _ { \mathsf { M } } ^ { \mathcal { G } _ { \mathrm { m a x } } } ( x )$ is $\gamma$ -positive.
-
-The following question arises naturally in this context.
-
-Question 6.4 Is there a loopless matroid M and a building set $\mathcal { G }$ such that $D ( \mathsf { M } , \mathsf { \mathcal { G } } )$ is Koszul and $\mathrm { H } _ { \mathsf { M } } ^ { \mathcal { G } } ( x )$ fails to be
-
-(i) $\gamma$ -positive, or (ii) real-rooted?
-
-We note that the real-rootedness question for $\mathrm { H } _ { \mathsf { K } _ { n } } ^ { \mathcal { G } _ { \mathrm { m i n } } } ( x )$ was posed by Aluffi, Chen, and Marcolli in [ACM24, Conjecture 1], while in this special case, $\gamma$ -positivity follows directly from Proposition 4.6 (see [ACM24, Theorem 1.2]).
-
-# References
-
-[ACM24] Paolo Aluffi, Stephanie Chen, and Matilde Marcolli, Log concavity of the Grothendieck class of $\overline { { \mathcal { M } } } _ { 0 , n }$ , arXiv e-prints (2024), arXiv:2402.02646.   
-[ADH23] Federico Ardila, Graham Denham, and June Huh, Lagrangian geometry of matroids, J. Amer. Math. Soc. 36 (2023), no. 3, 727–794.   
-[AHK18] Karim Adiprasito, June Huh, and Eric Katz, Hodge theory for combinatorial geometries, Ann. of Math. (2) 188 (2018), no. 2, 381–452.   
-[AMN24] Paolo Aluffi, Matilde Marcolli, and Eduardo Nascimento, Explicit formulas for the Grothendieck class of ${ \overline { { \mathcal { M } } } } _ { 0 , n }$ , arXiv e-prints (2024), arXiv:2406.13095.   
-[ANR25] Robert Angarone, Anastasia Nathanson, and Victor Reiner, Chow rings of matroids as permutation representations, J. Lond. Math. Soc. (2) 111 (2025), no. 1, Paper No. e70039.   
-[BEPV24] Sarah Brauner, Christopher Eur, Elizabeth Pratt, and Raluca Vlad, Wondertopes, arXiv eprints (2024), arXiv:2403.04610.   
-[BES24] Spencer Backman, Christopher Eur, and Connor Simpson, Simplicial generation of Chow rings of matroids, J. Eur. Math. Soc. (JEMS) 26 (2024), no. 11, 4491–4535.   
-[BHM $^ +$ 22] Tom Braden, June Huh, Jacob P. Matherne, Nicholas Proudfoot, and Botong Wang, A semismall decomposition of the Chow ring of a matroid, Adv. Math. 409 (2022), Paper No. 108646.   
-[Br¨a15] Petter Br¨and´en, Unimodality, log-concavity, real-rootedness and beyond, Handbook of enumerative combinatorics, Discrete Math. Appl. (Boca Raton), CRC Press, Boca Raton, FL, 2015, pp. 437– 483.   
-[Bre94] Francesco Brenti, Log-concave and unimodal sequences in algebra, combinatorics, and geometry: an update, Jerusalem combinatorics ’93, Contemp. Math., vol. 178, Amer. Math. Soc., Providence, RI, 1994, pp. 71–89.   
-[BV25] Petter Br¨and´en and Lorenzo Vecchi, Chow polynomials of uniform matroids are real-rooted, arXiv e-prints (2025), arXiv:2501.07364.   
-[CHL $^ +$ 25] Colin Crowley, June Huh, Matt Larson, Connor Simpson, and Botong Wang, The Bergman fan of a polymatroid, Trans. Amer. Math. Soc. (2025), to appear.   
-[Cor25a] Basile Coron, Matroids, Feynman categories, and Koszul duality, Duke Math. J. (2025), to appear.   
-[Cor25b] , Supersolvability of built lattices and Koszulness of generalized Chow rings, Compos. Math. (2025), to appear.   
-[DCP95] Corrado De Concini and Claudio Procesi, Wonderful models of subspace arrangements, Selecta Math. (N.S.) 1 (1995), no. 3, 459–494.   
-[Dot22] Vladimir Dotsenko, Homotopy invariants for ${ \overline { { \mathcal { M } } } } _ { 0 , n }$ via Koszul duality, Invent. Math. 228 (2022), no. 1, 77–106.   
-[ER95] Richard Ehrenborg and Margaret A. Readdy, Sheffer posets and $r$ -signed permutations, Ann. Sci. Math. Qu´ebec 19 (1995), no. 2, 173–196.   
-[ES89] P´eter L. Erd¨os and L. A. Sz´ekely, Applications of antilexicographic order. I. An enumerative theory of trees, Adv. in Appl. Math. 10 (1989), no. 4, 488–496.   
-[FM05] Eva Maria Feichtner and Irene M¨uller, On the topology of nested set complexes, Proc. Amer. Math. Soc. 133 (2005), no. 4, 999–1006.   
-[FMSV24] Luis Ferroni, Jacob P. Matherne, Matthew Stevens, and Lorenzo Vecchi, Hilbert-Poincar´e series of matroid Chow rings and intersection cohomology, Adv. Math. 449 (2024), Paper No. 109733.   
-[FMV24] Luis Ferroni, Jacob P. Matherne, and Lorenzo Vecchi, Chow functions for partially ordered sets, arXiv e-prints (2024), arXiv:2411.04070.   
-[FS24] Luis Ferroni and Benjamin Schr¨oter, Valuative invariants for large classes of matroids, J. Lond. Math. Soc. (2) 110 (2024), no. 3, Paper No. e12984, 86.   
-[Ful93] William Fulton, Introduction to toric varieties, Annals of Mathematics Studies, vol. 131, Princeton University Press, Princeton, NJ, 1993, The William H. Roever Lectures in Geometry.   
-[FY04] Eva Maria Feichtner and Sergey Yuzvinsky, Chow rings of toric varieties defined by atomic lattices, Invent. Math. 155 (2004), no. 3, 515–536.   
-[Gai15] Giovanni Gaiffi, Nested sets, set partitions and Kirkman-Cayley dissection numbers, European J. Combin. 43 (2015), 279–288.   
-[Get95] E. Getzler, Operads and moduli spaces of genus 0 Riemann surfaces, The moduli space of curves (Texel Island, 1994), Progr. Math., vol. 129, Birkh¨auser Boston, Boston, MA, 1995, pp. 199–230.   
-[Her72] A. P. Heron, Matroid polynomials, Combinatorics (Proc. Conf. Combinatorial Math., Math. Inst., Oxford, 1972), Inst. Math. Appl., Southend-on-Sea, 1972, pp. 164–202.   
-[Hos24] Elena Hoster, The Chow and augmented Chow polynomials of uniform matroids, arXiv e-prints (2024), arXiv:2410.22329.   
-[HRS21] Thomas Hameister, Sujit Rao, and Connor Simpson, Chow rings of vector space matroids, J. Comb. 12 (2021), no. 1, 55–83.   
-[Kat16] Eric Katz, Matroid theory for algebraic geometers, Nonarchimedean and tropical geometry, Simons Symp., Springer, [Cham], 2016, pp. 435–517.   
-[Kee92] Sean Keel, Intersection theory of moduli space of stable n-pointed curves of genus zero, Trans. Amer. Math. Soc. 330 (1992), no. 2, 545–574.   
-[Lia24] Hsin-Chieh Liao, Equivariant $\gamma$ -positivity of Chow rings and augmented Chow rings of matroids, arXiv e-prints (2024), arXiv:2408.00745.   
-[Man95] Yu. I. Manin, Generating functions in algebraic geometry and sums over trees, The moduli space of curves (Texel Island, 1994), Progr. Math., vol. 129, Birkh¨auser Boston, Boston, MA, 1995, pp. 401–417.   
-[Oxl11] James Oxley, Matroid theory, second ed., Oxford Graduate Texts in Mathematics, vol. 21, Oxford University Press, Oxford, 2011.   
-[PP23] Roberto Pagaria and Gian Marco Pezzoli, Hodge theory for polymatroids, Int. Math. Res. Not. IMRN (2023), no. 23, 20118–20168.   
-[PRW08] Alex Postnikov, Victor Reiner, and Lauren Williams, Faces of generalized permutohedra, Doc. Math. 13 (2008), 207–273.   
-[Rot71] Gian-Carlo Rota, Combinatorial theory, old and new, Actes du Congr\`es International des Math´ematiciens (Nice, 1970), Tome 3, 1971, pp. 229–233.   
-[Sch03] Alexander Schrijver, Combinatorial optimization. Polyhedra and efficiency. Vol. B, Algorithms and Combinatorics, vol. 24,B, Springer-Verlag, Berlin, 2003, Matroids, trees, stable sets, Chapters 39–69.   
-[Sta89] Richard P. Stanley, Log-concave and unimodal sequences in algebra, combinatorics, and geometry, Graph theory and its applications: East and West (Jinan, 1986), Ann. New York Acad. Sci., vol. 576, New York Acad. Sci., New York, 1989, pp. 500–535.   
-[Sta99] Enumerative combinatorics. Vol. 2, Cambridge Studies in Advanced Mathematics, vol. 62, Cambridge University Press, Cambridge, 1999, With a foreword by Gian-Carlo Rota and appendix 1 by Sergey Fomin.   
-[Sta12] Enumerative combinatorics. Volume 1, second ed., Cambridge Studies in Advanced Mathematics, vol. 49, Cambridge University Press, Cambridge, 2012.   
-[Stu24] Christian Stump, Chow and augmented Chow polynomials as evaluations of Poincar´e-extended ab-indices, arXiv e-prints (2024), arXiv:2406.18932.   
-[Wel76] Dominic J. A. Welsh, Matroid theory, L. M. S. Monographs, No. 8, Academic Press [Harcourt Brace Jovanovich, Publishers], London-New York, 1976.
-
-(C. Eur) Carnegie Mellon University, Pittsburgh, PA, USA Email address: ceur@cmu.edu
-
-(L. Ferroni) Institute for Advanced Study, Princeton, NJ, USA, and Universita di Pisa, \` Pisa, Italy Email address: ferroni@ias.edu
-
-(J. P. Matherne) North Carolina State University, Raleigh, NC, USA Email address: jpmather@ncsu.edu
-
-(R. Pagaria) Universita di Bologna, Bologna, Italy \` Email address: roberto.pagaria@unibo.it
-
-(L. Vecchi) KTH Royal Institute of Technology, Stockholm, Sweden Email address: lvecchi@kth.se
+We apply image augmentation (random crop, resizing, rotation, and color jittering) to all input images using the following hyper-parameters and in this order
