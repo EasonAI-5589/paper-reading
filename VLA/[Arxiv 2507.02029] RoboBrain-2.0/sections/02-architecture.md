@@ -1,3 +1,5 @@
+[← 返回 README](../README.md)
+
 # 2. Architecture
 
 > 来源: RoboBrain 2.0 Technical Report (Arxiv 2507.02029)

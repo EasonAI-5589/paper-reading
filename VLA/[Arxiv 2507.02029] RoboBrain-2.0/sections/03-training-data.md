@@ -1,3 +1,5 @@
+[← 返回 README](../README.md)
+
 # 3. Training Data
 
 > 来源: RoboBrain 2.0 Technical Report (Arxiv 2507.02029)

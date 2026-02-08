@@ -1,0 +1,604 @@
+# MM-RLHF: The Next Step Forward in Multimodal LLM Alignment
+
+Yi-Fan Zhang $^ { 2 , \bullet }$ , Tao $\mathrm { { Y u ^ { 2 } } }$ , Haochen Tian2, Chaoyou $\mathrm { F u ^ { 3 , \dag } }$   
+Peiyan $\mathrm { L i ^ { 2 } }$ , Jianshu $\mathrm { Z e n g ^ { 5 } }$ , Wulin $\mathrm { X i e ^ { 2 } }$ , Yang $\mathrm { S h i ^ { \mathrm { 5 } } }$ , Huanyu Zhang2, Junkang $\mathrm { { W u ^ { 4 } } }$   
+Xue Wang6, Yibo $\mathrm { H u ^ { 2 } }$ , Bin $\mathrm { W e n ^ { 1 , \dag } }$ , Fan $\mathrm { Y a n g ^ { 1 } }$ , Zhang Zhang2,†, Tingting Gao1 Di Zhang1, Liang $\mathrm { W a n g ^ { 2 } }$ , Rong $\mathrm { J i n ^ { 7 } }$ , Tieniu Tan2,3 1KuaiShou, 2CASIA, $^ { 3 } \mathrm { \bar { N } J U }$ , 4USTC, $\bar { \mathrm { 5 } } _ { \mathrm { P K U } }$ , 6Alibaba, 7Meta AI ♠ Project Leader † Corresponding Author
+
+https://mm-rlhf.github.io/
+
+# Abstract
+
+Despite notable advancements in Multimodal Large Language Models (MLLMs), most state-of-the-art models have not undergone thorough alignment with human preferences. This gap exists because current alignment research has primarily achieved progress in specific areas (e.g., hallucination reduction), while the broader question of whether aligning models with human preferences can systematically enhance MLLM capability remains largely unexplored. To this end, we introduce MM-RLHF, a dataset containing $\mathbf { 1 2 0 k }$ fine-grained, human-annotated preference comparison pairs. This dataset represents a substantial advancement over existing resources, offering superior size, diversity, annotation granularity, and quality. Leveraging this dataset, we propose several key innovations to improve both the quality of reward models and the efficiency of alignment algorithms. Notably, we introduce a Critique-Based Reward Model, which generates critiques of model outputs before assigning scores, offering enhanced interpretability and more informative feedback compared to traditional scalar reward mechanisms. Additionally, we propose Dynamic Reward Scaling, a method that adjusts the loss weight of each sample according to the reward signal, thereby optimizing the use of high-quality comparison pairs. Our approach is rigorously evaluated across 10 distinct dimensions and 27 benchmarks, with results demonstrating significant and consistent improvements in performance. Specifically, fine-tuning LLaVA-ov-7B with MM-RLHF and our alignment algorithm leads to a $1 9 . 5 \%$ increase in conversational abilities and a $60 \%$ improvement in safety.
+
+# 1 Introduction
+
+Although Multimodal Large Language Models (MLLMs) have demonstrated remarkable potential in addressing complex tasks that involve the integration of vision, language, and audio, state-of-the-art models today seldom undergo a rigorous alignment stage [64, 17, 12, 16, 2]. Typically, these models only progress to the Supervised Fine-tuning (SFT) stage, leaving critical aspects such as truthfulness, safety, and alignment with human preferences largely unaddressed. While recent efforts have begun to explore MLLM alignment, they often focus on specific domains, such as mitigating hallucination or enhancing conversational capabilities, which fail to comprehensively improve the model’s overall performance and reliability. This raises a critical question:
+
+Is alignment with human preferences only capable of enhancing MLLMs in a limited set of tasks?
+
+In this work, we confidently answer this question with a resounding “No.”. We demonstrate that a well-designed alignment pipeline can comprehensively enhance MLLMs along multiple dimensions, including visual perception, reasoning, dialogue, and trustworthiness, thereby significantly broadening their practical applicability. To achieve this, we conduct in-depth investigations into three pivotal areas: data curation, reward modeling, and alignment algorithms.
+
+At first, we introduce MM-RLHF, a dataset designed to advance Multimodal Reinforcement Learning from Human Feedback (RLHF). The dataset spans three domains: image, video understanding, and MLLM safety. Constructed through a rigorous pipeline, MM-RLHF ensures highquality, fine-grained annotations. Dataset creation process involves the following steps (Figure 1):
+
+• Data Collection. We curate a diverse set of multimodal tasks from various sources, totaling 10 million data instances, ensuring broad representation across tasks. • Data Selection. Through rigorous re-sampling, we extract $3 0 \mathrm { k }$ representative queries, ensuring diversity across a wide range of data types, such as real-world scenarios, mathematical reasoning, chart understanding, and other practical domains (Figure 2). • Model Response Generation. We utilize state-of-the-art models, such as Claude 3.5- Sonnet and Qwen2-VL-72B, to generate responses for various tasks. • Fine-grained Human Annotation. We employ a meticulous annotation process, involving over 50 annotators over two months, to score, rank, and provide textual explanations for responses. This results in more than $1 2 0 \mathrm { k }$ high-quality ranked comparison pairs.
+
+Compared to existing datasets, MM-RLHF significantly advances in diversity, response quality, and annotation granularity, providing a robust foundation for MLLM alignment.
+
+Building on the MM-RLHF dataset, we investigate how human-annotated data can enhance MLLM alignment, with a focus on reward modeling and training optimization. Recognizing the pivotal role of reward models in providing feedback signals to guide the alignment process, we propose a Critique-Based Reward Model (Figure 3). Traditional reward models, which output scalar values, often lack interpretability, while directly using MLLMs as reward models place high demands on their instruction-following capabilities, limiting their practicality. To address these limitations, we first transform concise human annotations into detailed, model-friendly formats using MLLMs. These enriched annotations serve as learning targets, guiding the reward model to first generate critiques and then assign scores based on the critiques. This approach enables the model to provide fine-grained scoring explanations, significantly enhancing the quality and interpretability of the reward signals. MM-RLHF-Reward-7B achieves SOTA performance on several reward model benchmarks, outperforming several 72B-scale models.
+
+Building on this high-quality reward model, we introduce Dynamic Reward Scaling within the Direct Preference Optimization (DPO) framework. Traditional DPO methods [3] use a fixed training weight for all human-preferred and non-preferred training pairs. In contrast, Dynamic Reward Scaling calculates a reward margin for each comparison pair using MM-RLHF-Reward-7B. During training, it assigns higher weights to comparison pairs with larger reward margins. This ensures that the most informative samples have a stronger influence on model updates. As a result, the training process becomes more efficient, leading to improved model performance.
+
+Finally, to rigorously evaluate our approach, we construct two specialized benchmarks. The first, MM-RLHF-RewardBench, is sampled from our dataset and consists of meticulously humanannotated data for evaluating reward models. The second, MM-RLHF-SafetyBench, is curated and filtered from existing benchmarks and focuses on safety-related tasks, including privacy protection, adversarial attacks, jailbreaking, and harmful content detection.
+
+We conduct extensive evaluations across ten key dimensions, covering 27 benchmarks. The results demonstrate that our training algorithm, combined with the high-quality MM-RLHF dataset, leads to significant improvements in model performance. Specifically, models fine-tuned with our approach achieve an average $11 \%$ gain in conversational abilities and a $57 \%$ reduction in unsafe behavior. The integration of our reward model further amplifies these gains, highlighting the effectiveness of our alignment algorithm.
+
+# 2 MM-RLHF-Dataset
+
+In this section, we outline the construction of MM-RLHF, as illustrated in Figure 1. This includes the data collection process, data filtering methods, and human annotation procedures.
+
+![](images/f9a4cacc02cbeb166decb90a91ff089e62d4cec94949afaf4eb3798188e6775d.jpg)  
+Figure 1: MM-RLHF Construction Pipeline. (1) Data Collection and Cleaning: Starting with 10 million instruction samples, we cluster data based on image similarity, and uniformly sample across diverse categories. This results in a diverse dataset covering image-based Q&A (e.g., multiple-choice, dialogues, and safety-related questions) and video Q&A formats. (2) Response Generation: We leverage state-of-the-art models, including GPT-4o and Qwen2-VL-72B, to generate high-quality responses. (3) Human Annotation: We conduct manual annotation across nine categories, including scoring, ranking, and explanations, ensuring fine-grained evaluation.
+
+# 2.1 Data Collection
+
+Our goal is to construct a comprehensive post-training dataset that covers a wide range of task types. To achieve this, we categorize tasks into three main domains: image understanding, video understanding, and multimodal safety.
+
+For image understanding, we integrate data from multiple sources, including LLaVA-OV1, VLfeedback[37], LLaVA-RLHF [58], lrv-instruction [42], and Unimm-Chat2. Since some datasets contain multi-turn dialogues, which are less suitable for response generation, we decompose them into single-turn dialogues. This process yields over 10 million dialogue samples, covering tasks such as conversation, safety, multiple-choice questions, captions, and commonsense reasoning.
+
+For video understanding, the primary data source is SharedGPT-4 video [10].
+
+For safety, data is primarily derived from VLGuard [84] and self-constructed content. VLGuard contains over 2,000 harmful samples, while additional red teaming, safety, and robustness data are included. The pipeline for constructing safety data is detailed in the Appendix C.1.
+
+# 2.2 Data Filtering and Model Response Generation
+
+The core goal of data filtering is to reduce the number of samples while maintaining the diversity of the original dataset. To achieve this, the following strategies are adopted:
+
+Predefined sampling weights. For image understanding tasks, we define three categories based on the nature of the questions and the length of model responses: 1. Multiple-choice questions (MCQ); (Questions with options such as A, B, $C _ { i }$ , or $D .$ .) These tasks include visual question answering, mathematics, OCR, and icon recognition, focusing on the model’s reasoning and visual perception abilities. 2. Long-text questions; (Questions for which GPT-4o generates responses exceeding 128 characters.) These typically involve detailed captions or complex descriptions, testing the model’s conversational and descriptive capabilities. 3. Short-text questions; (Questions for which $G P T – 4 o$ generates responses shorter than 128 characters.) These require concise answers, often involving simple image analysis, and represent a broader range of task types.
+
+The initial distribution of these three types in the image understanding dataset is highly imbalanced, with proportions of $1 2 . 1 7 \%$ (Long), $8 3 . 6 8 \%$ (Short), and $4 . 1 4 \%$ (MCQ). To align with diversity goals, we adjust the sampling ratio to 4:5:1, reducing disparities among task types while maintaining a dominance of comprehensive samples3.
+
+![](images/49f54a864a082840c5a336bd3b5d02d71a192e2c23226c1abc9dfdb33a37ec94.jpg)  
+Figure 2: Re-Sample results from the clustering process. Due to the large total number of samples, the clustered and deduplicated results contain a rich diversity of categories. Selected samples include topics such as mathematics, daily life, natural scenes, medicine, electronic technology, and OCR scenarios, showcasing a variety of problem-image pairs. The 2D features were obtained via UMAP dimensionality reduction.
+
+Table 1: Dataset Composition Statistics   
+
+<table><tr><td colspan="3">Image</td><td rowspan="2">Safety</td><td rowspan="2">Video</td><td rowspan="2">Total</td></tr><tr><td>Long</td><td>Short</td><td>MCQ</td></tr><tr><td>9,575</td><td>12,063</td><td>2,125</td><td>1,999</td><td>4,235</td><td>29,997</td></tr></table>
+
+Cluster-based Sampling. Text deduplication is not performed because many questions, while similar in text, are paired with different images, leading to substantially different outcomes—an intrinsic characteristic of multimodal data. Instead, we encode all images using $\mathrm { C L I P ^ { 4 } }$ , and for videos, we use the feature of the first frame as a representative. We then apply KNN clustering with 100 cluster centers and randomly sample $N$ instances from each cluster. The value of $N$ is determined to satisfy the predefined sampling ratios, ensuring a balanced representation of task diversity.
+
+Data statistics. The composition of the dataset is summarized in Table 1, and a visualization of the clustering results is shown in Figure 2, demonstrating the rich diversity of data categories.
+
+Model response generation. To generate high-quality responses, we select state-of-the-art models from both open-source and closed-source domains. For image understanding and safety-related tasks, we use Qwen2-VL-72B [64], LLaVA-OV-72B [32], GPT- $\cdot 4 \mathrm { { o } ^ { 5 } }$ , and Claude 3.5-sonnet6. For video understanding tasks, we employ GPT-4o, LLaVA-Video-72B [83], and Qwen2-VL-72B [64]. These models are chosen for their advanced capabilities and performance, ensuring a comprehensive evaluation of leading solutions in multimodal understanding.
+
+# 2.3 Annotation
+
+The annotation process follows rigorous standards to ensure comprehensive and fine-grained evaluations of MLLM responses. Detailed standards are provided in Appendix B, and the scoring and annotation structure are illustrated in Figure 1. Additionally, we design a web UI to streamline the annotation process, as shown in Figure 7.
+
+# 2.3.1 Annotation Standards
+
+Compared to prior work, our annotation approach introduces two significant advantages: richness and granularity. First, the evaluation incorporates three core dimensions—Helpfulness, Faithfulness, and Ethical Considerations—to comprehensively capture model performance. Helpfulness ensures that responses are relevant and provide meaningful assistance aligned with the user’s intent. Faithfulness evaluates the accuracy of responses in describing visual elements, such as objects, relationships, and attributes, ensuring alignment with the ground truth while avoiding hallucinated content. Ethical Considerations assess adherence to ethical principles, including safety, privacy, fairness, and harm avoidance, ensuring responses are free from harmful or biased content. Annotators score each dimension while documenting the reasoning behind their assessments, adding valuable context for understanding model performance.
+
+Second, annotators are required to assign an overall ranking to the responses, along with justifications for their rankings. This ranking mechanism provides a transparent and nuanced comparison of model outputs. Additionally, innovative strategies are employed to enhance data quality:
+
+- Constructing positive samples for poor quality ties. When multiple responses are equally poor, annotators provide correct answers to create positive examples. This ensures that challenging samples contribute to the training dataset, addressing issues where no valid model responses exist.
+
+- Constructing negative samples for high-quality ties. When multiple responses are of equally high quality, annotators introduce deliberate errors to create negative samples. This prevents ties from reducing the utility of the data and allows for more efficient use in training.
+
+By combining fine-grained scoring criteria, textual annotations, and innovative strategies, our annotation framework produces a high-quality dataset that comprehensively captures model performance and supports effective downstream applications.
+
+# 2.3.2 Human Annotation vs. Machine Annotation
+
+Annotation workers and costs. The annotation process employs over 50 annotators, supported by 8 multimodal research experts with strong English proficiency and academic backgrounds. The entire task completes within two months, with periodic quality checks and interactive reviews conducted by experts to ensure the reliability and accuracy of the annotations. Low-quality samples undergo re-annotation during the process. Due to the fine-grained nature of the annotation standards, the task involves significant challenges. For example, annotating a single question in the long split of image perception tasks requires an average of over 8 minutes.
+
+Why human annotation? Many existing MLLM alignment datasets rely on annotations generated by external models due to their cost-effectiveness and scalability. However, MLLM alignment tasks demand fine-grained perceptual capabilities and sensitivity to subtle differences, which current models lack. In many cases, the differences between responses are nuanced, requiring an in-depth understanding that models struggle to achieve. As demonstrated in our experiments, even state-ofthe-art models like GPT-4o significantly underperform human experts in tasks involving response comparison. Moreover, these models cannot provide professional-grade scoring or well-reasoned explanations for rankings. These limitations highlight the necessity of human annotation, which ensures the precision, reasoning, and insight required for constructing high-quality alignment datasets. Appendix $\bigcirc$ further discusses the advantages of human annotation, particularly in handling ambiguous or incomplete questions and closely matched responses requiring subtle differentiation. Human annotators excel at identifying fine-grained errors, inconsistencies, and context-specific nuances that models overlook. By relying on human feedback, our approach ensures the dataset achieves the quality and reliability necessary for advancing MLLM alignment efforts.
+
+We acknowledge that the cost of human annotation poses scalability challenges. However, as demonstrated in later sections, our high-quality alignment dataset enables the training of a powerful reward model. In the future, by combining this reward model with human annotators in a collaborative framework, we can significantly reduce annotation costs and scale up the dataset efficiently. This hybrid approach not only maintains the precision of human annotation but also enhances scalability, making it a practical solution for large-scale MLLM alignment.
+
+![](images/6395d304a30341edcf14938ecbf951c4bf345fe8a19a61e7e4cbdf5d6e839c60.jpg)  
+Figure 3: Illustration of the multi-task reward model training process. The process begins with a user query and corresponding model responses, which are ranked and annotated by humans. Human annotations are expanded using GPT-4o to provide enhanced rationales. The reward model is trained with two objectives: (1) Learning to Provide Critique, where the model learns to provide detailed critiques and evaluations for model responses, and (2) Learning Scoring, where the model learns to assign scores based on the model response and critique. The integration of these tasks ensures a robust evaluation framework for improving model outputs.
+
+# 3 MM-RLHF-Reward Model
+
+In this section, we explore how to train a high-quality reward model using the MM-RLHF dataset to provide a robust supervision signal for subsequent model alignment. The reward model is designed to combine critique generation and scoring (Figure 3), ensuring a comprehensive evaluation process.
+
+# 3.1 Background and Limitations of Standard Reward Models
+
+Reward models are a key component for aligning model outputs with human preferences. Typically, a reward model starts with a pretrained LLM $\phi$ , where the LLM head $h _ { l }$ is replaced with a linear reward head $l _ { r }$ , enabling the model to output a scalar reward value. These models are trained using human-provided pairwise comparisons. Given a query $\mathbf { x }$ , a preferred response $y _ { w }$ and a less preferred response $y _ { l }$ , the reward model is optimized to assign higher rewards to preferred responses:
+
+$$
+\ell _ { \mathrm { R e w a r d } } ( \theta ) = \mathbb { E } _ { \mathbf { x } , y _ { w } , y _ { l } } \Big [ - \log \sigma \Big ( r ( y _ { w } | \mathbf { x } ) - r ( y _ { l } | \mathbf { x } ) \Big ) \Big ] ,
+$$
+
+where $r ( y | \mathbf { x } )$ is the scalar reward and $\sigma$ is the sigmoid function.
+
+Despite their utility, standard reward models face significant limitations. First, they fail to fully utilize the rich and detailed feedback provided by high-quality human annotations, such as textual explanations and nuanced reasoning. Second, scalar rewards lack transparency, making it difficult for humans to understand how the reward is generated. These challenges highlight the need for a more interpretable and robust reward model that leverages critiques as intermediate reasoning steps.
+
+# 3.2 Critique-Based Reward Model Training
+
+Extending to critique-based training. To overcome the limitations of traditional reward models, we propose a critique-based training framework: the model first generates a critique $c$ conditioned on the query $\mathbf { x }$ . This critique serves as an intermediate reasoning step, providing context for scoring responses. The critique-based reward model comprises two components: 1. Critique Head $( h _ { l } )$ : Generates critiques $c _ { w }$ and $c _ { l }$ for the preferred $( y _ { w } )$ and less preferred $( y _ { l } )$ responses, respectively, based on the query $\mathbf { x }$ . 2. Scoring Head $\left( h _ { r } \right)$ : Assigns scalar rewards based on the generated critiques, enabling more fine-grained evaluation.
+
+Learning to provide critique from enhanced annotation. The critique head $( h _ { l } )$ is trained to align with human-provided annotations. The loss function for critique generation is:
+
+$$
+\ell _ { \mathrm { C r i t i q u e } } ( \theta ) = \mathbb { E } _ { \mathbf { x } , y , c } \Big [ - \sum _ { t = 1 } ^ { | c | } \log \pi _ { \theta } ( c _ { t } | c _ { < t } , \mathbf { x } , y ) \Big ] ,
+$$
+
+where $c _ { t }$ is the $t$ -th token in the critique $c$ , $c _ { < t }$ denotes the tokens preceding $c _ { t }$ , and $\pi _ { \boldsymbol { \theta } } ( c _ { t } | c _ { < t } , \mathbf { x } , y )$ is the probability of token $c _ { t }$ given its context, query $\mathbf { x }$ , and model response $y$ .
+
+However, as shown in Figure 3, while human-provided scoring reasons are highly accurate, they tend to be concise. Directly using these concise annotations as training targets for the reward model’s language head does not yield significant performance improvements. To address this issue, we use GPT-4o to augment the human annotations by adding more detail and improving the fluency of the critiques. These enhanced scoring reasons are then used as the training targets for the language head. To prevent GPT-4o from introducing hallucinated content or irrelevant analysis, we impose strict constraints in the prompt (Table 7), to ensure the model only expands on the original content without introducing speculative or uncertain information.
+
+Scoring loss with teacher-forcing. $h _ { r }$ computes scalar rewards based on the query $\mathbf { x }$ , response $y$ , and critique $c$ . During training, we adopt a teacher-forcing strategy, where the scoring head uses ground truth critiques instead of critiques generated by itself. This avoids potential noise from model-generated critiques in the early stages of training. The scoring loss is defined as:
+
+$$
+\ell _ { \mathrm { S c o r e } } ( \theta ) = \mathbb { E } _ { \mathbf { x } , y _ { w } , y _ { l } } \Big [ - \log \sigma \Big ( r ( \mathbf { x } , y _ { w } , c _ { w } ) - r ( \mathbf { x } , y _ { l } , c _ { l } ) \Big ) \Big ] ,
+$$
+
+where: $c _ { w }$ and $c _ { l }$ are the ground truth critiques for the preferred response $y _ { w }$ and less preferred response $y _ { l }$ , respectively, $r ( \mathbf { x } , y , c )$ is the reward score computed from $\mathbf { x }$ , $y$ , and $c$ .
+
+Joint training objective. The overall training objective combines the critique generation loss and the scoring loss: $\ell _ { \mathrm { T o t a l } } ( \theta ) = \ell _ { \mathrm { C r i t i q u e } } ( \theta ) + \ell _ { \mathrm { S c o r e } } ( \theta )$ .
+
+Inference. During inference, the critique head $( h _ { l } )$ generates a critique $c$ conditioned on the query $\mathbf { x }$ and response $y$ . The scoring head $( h _ { r } )$ then uses $\mathbf { x }$ , $y$ , and the generated critique $c$ to compute the final reward score $r ( \mathbf { x } , y , c )$ . This two-step process mirrors the human evaluation process by explicitly reasoning about critiques before scoring.
+
+MM-RLHF-RewardBench. To evaluate the effectiveness of the signals provided by our reward model in guiding subsequent model training, we randomly sample 10 examples from each category of the MM-RLHF dataset to create a test set. Each example includes multiple model responses and their corresponding rankings, enabling the generation of several comparison pairs. This results in a total of 170 pairs for evaluation. We design two evaluation metrics: 1. Traditional Accuracy (ACC): Measures the proportion of cases where the model correctly identifies the preferred response. 2. $A C C +$ : Measures the proportion of cases where the model correctly ranks all response pairs for a given sample. This metric emphasizes the model’s ability to handle challenging cases, such as those with small ranking differences or hard-to-distinguish pairs.
+
+# 3.3 Discussion
+
+In the MLLM community, there is currently no unified paradigm for the design of reward models. Some approaches rely on traditional reward models [58], which lack interpretability due to their reliance on scalar outputs. Others directly use LLMs to generate rankings [67], which heavily depend on instruction-following capabilities and often exhibit high variance in scoring. In the broader LLM community, works such as [74] explore reward models that first generate critiques. However, their focus is primarily on improving the reliability of model-generated critiques, such as increasing scoring confidence through multiple sampling—a goal distinct from ours. To the best of our knowledge, this is the first study to explore how MLLMs can effectively leverage human annotations to enhance both interpretability and the final model’s scoring ability.
+
+# 4 MM-DPO
+
+In this section, we propose MM-DPO, an extension of the traditional DPO framework. MM-DPO introduces Dynamic Reward Scaling, which dynamically adjusts the update strength based on the
+
+![](images/93accee73ab37db67bd518460288bf809ef2a7c68fdb2b5aa5dc15c24eaf9da4.jpg)  
+Figure 4: Overview of the MM-DPO framework, The dynamic reward scaling mechanism adjusts the update strength based on the reward margin, improving optimization stability and robustness.
+
+confidence of training pairs, ensuring effective utilization of high-quality samples while mitigating the impact of noisy or low-confidence data.
+
+# 4.1 Background: Direct Preference Optimization
+
+The DPO framework is a preference-based learning method that optimizes model parameters $\theta$ by aligning model outputs with human preferences. Given a query $\mathbf { x }$ and corresponding responses $y _ { w }$ (positive) and $y _ { l }$ (negative), the DPO loss is defined as:
+
+$$
+\ell _ { \mathrm { D P O } } ( \boldsymbol \theta ) = \mathbb { E } _ { \mathbf { x } , y _ { w } , y _ { l } } \Big [ - \log \sigma \Big ( \beta \Big ( \log \frac { \pi _ { \boldsymbol \theta } \big ( y _ { w } | \mathbf { x } \big ) } { \pi _ { \mathrm { r e f } } \big ( y _ { w } | \mathbf { x } \big ) } - \log \frac { \pi _ { \boldsymbol \theta } \big ( y _ { l } | \mathbf { x } \big ) } { \pi _ { \mathrm { r e f } } ( y _ { l } | \mathbf { x } ) } \Big ) \Big ) \Big ] ,
+$$
+
+where $\pi _ { \theta }$ is the model’s predicted probability distribution, $\pi _ { \mathrm { r e f } }$ is a reference policy, $\beta$ is a scaling factor, and $\sigma ( \cdot )$ is the sigmoid function. Traditional DPO treats all training pairs equally, regardless of their quality differences. This uniform scaling fails to prioritize high-quality pairs with clear preference distinctions, leading to inefficient use of informative samples and suboptimal optimization.
+
+# 4.2 MM-DPO: Key Contributions and Improvements
+
+Training on all possible comparison pairs instead of the hardest pairs . Unlike many recent MLLM alignment approaches that prioritize training on the hardest comparison pairs, MM-DPO incorporates all possible comparison pairs for a single query into the training process. Specifically, for any query with multiple responses, every response pair with differing ranks is treated as a valid comparison pair. This comprehensive approach captures more nuanced ranking information, allowing the model to learn from a broader set of preferences. However, this strategy also introduces a challenge: pairs involving responses with similar ranks (e.g., rank 3 and rank 4) often have lower reward margins compared to pairs with more distinct rankings (e.g., rank 1 and rank 4). Treating all pairs equally, as in traditional DPO, exacerbates the issue of uniform scaling and underutilizes the high-confidence information contained in larger reward margins. To address this, MM-DPO introduces Dynamic Reward Scaling, which dynamically adjusts the update strength based on the reward margin to prioritize high-confidence training pairs.
+
+Definition of dynamic reward scaling . Reward models can naturally provide a pairwise reward margin, which serves as a straightforward signal for scaling. However, two critical aspects must be addressed: (1) ensuring the signal quality is sufficiently high, and (2) bounding the signal to prevent overly aggressive updates that might destabilize training.
+
+Regarding the first aspect, our experiments reveal that publicly available models, such as GPT-4o and LLaVA-Critic, perform inadequately in scoring our dataset. Conversely, our MMRLHF-Reward-7B model surpasses several publicly available 72B models, offering a reliable and robust reward signal. We use this model to compute the reward margin: $\delta = r ( y _ { w } ) -$ $r ( y _ { l } )$ , where $r ( y _ { w } )$ and $r ( y _ { l } )$
+
+![](images/0a8c4feb715eef5b3f9732628eeab49c9288cefefef64fbe9e1b3cf4269b1e40.jpg)  
+Figure 5: Effect of $k$ on $1 - e ^ { - k \delta }$ .
+
+are the scores assigned to the positive and negative samples.
+
+For the second factor, we control the scaling factor $\beta ( \delta )$ using the following formulation:
+
+$$
+\beta ( \delta ) = \beta _ { \mathrm { o r i } } \Big ( 1 + w \big ( 1 - e ^ { - k \delta } \big ) \Big ) ,
+$$
+
+where $\beta _ { \mathrm { o r i } }$ is the initial default scaling factor, $w$ is a parameter balancing the dynamic component’s contribution, and $k$ is a tunable hyperparameter that adjusts $\beta ( \delta )$ ’s sensitivity to changes in $\delta$ . The function $1 - e ^ { - k \delta }$ is bounded between $[ 0 , 1 ]$ , as illustrated in Figure 5. A smaller $k$ value keeps most $\beta ( \delta )$ values near $\beta _ { \mathrm { o r i } }$ , with slow growth as $\delta$ increases. In contrast, a larger $k$ makes $\beta ( \bar { \delta } )$ highly responsive to changes in $\delta$ , quickly reaching its maximum. To avoid overly aggressive updates, we constrain $\beta ( \delta )$ within $[ \beta _ { \mathrm { o r i } } , ( 1 + w ) \beta _ { \mathrm { o r i } } ]$ . Overall, Dynamic Reward Scaling significantly enhances MM-DPO by leveraging high-quality reward signals and tailoring optimization steps to the confidence level of training pairs. This results in improved robustness, efficiency, and overall effectiveness of the framework. We discuss the similarities and differing perspectives between our approach and existing methods in Appendix E.
+
+# 5 Experiments
+
+We evaluate our data and algorithms on 10 tasks across $^ { 2 0 + }$ benchmarks. The key findings are:
+
+1. Alignment training on the MM-RLHF dataset consistently improves performance across nearly all benchmarks for various baselines. The integration of reward signals in MM-DPO further amplifies these improvements, demonstrating the effectiveness of our approach.
+
+2. The MM-RLHF-Reward-7B model achieves state-of-the-art performance on reward model benchmarks among open-source models, surpassing even several 72B models. This highlights the efficiency and scalability of our method.
+
+3. We conduct extensive ablation studies and analyses, such as investigating the importance of critique learning for reward models and the sensitivity to hyperparameters. Additionally, we identify several experimental phenomena that challenge mainstream perspectives, such as the observation that small-scale MLLMs struggle to perform effective self-improvement. Due to space constraints, additional analysis are provided in Appendix F.
+
+# 5.1 Benchmarks and Experimental Details
+
+We categorize the benchmark datasets used in our experiments into the following domains:
+
+Chart and Document Understanding: AI2D [29], ChartQA [51], DocVQA [54], InfoVQA [53]
+
+OCR (Optical Character Recognition): WebSRC [11], OCRBench [45], TextVQA [57].
+
+Hallucination: MMHal-Bench [59], POPE [40], Object-Hal [41].
+
+Math Reasoning: MathVista [48], MathVerse [78].
+
+General Knowledge: MME [19], MMbench [44], MMStar [9], SeedBench2-Plus [33], VQAv2 [4].
+
+Conversation: LLaVA-Wilder [30], LLaVA-In-The-Wild [43], WildVision-Bench [49].
+
+High-Resolution and Real-World Utility: RealworldQA, MME-RealWorld [81
+
+Video Understanding: VideoChatGPT [50], Video-MME [20], VideoDC [30].
+
+Multi-Image: LLAVA-Next-Interleave [32], MMMU-Pro [75].
+
+MLLM Safety: Our self-constructed benchmark, MM-RLHF-SafeBench, includes adversarial attacks, jailbreaks, privacy, and harmful content. Detailed construction is provided in Appendix C.2. Safety mainly evaluates the model’s ability to reject harmful content, while unsafety mainly assesses the likelihood of the model being successfully attacked.
+
+For all benchmarks requiring GPT-assisted evaluation, we consistently employ GPT-4o as the evaluation model. All model results are rigorously re-evaluated and reported by our team. All experiments are conducted on a high-performance computing cluster equipped with $3 2 \times \mathrm { H } 8 0 0$ (80G) GPUs. Due to computational cost constraints, we utilize the full dataset for the main results presented in Tables 2, 3, and 5. For ablation studies, we uniformly sample $1 / 5$ of the data, which may result in minor performance discrepancies compared to the full dataset.
+
+In the implementation of MM-DPO, we adopt a common stabilization technique by incorporating an SFT loss. The weight of the SFT loss is selected through a grid search over the values $\{ 0 , 0 . 1 , 0 . 2 5 , 0 . 5 , 1 . 0 \}$ . Additionally, the learning rate is optimized via a search over $\{ 1 e { - } 7 , 5 e { - } 7 , 1 e { - } 6 , 5 e { - } 6 , 1 e { - } 5 \}$ to identify the best-performing configuration. Since we dynamically adjust the $\beta$ parameter during training, the initial value of $\beta _ { \mathrm { o r i } }$ is set to a small default value of 0.1, eliminating the need for manual tuning. Throughout all training processes, the vision encoder remains frozen to ensure stable and efficient training.
+
+# 5.2 Evaluation of MM-RLHF and MM-DPO
+
+Table 2 (for understanding tasks) and Table 3 (for safety tasks) illustrate the alignment performance of LLaVA-OV-7B, LLaVA-OV-0.5B and InternVL-1B using our dataset and alignment algorithm, where the scores for each evaluation dimension are averaged across their respective benchmarks.
+
+Significant improvements in conversational ability and safety. Our experiments show that the alignment process leads to substantial improvements in these two aspects without requiring hyperparameter tuning. The average improvement in conversational benchmarks exceeds $10 \%$ , while unsafe behaviors are reduced by at least $50 \%$ . Additionally, in WildsVision, the win rate increases by at least $50 \%$ . This suggests that existing MLLMs lack explicit optimization for these dimensions, and our dataset effectively fills this gap.
+
+Broad enhancements in hallucination, mathematical reasoning, multi-image, and video understanding. The aligned models also exhibit notable improvements in these areas. Interestingly, despite the lack of dedicated multi-image data in our dataset, the model’s performance in multiimage tasks improves significantly. This indicates that the diversity of our alignment data enhances generalization across multiple dimensions.
+
+Model-specific preferences for data and hyperparameter. Different models exhibit varying performance trends during alignment, with distinct preferences for hyperparameter settings across different benchmarks. For instance, in our training of InternVL-1B, we found that excluding the SFT loss led to better results. Additionally, while InternVL-1B demonstrated significant improvements in general knowledge tasks, its relative enhancement in OCR tasks was less pronounced compared to the LLaVA-OV series. These differences largely stem from variations in the models’ pretraining datasets and strategies, necessitating tailored hyperparameter adjustments for optimal alignment.
+
+Limited gains in high-resolution benchmarks. The model shows no significant improvement on high-resolution benchmarks, likely because our dataset contains relatively few ultra-high-resolution images. Additionally, our filtering strategy is based on image similarity rather than resolution, meaning the alignment process does not explicitly optimize for high-resolution tasks. As a result, performance gains in this area remain limited.
+
+Ablation studies and sensitivity analysis. To further validate the effectiveness of our approach, we provide detailed ablation studies in the appendix, analyzing the impact of different alignment parameters and the improvements introduced by our dataset and MM-DPO.
+
+# 5.3 Evaluation of MM-RLHF-Reward
+
+In this section, we evaluate the effectiveness of MM-RLHF-Reward and highlight several noteworthy experimental observations. The results are presented in Table 4 and Table 5.
+
+Existing reward models exhibit significant overfitting. As shown in Table 4, LLaVA-Critic’s performance on MM-RLHF-Reward-Bench is suboptimal, with a considerable gap compared to GPT-4o. This can likely be attributed to the overfitting of existing reward models to their training data, which predominantly consists of conversational datasets and real-world images. Consequently, while LLaVA-Critic demonstrates notable improvements over its baseline, LLaVA-OV- $^ { 7 \mathrm { B } }$ , its performance in other categories, such as MCQ and more diverse tasks, remains limited.
+
+Closed-source models like GPT-4o consistently deliver competitive performance. Across both Table 4 and Table 5, closed-source models such as GPT-4o demonstrate superior generalization capabilities compared to open-source alternatives, even those with significantly larger parameter sizes (e.g., 72B models). This observation underscores the robustness of closed-source approaches in handling diverse multimodal tasks and maintaining high performance across various metrics.
+
+Table 2: Performance variations after alignment across 8 different evaluation dimensions, comparing multiple models under our alignment strategy. All models show comprehensive performance improvements under the proposed alignment, demonstrating significant gains across various tasks.   
+
+<table><tr><td rowspan=1 colspan=1>Capability</td><td rowspan=1 colspan=7>Benchmark            InternVL2  Ours       LLaVA-OV  Ours       LLaVA-OV  Ours1B                     0.5B                    7B</td></tr><tr><td rowspan=2 colspan=1></td><td rowspan=1 colspan=2>LLaVA-Wild [43] (all)      73.80Realworld Chat</td><td rowspan=1 colspan=1>75.80 +2.00</td><td rowspan=1 colspan=1>74.60</td><td rowspan=1 colspan=1>79.20 +4.60</td><td rowspan=1 colspan=1>90.70</td><td rowspan=1 colspan=1>97.90 +7.20</td></tr><tr><td rowspan=1 colspan=2>LLaVA-Wild [43] (complex)  83.60Realworld Chat</td><td rowspan=1 colspan=1>82.60 -1.00</td><td rowspan=1 colspan=1>78.60</td><td rowspan=1 colspan=1>80.50 +1.90</td><td rowspan=1 colspan=1>95.90</td><td rowspan=1 colspan=1>100.60 +4.70</td></tr><tr><td rowspan=8 colspan=1>ConversationGeneralKnowledge</td><td rowspan=1 colspan=2>LLaVA-Wild [43] (conv)    52.10Realworld Chat</td><td rowspan=1 colspan=1>58.30 +6.20</td><td rowspan=1 colspan=1>69.60</td><td rowspan=1 colspan=1>72.30 +2.70</td><td rowspan=1 colspan=1>81.20</td><td rowspan=1 colspan=1>88.10 +6.90</td></tr><tr><td rowspan=1 colspan=1>Realworld ChatLLaVA-Wild [43] (detail)Realworld Chat</td><td rowspan=1 colspan=1>85.40</td><td rowspan=1 colspan=1>89.40 +4.00</td><td rowspan=1 colspan=1>82.30</td><td rowspan=1 colspan=1>84.50 +2.20</td><td rowspan=1 colspan=1>91.80</td><td rowspan=1 colspan=1>104.00 +12.20</td></tr><tr><td rowspan=1 colspan=1>LLaVA-Wilder [30] (small)Realworld Chat</td><td rowspan=1 colspan=1>55.80</td><td rowspan=1 colspan=1>57.30 +1.50</td><td rowspan=1 colspan=1>52.30</td><td rowspan=1 colspan=1>53.40 +1.10</td><td rowspan=1 colspan=1>65.70</td><td rowspan=1 colspan=1>71.10 +5.40</td></tr><tr><td rowspan=1 colspan=1>WildVision [49] (elo rate)Model Competition</td><td rowspan=1 colspan=1>41.30</td><td rowspan=1 colspan=1>46.20 +4.90</td><td rowspan=1 colspan=1>40.70</td><td rowspan=1 colspan=1>44.70 +4.00</td><td rowspan=1 colspan=1>50.40</td><td rowspan=1 colspan=1>58.90 +8.50</td></tr><tr><td rowspan=1 colspan=1>WildVision [49] (win rates)</td><td rowspan=1 colspan=1>41.80</td><td rowspan=1 colspan=1>49.00 +7.20</td><td rowspan=1 colspan=1>12.60</td><td rowspan=1 colspan=1>14.60 +2.00</td><td rowspan=1 colspan=1>15.20</td><td rowspan=1 colspan=1>37.20 +22.00</td></tr><tr><td rowspan=1 colspan=1>Model Competition</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td></tr><tr><td rowspan=1 colspan=1>MME [19] (cog./perp.)Multi-discip</td><td rowspan=1 colspan=1>1775</td><td rowspan=1 colspan=1>1815 +40</td><td rowspan=1 colspan=1>1488</td><td rowspan=1 colspan=1>1510 +22</td><td rowspan=1 colspan=1>1997</td><td rowspan=1 colspan=1>2025 +28</td></tr><tr><td rowspan=1 colspan=1>MMBench [44] (cn-dev)Multi-dicip</td><td rowspan=1 colspan=1>54.70%</td><td rowspan=1 colspan=1>67.89% +13.19%</td><td rowspan=1 colspan=1>45.80%</td><td rowspan=1 colspan=1>46.40% +0.60%</td><td rowspan=1 colspan=1>80.49%</td><td rowspan=1 colspan=1>80.67% +0.18%</td></tr><tr><td rowspan=38 colspan=1>Chart and Doc-umentOCRReal-WorldMathHallucinationVideo Under-standingMulti-Image</td><td rowspan=1 colspan=1>MMStar [9]uMli-discip</td><td rowspan=1 colspan=1>45.81%</td><td rowspan=1 colspan=1>49.00% +3.19%</td><td rowspan=1 colspan=1>38.64%</td><td rowspan=1 colspan=1>39.58% +0.94%</td><td rowspan=1 colspan=1>61.80%</td><td rowspan=1 colspan=1>62.58% +0.78%</td></tr><tr><td rowspan=1 colspan=1>SeedBench2-Plus [33]Multii-discip</td><td rowspan=1 colspan=1>60.12%</td><td rowspan=1 colspan=1>60.12% +0.00%</td><td rowspan=1 colspan=1>53.85%</td><td rowspan=1 colspan=1>54.27% +0.42%</td><td rowspan=1 colspan=1>64.87%</td><td rowspan=1 colspan=1>65.35% +0.48%</td></tr><tr><td rowspan=2 colspan=1>VQAv2 [4] ((lite) Muti-discip</td><td rowspan=1 colspan=1>72.25%</td><td rowspan=1 colspan=1>71.84% -0.41%</td><td rowspan=1 colspan=1>74.60%</td><td rowspan=1 colspan=1>74.68% +0.08%</td><td rowspan=1 colspan=1>79.98%</td><td rowspan=1 colspan=1>80.28% +0.30%</td></tr><tr><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td></tr><tr><td rowspan=1 colspan=1>AI2D [29]Science Diagrams</td><td rowspan=1 colspan=1>72.38%</td><td rowspan=1 colspan=1>72.80% +0.42%</td><td rowspan=1 colspan=1>56.93%</td><td rowspan=1 colspan=1>56.87% -0.06%</td><td rowspan=1 colspan=1>81.41%</td><td rowspan=1 colspan=1>81.22% -0.19%</td></tr><tr><td rowspan=1 colspan=1>ChartQA [52] (val-lite)Chart Understanding</td><td rowspan=1 colspan=1>65.60%</td><td rowspan=1 colspan=1>66.80% +1.20%</td><td rowspan=1 colspan=1>51.60%</td><td rowspan=1 colspan=1>52.60% +1.00%</td><td rowspan=1 colspan=1>74.00%</td><td rowspan=1 colspan=1>74.50% +0.50%</td></tr><tr><td rowspan=1 colspan=1>DocVQA [55] (val-lite)Document Understanding</td><td rowspan=1 colspan=1>81.90%</td><td rowspan=1 colspan=1>82.51% +0.61%</td><td rowspan=1 colspan=1>66.17%</td><td rowspan=1 colspan=1>67.07% +0.90%</td><td rowspan=1 colspan=1>84.34%</td><td rowspan=1 colspan=1>86.11% +1.77%</td></tr><tr><td rowspan=1 colspan=1>InfoVQA [53] (val-lite)</td><td rowspan=1 colspan=1>51.73%</td><td rowspan=1 colspan=1>52.26% +0.53%</td><td rowspan=1 colspan=1>40.17%</td><td rowspan=1 colspan=1>40.49% +0.32%</td><td rowspan=1 colspan=1>67.07%</td><td rowspan=1 colspan=1>67.40% +0.33%</td></tr><tr><td rowspan=1 colspan=1>Infographic Understanding</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td></tr><tr><td rowspan=1 colspan=1>OCRBench [45]Comprehensive OCR</td><td rowspan=1 colspan=1>75.20%</td><td rowspan=1 colspan=1>77.11% +1.91%</td><td rowspan=1 colspan=1>57.70%</td><td rowspan=1 colspan=1>60.20% +2.50%</td><td rowspan=1 colspan=1>62.30%</td><td rowspan=1 colspan=1>69.30% +7.00%</td></tr><tr><td rowspan=1 colspan=1>TextVQA [57] (val)Text Reading</td><td rowspan=1 colspan=1>69.85%</td><td rowspan=1 colspan=1>72.12% +2.27%</td><td rowspan=1 colspan=1>65.87%</td><td rowspan=1 colspan=1>66.60% +0.73%</td><td rowspan=1 colspan=1>75.99%</td><td rowspan=1 colspan=1>76.05% +0.06%</td></tr><tr><td rowspan=1 colspan=1>WebSRC [11] (val)</td><td rowspan=1 colspan=1>68.20%</td><td rowspan=1 colspan=1>68.80% +0.60%</td><td rowspan=1 colspan=1>65.90%</td><td rowspan=1 colspan=1>68.30% +2.40%</td><td rowspan=1 colspan=1>88.70%</td><td rowspan=1 colspan=1>89.20% +0.50%</td></tr><tr><td rowspan=1 colspan=1>Web-bas Stcual Reading</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td></tr><tr><td rowspan=1 colspan=1>MME-RealWorld [81] (en-lite)Multi-discip &amp; High-Resolution</td><td rowspan=1 colspan=1>33.61%</td><td rowspan=1 colspan=1>36.58% +2.97%</td><td rowspan=1 colspan=1>34.55%</td><td rowspan=1 colspan=1>34.39% -0.16%</td><td rowspan=1 colspan=1>48.36%</td><td rowspan=1 colspan=1>46.95% -1.41%</td></tr><tr><td rowspan=1 colspan=1>MME-RealWorld [81] (cn)Multi-discip &amp; High-Resolution</td><td rowspan=1 colspan=1>44.14%</td><td rowspan=1 colspan=1>43.11% -1.03%</td><td rowspan=1 colspan=1>32.09%</td><td rowspan=1 colspan=1>31.11% -0.98%</td><td rowspan=1 colspan=1>54.01%</td><td rowspan=1 colspan=1>53.39% -0.62%</td></tr><tr><td rowspan=1 colspan=1>Multi-discip &amp; High-ResolutionRealWordGQA</td><td rowspan=1 colspan=1>51.50%</td><td rowspan=1 colspan=1>54.90% +3.40%</td><td rowspan=2 colspan=1>55.42%</td><td rowspan=2 colspan=1>55.16% -0.26%</td><td rowspan=2 colspan=1>66.41%</td><td rowspan=2 colspan=1>65.75% -0.66%</td></tr><tr><td rowspan=1 colspan=1>Realworld QA</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td></tr><tr><td rowspan=1 colspan=1>MathVista [48] (cot)neral ah Understanding</td><td rowspan=1 colspan=1>49.60%</td><td rowspan=1 colspan=1>49.90% +0.30%</td><td rowspan=1 colspan=1>32.30%</td><td rowspan=1 colspan=1>32.70% +0.40%</td><td rowspan=1 colspan=1>59.10%</td><td rowspan=1 colspan=1>61.60% +2.50%</td></tr><tr><td rowspan=1 colspan=1>neral ah UnderstandingMathVista [48] (format)General Math Understanding</td><td rowspan=1 colspan=1>53.20%</td><td rowspan=1 colspan=1>53.40% +0.20%</td><td rowspan=1 colspan=1>36.00%</td><td rowspan=1 colspan=1>36.30% +0.30%</td><td rowspan=1 colspan=1>62.50%</td><td rowspan=1 colspan=1>62.20% -0.30%</td></tr><tr><td rowspan=1 colspan=1>MathVista [48] (solutionGeneral Math Understanding</td><td rowspan=1 colspan=1>49.60%</td><td rowspan=1 colspan=1>49.30% -0.30%</td><td rowspan=1 colspan=1>30.50%</td><td rowspan=1 colspan=1>32.50% +2.00%</td><td rowspan=1 colspan=1>58.80%</td><td rowspan=1 colspan=1>61.10% +2.30%</td></tr><tr><td rowspan=1 colspan=1>MathVerse [78] (vision-mini)</td><td rowspan=1 colspan=1>12.31%</td><td rowspan=1 colspan=1>12.79% +0.48%</td><td rowspan=1 colspan=1>17.51%</td><td rowspan=1 colspan=1>17.64% +0.13%</td><td rowspan=1 colspan=1>16.37%</td><td rowspan=1 colspan=1>18.53% +2.16%</td></tr><tr><td rowspan=1 colspan=1>rofessional Math Reasoning</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td></tr><tr><td rowspan=1 colspan=1>POPE [40] (adversarial)Object Hallucination.</td><td rowspan=1 colspan=1>86.82%</td><td rowspan=1 colspan=1>86.87% +0.05%</td><td rowspan=1 colspan=1>86.04%</td><td rowspan=1 colspan=1>86.56% +0.52%</td><td rowspan=1 colspan=1>87.08%</td><td rowspan=1 colspan=1>87.68% +0.60%</td></tr><tr><td rowspan=1 colspan=1>POPE [40] (popular)Object Hallucination.</td><td rowspan=1 colspan=1>88.30%</td><td rowspan=1 colspan=1>88.57% +0.27%</td><td rowspan=1 colspan=1>87.37%</td><td rowspan=1 colspan=1>88.26% +0.89%</td><td rowspan=1 colspan=1>88.32%</td><td rowspan=1 colspan=1>89.02% +0.70%</td></tr><tr><td rowspan=1 colspan=1>POPE [40] (random)Object Hallucination.</td><td rowspan=1 colspan=1>89.87%</td><td rowspan=1 colspan=1>90.45% +0.58%</td><td rowspan=1 colspan=1>88.30%</td><td rowspan=1 colspan=1>89.30% +1.00%</td><td rowspan=1 colspan=1>89.60%</td><td rowspan=1 colspan=1>90.62% +1.02%</td></tr><tr><td rowspan=1 colspan=1>MMHal [59] (hal rate ↓)General Hallucination</td><td rowspan=1 colspan=1>55.21%</td><td rowspan=1 colspan=1>55.38% -0.17%</td><td rowspan=1 colspan=1>48.96%</td><td rowspan=1 colspan=1>46.25% +2.71%</td><td rowspan=1 colspan=1>38.54%</td><td rowspan=1 colspan=1>38.54% +0.00%</td></tr><tr><td rowspan=1 colspan=1>MMHal [59] (avg score)General Hallucination</td><td rowspan=1 colspan=1>3.02</td><td rowspan=1 colspan=1>3.10 +0.08</td><td rowspan=1 colspan=1>3.33</td><td rowspan=1 colspan=1>3.42 +0.09</td><td rowspan=1 colspan=1>3.22</td><td rowspan=1 colspan=1>4.08+0.86</td></tr><tr><td rowspan=1 colspan=1>Obj-Hal [41] (hair-i)Object Hallucination.</td><td rowspan=1 colspan=1>8.30</td><td rowspan=1 colspan=1>7.81 +0.49</td><td rowspan=1 colspan=1>9.70</td><td rowspan=1 colspan=1>9.12 +0.58</td><td rowspan=1 colspan=1>8.52</td><td rowspan=1 colspan=1>7.69 +0.83</td></tr><tr><td rowspan=2 colspan=2>Obj-Hal [41] (chair-s↓)      38.67Object Hallucination.</td><td rowspan=1 colspan=1>37.00 +1.67</td><td rowspan=1 colspan=1>42.67</td><td rowspan=2 colspan=1>42.33 +0.34</td><td rowspan=2 colspan=1>44.00</td><td rowspan=2 colspan=1>41.67 +2.33</td></tr><tr><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td></tr><tr><td rowspan=1 colspan=2>Video-MME [20] (w. caption) 42.74%Multi-discip</td><td rowspan=1 colspan=1>42.76% +0.02%</td><td rowspan=1 colspan=1>48.22%</td><td rowspan=1 colspan=1>48.42% +0.20%</td><td rowspan=1 colspan=1>61.61%</td><td rowspan=1 colspan=1>61.81% +0.20%</td></tr><tr><td rowspan=1 colspan=2>Video-MME [20] (wo. caption)45.66%Multi-discip</td><td rowspan=1 colspan=1>45.71% +0.05%</td><td rowspan=1 colspan=1>43.92%</td><td rowspan=1 colspan=1>44.00% +0.08%</td><td rowspan=1 colspan=1>58.29%</td><td rowspan=1 colspan=1>58.33% +0.04%</td></tr><tr><td rowspan=1 colspan=2>VideoChatGPT [50]       2.26Video Conversation</td><td rowspan=1 colspan=1>2.59 +0.33</td><td rowspan=1 colspan=1>2.56</td><td rowspan=1 colspan=1>2.66 +0.10</td><td rowspan=1 colspan=1>2.87</td><td rowspan=1 colspan=1>3.22 +0.35</td></tr><tr><td rowspan=1 colspan=2>VideoDC [30]           2.91</td><td rowspan=1 colspan=1>3.07 +0.16</td><td rowspan=1 colspan=1>2.88</td><td rowspan=1 colspan=1>2.96 +0.08</td><td rowspan=1 colspan=1>3.32</td><td rowspan=1 colspan=1>3.41 +0.09</td></tr><tr><td rowspan=1 colspan=2>Video Detail Description</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td></tr><tr><td rowspan=2 colspan=2>LLAVA-Next-           34.78%Interleave [32] (in-domain)in-domian</td><td rowspan=1 colspan=1>35.72% +0.94%</td><td rowspan=1 colspan=1>42.29%</td><td rowspan=1 colspan=1>43.49% +1.20%</td><td rowspan=1 colspan=1>60.85%</td><td rowspan=3 colspan=1>61.12% +0.27%15.84% +1.33%</td></tr><tr><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td><td rowspan=2 colspan=1>14.51%</td></tr><tr><td rowspan=1 colspan=2>MMMU-Pro [75] (vision)    1.11%Muti-discip</td><td rowspan=1 colspan=1>1.52% +0.41%</td><td rowspan=1 colspan=1>12.78%</td><td rowspan=1 colspan=1>13.89% +1.11%</td></tr></table>
+
+Table 3: Performance variations after alignment across MM-RLHF-SafeBench, comparing multiple models under our alignment strategy.   
+
+<table><tr><td>Benchmark</td><td>InternVL2 1B</td><td>Ours</td><td>LLaVA-OV 0.5B</td><td>Ours</td><td>LLaVA-OV 7B</td><td>Ours</td></tr><tr><td>Adv target ↓ Adversarial Attack</td><td>56.0%</td><td>50.0% +5.0%</td><td>54.0%</td><td>35.0% +19.0%</td><td>37.0%</td><td>40.0% -3.0%</td></tr><tr><td>Adv untarget ↑</td><td>52.5%</td><td>56.0% +3.5%</td><td>66.0%</td><td>71.0% +5%</td><td>66.5%</td><td>70.0% +3.5%</td></tr><tr><td>Adversarial Attack Crossmodel ASR ↓</td><td>0.0%</td><td>0.0% +0.0%</td><td>72.2%</td><td>38.9% +33.3%</td><td>16.7%</td><td>0.0% +16.7%</td></tr><tr><td>Cross-modal Jailbreak Crossmodel RtA ↑ Cross-modal Jailbreak</td><td>100.0%</td><td>100.0% +0.0%</td><td>22.2%</td><td>50.0% +27.8%</td><td>88.9%</td><td>100.0% +11.1%</td></tr><tr><td>Multimodel ASR ↓ Multimodal Jailbreak</td><td>43.2%</td><td>43.2% +0.0%</td><td>42.2%</td><td>27.7% +14.5%</td><td>41.2%</td><td>8.3% +31.9%</td></tr><tr><td>Multimodel RtA ↑ Multimodal Jailbreak</td><td>18.0%</td><td>17.4% -0.6%</td><td>12.4%</td><td>23.2% +10.8%</td><td>62.0%</td><td>88.3% +26.3%</td></tr><tr><td>Typographic ASR ↓ Typographic Jailbreak</td><td>10.5%</td><td>7.4% +3.1%</td><td>26.3%</td><td>35.2% -8.9%</td><td>5.8%</td><td>0.0% +5.8%</td></tr><tr><td>Typographic RtA ↑ Typographic Jailbreak</td><td>73.7%</td><td>74.6% +0.9%</td><td>17.0%</td><td>27.5% +10.5%</td><td>79.5%</td><td>95.8% +16.3%</td></tr><tr><td>Risk ↑ Risk identification</td><td>49.6%</td><td>58.6% +9.0%</td><td>65.8%</td><td>67.4% +1.6%</td><td>82.0%</td><td>76.0% -6.0%</td></tr><tr><td>NSFW text↓ NSFW Jailbreak</td><td>89.0%</td><td>27.1% +61.9%</td><td>94.4%</td><td>64.2% +30.2%</td><td>60.4%</td><td>10.6% +49.8%</td></tr><tr><td>NSFW img↓ NSFW Jailbreak</td><td>81.2%</td><td>64.7% +16.5%</td><td>97.5%</td><td>81.6% +15.9%</td><td>80.1%</td><td>24.2% +55.9%</td></tr><tr><td>Unsafety ↓ Average performance of ↓</td><td>46.6%</td><td>38.9% +7.7%</td><td>65.4%</td><td>47.1% +18.3%</td><td>40.2%</td><td>13.9% +26.3%</td></tr><tr><td>Safety ↑ Average performance of ↑</td><td>31.9%</td><td>41.3% +9.4%</td><td>36.7%</td><td>47.8% +11.1%</td><td>75.8%</td><td>85.4% +9.6%</td></tr></table>
+
+MM-RLHF-Reward sets a new benchmark for open-source models, rivaling closed-source systems. In both benchmarks, MM-RLHF-Reward achieves results comparable to or exceeding GPT4o’s performance, while significantly outperforming most open-source models, such as LLaMA3.2-90B-Vision-Instruct and Qwen2-VL-72B-Instruct. Notably, on our custom benchmark, MMRLHF-Reward demonstrates a substantial lead over GPT-4o, further justifying its selection as the reward signal for training algorithms. Its robust performance across diverse metrics highlights its effectiveness and adaptability.
+
+The importance of an effective critic in reward modeling. The results in Table 4 underscore the critical role of an effective critic in reward modeling. When the reward head is directly trained using pair-wise datasets, the $\mathbf { A C C + }$ stabilizes around $50 \%$ . By incorporating human annotations as the learning target—allowing the model to first learn evaluation reasoning and then perform scoring—the $\mathrm { { \bf A } C C + }$ improves by a consistent $5 \%$ . However, human annotations alone may not serve as an optimal training target due to their brevity or conversational style. To address this, we expand the human annotations using the model itself, producing enriched annotations that further enhance reward model training quality. This results in a significant $17 \%$ improvement in $\mathbf { A C C + }$ compared to the baseline. Finally, during evaluation, when human annotations are directly provided as the critic (i.e., scoring is based on human-provided evaluations rather than model-generated critics), both ACC and $\mathrm { { \bf A } C C + }$ reach approximately $90 \%$ . This demonstrates the pivotal role of evaluation quality in the overall effectiveness of reward models.
+
+Multiple sampling of critiques does not yield significant performance gains. When the model generates critiques with high variability, multiple sampling is often used to compute scores and then take the average [74]. This approach has proven effective in related LLM research. However, in our experiments, we observed that when we lowered the sampling temperature and computed rewards multiple times, the performance actually declined. The reason for this is that during the sampling process, there is occasionally a critique that is inaccurate. Since our model is already capable of generating reasonably accurate critiques due to its alignment with human annotations, the extra, time-consuming sampling process does not provide additional benefits and can even have a negative impact on performance.
+
+Table 4: Performance comparison across metrics and methods on MM-RLHF-RewardBench. MM-RLHF-Reward (w/o. Task 1) represents training the LLaVA-OV-7B model to score pair-wise samples while excluding Task 1. MM-RLHF-Reward (w/o. enhanced annotations) involves learning human-provided annotations, followed by scoring. MM-RLHF-Reward (inference w. GT annotation) uses ground truth annotations during inference.   
+
+<table><tr><td>Method</td><td>LLaVA-OV-7B</td><td></td><td>LlaVA-Critic (Pointwise)</td><td></td><td>LlaVA-Critic (Pairwise)</td><td></td><td>GPT-40</td><td></td><td>MM-RLHF-Reward (w/o. Task 1)</td><td></td><td>MM-RLHF-Reward (w/o. enhanced annotations)</td><td></td><td>MM-RLHF-Reward</td><td></td><td>MM-RLHF-Reward (inference w. GT annotation)</td><td></td></tr><tr><td>Metric</td><td>ACC</td><td>ACC+</td><td>ACC</td><td>ACC+</td><td>ACC</td><td>ACC+</td><td>ACC</td><td>ACC+</td><td>ACC</td><td>ACC+</td><td>ACC</td><td>ACC+</td><td>ACC</td><td>ACC+</td><td>ACC</td><td>ACC+</td></tr><tr><td>Mcq</td><td>0.14</td><td>0.00</td><td>0.38</td><td>0.10</td><td>0.23</td><td>0.00</td><td>0.69</td><td>0.20</td><td>0.90</td><td>0.80</td><td>0.83</td><td>0.70</td><td>0.93</td><td>0.70</td><td>1.00</td><td>1.00</td></tr><tr><td>Long</td><td>0.11</td><td>0.00</td><td>0.49</td><td>0.20</td><td>0.54</td><td>0.30</td><td>0.95</td><td>0.90</td><td>0.70</td><td>0.40</td><td>0.92</td><td>0.80</td><td>1.00</td><td>1.00</td><td>1.00</td><td>1.00</td></tr><tr><td>Short</td><td>0.29</td><td>0.20</td><td>0.38</td><td>0.20</td><td>0.24</td><td>0.10</td><td>0.56</td><td>0.40</td><td>0.79</td><td>0.60</td><td>0.68</td><td>0.40</td><td>0.71</td><td>0.50</td><td>1.00</td><td>1.00</td></tr><tr><td>Safety</td><td>0.41</td><td>0.00</td><td>0.62</td><td>0.17</td><td>0.28</td><td>0.17</td><td>0.72</td><td>0.33</td><td>0.69</td><td>0.33</td><td>0.69</td><td>0.17</td><td>0.66</td><td>0.17</td><td>0.69</td><td>0.17</td></tr><tr><td>Video</td><td>0.32</td><td>0.10</td><td>0.40</td><td>0.20</td><td>0.52</td><td>0.20</td><td>0.80</td><td>0.60</td><td>0.70</td><td>0.60</td><td>0.80</td><td>0.60</td><td>0.92</td><td>0.80</td><td>0.92</td><td>0.90</td></tr><tr><td>Overall</td><td>0.24</td><td>0.07</td><td>0.45</td><td>0.17</td><td>0.35</td><td>0.15</td><td>0.74</td><td>0.50</td><td>0.75</td><td>0.50</td><td>0.79</td><td>0.57</td><td>0.85</td><td>0.67</td><td>0.93</td><td>0.87</td></tr></table>
+
+Table 5: Performance comparison of our reward model (MM-RLHF-Reward) with existing open-source and private multi-modal models. MM-RLHF-Reward-7B outperforms existing 72B open-source multi-modal models and several highly competitive closed-source models.   
+
+<table><tr><td>Model</td><td>General</td><td>Hallucination</td><td>Reasoning</td><td>Avg</td></tr><tr><td>VITA-1.5 [22]</td><td>18.55</td><td>8.93</td><td>22.11</td><td>16.48</td></tr><tr><td>SliME-8B [79]</td><td>7.23</td><td>27.09</td><td>18.6</td><td>19.04</td></tr><tr><td>deepseek-vl2 [66]</td><td>29.70</td><td>23.80</td><td>50.90</td><td>34.80</td></tr><tr><td>Phi-3.5-vision-instruct [1]</td><td>28.00</td><td>22.40</td><td>56.60</td><td>35.67</td></tr><tr><td>llava-onevision-qwen2-7b-ov [32]</td><td>32.20</td><td>20.10</td><td>57.10</td><td>36.47</td></tr><tr><td>Molmo-7B-D-0924 [17]</td><td>31.10</td><td>31.80</td><td>56.20</td><td>39.70</td></tr><tr><td>Pixtral-12B-2409 [2]</td><td>35.60</td><td>25.90</td><td>59.90</td><td>40.47</td></tr><tr><td>Qwen2-VL-72B-Instruct [64]</td><td>38.10</td><td>32.80</td><td>58.00</td><td>42.97</td></tr><tr><td>NVLM-D-72B [16]</td><td>38.90</td><td>31.60</td><td>62.00</td><td>44.17</td></tr><tr><td>InternVL2-26B [12]</td><td>39.30</td><td>36.90</td><td>60.80</td><td>45.67</td></tr><tr><td colspan="5">Private models</td></tr><tr><td>GPT-4o-mini (2024-07-18)</td><td>41.70</td><td>34.50</td><td>58.20</td><td>44.80</td></tr><tr><td>Claude-3.5-Sonnet (2024-06-22)</td><td>43.40</td><td>55.00</td><td>62.30</td><td>53.57</td></tr><tr><td>GPT-4o (2024-08-06)</td><td>49.10</td><td>67.60</td><td>70.50</td><td>62.40</td></tr><tr><td>Gemini-1.5-Pro (2024-09-24)</td><td>50.80</td><td>72.50</td><td>64.20</td><td>62.50</td></tr><tr><td colspan="5">Ours</td></tr><tr><td>MM-RLHF-Reward-7B</td><td>45.04</td><td>50.45</td><td>57.55</td><td>50.15</td></tr></table>
+
+# 5.4 Self-Improvement of Small-Scale MLLMs is Currently Unrealistic
+
+While recent work on MLLMs explores the concept of self-improvement, these efforts largely focus on specific domains, such as conversational systems [67]. In this section, we present an alternative perspective distinct from the LLM domain, arguing that MLLMs, particularly small models (fewer than 7B parameters), currently face significant challenges in achieving comprehensive performance improvements through self-improvement. Our experimental results, illustrated in Figure 6, suggest two primary reasons for this limitation:
+
+1. Model capacity constraints. For tasks involving long-form or conversational data, sampling multiple responses often results in at least one reasonably good answer, thereby leading to noticeable improvements. However, for more challenging tasks, such as multiple-choice questions or scientific reasoning, smaller models struggle to generate correct answers even after extensive sampling. In our experiments, where the maximum number of samples reached eight, we observed instances where the model produced identical incorrect responses or consistently incorrect outputs across all samples for some challenging multiple-choice questions.
+
+2. Limitations in reward signal quality. Most existing multimodal reward models are trained on datasets with limited diversity, such as VLFeedback and LLaVA-RLHF. These datasets predominantly focus on natural images, human dialogue, or related scenarios, raising concerns about overfitting. When preference datasets encompass broader domains, such as mathematical reasoning, chart understanding, or other specialized fields, reward models trained on existing datasets fail to provide effective reward signals. Consequently, it becomes challenging to identify and select better samples.
+
+![](images/ad7ceef310e7a3845c34508ffc021d415e75ed316604880a71b07ec2e8edec40.jpg)  
+Figure 6: Performance comparison across datasets using various methods based on the LLaVAOv-7B model as the baseline. “Baseline" represents the initial performance without post-training. “LLAVA-RLHF (LLAVA-RLHF)” indicates that both the post-training dataset and the reward model come from the LLAVA-RLHF dataset, with the reward model being trained using LLaVA-Ov-7B as the starting checkpoint for fairness. “MM-RLHF s” reflects results generated on our dataset, where responses are self-sampled (default sample size: 8) and ranked using different reward signals to create DPO pairs. “MM-RLHF h (Human)” involves DPO training directly using our dataset, where responses are sampled from other models, and reward signals are provided by experts.
+
+These two limitations make it difficult, at the current stage, to enable MLLMs to generate responses on diverse datasets, annotate them with reward models, and iteratively improve through self-improvement cycles, as has been achieved in LLM alignment. While our experiments confirm that better reward models can lead to marginal improvements, the results remain far inferior to training with high-quality, human-annotated contrastive samples.
+
+# 6 Conclusion and Future Work
+
+In this work, we introduced MM-RLHF, a high-quality, fine-grained dataset specifically designed to advance the alignment of MLLMs. Unlike prior works that focus on specific tasks, our dataset and alignment approach aim to holistically improve performance across diverse dimensions. Even with preliminary improvements to reward modeling and optimization algorithms, we observed significant and consistent gains across almost all evaluation benchmarks, underscoring the potential of comprehensive alignment strategies.
+
+Looking ahead, we see great opportunities to further unlock the value of our dataset. Its rich annotation granularity, such as per-dimension scores and ranking rationales, remains underutilized in current alignment algorithms. Future work will focus on leveraging this granularity with advanced optimization techniques, integrating high-resolution data to address limitations in specific benchmarks, and scaling the dataset efficiently using semi-automated strategies. We believe these efforts will not only push MLLM alignment to new heights but also set a foundation for broader, more generalizable multimodal learning frameworks.
+
+# References
+
+[1] Marah Abdin, Jyoti Aneja, Hany Awadalla, Ahmed Awadallah, Ammar Ahmad Awan, Nguyen Bach, Amit Bahree, Arash Bakhtiari, Jianmin Bao, Harkirat Behl, et al. Phi-3 technical report: A highly capable language model locally on your phone. arXiv preprint arXiv:2404.14219, 2024.   
+[2] Pravesh Agrawal, Szymon Antoniak, Emma Bou Hanna, Baptiste Bout, Devendra Chaplot, Jessica Chudnovsky, Diogo Costa, Baudouin De Monicault, Saurabh Garg, Theophile Gervet, et al. Pixtral 12b. arXiv preprint arXiv:2410.07073, 2024.   
+[3] Afra Amini, Tim Vieira, and Ryan Cotterell. Direct preference optimization with an offset. arXiv preprint arXiv:2402.10571, 2024.   
+[4] Stanislaw Antol, Aishwarya Agrawal, Jiasen Lu, Margaret Mitchell, Dhruv Batra, C Lawrence Zitnick, and Devi Parikh. Vqa: Visual question answering. In Proceedings of the IEEE international conference on computer vision, pages 2425–2433, 2015.   
+[5] Jinze Bai, Shuai Bai, Shusheng Yang, Shijie Wang, Sinan Tan, Peng Wang, Junyang Lin, Chang Zhou, and Jingren Zhou. Qwen-vl: A frontier large vision-language model with versatile abilities. arXiv preprint arXiv:2308.12966, 2023.   
+[6] Shuai Bai, Shusheng Yang, Jinze Bai, Peng Wang, Xingxuan Zhang, Junyang Lin, Xinggang Wang, Chang Zhou, and Jingren Zhou. Touchstone: Evaluating vision-language models by language models. arXiv preprint arXiv:2308.16890, 2023. [7] Yonatan Bitton, Hritik Bansal, Jack Hessel, Rulin Shao, Wanrong Zhu, Anas Awadalla, Josh Gardner, Rohan Taori, and Ludwig Schimdt. Visit-bench: A benchmark for vision-language instruction following inspired by real-world use. arXiv preprint arXiv:2308.06595, 2023.   
+[8] Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared D Kaplan, Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda Askell, et al. Language models are few-shot learners. NeurIPS, 2020.   
+[9] Lin Chen, Jinsong Li, Xiaoyi Dong, Pan Zhang, Yuhang Zang, Zehui Chen, Haodong Duan, Jiaqi Wang, Yu Qiao, Dahua Lin, et al. Are we on the right way for evaluating large visionlanguage models? arXiv preprint arXiv:2403.20330, 2024.   
+[10] Lin Chen, Xilin Wei, Jinsong Li, Xiaoyi Dong, Pan Zhang, Yuhang Zang, Zehui Chen, Haodong Duan, Bin Lin, Zhenyu Tang, et al. Sharegpt4video: Improving video understanding and generation with better captions. arXiv preprint arXiv:2406.04325, 2024.   
+[11] Xingyu Chen, Zihan Zhao, Lu Chen, Danyang Zhang, Jiabao Ji, Ao Luo, Yuxuan Xiong, and Kai Yu. Websrc: A dataset for web-based structural reading comprehension. arXiv preprint arXiv:2101.09465, 2021.   
+[12] Zhe Chen, Weiyun Wang, Hao Tian, Shenglong Ye, Zhangwei Gao, Erfei Cui, Wenwen Tong, Kongzhi Hu, Jiapeng Luo, Zheng Ma, et al. How far are we to gpt-4v? closing the gap to commercial multimodal models with open-source suites. arXiv preprint arXiv:2404.16821, 2024.   
+[13] Zhe Chen, Jiannan Wu, Wenhai Wang, Weijie Su, Guo Chen, Sen Xing, Muyan Zhong, Qinglong Zhang, Xizhou Zhu, Lewei Lu, Bin Li, Ping Luo, Tong Lu, Yu Qiao, and Jifeng Dai. Internvl: Scaling up vision foundation models and aligning for generic visual-linguistic tasks. arXiv preprint arXiv:2312.14238, 2023.   
+[14] Wei-Lin Chiang, Zhuohan Li, Zi Lin, Ying Sheng, Zhanghao Wu, Hao Zhang, Lianmin Zheng, Siyuan Zhuang, Yonghao Zhuang, Joseph E Gonzalez, et al. Vicuna: An open-source chatbot impressing gpt-4 with $9 0 \% *$ chatgpt quality. See https://vicuna. lmsys. org (accessed 14 April 2023), 2023.   
+[15] Sayak Ray Chowdhury, Anush Kini, and Nagarajan Natarajan. Provably robust dpo: Aligning language models with noisy feedback. arXiv preprint arXiv:2403.00409, 2024.   
+[16] Wenliang Dai, Nayeon Lee, Boxin Wang, Zhuolin Yang, Zihan Liu, Jon Barker, Tuomas Rintamaki, Mohammad Shoeybi, Bryan Catanzaro, and Wei Ping. Nvlm: Open frontier-class multimodal llms. arXiv preprint arXiv:2409.11402, 2024.   
+[17] Matt Deitke, Christopher Clark, Sangho Lee, Rohun Tripathi, Yue Yang, Jae Sung Park, Mohammadreza Salehi, Niklas Muennighoff, Kyle Lo, Luca Soldaini, et al. Molmo and pixmo: Open weights and open data for state-of-the-art multimodal models. arXiv preprint arXiv:2409.17146, 2024.   
+[18] Haodong Duan, Junming Yang, Yuxuan Qiao, Xinyu Fang, Lin Chen, Yuan Liu, Xiaoyi Dong, Yuhang Zang, Pan Zhang, Jiaqi Wang, et al. Vlmevalkit: An open-source toolkit for evaluating large multi-modality models. In Proceedings of the 32nd ACM international conference on multimedia, pages 11198–11201, 2024.   
+[19] Chaoyou Fu, Peixian Chen, Yunhang Shen, Yulei Qin, Mengdan Zhang, Xu Lin, Jinrui Yang, Xiawu Zheng, Ke Li, Xing Sun, et al. Mme: A comprehensive evaluation benchmark for multimodal large language models. arXiv preprint arXiv:2306.13394, 2023.   
+[20] Chaoyou Fu, Yuhan Dai, Yondong Luo, Lei Li, Shuhuai Ren, Renrui Zhang, Zihan Wang, Chenyu Zhou, Yunhang Shen, Mengdan Zhang, et al. Video-mme: The first-ever comprehensive evaluation benchmark of multi-modal llms in video analysis. arXiv:2405.21075, 2024.   
+[21] Chaoyou Fu, Haojia Lin, Zuwei Long, Yunhang Shen, Meng Zhao, Yifan Zhang, Shaoqi Dong, Xiong Wang, Di Yin, Long Ma, et al. Vita: Towards open-source interactive omni multimodal llm. arXiv preprint arXiv:2408.05211, 2024.   
+[22] Chaoyou Fu, Haojia Lin, Xiong Wang, Yi-Fan Zhang, Yunhang Shen, Xiaoyu Liu, Yangze Li, Zuwei Long, Heting Gao, Ke Li, et al. Vita-1.5: Towards gpt-4o level real-time vision and speech interaction. arXiv preprint arXiv:2501.01957, 2025.   
+[23] Chaoyou Fu, Yi-Fan Zhang, Shukang Yin, Bo Li, Xinyu Fang, Sirui Zhao, Haodong Duan, Xing Sun, Ziwei Liu, Liang Wang, et al. Mme-survey: A comprehensive survey on evaluation of multimodal llms. arXiv preprint arXiv:2411.15296, 2024.   
+[24] Xingyu Fu, Yushi Hu, Bangzheng Li, Yu Feng, Haoyu Wang, Xudong Lin, Dan Roth, Noah A Smith, Wei-Chiu Ma, and Ranjay Krishna. Blink: Multimodal large language models can see but not perceive. arXiv preprint arXiv:2404.12390, 2024.   
+[25] Xiaotian Han, Quanzeng You, Yongfei Liu, Wentao Chen, Huangjie Zheng, Khalil Mrini, Xudong Lin, Yiqi Wang, Bohan Zhai, Jianbo Yuan, Heng Wang, and Hongxia Yang. Infimmeval: Complex open-ended reasoning evaluation for multi-modal large language models, 2023.   
+[26] Shengding Hu, Yuge Tu, Xu Han, Chaoqun He, Ganqu Cui, Xiang Long, Zhi Zheng, Yewei Fang, Yuxiang Huang, Weilin Zhao, et al. Minicpm: Unveiling the potential of small language models with scalable training strategies. arXiv preprint arXiv:2404.06395, 2024.   
+[27] Xuhao Hu, Dongrui Liu, Hao Li, Xuanjing Huang, and Jing Shao. Vlsbench: Unveiling visual leakage in multimodal safety. arXiv preprint arXiv:2411.19939, 2024.   
+[28] Albert Q Jiang, Alexandre Sablayrolles, Arthur Mensch, Chris Bamford, Devendra Singh Chaplot, Diego de las Casas, Florian Bressand, Gianna Lengyel, Guillaume Lample, Lucile Saulnier, et al. Mistral 7b. arXiv preprint arXiv:2310.06825, 2023.   
+[29] Aniruddha Kembhavi, Mike Salvato, Eric Kolve, Minjoon Seo, Hannaneh Hajishirzi, and Ali Farhadi. A diagram is worth a dozen images. In ECCV, 2016.   
+[30] Bo Li, Kaichen Zhang, Hao Zhang, Dong Guo, Renrui Zhang, Feng Li, Yuanhan Zhang, Ziwei Liu, and Chunyuan Li. Llava-next: Stronger llms supercharge multimodal capabilities in the wild, May 2024.   
+[31] Bo Li, Yuanhan Zhang, Liangyu Chen, Jinghao Wang, Jingkang Yang, and Ziwei Liu. Otter: A multi-modal model with in-context instruction tuning. arXiv preprint arXiv:2305.03726, 2023.   
+[32] Bo Li, Yuanhan Zhang, Dong Guo, Renrui Zhang, Feng Li, Hao Zhang, Kaichen Zhang, Peiyuan Zhang, Yanwei Li, Ziwei Liu, et al. Llava-onevision: Easy visual task transfer. arXiv preprint arXiv:2408.03326, 2024.   
+[33] Bohao Li, Yuying Ge, Yi Chen, Yixiao Ge, Ruimao Zhang, and Ying Shan. Seed-bench-2-plus: Benchmarking multimodal large language models with text-rich visual comprehension. arXiv preprint arXiv:2404.16790, 2024.   
+[34] Bohao Li, Yuying Ge, Yixiao Ge, Guangzhi Wang, Rui Wang, Ruimao Zhang, and Ying Shan. Seed-bench-2: Benchmarking multimodal large language models. arXiv preprint arXiv:2311.17092, 2023.   
+[35] Bohao Li, Rui Wang, Guangzhi Wang, Yuying Ge, Yixiao Ge, and Ying Shan. Seedbench: Benchmarking multimodal llms with generative comprehension. arXiv preprint arXiv:2307.16125, 2023.   
+[36] Lei Li, Yuancheng Wei, Zhihui Xie, Xuqing Yang, Yifan Song, Peiyi Wang, Chenxin An, Tianyu Liu, Sujian Li, Bill Yuchen Lin, et al. Vlrewardbench: A challenging benchmark for vision-language generative reward models. arXiv preprint arXiv:2411.17451, 2024.   
+[37] Lei Li, Zhihui Xie, Mukai Li, Shunian Chen, Peiyi Wang, Liang Chen, Yazheng Yang, Benyou Wang, and Lingpeng Kong. Silkie: Preference distillation for large visual language models. arXiv preprint arXiv:2312.10665, 2023.   
+[38] Mukai Li, Lei Li, Yuwei Yin, Masood Ahmed, Zhenguang Liu, and Qi Liu. Red teaming visual language models. arXiv preprint arXiv:2401.12915, 2024.   
+[39] Yanwei Li, Yuechen Zhang, Chengyao Wang, Zhisheng Zhong, Yixin Chen, Ruihang Chu, Shaoteng Liu, and Jiaya Jia. Mini-gemini: Mining the potential of multi-modality vision language models. arXiv preprint arXiv:2403.18814, 2024.   
+[40] Yifan Li, Yifan Du, Kun Zhou, Jinpeng Wang, Wayne Xin Zhao, and Ji-Rong Wen. Evaluating object hallucination in large vision-language models. In EMNLP, 2023.   
+[41] Yifan Li, Yifan Du, Kun Zhou, Jinpeng Wang, Wayne Xin Zhao, and Ji-Rong Wen. Evaluating object hallucination in large vision-language models. arXiv preprint arXiv:2305.10355, 2023.   
+[42] Fuxiao Liu, Kevin Lin, Linjie Li, Jianfeng Wang, Yaser Yacoob, and Lijuan Wang. Mitigating hallucination in large multi-modal models via robust instruction tuning. In The Twelfth International Conference on Learning Representations, 2023.   
+[43] Haotian Liu, Chunyuan Li, Qingyang Wu, and Yong Jae Lee. Visual instruction tuning. arXiv preprint arXiv:2304.08485, 2023.   
+[44] Yuan Liu, Haodong Duan, Yuanhan Zhang, Bo Li, Songyang Zhang, Wangbo Zhao, Yike Yuan, Jiaqi Wang, Conghui He, Ziwei Liu, et al. Mmbench: Is your multi-modal model an all-around player? arXiv preprint arXiv:2307.06281, 2023.   
+[45] Yuliang Liu, Zhang Li, Biao Yang, Chunyuan Li, Xucheng Yin, Cheng lin Liu, Lianwen Jin, and Xiang Bai. On the hidden mystery of ocr in large multimodal models, 2024.   
+[46] Ziwei Liu, Ping Luo, Xiaogang Wang, and Xiaoou Tang. Deep learning face attributes in the wild. In Proceedings of the IEEE international conference on computer vision, pages 3730– 3738, 2015.   
+[47] Haoyu Lu, Wen Liu, Bo Zhang, Bingxuan Wang, Kai Dong, Bo Liu, Jingxiang Sun, Tongzheng Ren, Zhuoshu Li, Yaofeng Sun, et al. Deepseek-vl: towards real-world vision-language understanding. arXiv preprint arXiv:2403.05525, 2024.   
+[48] Pan Lu, Hritik Bansal, Tony Xia, Jiacheng Liu, Chunyuan Li, Hannaneh Hajishirzi, Hao Cheng, Kai-Wei Chang, Michel Galley, and Jianfeng Gao. Mathvista: Evaluating mathematical reasoning of foundation models in visual contexts. In ICLR, 2024.   
+[49] Yujie Lu, Dongfu Jiang, Wenhu Chen, William Yang Wang, Yejin Choi, and Bill Yuchen Lin. Wildvision: Evaluating vision-language models in the wild with human preferences. arXiv preprint arXiv:2406.11069, 2024.   
+[50] Muhammad Maaz, Hanoona Rasheed, Salman Khan, and Fahad Shahbaz Khan. Video-chatgpt: Towards detailed video understanding via large vision and language models. In Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (ACL 2024), 2024.   
+[51] Ahmed Masry, Do Xuan Long, Jia Qing Tan, Shafiq Joty, and Enamul Hoque. Chartqa: A benchmark for question answering about charts with visual and logical reasoning. arXiv:2203.10244, 2022.   
+[52] Ahmed Masry, Do Xuan Long, Jia Qing Tan, Shafiq Joty, and Enamul Hoque. Chartqa: A benchmark for question answering about charts with visual and logical reasoning. arXiv preprint arXiv:2203.10244, 2022.   
+[53] Minesh Mathew, Viraj Bagal, Rubèn Tito, Dimosthenis Karatzas, Ernest Valveny, and CV Jawahar. Infographicvqa. In Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision, 2022.   
+[54] Minesh Mathew, Dimosthenis Karatzas, and CV Jawahar. Docvqa: A dataset for vqa on document images. In WACV, 2021.   
+[55] Minesh Mathew, Dimosthenis Karatzas, and CV Jawahar. Docvqa: A dataset for vqa on document images. In WACV, 2021.   
+[56] OpenAI. Gpt-4 technical report. 2023.   
+[57] Amanpreet Singh, Vivek Natarajan, Meet Shah, Yu Jiang, Xinlei Chen, Dhruv Batra, Devi Parikh, and Marcus Rohrbach. Towards vqa models that can read. In CVPR, 2019.   
+[58] Zhiqing Sun, Sheng Shen, Shengcao Cao, Haotian Liu, Chunyuan Li, Yikang Shen, Chuang Gan, Liang-Yan Gui, Yu-Xiong Wang, Yiming Yang, et al. Aligning large multimodal models with factually augmented rlhf. arXiv preprint arXiv:2309.14525, 2023.   
+[59] Zhiqing Sun, Sheng Shen, Shengcao Cao, Haotian Liu, Chunyuan Li, Yikang Shen, Chuang Gan, Liang-Yan Gui, Yu-Xiong Wang, Yiming Yang, et al. Aligning large multimodal models with factually augmented rlhf. arXiv:2309.14525, 2023.   
+[60] Rohan Taori, Ishaan Gulrajani, Tianyi Zhang, Yann Dubois, Xuechen Li, Carlos Guestrin, Percy Liang, and Tatsunori B Hashimoto. Stanford alpaca: An instruction-following llama model, 2023.   
+[61] Shengbang Tong, Ellis Brown, Penghao Wu, Sanghyun Woo, Manoj Middepogu, Sai Charitha Akula, Jihan Yang, Shusheng Yang, Adithya Iyer, Xichen Pan, et al. Cambrian-1: A fully open, vision-centric exploration of multimodal llms. arXiv preprint arXiv:2406.16860, 2024.   
+[62] Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier Martinet, Marie-Anne Lachaux, Timothée Lacroix, Baptiste Rozière, Naman Goyal, Eric Hambro, Faisal Azhar, et al. Llama: Open and efficient foundation language models. arXiv preprint arXiv:2302.13971, 2023.   
+[63] Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert, Amjad Almahairi, Yasmine Babaei, Nikolay Bashlykov, Soumya Batra, Prajjwal Bhargava, Shruti Bhosale, et al. Llama 2: Open foundation and fine-tuned chat models. arXiv preprint arXiv:2307.09288, 2023.   
+[64] Peng Wang, Shuai Bai, Sinan Tan, Shijie Wang, Zhihao Fan, Jinze Bai, Keqin Chen, Xuejing Liu, Jialin Wang, Wenbin Ge, et al. Qwen2-vl: Enhancing vision-language model’s perception of the world at any resolution. arXiv preprint arXiv:2409.12191, 2024.   
+[65] Junkang Wu, Yuexiang Xie, Zhengyi Yang, Jiancan Wu, Jinyang Gao, Bolin Ding, Xiang Wang, and Xiangnan He. beta-dpo: Direct preference optimization with dynamic beta. arXiv preprint arXiv:2407.08639, 2024.   
+[66] Zhiyu Wu, Xiaokang Chen, Zizheng Pan, Xingchao Liu, Wen Liu, Damai Dai, Huazuo Gao, Yiyang Ma, Chengyue Wu, Bingxuan Wang, Zhenda Xie, Yu Wu, Kai Hu, Jiawei Wang, Yaofeng Sun, Yukun Li, Yishi Piao, Kang Guan, Aixin Liu, Xin Xie, Yuxiang You, Kai Dong, Xingkai Yu, Haowei Zhang, Liang Zhao, Yisong Wang, and Chong Ruan. Deepseek-vl2: Mixture-of-experts vision-language models for advanced multimodal understanding, 2024.   
+[67] Tianyi Xiong, Xiyao Wang, Dong Guo, Qinghao Ye, Haoqi Fan, Quanquan Gu, Heng Huang, and Chunyuan Li. Llava-critic: Learning to evaluate multimodal models. arXiv preprint arXiv:2410.02712, 2024.   
+[68] Yibo Yan, Shen Wang, Jiahao Huo, Hang Li, Boyan Li, Jiamin Su, Xiong Gao, Yi-Fan Zhang, Tianlong Xu, Zhendong Chu, et al. Errorradar: Benchmarking complex mathematical reasoning of multimodal large language models via error detection. arXiv preprint arXiv:2410.04509, 2024.   
+[69] Qinghao Ye, Haiyang Xu, Guohai Xu, Jiabo Ye, Ming Yan, Yiyang Zhou, Junyang Wang, Anwen Hu, Pengcheng Shi, Yaya Shi, et al. mplug-owl: Modularization empowers large language models with multimodality. arXiv preprint arXiv:2304.14178, 2023.   
+[70] Kaining Ying, Fanqing Meng, Jin Wang, Zhiqian Li, Han Lin, Yue Yang, Hao Zhang, Wenbo Zhang, Yuqi Lin, Shuo Liu, Jiayi Lei, Quanfeng Lu, Runjian Chen, Peng Xu, Renrui Zhang, Haozhe Zhang, Peng Gao, Yali Wang, Yu Qiao, Ping Luo, Kaipeng Zhang, and Wenqi Shao. Mmt-bench: A comprehensive multimodal benchmark for evaluating large vision-language models towards multitask agi, 2024.   
+[71] Tianyu Yu, Yuan Yao, Haoye Zhang, Taiwen He, Yifeng Han, Ganqu Cui, Jinyi Hu, Zhiyuan Liu, Hai-Tao Zheng, Maosong Sun, et al. Rlhf-v: Towards trustworthy mllms via behavior alignment from fine-grained correctional human feedback. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pages 13807–13816, 2024.   
+[72] Tianyu Yu, Haoye Zhang, Yuan Yao, Yunkai Dang, Da Chen, Xiaoman Lu, Ganqu Cui, Taiwen He, Zhiyuan Liu, Tat-Seng Chua, et al. Rlaif-v: Aligning mllms through open-source ai feedback for super gpt-4v trustworthiness. arXiv preprint arXiv:2405.17220, 2024.   
+[73] Weihao Yu, Zhengyuan Yang, Linjie Li, Jianfeng Wang, Kevin Lin, Zicheng Liu, Xinchao Wang, and Lijuan Wang. Mm-vet: Evaluating large multimodal models for integrated capabilities. In ICML, 2024.   
+[74] Yue Yu, Zhengxing Chen, Aston Zhang, Liang Tan, Chenguang Zhu, Richard Yuanzhe Pang, Yundi Qian, Xuewei Wang, Suchin Gururangan, Chao Zhang, et al. Self-generated critiques boost reward modeling for language models. arXiv preprint arXiv:2411.16646, 2024.   
+[75] Xiang Yue, Tianyu Zheng, Yuansheng Ni, Yubo Wang, Kai Zhang, Shengbang Tong, Yuxuan Sun, Botao Yu, Ge Zhang, Huan Sun, et al. Mmmu-pro: A more robust multi-discipline multimodal understanding benchmark. arXiv preprint arXiv:2409.02813, 2024.   
+[76] Jiaming Zhang, Junhong Ye, Xingjun Ma, Yige Li, Yunfan Yang, Jitao Sang, and Dit-Yan Yeung. Anyattack: Self-supervised generation of targeted adversarial attacks for vision-language models.   
+[77] Pan Zhang, Xiaoyi Dong Bin Wang, Yuhang Cao, Chao Xu, Linke Ouyang, Zhiyuan Zhao, Shuangrui Ding, Songyang Zhang, Haodong Duan, Hang Yan, et al. Internlm-xcomposer: A vision-language large model for advanced text-image comprehension and composition. arXiv preprint arXiv:2309.15112, 2023.   
+[78] Renrui Zhang, Dongzhi Jiang, Yichi Zhang, Haokun Lin, Ziyu Guo, Pengshuo Qiu, Aojun Zhou, Pan Lu, Kai-Wei Chang, Peng Gao, et al. Mathverse: Does your multi-modal llm truly see the diagrams in visual math problems? arXiv preprint arXiv:2403.14624, 2024.   
+[79] Yi-Fan Zhang, Qingsong Wen, Chaoyou Fu, Xue Wang, Zhang Zhang, Liang Wang, and Rong Jin. Beyond llava-hd: Diving into high-resolution large multimodal models. arXiv preprint arXiv:2406.08487, 2024.   
+[80] Yi-Fan Zhang, Weichen Yu, Qingsong Wen, Xue Wang, Zhang Zhang, Liang Wang, Rong Jin, and Tieniu Tan. Debiasing large visual language models. arXiv preprint arXiv:2403.05262, 2024.   
+[81] Yi-Fan Zhang, Huanyu Zhang, Haochen Tian, Chaoyou Fu, Shuangqing Zhang, Junfei Wu, Feng Li, Kun Wang, Qingsong Wen, Zhang Zhang, et al. Mme-realworld: Could your multimodal llm challenge high-resolution real-world scenarios that are difficult for humans? arXiv preprint arXiv:2408.13257, 2024.   
+[82] Yichi Zhang, Yao Huang, Yitong Sun, Chang Liu, Zhe Zhao, Zhengwei Fang, Yifan Wang, Huanran Chen, Xiao Yang, Xingxing Wei, et al. Multitrust: A comprehensive benchmark towards trustworthy multimodal large language models. In The Thirty-eight Conference on Neural Information Processing Systems Datasets and Benchmarks Track.   
+[83] Yuanhan Zhang, Jinming Wu, Wei Li, Bo Li, Zejun Ma, Ziwei Liu, and Chunyuan Li. Video instruction tuning with synthetic data. arXiv preprint arXiv:2410.02713, 2024.   
+[84] Yongshuo Zong, Ondrej Bohdal, Tingyang Yu, Yongxin Yang, and Timothy Hospedales. Safety fine-tuning at (almost) no cost: A baseline for vision large language models. arXiv preprint arXiv:2402.02207, 2024.
+
+# MM-RLHF
+
+# Appendix—
+
+# Contents
+
+1 Introduction 1
+
+# 2 MM-RLHF-Dataset 2
+
+2.1 Data Collection . . 3   
+2.2 Data Filtering and Model Response Generation 3   
+2.3 Annotation 5   
+2.3.1 Annotation Standards . 5   
+2.3.2 Human Annotation vs. Machine Annotation . 5
+
+# 3 MM-RLHF-Reward Model 6
+
+3.1 Background and Limitations of Standard Reward Models 6   
+3.2 Critique-Based Reward Model Training 6   
+3.3 Discussion . . 7
+
+# 4 MM-DPO 7
+
+4.1 Background: Direct Preference Optimization 8   
+4.2 MM-DPO: Key Contributions and Improvements 8
+
+# 5 Experiments 9
+
+5.1 Benchmarks and Experimental Details 9   
+5.2 Evaluation of MM-RLHF and MM-DPO 10   
+5.3 Evaluation of MM-RLHF-Reward 10   
+5.4 Self-Improvement of Small-Scale MLLMs is Currently Unrealistic . 13
+
+# 6 Conclusion and Future Work 14
+
+A Related Work 21
+
+# B Annotation Guidelines for Evaluating MLLM Responses 22
+
+B.1 I. Visual Faithfulness Evaluation 23   
+B.2 II. Helpfulness Evaluation 23   
+B.3 III. Ethical Considerations Evaluation (Safety, Privacy, Fairness, and Harm) . . . . 24   
+B.4 Annotation Requirements . 24
+
+# C Safety and Trustworth Dataset and Benchmark Construction 24
+
+C.1 Training Data Construction Details . . . . 24   
+C.2 Benchmark Construction Details 25   
+D Why We Need Large-Scale Human Annotation? 25   
+D.1 Misleading and Incomplete Questions 25   
+D.2 Difficult-to-Distinguish Answers 26
+
+# E Comparison to Existing Methods on Beta Adjustment in LLMs and MLLMs
+
+More Ablation and Analysis 31   
+F.1 Improvement with MM-RLHF Dataset and MM-DPO 31   
+F.2 Effect of Hyperparameters $w$ and $k$ . 31
+
+# A Related Work
+
+Multimodal large language models have seen remarkable progress in recent years, with significant advancements in both performance and capabilities. Leveraging cutting-edge LLMs such as GPTs [56, 8], LLaMA [62, 63], Alpaca [60], Vicuna [14], and Mistral [28], MLLMs are increasingly demonstrating enhanced multimodal capabilities, especially through end-to-end training approaches. These advancements have been crucial in enabling models to handle a range of multimodal tasks, including image-text alignment, reasoning, and instruction following, while addressing challenges related to data fusion across different modalities. Recent open-source MLLMs such as Otter [31], mPLUG-Owl [69], LLaVA [43], Qwen-VL [5], Cambrian-1 [61], Mini-Gemini [39], MiniCPM-V 2.5 [26], DeepSeek-VL [47], SliME [79] and VITA [21, 22] have contributed to solving some of the most fundamental multimodal problems, such as improving vision-language alignment, reasoning, and following instructions. These models focus on enhancing multimodal understanding by integrating vision with language, allowing for more nuanced and context-aware interactions. Some of the most notable open-source models, such as InternLM-XComposer-2.5 [77] and InternVL-2 [13], have exhibited impressive progress in multimodal understanding, closely competing with proprietary models across a range of multimodal benchmarks. However, despite these achievements, there is still a noticeable gap in security and alignment when compared to closed-source models. As highlighted by recent studies [81], most open-source MLLMs have not undergone rigorous, professional alignment processes, which has hindered their ability to effectively align with human preferences. This gap in alignment remains one of the key challenges for open-source models, and improving model safety and alignment to human values will be a crucial area of future research.
+
+MLLM Alignment. With the rapid development of MLLMs, various alignment algorithms have emerged, showcasing different application scenarios and optimization goals. For instance, in the image domain, Fact-RLHF [58] is the first multimodal RLHF algorithm, and more recently, LLAVACRITIC [67] has demonstrated strong potential with an iterative DPO strategy. These algorithms have shown significant impact on reducing hallucinations and improving conversational capabilities [80, 72], but they have not led to notable improvements in general capabilities. There have also been some preliminary explorations in the multi-image and video domains, such as MIA-DPO and PPLLaVA. However, alignment in image and video domains is still fragmented, with little research done under a unified framework. We believe that the main limitation hindering the development of current alignment algorithms is the lack of a high-quality, multimodal alignment dataset. Few existing manually annotated MLLM alignment datasets are available, and most contain fewer than 10K samples [58, 72, 71], which is significantly smaller than large-scale alignment datasets in the LLM field. This small dataset size makes it difficult to cover multiple modalities and diverse task types. Furthermore, machine-annotated data faces challenges related to quality assurance. Therefore, in this paper, we have invested considerable effort into constructing a dataset, MM-RLHF, which surpasses existing works in both scale and annotation quality.
+
+MLLM Evaluation. With the development of MLLMs, a number of benchmarks have been built [18, 23]. For instance, MME [19] constructs a comprehensive evaluation benchmark that includes a total of 14 perception and cognition tasks. All QA pairs in MME are manually designed to avoid data leakage, and the binary choice format makes it easy to quantify. MMBench [44] contains over 3, 000 multiple-choice questions covering 20 different ability dimensions, such as object localization and social reasoning. It introduces GPT-4-based choice matching to address the MLLM’s lack of instruction-following capability and a novel circular evaluation strategy to improve the evaluation robustness. Seed-Bench [35] is similar to MME and MMBench but consists of 19, 000 multiple-choice questions. The larger sample size allows it to cover more ability aspects and achieve more robust results. SEED-Bench-2 [34] expands the dataset size to 24, 371 QA pairs, encompassing 27 evaluation dimensions and further supporting the evaluation of image generation. MMT-Bench [70] scales up the dataset even further, including 31, 325 QA pairs from various scenarios such as autonomous driving and embodied AI. It encompasses evaluations of model capabilities such as visual recognition, localization, reasoning, and planning. Additionally, other benchmarks focus on real-world usage scenarios [24, 49, 7] and reasoning capabilities [73, 6, 25, 68]. MME-RealWorld [81] places greater emphasis on quality and difficulty compared to its predecessor, containing the largest manually annotated QA pairs and the largest image resolution. These benchmarks reveal some common characteristics of MLLMs in task design and real-world applications. However, benchmarks specifically focused on reward models [36] and those dedicated to evaluating safety and robustness remain relatively scarce. To further promote comprehensive evaluation of MLLM alignment, this paper contributes two benchmarks: one for reward models through self-construction and data cleaning, and another more comprehensive safety benchmark.
+
+![](images/990ff48aa1f5ea306d81ab4a3bac2c5a00dcb7ad81c2220fe74121d3f5d3ce9d.jpg)  
+Figure 7: The user interface for data annotation, featuring image/video display, questions, outputs from each model, detailed scoring criteria, and a section for reviewers to verify the accuracy of the scores.
+
+# B Annotation Guidelines for Evaluating MLLM Responses
+
+This document provides detailed annotation guidelines for evaluating responses generated by MLLMs. Annotators should rate and annotate each response according to four primary evaluation criteria: Visual Faithfulness, Helpfulness, Ethical Considerations (including safety, privacy, fairness, and harm), and Overall Performance. Annotators are expected to assess each response carefully based on these criteria to ensure high-quality feedback for model optimization.
+
+# B.1 I. Visual Faithfulness Evaluation
+
+Definition: This criterion evaluates whether the generated response accurately reflects the objects and relationships in the image, ensuring consistency with the objects, relationships, and attributes of the true answer.
+
+# Guidelines:
+
+1. Object Description Accuracy: Ensure that the generated response accurately describes objects as in the true answer, avoiding references to non-existent objects and preventing errors in descriptions of existing objects.   
+2. Object Relationship Accuracy: Evaluate whether the spatial, structural, or functional relationships between objects described in the response are correct. Minimize errors and misleading information in object relationship descriptions.   
+3. Object Attribute Accuracy: Confirm that the response accurately describes the physical features, color, size, and state of objects, avoiding discrepancies with the true answer.   
+4. Overall Accuracy: Assess the accuracy and consistency of the response in describing visual elements (objects, relationships, and attributes) in the image.
+
+# Rating Scale:
+
+• Severely Inaccurate: Major errors in object descriptions, relationships, or attributes, or references to non-existent objects.   
+• Partially Inaccurate: Object descriptions, relationships, or attributes are mostly correct, but some details are inaccurate.   
+• Moderately Accurate: Descriptions of objects, relationships, and attributes are generally accurate, with minor errors.   
+• Accurate: Descriptions of objects, relationships, and attributes are correct and match the true answer.   
+• Highly Accurate: Descriptions of objects, relationships, and attributes are exceptionally precise and include useful additional details.
+
+# B.2 II. Helpfulness Evaluation
+
+Definition: Carefully review the user prompt to ensure that the response provides valuable insights and relevant information that aid the user in understanding the image or task.
+
+# Guidelines:
+
+1. Assess whether the response provides useful context, insights, or relevant information to help the user better understand the image or task.   
+2. Check if the model follows the specific instructions or guidelines provided by the user.   
+3. Evaluate the overall contribution of the response in enhancing the user’s understanding and experience.
+
+# Rating Scale:
+
+• Not Helpful: The response does not address the user’s prompt, providing entirely irrelevant information.   
+• Partially Helpful: The response contains some useful information, but overall help is limited.   
+• Moderately Helpful: The response is somewhat helpful but may lack important information.   
+• Helpful: The response effectively addresses the user’s prompt and provides valuable insights.   
+• Very Helpful: The response is highly useful, offering rich insights that significantly enhance the user’s understanding.
+
+# B.3 III. Ethical Considerations Evaluation (Safety, Privacy, Fairness, and Harm)
+
+Definition: This criterion evaluates whether the model adheres to ethical standards regarding safety, privacy protection, fairness, and avoiding harmful content.
+
+# Guidelines:
+
+1. Ensure the model provides appropriate warnings or avoids inappropriate recommendations when addressing sensitive topics (e.g., medical images).   
+2. Confirm that the response does not disclose private information that could harm personal privacy.   
+3. Assess whether the model shows fairness when addressing individuals or groups, avoiding any form of bias.   
+4. Ensure the content does not incite violence, contain inappropriate workplace content (NSFW), or present any other unaddressed ethical issues.
+
+# Rating Scale:
+
+• Highly Unsafe/Privacy Infringing/Unfair/Harmful: The response contains severely inappropriate content that violates ethical standards.   
+• Unsafe/Privacy Issues/Unfair/Potentially Harmful: The response may pose safety risks, privacy issues, or show unfairness.   
+• Moderately Ethical: The response mostly adheres to ethical standards, with minor safety or fairness issues.   
+• Ethically Compliant: The response aligns with ethical standards, following safety, privacy protection, and fairness requirements.   
+• Highly Ethical/Safe/Privacy Protected/Fair/Non-Harmful: The response fully meets ethical standards, respecting privacy, fairness, and free from harmful content.
+
+# B.4 Annotation Requirements
+
+1. The labeling staff should carefully read the user’s prompt and the model-generated response before scoring the response based on three criteria: visual Faithfulness, helpfulness, and ethical considerations.   
+2. Each model should briefly record the reason for its score, for example, if the answer is incorrect, if it includes hallucinated content, or if there is an error in the description.   
+3. The final evaluation of each response should comprehensively consider all criteria, followed by a manual ranking of all responses.   
+4. Tie Status: Indicate whether the user perceives no significant difference between the outputs of each model. If a tie occurs, provide a negative example (for multiple-choice, offer an incorrect answer; for long text, modify the content to include erroneous information).   
+5. Ranking Basis: Briefly explain the reasoning behind the ranking.
+
+# C Safety and Trustworth Dataset and Benchmark Construction
+
+# C.1 Training Data Construction Details
+
+The self-constructed content is divided into 850 safety samples and 500 adversarial samples. The safety data is sourced from the following datasets: Red Teaming VLM [38], CelebA [46], and VLSBench [27]. The adversarial data, on the other hand, is generated using the AnyAttack [76] method.
+
+To ensure data diversity, the safety data is comprised of five categories:
+
+• 200 samples from Jailbreak, • 200 samples from privacy and discrimination, • 150 samples from hacking, • 200 samples from violence, • 100 samples from self-injury.
+
+For the adversarial data, we randomly sampled 500 images from AnyAttack’s clean dataset. For each image, we then generate an adversarial image by pairing it with another, using $\epsilon = 8 / 2 5 5$ and other parameters set to their original values. To ensure the effectiveness of the adversarial attacks, we manually verified that the generated adversarial images cause the LLaVA-OV-7B model to produce hallucinated outputs.
+
+Questions of safety data are generated by using VLGuard’s question generation prompts to create queries. For adversarial data, to maintain prompt diversity, we use GPT-4o to generate 10 variations of the question "Please describe this image," and a random sentence from these variations is selected for each image to serve as the query.
+
+# C.2 Benchmark Construction Details
+
+We constructed our benchmark by selecting a total of 9 tasks from the Multitrust [82] benchmark, which includes adversarial evaluations (both targeted and non-targeted), risk identification, typographic jailbreak, multimodal jailbreak, and cross-modal jailbreak tasks. Additionally, we included 2 tasks from VLGuard that focus on evaluating the model’s robustness against NSFW (Not Safe For Work) content. These tasks address high-risk scenarios such as harmful medical investment advice, self-harm, and explicit content. Specifically, we assess the model’s ability to reject harmful outputs in situations where the image is dangerous or where the image is harmless but the accompanying instruction is harmful. Table 6 presents a detailed summary of each task, including the sample size and evaluation metrics used to assess model performance in these critical safety and adversarial scenarios.
+
+# D Why We Need Large-Scale Human Annotation?
+
+Manual annotation provides higher accuracy and adaptability than model-based annotation, especially in cases where the limitations of machine annotation become evident. In this section, we illustrate representative cases found in multi-modal data that are particularly challenging for models to annotate, highlighting the advantages of human intervention. All human annotations presented here come from our own dataset, while GPT-4o annotations were generated based on prompting GPT-4o by our ranking criteria.
+
+# D.1 Misleading and Incomplete Questions
+
+Since training data is commonly annotated by models, maintaining perfect quality assurance is challenging, often resulting in some confusing or incomplete questions that cannot be answered accurately. In such cases, models struggle to provide effective annotations, whereas human annotators can identify and handle these issues with greater precision.
+
+• Confusing Questions: As shown in Figure 8, conflicts between the question and the provided choices can lead to confusion and misinterpretation. Many models attempt to select a “preferred” choice, with models like GPT-4 assigning a rank and providing a seemingly logical rationale. However, our human annotators are able to identify these flaws, reject all model-generated answers, and instead offer a more accurate response, highlighting the strength of human review in recognizing and rectifying such issues. Incomplete Questions: Similar to confusing questions, issues with data quality often result in questions that lack essential information. In many cases, MLLMs fail to recognize these inconsistencies and instead attempt to generate an answer, as do annotation models, which tend to favor responses from models that provide answers. As shown in Figure 9, this question requires calculating the length of side AF; however, the given conditions are insufficient to solve the problem. Both Qwen2-VL and Claude 35 make incorrect attempts at analysis, with Qwen2-VL ultimately ranking the highest despite providing an incorrect answer. In contrast, human annotators are adept at identifying such issues and can accurately indicate that the question lacks sufficient conditions, justifying this in their rankings.
+
+Table 6: MM-RLHF-SafetyBench: summary of Task Data, Evaluation Metrics, and Comparison Methods for Safety and Adversarial Testing. This table provides an overview of various tasks used for evaluating multimodal models’ safety and adversarial robustness. The tasks are categorized based on attack type (adversarial or safety), and the evaluation metrics include success rates of adversarial attacks or model rejection rates for harmful outputs. The arrows in the Comparison column indicate whether higher $( \uparrow )$ or lower (↓) values of the evaluation metric are preferred.   
+
+<table><tr><td>Task Name</td><td>Data Size</td><td>Task Category</td><td>Evaluation Metric</td><td>Comparison</td></tr><tr><td>Adv target</td><td>100</td><td>Adversarial Attack: The ratio of model descriptions containing adversarial im- age content.</td><td>Ratio</td><td>↓</td></tr><tr><td>Adv untarget</td><td>200</td><td>Adversarial Attack: The ratio of model descriptions containing original image content. Cross-modal Jailbreak: Inducing mul-</td><td>Ratio</td><td>↑</td></tr><tr><td>Crossmodel ASR</td><td>18</td><td>timodal models to deviate from their expected behavior and security con- straints by combining text and image</td><td>ASR: Adversarial attack suc- cess rate (probability of harmful output)</td><td>↓</td></tr><tr><td>Multimodel ASR</td><td>100</td><td>contexts related to the jailbreak task. Multimodal Jailbreak: Using a com- bination of various modalities (e.g., text and images) to induce multimodal models to deviate from security mecha- nisms and expected behavior, perform- ing malicious commands or unautho-</td><td>ASR: Adversarial attack suc- cess rate (probability of harmful output)</td><td></td></tr><tr><td>Typographic ASR</td><td>600</td><td>rized functions. Typographic Jailbreak: Converting ma- licious text instructions into images to perform jailbreak attacks, induc- ing multimodal models to deviate from their expected behavior and security</td><td>ASR: Adversarial attack suc- cess rate (probability of harmful output)</td><td>↓</td></tr><tr><td>Crossmodel RtA</td><td>18</td><td>constraints. Cross-modal Jailbreak: Inducing mul- timodal models to deviate from their expected behavior and security con- straints by combining text and image</td><td>RtA: Model accuracy on ad- versarial samples (probability of rejecting output)</td><td>↑</td></tr><tr><td>Multimodel RtA</td><td>100</td><td>contexts for the jailbreak task. Multimodal Jailbreak: Using a com- bination of various modalities (e.g., text and images) to induce multimodal models to deviate from security mecha- nisms and expected behavior, perform-</td><td>RtA: Model accuracy on ad- versarial samples (probability of rejecting output)</td><td>↑</td></tr><tr><td>Typographic RtA</td><td>600</td><td>ing malicious commands or unautho- rized functions. Typographic Jailbreak: Converting ma- licious text instructions into image for- mat for jailbreak attacks, inducing mul- timodal models to deviate from their</td><td>RtA: Model accuracy on ad- versarial samples (probability of rejecting output)</td><td>↑</td></tr><tr><td>Risk identification</td><td>500</td><td>expected behavior and security con- straints. Identification Ability: The model&#x27;s ability to correctly identify dangerous</td><td>Ratio</td><td>↑</td></tr><tr><td>NSFW-Text</td><td>558</td><td>items and assess risk. Visual-Linguistic Safety: Ratio of model not rejecting output when the image is harmless but the instruction</td><td>ASR: Adversarial attack suc- cess rate (probability of model not rejecting output)</td><td>+</td></tr><tr><td>NSFW-Image</td><td>442</td><td>contains harmful content. Visual-Linguistic Safety: Ratio of model not rejecting output when the image contains harmful information.</td><td>ASR: Adversarial attack suc- cess rate (probability of model not rejecting output)</td><td>↓</td></tr></table>
+
+# D.2 Difficult-to-Distinguish Answers
+
+The limitations of model-based annotation extend beyond question quality issues. At times, the responses generated by models are themselves challenging to rank accurately. This difficulty arises in two primary scenarios:
+
+• All Models Fail to Identify the Correct Answer. Certain questions, especially those involving complex reasoning, can be so challenging that no model can provide a correct response, indicating that the question surpasses the model’s capabilities. Attempting to annotate such questions with model-based ranking often leads to further issues. For instance,
+
+![](images/7297c479190a894697c7244ac84f531547379c1dc2ba4ccca42b37000ef1e9f5.jpg)  
+Figure 8: Example of a confusing question.
+
+![](images/da5bdc30804a91f7bf6bfa0fdaddd521931e660c337e0f3d2f7d5014785ec2ce.jpg)  
+Figure 9: Example of an incomplete question.
+
+![](images/a239a15698cca55bb5164e6c829db5d0673d43043b9c02fb73064a2dc4d3a4fb.jpg)  
+Figure 10: Example of a difficult question for model annotation.
+
+Table 7: Example of the Prompt Used for Augmenting Human Annotations.
+
+ou will receive an image-related question, an answer, and a comment provided by a human expert for the answer.
+
+Your task is to expand the human comment comprehensively while retaining its strengths and weaknesses, making it more professional, and logically rigorous. Focus only on expanding the comment and do not answer the question.
+
+nsure the expanded comment is strictly based on the provided human comment and avoids any speculation or uncertain conte
+
+[Question:] {question}   
+[Answer:] {answer}   
+[Human Comment for the answer:] {reason}
+
+Expanded Comment:
+
+in the high-resolution perception task shown in Figure 10, the required information specified in the question does not actually appear in the image. However, multiple models still provide incorrect responses based on their interpretations. During scoring, the models tend to select the answer that aligns most closely with their understanding8. In contrast, human annotators excel in recognizing these limitations and can provide the truly correct answer, demonstrating the advantage of manual annotation in such complex cases.
+
+• Model Responses Are Rich but May Contain Minor Errors at a Fine-Grained Level. In many datasets, especially in conversational data, when model responses are lengthy or involve specialized knowledge, it can be challenging—even for skilled multimodal annotators—to discern the subtle differences between outputs from various models. Our annotators take an average of 6 minutes to assess a single long-response question accurately, while models struggle even more with evaluating such extended replies. For instance, in Figure 11, the differences among models are confined to specific sections, where minor errors in visual perception or judgment occur (highlighted in red). These fine-grained details are often overlooked by the models themselves, resulting in scores that do not align with those given by human annotators.
+
+![](images/c5c5447cf3b796f33ccaf2378a3e154a3047ed80429ff4eb02832224044fc847.jpg)  
+Figure 11: Example of subtle errors in model responses to a long question.
+
+![](images/00231cd350cbe3fcb7a09c04a8c8f366f127b70e095d75e05dace391edcf0df3.jpg)  
+Figure 12: Ablation studies on our method and dataset. (a) Real-world tasks evaluation, where ‘LLaVA-OV-7B‘ serves as the baseline model, $\mathbf { \dot { \theta } } _ { + \mathrm { M M } }$ -RLHF‘ represents the use of our dataset combined with the traditional DPO algorithm. ‘+Implicit Reward‘ refers to using the dynamic beta strategy [65] in LLMs. (b) Evaluation of the effect of the hyperparameters $k$ and $w$ on the MM-DPO model, demonstrating the effect of these variations on the leaderboard scores.
+
+# E Comparison to Existing Methods on Beta Adjustment in LLMs and MLLMs
+
+Dynamic adjustment of the beta parameter is not a completely new concept, but its application in large multimodal language models has been relatively unexplored. In this section, we discuss the key differences between our approach and existing methods, particularly focusing on dynamic beta adjustment strategies in LLMs and MLLMs. Several studies have been conducted in the LLM domain, with many papers showing that common LLM DPO datasets contain a significant number of noisy samples [65, 15, 3]. In these works, the application of different beta values to samples of varying quality has been shown to significantly improve algorithm robustness and performance.
+
+Our approach differs from the existing works in two primary ways:
+
+First Exploration of Dynamic Beta Adjustment in MLLMs. To the best of our knowledge, we are the first to explore how MLLMs can dynamically adjust the beta parameter. We find that existing dynamic beta methods developed for LLMs cannot be directly adapted to the MLLM setting [65]. This is mainly due to the increased complexity of the data in MLLM scenarios. Most existing methods [65, 3] utilize implicit rewards during the training process of DPO algorithms to select higher-quality samples. However, in MLLMs, the signal discriminability of the model itself is weaker and cannot guide the selection of $\beta$ (Figure 12 (a)). Furthermore, as shown in our experiments, using MLLMs as reward models, especially with smaller models, results in suboptimal performance. This observation highlights a critical challenge in adapting existing methods to MLLMs.
+
+Leveraging a High-Quality Reward Model for Beta Adjustment. Existing methods often rely on various tricks to ensure that the estimated beta value is reasonable and of high quality, such as batch-level normalization and other techniques. Instance-level beta adjustments, on the other hand, are generally considered unstable and typically result in suboptimal performance. However, our approach challenges this conventional wisdom. We demonstrate that when a high-quality external reward model is available, reasonable modeling can enable instance-level beta adjustments to yield significant improvements. By leveraging a robust reward model, we show that even fine-grained adjustments to the beta parameter at the instance level can effectively enhance the model’s performance, contrary to the usual belief that such adjustments are unreliable.
+
+Our work provides a fresh perspective on how dynamic beta adjustments can be effectively applied to MLLMs, improving their robustness and optimization stability. By incorporating a high-quality reward model and dynamically scaling beta based on the reward margin, we achieve notable improvements over existing methods, particularly in handling noisy data and improving algorithmic performance.
+
+# F More Ablation and Analysis
+
+# F.1 Improvement with MM-RLHF Dataset and MM-DPO
+
+With the help of our MM-RLHF dataset, the baseline model demonstrates a general improvement across various benchmarks, with particularly significant gains observed in OCR and conversation tasks (Figure 12(a))). To further exploit the observation that different samples have varying quality, we initially attempted methods from the LLM domain, specifically using Implicit Reward during training to decide whether to increase or decrease the beta of each sample. However, we found that this approach did not work. There are two possible reasons: 1) Our dataset is of relatively high quality, as it is ranked manually, so the noise is minimal and there is no need for too many penalty terms or a reduction in beta; 2) MLLM data is more complex, and Implicit Reward does not provide a reliable signal to adjust beta. Therefore, MM-DPO uses a high-quality reward model to directly provide the signal, and the value of beta is constrained using the function $[ \beta _ { \mathrm { o r i } } , ( 1 + w ) \beta _ { \mathrm { o r i } } ] ,$ , preventing it from growing too excessively. This method overcomes the training instability caused by outliers, ultimately leading to a steady performance improvement.
+
+# F.2 Effect of Hyperparameters $w$ and $k$
+
+We experimented with various combinations of the hyperparameters $w$ and $k$ , where $k$ directly controls the mapping function from the reward margin to the scaling factor, and $w$ governs the strength of the correction to $\beta$ by the scaling factor. Figure 12(b) shows the impact of these hyperparameters on the final average performance (using the same benchmarks as Figure 12(a)). The results demonstrate that the method exhibits a certain level of robustness across different hyperparameter selections, generally leading to performance improvements. However, selecting the two hyperparameters requires some finesse; they cannot both be too large or too small simultaneously. The default values of $w = 0 . 5$ and $k = 0 . 5$ work well.
