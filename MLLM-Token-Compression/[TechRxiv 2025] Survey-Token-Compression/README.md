@@ -1,8 +1,8 @@
 # Towards Efficient MLLMs: A Survey on Token Compression
 
 **作者**: Linli Yao, Long Xing, Yang Shi, Sida Li, Yuanxin Liu, et al. (PKU, USTC, NTU, etc.)  
-**来源**: TechRxiv 2025  
-**链接**: [GitHub](https://github.com/yaolinli/MLLM-Token-Compression)
+**来源**: TechRxiv 2025 / arXiv 2507.20198  
+**链接**: [arXiv](https://arxiv.org/abs/2507.20198) | [GitHub](https://github.com/yaolinli/MLLM-Token-Compression)
 
 ## 一句话总结
 

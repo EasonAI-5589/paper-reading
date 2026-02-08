@@ -1,2265 +1,1073 @@
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                                        1
-
-
-
-
-    Towards Efficient Multimodal Large Language
-      Models: A Survey on Token Compression
-                Linli Yao∗‡ , Long Xing∗ , Yang Shi∗ , Sida Li, Yuanxin Liu, Yuhao Dong, Yi–Fan Zhang,
-                     Lei Li, Qingxiu Dong, Xiaoyi Dong, Qidong Huang, Haotian Wang, Feng Wu,
-                                Yuanxing Zhang, Pengfei Wan, Zhouchen Lin† , Xu Sun†
-
-      Abstract—Multimodal Large Language Models (MLLMs) have made significant strides in integrating vision-language perception,
-      alignment, and reasoning. However, the increasing complexity of tasks such as high-resolution image processing and long video
-      understanding has led to an exponential rise in visual context length within MLLMs. The resulting long-context token sequences
-      impose substantial computational demands on large language models (LLMs), leading to quadratic complexity growth, heightened
-      GPU resource consumption, and slower inference speeds. To address these challenges, token compression has emerged as a
-      promising research direction that reduces the number of tokens processed within MLLMs while preserving essential cross-modal
-      semantic information, thereby enhancing both training and inference efficiency. This survey provides a comprehensive review of token
-      compression techniques for MLLMs, examining the current state of research and exploring future directions. We propose a taxonomy
-      of token compression methods based on their application modules within the MLLM system, including the vision encoder, projector,
-      LLM backbone, and hybrid approaches. We analyze the strengths and limitations of widely adopted algorithms, offering practitioners a
-      structured framework for selecting appropriate token compression strategies. Finally, we discuss practical applications of token
-      compression, identify key challenges in the field, and propose potential directions for future research and development. All related
-      resources are available at https://github.com/yaolinli/MLLM-Token-Compression.
-
-      Index Terms—Multimodal Large Language Model, Token Compression, Token Reduction, Efficient Multimodal Learning, Long-Context
-      Modeling, Video Large Language Model, Vision and Language.
-
-                                                                                 ✦
-
-1    I NTRODUCTION
-
-
-M       ULTIMODAL Large Language Models (MLLMs) [1]–
-        [11] rapidly advanced the frontier of vision-language
-joint perception, alignment, reasoning, and generation [12]–
-                                                                                     and deployment. This tension between multimodal effec-
-                                                                                     tiveness and computational efficiency has made compress-
-                                                                                     ing multimodal token sequences an urgent research focus.
-[17] [12]–[17]. By integrating the remarkable language                                   To build more efficient MLLMs, token compressing mul-
-understanding capabilities of Large Language Models                                  timodal token sequences refers to methods that reduce the
-(LLMs) [18]–[22] with comprehensive visual perception abil-                          number of tokens processed by MLLMs while preserving
-ities from vision encoders [23], contemporary systems such                           critical cross-modal semantics. Conceptually, compression
-as LLaVA [24], Qwen-VL [25] and GPT-4o [26] exhibit strong                           targets redundancy in spatial structure (e.g., repetitive back-
-performance on diverse tasks spanning open-ended visual                              ground regions), temporal continuity (e.g., frame-to-frame
-question answering, document understanding, and multi-                               similarities), and modality alignment (e.g., text-conditioned
-step visual reasoning, among others.                                                 visual irrelevance), yielding shorter sequences with minimal
-    However, these advanced cross-modal capabilities in-                             essential information degradation. Historically, token com-
-cur substantial computational costs. High-resolution images                          pression originated in unimodal vision through patch drop-
-and long videos can generate hundreds to thousands of vi-                            ping, token merging, and dynamic sparsification in Vision
-sual tokens, while multi-turn dialogue and chain-of-thought                          Transformers [30]–[36]. These approaches have since been
-reasoning further extend the historical context [27]–[29]. As                        extended to multimodal settings, where compression can
-sequence lengths increase, the quadratic complexity of at-                           operate on visual streams, textual streams, or their fusion.
-tention in Transformer-based MLLMs results in prohibitive                            As depicted in Figure 1, multimodal token compression
-memory consumption and latency, limiting both scalability                            techniques [37]–[54] have evolved rapidly since 2022 and
-                                                                                     experienced significant growth from 2024 onward. Recent
-                                                                                     works [55]–[64] extend this research direction from spatial
-•   L. Yao, Y. Shi, S. Li, Y. Liu, Q. Dong, Z. Lin, and X. Sun are with Peking       images to long-horizon video understanding with extreme
-    University (Contact e-mail: linliyao@stu.pku.edu.cn).
-•   L. Xing and F. Wu are with the University of Science and Technology of
-                                                                                     compression ratios, where aggressive token compression
-    China.                                                                           must be balanced against fine-grained localization, temporal
-•   Y. Dong is with Nanyang Technological University.                                coherence, and temporal grounding performance.
-•   Y.-F. Zhang is with the University of Chinese Academy of Sciences.                   Despite steady progress in token compression, practi-
-•   L. Li is with the University of Hong Kong.
-•   X. Dong is with Microsoft.                                                       tioners still face critical challenges in selecting or design-
-•   Q. Huang is with Alibaba Cloud.                                                  ing token compression strategies for MLLMs. This survey
-•   H. Wang is with the National University of Defense Technology.                   systematically examines the fundamental issues of token
-•   Y. Zhang and P. Wan are with the Kling Team, Kuaishou Technology.
-•   ∗ Equal contributions. † Corresponding authors. ‡ Project Leader.                compression from three perspectives.
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                                                                        2
-
-                                                            SpecVLM          HiPrune           STTM        VFlowOpt
-                                                             METEOR          MMG-Vid           LLMC+       LaCo
-            Code Open-source
-                                                             TransPrune              GlimpsePrune        VisionThink                                  9-10
-                                                                                                                                                7-8
-                                                                                                                                4-6
-                                                                                                                                                                        V " Drop
-                                           LLaVA-Mini           FrameFusion                                           1-3
-                                                                                                                                                      VCM               LangDC
-            DyCoke      PruneVid              STORM            Video-XL-Pro
-                                                                                                                                      HICom           PACT              TRIM
-       VisionZip        MustDrop
-                                                                                                        2025
-                                           AdaFV                Skip-Vision
-                                                                                                                                      HiCo                              HoloV
-                                                                                                                                                      BTP
-     Dynamic-VLM             QueCC                                                              11-12                ST !
-                                                                                                                                      DART
-         FastVLM       VisPruner                                                                                                                      HoliTom
-                                                      TCA                                                            PVC              FastVID
-                                                   TempMe                               9-10                         p-MoD                            Clapper
-                                                                                                                                      TopV
-                                   VTW                                                                                                                CDPruner
-                                             SparseVLM                                                               Feather          DivPrune
-                       MobileVLM V2                                           6-8
-                                              TG-LLaVA                                                                                                SparseMM
-                     LLaVA-PruMerge                                                                                            Video-XL
-                                                                      1-5                                                                             FlexSelect
-                               FastV                                                                                           LongVU
-       SmartTrim                                                                                        SlowFast-LLaVA
-                                                                                                                                                      Video-XL-2
-                                     M3
-                                                      2024                                              TokenPacker            FitPrune
-        CrossGET                                                            MADTP                                                                     CoreMatching
-                                                                                                        HiRED                  PyramidDrop
- BLIP2 (Q-Former)                          7-12                             LongVLM                                                                   Flash-VStream
-                                                                                                        mPLUG-Owl3
-                                     1-6                                    InternVL 1.5                                       mPLUG-DocOwl2
-                                                  Honeybee                                                                                            LLaVA-Scissor
-                     2023                                                                               LOOK-M
-                                                                            PLLaVA                                             Learnable VTM
-     2022                                         LLaMA-VID                                             LLaVolta                                      TimeChat-Online
-                                                                            DeCo
-                            ToMe                  TESTA                                                 VoCo-LLaMA
-
-Fig. 1: A timeline of representative token compression methods for MLLMs is presented. The timeline is organized
-primarily based on the earliest arXiv submission dates. Methods with publicly available code are highlighted. Due to
-space constraints, only a subset of representative open-source approaches is included in the figure.
-
-
-    First, where and how should token compression be applied ken compression techniques for MLLMs, with emphasis
-within the MLLM architecture?                                    on efficient long-context sequence processing. A concurrent
-    Different modules in MLLMs, including the vision en- survey [162] examines token compression across compre-
-coder, projector, and large language model, introduce dis- hensive modalities including image, video, and audio. Our
-tinct architectural characteristics, information bottlenecks, work is distinctly motivated by the goal of systematically
-and computational trade-offs. The placement of compres- organizing existing token compression methods according
-sion strongly influences the preservation of visual seman- to MLLM architectural components (where to compress) and
-tics, the quality of cross-modal alignment, and downstream providing a practical roadmap of compression techniques
-reasoning capability, yet lacks systematic analysis to guide (how to select).
-architectural choices.                                                Our main contributions are summarized as follows:
-    Second, which compression mechanism best suits specific (i) Taxonomy of token compression by MLLM architec-
-deployment scenarios? The commonly-adopted design space              tural placement (§3). We introduce a systematic tax-
-spans token merging versus pruning, text-guided versus               onomy that categorizes token compression methods by
-purely visual compression, objectives for training versus            their application location within MLLMs—vision en-
-inference acceleration, and plug-in modules versus end-to-           coder, projector, or large language model—clarifying
-end retraining. Each paradigm offers distinct benefits and           how architectural placement interacts with compression
-limitations that must be aligned with application-specific           objectives and how hybrid strategies can synergistically
-constraints. We aim to clarify these trade-offs and provide          combine approaches across different modules.
-decision guidelines for practitioners.                          (ii) Methodological analysis and design roadmap (§4).
-    Third, what are the remaining open challenges and promis-        Complementing the architectural taxonomy, we analyze
-ing future directions? As token compression represents an            the prevailing token compression mechanisms employed
-active research field undergoing rapid development, it is            across these locations. We dissect critical design dimen-
-essential to identify unresolved issues and emerging op-             sions, including text-guided versus vision-only compres-
-portunities. We discuss key challenges including the lack            sion, token pruning versus merging, modular plug-ins
-of theoretical foundations, adaptation to dynamic compres-           versus end-to-end retraining, and training-centric versus
-sion requirements, efficiency-effectiveness trade-offs in fine-      inference-centric optimization. Based on this method-
-grained tasks (e.g., chart understanding and OCR), and the           ological breakdown, we provide a selection roadmap to
-need for more rigorous evaluation protocols. Based on these          guide researchers in choosing the optimal compression
-perspectives, we aim to shed light on promising future               techniques tailored to specific tasks, accuracy targets, and
-research directions                                                  latency constraints.
-    This survey addresses these fundamental questions                 Grounded in the above analysis, we further summa-
-through structured analysis. Compared to existing sur- rize open challenges in this field and aim to shed light
-veys on efficient MLLMs [159], [160] and efficient vision on efficient next-generation MLLMs. We highlight pivotal
-transformers [161], this work focuses specifically on to- future directions, such as task-aware adaptivity and refined
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                                                                                                               3
-
-                                                                                                                                       HiRED [65], TRIM [66], SAINT [67], VisPruner [68], HiPrune [69], VFlowOpt [70],
-                                                                                                        Visual Token Dropping
-                                                                                                                                       VScan [71], SmartTrim [72], MADTP [73], EgoPrune [74], TimeChat-Online [57]
-
-                                                                                                                                       LaCo [75], LLaVA-STF [76], FastVLM [77], Clapper [78], TokenCorrCompressor [79],
-                                                                        Inside-Encoder (§3.1.1)         Visual Token Merging           FiLA-Video [80], FiLA-Video [80], Chat-UniVi [81], CrossGET [82], TESTA [83],
-                                                                                                                                       LLaVA-PruMerge [84], VisToG [85], FiCoCo [86], STTM [87], LookupViT [37]
-
-                                                                                                                                       LLaVA-STF [76], LinVT [88], ADMIRE [89], VideoChat-Flash [90], LaCo [75],
-                                                                                                       Multi-Scale Compression
-                                             Vision Encoder (§3.1)                                                                     M3 [91], Cambrian-1 [7], MustDrop [92]
-
-                                                                                                                                       VisionZip [93], LLaVA-PruMerge [84], FoPru [94], freePruner [95], HoloV [96],
-                                                                                                      Purely-Vision Compression
-                                                                                                                                       Fourier-VLM [97], LLaMA-VID [98], VideoLLaMA2 [99], LLaVA-PruMerge [84]
-                                                                       Outside-Encoder (§3.1.2)
-                                                                                                       Text-guided Compression         PAR [100], QG-VTC [101], LongVU [56], RecoverableCompression [102], VTC [103]
-
-                                                                                                               Pooling                 MobileVLM V2 [104], DeCo [105], AVG-LLaVA [106], TC-LLaVA [107], PLLaVA [108]
-
-                                                                     Transformation-Based (§3.2.1)           Pixel Shuffle             InternVL 1.5 [109], NVILA [110], InternVL 2.5 [111], Qwen2VL [112]
- Where to Compress Tokens in MLLMs (§3)
-
-
-
-
-                                                                                                             Convolution               Honeybee [113], MobileVLM V2 [104], VideoLLaMA2 [114], LLaVA-STF [76]
-
-                                                                                                               Q-Former                BLIP-2 [115], MiniGPT-4 [116], InstructBLIP [117]
-                                                Projector (§3.2)
-                                                                         Query-Based (§3.2.2)            Variants of Q-Former          Qwen-VL [118], Honeybee [113], MQT [119], TG-LLaVA [120], Cambrian-1 [7]
-
-                                                                                                        Cross Attention-Based          CATP [121], TokenPacker [122], HiRes-LLaVA [123], mPLUG-DocOwl2 [124]
-
-                                                                      Importance-Driven (§3.2.3)      Various Similarity Metrics       DynTok [125], LLaVA-Scissor [126], SeqCompression [127], DivPrune [128]
-
-                                                                                                                                       FastV [129], PyramidDrop [130], VTW [131], SparseVLM [132], Feather [133],
-                                                                                                           Importance-based
-                                                                                                                                       ATP-LLaVA [134], AIM [135], ST3 [136] , G-Search [137], TopV [138], PACT [139]
-
-                                                                                                                                       p-MoD [140], ATP-LLaVA [134], Dynamic-LLaVA [141], DyRate [142],
-                                                                                                       Learnable Module-based
-                                                                           Prefilling (§3.3.1)                                         GlimpsePrune [143]
-
-                                                                                                         Token Merging-based           LLaVolta [144], FiCoCo [86], FrameFusion [145], HoliTom [146], VFlowOpt [70]
-                                                  LLM (§3.3)
-                                                                                                             Fusion-based              Flamingo [147], mPLUG-Owl3 [148], CrossLMM [149], VoCo-LLaMA [150]
-
-                                                                                                     LOOK-M [151], MustDrop [92], DyCoke [152], SparseMM [153], InfiniPot-V [154],
-                                                                           Decoding (§3.3.2)
-                                                                                                     Dynamic-LLaVA [141], Video-XL-2 [58], LiveVLM [155], StreamMem [156]
-
-                                                                           Collaborative
-                                                                                                     CrossGET [82], LLaMA-VID [98], PAR [100]
-                                                                         Compression (§3.4.1)
-                                                Hybrid (§3.4)
-                                                                           Progressive
-                                                                                                     MustDrop [92], DyCoke [152], FiCoCo [86], VFlowOpt [70], VTC-CLS [157], METEOR [158]
-                                                                         Compression (§3.4.2)
-
-Fig. 2: A taxonomy of token compression methods for MLLMs, organized by the compression position in MLLMs(§3), with
-leaf nodes illustrating representative works.
-
-
-evaluation protocols, with the ultimate goal of making mul-                                                                visual features with the language model’s embedding space,
-timodal intelligence both powerful and affordable at scale.                                                                and a powerful LLM that performs multimodal alignment,
-                                                                                                                           reasoning and generation. This architectural design enables
-                                                                                                                           end-to-end training and seamless integration of visual and
-2                                         P RELIMINARIES                                                                   textual information processing. Throughout this survey, we
-This section lays the foundation for token compression in                                                                  focus on token compression techniques designed for this
-Multimodal Large Language Models (MLLMs). We begin                                                                         mainstream three-component architecture. Alternative ar-
-with an overview of typical MLLM architectures (§2.1),                                                                     chitectural paradigms [169], [170] that deviate from this
-followed by a formal definition of token compression tech-                                                                 design are beyond the scope of our discussion.
-niques (§2.2).                                                                                                                 Formally, let X v = {I1 , I2 , . . . , Inv } with nv ≥ 1
-                                                                                                                           denote the input image sequence or video frames, and
-2.1                                       Multimodal Large Language Models                                                 X t = {x1 , x2 , . . . , xnt } represent the textual token sequence
-                                                                                                                           comprising system prompts, user instructions, or dialogue
-The rapid advancement of artificial intelligence has wit-
-                                                                                                                           history. The MLLM architecture consists of three key com-
-nessed a paradigm shift from unimodal models to sophis-
-                                                                                                                           ponents:
-ticated multimodal systems capable of understanding and
-                                                                                                                               Vision Encoder. The vision encoder Ev transforms raw
-reasoning across diverse data modalities. MLLMs represent
-                                                                                                                           visual inputs into a sequence of dense visual token repre-
-a significant milestone in this evolution, combining the
-                                                                                                                           sentations:
-remarkable language understanding capabilities of Large
-Language Models (LLMs) [18], [163]–[166] with comprehen-                                                                                            Zv = Ev (X v ) ∈ Rnv ×dv ,              (1)
-sive visual perception abilities to create systems that can                                                                where nv denotes the number of visual tokens and dv
-process, understand, and generate responses based on both                                                                  represents the feature dimension of each visual token.
-textual and visual information.                                                                                                Projector. To bridge the modality gap between visual
-    Modern MLLMs typically adopt a three-component ar-                                                                     and textual representations, a projector P transforms visual
-chitecture: A vision encoder (VE) (often based on SigLIP [167]                                                             features from dimension dv to the LLM’s embedding space:
-or CLIP [168]) that processes visual inputs into high-
-dimensional feature representations, a projector that aligns                                                                                           Hv = P(Zv ) ∈ Rnv ×dt ,                                          (2)
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                  4
-
-where dt denotes the embedding dimension of the target              Compression Ratio is a widely-mentioned concept in
-language model.                                                  token compression, defined as:
-    Large Language Model. The LLM G processes the concate-                                          N
-nated sequence of projected visual tokens and embedded                                  Rcomp =       ,                   (7)
-                                                                                                    M
-textual tokens:
-                                                                 where higher values (e.g., 4× or 8×) indicate greater com-
-                   Y = G [Hv ; Et (X t )] ,
-                                         
-                                                       (3)
-                                                                 pression levels, more compact semantic representations, and
-where Et (·) represents the embedding layer of the LLM, [·; ·]   consequently larger efficiency gains.
-denotes concatenation along the sequence dimension, and              Since the number of visual tokens typically exceeds that
-Y is the generated output sequence.                              of textual tokens by substantial margins (e.g., by 20× [93])
-                                                                 in MLLMs, most existing token compression methods pri-
-Computational Complexity. The aforementioned compo-              marily focus on reducing nv . To achieve more compact
-nents in MLLMs primarily employ Transformer-based ar-            visual representations within MLLMs, two main types of
-chitectures [171], renowned for their powerful representa-       redundancy can be exploited:
-tion capabilities but also characterized by high computa-            (i) Intra-Visual Redundancy. Visual content inher-
-tional costs for processing long input sequences. The com-       ently contains redundant information. In images, numer-
-putational complexity predominantly stems from the self-         ous patches may represent background elements that are
-attention mechanism and feed-forward networks (FFNs)             not crucial for understanding the primary subject matter.
-within Transformer layers.                                       Similarly, in videos, consecutive frames often exhibit sub-
-    Given a sequence of length n, a hidden dimension size        stantial similarity, resulting in temporal redundancy. This
-d, and an intermediate dimension m in the FFN, the com-          redundancy can be leveraged to reduce the number of visual
-putational cost per Transformer layer can be approximated        tokens requiring processing, thereby improving computa-
-as                                                               tional efficiency while maintaining information quality.
-           Layer FLOPs = 4nd2 + 2n2 d + 2ndm.           (4)          (ii) Cross-Modal Redundancy. In multimodal tasks, par-
-                                                                 ticularly question-answering scenarios, textual input pro-
-Thus, for an L-layer Transformer, the total cost is
-                                                                 vides contextual guidance that can identify the most rele-
-       Total FLOPs = L × 4nd2 + 2n2 d + 2ndm ,
-                                            
-                                                           (5)   vant visual tokens. For instance, when a question focuses
-                                                                 on a specific object within an image, only visual tokens
-where n = nt +nv is the overall sequence length (text tokens     corresponding to that object may be necessary for accurate
-nt plus visual tokens nv ).                                      comprehension and response generation. By exploiting tex-
-    As the sequence length n increases, the quadratic com-       tual information, it becomes possible to selectively retain
-plexity term 2n2 d in the attention mechanism grows rapidly,     only those visual tokens that are pertinent to the specific
-leading to prohibitive computational overhead. This compu-       task requirements.
-tational bottleneck is particularly pronounced in scenarios
-involving: (1) high-resolution images or long videos, where      3     W HERE TO C OMPRESS TOKENS IN MLLM S
-nv typically dominates nt in MLLMs, and (2) multi-turn con-
-                                                                 Based on the taxonomy illustrated in Figure 2, we systemati-
-versations or complex reasoning tasks requiring extensive
-                                                                 cally categorize existing token compression methods accord-
-contextual history.
-                                                                 ing to where compression is applied within the MLLM archi-
-                                                                 tecture. Throughout the processing procedure from visual
-2.2   Token Compression                                          input to textual output, token compression strategies can
-                                                                 be progressively deployed at three architectural modules:
-The quadratic computational complexity in MLLMs natu-
-                                                                 (1) the Vision Encoder (§3.1), where compression reduces
-rally motivates the development of token compression tech-
-                                                                 computational overhead at the visual perception stage; (2)
-niques (also known as token reduction), which aim to reduce
-                                                                 the Projector (§3.2), which integrates token reduction during
-the total context length in the MLLM while preserving
-                                                                 the transformation from visual to linguistic representation
-essential visual and textual semantics, thereby achieving
-                                                                 space; and (3) the Large Language Model (§3.3), where
-computational efficiency without remarkably compromising
-                                                                 compression achieves holistic cross-modal efficiency opti-
-model performance.
-                                                                 mization.
-    Formually, denote the total visual and textual token
-number in the MLLM as N = nt + nv , token compression
-aims to reduce the N to a smaller M to improve efficiency by     3.1   Token Compression in Vision Encoder
-selecting or aggregating original tokens, where M < N . The      In MLLMs, visual data are inherently more redundant than
-token compression process can be represented as a function       text [191]–[193], leading to a substantially larger number of
-C that maps the original token sequence to a compressed          tokens on the vision side than on the language side. For
-sequence:                                                        instance, a single high-resolution image can be divided into
-                                                                 thousands of patch tokens [10], [112]. If these tokens are
-                  Hcomp = C(H) ∈ RM ×dt ,                  (6)   simply concatenated with text tokens and processed as an
-                                                                 “interleaved long sequence”, the subsequent pre-filling and
-where H = [Hv ; Ht ] ∈ RN ×dt is the concatenated sequence       decoding stages of the LLM incur quadratic computational
-of projected visual tokens and embedded textual tokens,          complexity with respect to the sequence length. Since the
-and Hcomp is the compressed token sequence.                      vision encoder (VE) is the first module to encode visual
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                     5
-
-TABLE 1: Summary of representative token compression works (venues up to Oct. 2025). Modality denotes the primary
-application scenario. Compression Position indicates the application stage (Vision Encoder, Projector, or LLM). Text Query-
-based marks dependency on text token guidance. Re-train vs. Plug-in distinguishes methods requiring additional training
-from plug-and-play modules.
-                                                                                                  Text
-   #   Method                   Date          Venue    Modality     Compression Position                     Re-train/Plug-in
-                                                                                               Query-based
-   1   ToMe [34]               2022.01        ICLR      image            Vision Encoder            no        re-train,plug-in
-   2   BLIP2 [172]             2023.01        ICML      image               Projector              yes            re-train
-   3   MovieChat [173]         2023.07        CVPR       video           Vision Encoder            no             plug-in
-   4   MobileVLM V2 [104]      2024.02        arXiv     image               Projector              no             re-train
-   5   LLaVA-PruMerge [84]     2024.03        ICCV    image,video        Vision Encoder            no        re-train,plug-in
-   6   FastV [129]             2024.03        ECCV    image,video             LLM                  yes            plug-in
-   7   M3 [91]                 2024.05        ICLR    image,video        Vision Encoder            no             re-train
-   8   DeCo [105]              2024.05        arXiv     image               Projector              no             re-train
-   9   VoCo-LLaMA [150]        2024.06        CVPR    image,video             LLM                  no             re-train
-  10   TokenPacker [122]       2024.07         IJCV     image               Projector              no             re-train
-  11   HiRes-LLaVA [123]       2024.07        CVPR      image               Projector              no             re-train
-  12   mPLUG-Owl3 [148]        2024.08        arXiv   image,video             LLM                  yes            re-train
-  13   HiRED [65]              2024.08        AAAI      image            Vision Encoder            no        re-train,plug-in
-  14   TempMe [174]            2024.09        ICLR       video           Vision Encoder            no             re-train
-  15   Video-XL [55]           2024.09        CVPR       video                LLM                  no             re-train
-  16   PyramidDrop [130]       2024.10        CVPR    image,video             LLM                  yes            plug-in
-  17   SparseVLM [132]         2024.10        ICML    image,video             LLM                  yes            plug-in
-  18   LongVU [56]             2024.10        ICML       video           Vision Encoder,           yes            re-train
-                                                                            Projector
-  19   TCA [175]               2024.10        ICCV      image            Vision Encoder            no             plug-in
-  20   QueCC [176]             2024.11        ICLR      image               Projector              yes            re-train
-  21   ATP-LLaVA [177]         2024.12        CVPR      image                 LLM                  yes            re-train
-  22   VisPruner [68]          2024.12        ICCV    image,video        Vision Encoder            no             plug-in
-  23   VisionZip [93]          2024.12        CVPR    image,video        Vision Encoder,           no        re-train,plug-in
-                                                                            Projector
-  24   Dynamic-VLM [41]        2024.12     ICCV       image,video        Vision Encoder            no             re-train
-  25   PVC [178]               2024.12     CVPR       image,video   Vision Encoder,Projector       no             re-train
-  26   PruneVid [179]          2024.12      ACL          video           Projector,LLM             yes            plug-in
-  27   Feather [133]           2024.12     ICCV         image                 LLM                  yes            plug-in
-  28   HiCo [180]              2025.01     arXiv         video        Vision Encoder,LLM           yes            re-train
-  29   LLaVA-Mini [181]        2025.01     ICLR       image,video           Projector              yes            re-train
-  30   FALCON [44]             2025.01     ICCV         image            Vision Encoder            no             re-train
-  31   FCoT-VL [182]           2025.02     arXiv        image               Projector              no             re-train
-  32   DART [183]              2025.02    EMNLP         image            Vision Encoder            no             plug-in
-  33   DivPrune [128]          2025.03     CVPR       image,video           Projector              no             plug-in
-  34   FastVID [184]           2025.03    NeurIPS        video              Projector              no             plug-in
-  35   TopV [138]              2025.03     CVPR       image,video             LLM                  no             plug-in
-  36   Skip-Vision [185]       2025.03     ICCV         image         Vision Encoder,LLM           no             plug-in
-  37   TimeChat-Online [57]    2025.04   ACM MM          video              Projector              no        re-train,plug-in
-  38   VCM [186]               2025.04     arXiv        image               Projector              yes            re-train
-  39   HoliTom [146]           2025.05    NeurIPS        video           Projector,LLM             no             plug-in
-  40   ToDRE [187]             2025.05     arXiv      image,video        Projector,LLM             no             plug-in
-  41   BTP [188]               2025.05    NeurIPS       image                 LLM                  yes            plug-in
-  42   DynTok [125]            2025.06     arXiv         video              Projector              no             plug-in
-  43   LLaVA-Scissor [126]     2025.06     arXiv         video              Projector              no             plug-in
-  44   SparseMM [153]          2025.06     ICCV         image                 LLM                  yes            plug-in
-  45   Video-XL-2 [58]         2025.06     arXiv         video        Vision Encoder,LLM           yes            re-train
-  46   FlexSelect [189]        2025.06    NeurIPS        video           Vision Encoder            yes       re-train,plug-in
-  47   VisionThink [190]       2025.07    NeurIPS       image               Projector              yes            re-train
-  48   STTM [87]               2025.07     ICCV          video           Vision Encoder            no             plug-in
-  49   METEOR [158]            2025.07     ICCV         image            Vision Encoder,           yes            re-train
-                                                                         Projector, LLM
-  50   VFlowOpt [70]           2025.08     ICCV       image,video     Vision Encoder,LLM           yes       re-train,plug-in
-  51   CATP [121]              2025.08     arXiv        image            Projector,LLM             yes            plug-in
-  52   SpecVLM [61]            2025.08    EMNLP          video                LLM                  yes            plug-in
-  53   LangDC [64]             2025.09    EMNLP          video              Projector              yes            re-train
-  54   HoloV [96]              2025.10    NeurIPS     image,video        Vision Encoder            no             plug-in
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                                                                                    6
-
-inputs, reducing visual tokens at this initial stage yields dis-                                   Forward
-                                                                                                                                                  vision token         text token
-
-proportionately large efficiency gains throughout the entire                                                                                        Tokenizer
-MLLM system. As shown in Figure 3, we first review and
-
-
-
-
-                                                                                                                          · ··
-                                                                                         ViT        Token             ViT
-                                                                                        Layer                        Layer                                                     LLM
-categorize vision-side token compression methods applied                 or
-                                                                                          N
-                                                                                                  Compression
-                                                                                                                     N+1
-                                                                                                                                     Token
-                                                                                                                                   Compression
-                                                                                                                                                    Projector
-at the vision encoder module into two broad categories:
-   • Inside Vision Encoder Compression (Inside-VE,
-                                                                                    Inside-Encoder Compression                            Outside-Encoder Compression
-     §3.1.1): Compression is applied within the ViT or video
-                                                                    (a) Important Token Selection                            (a) Purely-Vision Compression
-     encoder itself. Methods in this category either discard         •   Self-attention
-                                                                                                                                                                        Multi-scale Visual
-                                                                                                                                                                            Features
-
-     redundant tokens or merge similar ones. Since differ-           •   [cls] token
-                                                                         relevance,             Select Metrics                                              Vision
-                                                                     •   KNN cluster,                                                                     Similarity
-     ent layers capture multi-scale semantics—ranging from           •
-                                                                     …
-                                                                         Similarity graph
-                                                                                                                                                                        low            high
-     low-level textures to high-level concepts—multi-scale          (b) Low-Importance Token Reduction
-                                                                                                                                                                       level           level
-                                                                                                                             (b)Text-guided Compression
-     compression schemes have been developed to coordi-                       Token Pruning               Token Merging                               Text-Vision
-                                                                                                                                                       Similarity
-     nate compression across layers.
-   • Outside Vision Encoder Compression (Outside-VE,                             Drop                                                                                   low            high
-                                                                                                           Aggregation                                                 level
-     §3.1.2): Compression occurs after the vision encoder                                                                                                                              level
-
-
-     produces its output tokens but before the projector
-     maps these tokens into the language model space. This         Fig. 3: Illustration of token compression strategies applied
-     design is plug-and-play and minimally invasive to the         at the vision encoder module in MLLMs.
-     original architecture. Depending on whether textual
-     signals are incorporated, methods can be grouped into
-     purely vision-based approaches and text-guided ap-
-                                                                   HiPrune [69] leverage the CLS token attention in the vi-
-     proaches.
-                                                                   sion transformer to assess the visual importance of image
-                                                                   partitions. VFlowOpt [70] constructs an importance map
-3.1.1   Inside-Encoder Compression                                 by integrating visual attention-derived context relevance
-Inside-VE compression directly alters token flow within            with patch-level information entropy to determine which
-the encoder, reducing self-attention complexity at an early        tokens to prune. The second category incorporates cross-
-stage and shortening the propagation path of tokens. The           modal attention to evaluate token significance. MADTP [73]
-design revolves around two questions: (1) how to handle            introduces a Token Importance Score (TIS) that integrates
-“unimportant” tokens through pruning or merging; and               three attention mechanisms—class attention, self-attention,
-(2) how to coordinate compression across multiple layers           and cross-modal alignment attention—and employs learn-
-or encoders to leverage multi-scale visual features. Here          able thresholds with sparsemax activation to dynamically
-we focus exclusively on methods applied in multimodal              determine pruning masks. SmartTrim [72] adopts a cross-
-LLMs, and do not review token compression for pure vision          modal guidance approach by feeding the CLS token into
-tasks [161].                                                       a lightweight policy network that learns importance scores
-                                                                   based on cross-modal information.
-Visual Token Dropping. Token dropping methods com-
-pute importance scores for visual tokens within the vision             Heuristic-based scoring. These methods exploit task-
-encoder and retain only the most salient ones, directly            specific priors to guide token selection. EgoPrune [74]
-discarding the remainder. Implementation typically follows         leverages domain-specific heuristics from egocentric videos,
-a “ranking + Top-K ” paradigm with defined thresholds. To          utilizing geometric stability and field-of-view dynamics to
-identify important visual tokens within the encoder, existing      prioritize motion-relevant regions while pruning static back-
-methods employ three principal scoring strategies:                 grounds. METEOR [158] adopts a layer-adaptive strategy
-                                                                   based on the prior that shallow and deep layers encode
-    Similarity-based scoring. These methods quantify token re-
-                                                                   fundamentally different types of information. Specifically,
-dundancy by measuring the similarity between each visual
-                                                                   METEOR employs similarity to the average token as the
-token and a global representation (e.g., CLS token or aggre-
-                                                                   pruning criterion in shallow layers, where low-level redun-
-gated feature vector). Tokens exhibiting high similarity are
-                                                                   dancies dominate, and class attention scores in deep layers,
-deemed redundant and removed. Representative works in-
-                                                                   where semantic information is more concentrated.
-clude TRIM [66] and SAINT [67], which employ global sim-
-ilarity metrics with layer-adaptive thresholds. TRIM lever-        Visual Token Merging. Unlike pruning, which deletes to-
-ages CLIP embeddings to measure the relevance between              kens outright, merging aggregates similar tokens into com-
-textual queries and visual tokens, employing an adaptive           pact representations to preserve information while short-
-Interquartile Range (IQR)-based thresholding mechanism to          ening sequences [34]. A fundamental principle underlying
-select the most query-relevant tokens. SAINT advances this         merging operations is proximity-based redundancy: tokens
-paradigm by leveraging token similarity within a graph-            that are close to each other spatially or temporally tend to
-based formulation to dynamically optimize both pruning             exhibit high redundancy. Beyond proximity heuristics, more
-rates and redundancy thresholds, offering greater flexibility      sophisticated methods leverage explicit similarity measure-
-than fixed strategies.                                             ments or hybrid compression pipelines to achieve semantic
-    Attention-based scoring. These approaches leverage at-         merging.
-tention weights from the vision transformer to derive                 Proximity-based Merging. Spatial and temporal adjacency
-token saliency. The first category restricts pruning deci-         provide natural bases for identifying redundant visual to-
-sions to vision-only attention patterns. VisPruner [68] and        kens, as neighboring patches or consecutive frames typically
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                  7
-
-share similar features. For spatial merging, structured ap-     level cascade aggregation, progressively extracting coarse,
-proaches perform deterministic aggregation through down-        medium, and fine-grained token sets for unified multi-
-sampling operations [77] or pixel-shuffle with channel          scale representation. LaCo [75] performs aggressive early-
-merging [75], while learnable methods adopt adaptive con-       layer compression followed by pixel shuffle and MLP-based
-volution kernels [76] or density-based clustering [81] to       detail recovery.
-capture task-specific patterns beyond uniform averaging.            Multi-Encoder Compression. Combining vision encoders
-    In video understanding, temporal proximity enables          with different architectures or training paradigms yields
-cross-frame consolidation through two complementary             complementary representations. Cambrian-1 [7] demon-
-strategies: joint temporal-spatial aggregation that merges      strates that integrating self-supervised models (e.g., DI-
-similar frames and patches simultaneously [71], [83], and       NOv2 [194]) with language-supervised encoders (e.g.,
-frame-level fusion that adaptively integrates consecutive       CLIP [195]) consistently improves performance on vision-
-frames with learnable importance weighting [80], [87]. By       centric and OCR tasks, underscoring the value of diverse
-exploiting the inductive bias that adjacent tokens exhibit      visual representations. METEOR [158] proposes a system-
-high correlation across both spatial and temporal dimen-        atic multi-encoder framework that eliminates cross-encoder
-sions, these proximity-based methods achieve efficient com-     redundancy to maximize complementarity while minimiz-
-pression while preserving local coherence.                      ing computational overhead.
-    Similarity-based Merging. While proximity heuristics pro-       Multi-Resolution Compression. Processing inputs at multi-
-vide strong inductive bias, semantic redundancy often tran-     ple resolutions balances efficiency with visual detail preser-
-scends geometric or temporal adjacency, focusing explicit       vation. High-resolution inputs capture fine-grained infor-
-feature-space similarity. Global similarity methods compute     mation for vision-sensitive tasks, while low-resolution in-
-token importance via patch-to-class correlation [79] or clus-   puts provide efficient global context. FastVLM [77] achieves
-ter semantically similar patches into abstracted representa-    optimal token-resolution balance through a novel hybrid
-tions [85], enabling merging of spatially distant yet seman-    vision encoder called FastViTHD. ADMIRE [89] employs
-tically related regions.                                        dual-path Multi-Resolution Adaptation, comprising a low-
-    Cross-modal merging methods leverage textual context        resolution backbone for global processing and a high-
-to refine token merging decisions. This can be achieved         resolution bypass for detail injection, excelling at document
-through bidirectional tokens that exchange language-aware       understanding and small object detection with minimal
-signals between modalities [82] or through pipelines that       overhead.
-combine semantic and spatial similarity [84]. By prioritizing       For video understanding, LinVT [88] and M3 [91] apply
-semantic relationships over spatial proximity, these methods    multi-scale temporal pooling to capture both short-term
-enable compression that adapts to content meaning rather        dynamics and long-term context across different timescales.
-than token positions.                                           VideoChat-Flash [180] introduces Hierarchical Condensa-
-    Hybrid Strategies. Combining multiple compression tech-     tion (HiCo), progressively refining video semantics from
-niques can achieve better efficiency-quality trade-offs than    clip-level to segment-level through selective filtering and
-individual methods alone. Sequential approaches [86] first      backfill.
-apply attention-based pruning to remove coarse-grained
-redundancy, then use weighted merging to recover infor-
-                                                                3.1.2   Outside-Encoder Compression
-mation from discarded tokens and integrate it into re-
-tained ones. Learnable abstraction methods [37] employ a        Outside-encoder compression occurs after vision encoder
-small set of trainable compressed tokens while maintaining      output but before the projector. At this stage, visual tokens
-cross-attention with high-resolution lookup tokens for fine-    are encoded but not yet aligned with the language modal-
-grained details, allowing flexible compression ratios with-     ity. This position offers stronger plug-and-play capability
-out architectural changes. These hybrid strategies show that    than inside-encoder approaches, requiring no modification
-pruning, merging, and learnable abstraction work synergis-      to encoder layers. Compression here reduces visual token
-tically when properly combined.                                 count by measuring semantic relevance between vision-
-Multi-Scale Visual Compression. Single-scale compres-           vision or vision-text representations. We categorize methods
-sion methods operate at fixed granularity, struggling to        into purely-vision and text-guided compression.
-obtain comprehensive visual details. Multi-scale approaches     Purely-Vision Compression.         Purely-vision methods
-address this limitation by coordinating compression across      downsample or aggregate encoder outputs based solely
-layers, encoders, or resolutions, enabling flexible exploita-   on vision-vision semantic relevance, independent of user
-tion of hierarchical visual semantics.                          queries or prompts. A widely adopted paradigm is
-    Multi-Layer Compression. While most MLLMs extract vi-       “selection-then-merge”. VisionZip [93] identifies reusable
-sual features from the penultimate ViT layer, aggregating       tokens through importance estimation and representa-
-multi-layer features complements high-level visual seman-       tiveness constraints. Fourier-VLM [97] suppresses high-
-tics with low-level visual details. LLaVA-STF [76] extracts     frequency redundancy via low-pass filtering in the fre-
-tokens from multiple ViT blocks, fusing them via channel        quency domain before mapping back to token space.
-concatenation and convolutions to combine spatial and se-       LLaVA-STF [76] generates compact visual summaries
-mantic information across layers. METEOR [158] applies          through cross-layer concatenation and Multi-Block Token
-hierarchical pruning, using token-to-average similarity in      Fusion (MBTF).
-shallow layers and CLS-to-token attention in deep layers for        Visual Attention Bias Problem. Early works such as
-layer-adaptive compression. Chat-UniVi [81] employs three-      LLaVA-PruMerge [84], VTC-CLS [157], and FasterVLM [196]
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                                           8
-
-leverage the CLS token for patch attention and represen-
-tation similarity-based sparsification. Similarly, FoPru [94]                              Tokenizer
-and freePruner [95] calculate token contribution via self-
-attention scores, selecting high-contribution tokens as piv-                                                                       text token
-                                                                                                                    LLM
-ots. However, recent works [71], [96], [133] reveal that                        Vision                                            vision token
-                                                                                           Projector
-attention-based selection exhibits bias toward salient re-                     Encoder
-gions (e.g., foreground objects), neglecting global context.
-HoloV [96] addresses this by incorporating global visual
-context to balance foreground and background tokens from           (a) Transformation-based            (b) Query-based        (c) Importance-driven
-a holistic perspective.                                                                                                          Importance
-    Extreme Compression. For long videos, LLaMA-VID [98]
-                                                                                                           Cross Attention
-compresses each frame into a single Content Token, pro-
-viding fixed-budget compression. Flash-VStream [197] em-
-ploys K-means clustering of low-resolution features as Con-             Pooling、Convolution
-                                                                               ，            …             Learnable Queries
-
-text Synopsis Memory to retain global temporal informa-           Fig. 4: Illustration of token compression strategies applied
-tion. VideoLLaMA 2 [99] integrates frame-level patches via        at the projector module in MLLMs.
-Spatial-Temporal Convolution (STC) with separable con-
-volution and local aggregation. LLaVA-PruMerge [84] per-
-forms learnable token merging via nearest-neighbor clus-          employs a Stable Diffusion [200] decoder to reconstruct
-tering, maintaining near-uncompressed performance under           images from completed tokens, using reconstruction error
-10x compression.                                                  to recover missing visual information.
-    These methods share a common principle: enhancing
-per-token information density without text reliance, demon-
-strating particular advantages in multi-image and multi-          3.2     Token Compression in Projector
-turn scenarios.                                                   The projector module plays a pivotal role in bridging the
-Text-Guided Compression. When textual prompts pro-                vision encoder and the language model in MLLMs. It acts
-vide semantic priors, compression can focus on question-          as the interface that transforms raw visual embeddings
-relevant regions or frames, realizing context-oriented effi-      into language-compatible representations, ensuring that the
-ciency. PAR [100] parses queries into entities and actions and    information extracted by the vision backbone can be effec-
-re-weights visual tokens accordingly. QG-VTC [101] com-           tively leveraged by the LLM. While projector architectures
-putes question-to-vision similarity to guide token retention,     such as Q-Former [115] inherently perform token compres-
-enabling from 4× to 8× compression with minimal per-              sion by distilling a large set of visual embeddings into a
-formance loss. LongVU [56] integrates cross-modal queries         compact set of query tokens, subsequent research [104],
-with frame or region candidates, first filtering at the segment   [105], [108], [113] has introduced additional design enhance-
-level and then refining token-level selection.                    ments to the projector to enable more fine-grained and
-    Text-guided compression methods demonstrate partic-           task-adaptive compression. Therefore, in this section, we
-ular robustness at the Outside-VE position: visual token          focus on token compression within the projector, referring
-semantics are fully encoded while cross-modal interaction         to methods that operate on the visual features produced by
-has not yet begun, minimizing textual bias interference           the vision encoder before they are fed into the language
-with low-level visual encoding. These methods often cas-          model. As Figure 4 shows, these approaches can be broadly
-cade with purely-vision approaches: first applying text-          categorized into three main types: transformation-based
-agnostic compression, then refining based on query rele-          (Sec. 3.2.1), query-based (Sec. 3.2.2), and importance-driven
-vance, achieving both stronger generalization and higher          (Sec. 3.2.3).
-effective compression rates.
-                                                                  3.2.1     Transformation-Based Compression
-Token Recovery Mechanisms.           Under aggressive com-
-pression, dynamic recovery mechanisms enable closed-loop          Transformation-based token compression methods reduce
-refinement for enhanced robustness. When MLLMs detect             the number of visual tokens by directly transforming the
-semantic uncertainty by confidence or entropy, they can           spatial structure of visual feature maps. Instead of relying on
-trigger resampling visual information, reinjecting tokens         learnable queries or complex attention mechanisms, these
-to compensate for missing visual evidence. Recoverable-           approaches perform lightweight, deterministic transforma-
-Compression [102] triggers targeted resampling based on           tions to achieve token reduction while preserving essential
-confidence and conflict thresholds post-compression. Must-        visual information. In this section, we review representative
-Drop [92] integrates recovery throughout a multi-stage            transformation-based techniques, including pooling-based,
-pipeline via uncertainty gating, balancing aggressive reduc-      pixel shuffle-based, and convolution-based methods.
-tion with stability. Beyond runtime recovery, ToCom [198]         Pooling-Based. Pooling is a widely used downsampling
-addresses train-test compression mismatches as a plug-and-        operation in computer vision, which can directly and ef-
-play layer. It bridges performance gaps across compression        fectively reduce the number of tokens while preserving the
-ratios without retraining.                                        main semantic information.
-    VTC [103] and Video-XL-Pro [199] optimize compression             Given an input feature map X ∈ RH×W ×C , a pool-
-via visual reconstruction supervision. For example, VTC           ing window of size k × k , and an output feature map
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                      9
-           ′     ′
-Y ∈ RH ×W ×C , the average pooled feature at spatial                  Formally, a 2D convolution that maps an input feature
-position (i, j) in channel c is defined as:                         map X ∈ RH×W ×Cin to an output feature map Y ∈
-                                                                      ′  ′
-                                                                    RH ×W ×Cout can be defined as:
-                              1          X                                         kh X
-                                                                               Cin X  kw
-                 Yi,j,c =                          Xu,v,c ,   (8)       (o)
-                                                                               X
-                                                                                              (o)       (c)
-                            |Ωi,j |                                   Yi,j =                 Wm,n,c · X i+m−1, j+n−1 + b(o) , (10)
-                                      (u,v)∈Ωi,j
-                                                                               c=1 m=1 n=1
-
-where Ωi,j denotes the set of spatial locations within the          where W ∈ Rkh ×kw ×Cin ×Cout are the learnable convolu-
-k × k neighborhood centered at (i, j).                              tional kernels, kh and kw denote the kernel height and
-     Owing to its parameter-free nature and computational           width, and b(o) is the bias term for the o-th output channel.
-efficiency, pooling has been widely employed in many token              In token compression methods, convolution is often
-compression approaches [104]–[108]. MobileVLM V2 [104]              combined with other operations such as average pooling.
-proposes the Lightweight Downsample Projector (LDP),                For example, the C-Abstractor proposed in Honeybee [113]
-which performs a simple 2×2 average pooling to effectively          integrates convolution with average pooling to achieve
-reduce the number of image tokens. DeCo [105] validates             improved local context modeling. Similarly, MobileVLM
-the effectiveness of the adaptive average pooling through           V2 [104] employs an LDP that combines pointwise and
-extensive experimental analysis, showing that it not only fa-       depthwise convolutions with average pooling.
-cilitates stable and efficient convergence but also effectively
-                                                                    3.2.2 Query-Based Compression
-extracts visual features. Following this line of pooling-based
-compression, AVG-LLaVA [106] proposes the Visual Granu-             Query-based token compression leverages a limited num-
-larity Scaler, which constructs multi-granularity visual fea-       ber of learnable query embeddings to attend to dense
-tures by stacking average pooling layers and employs the            visual features and distill them into a compact repre-
-Visual Granularity Router to select the most appropriate            sentation for the subsequent processing. This paradigm
-granularity.                                                        provides a flexible and parameter-efficient alternative to
-                                                                    purely transformation-based methods, as the queries can
-     For video-focused models, pooling also serves as a
-                                                                    adaptively select task-relevant information while discarding
-simple yet effective way to reduce the number of tokens.
-                                                                    redundancy. In the following, we discuss the canonical Q-
-TC-LLaVA [107] employs simple global average pooling to
-                                                                    Former framework, explore its enhanced and simplified
-reduce the number of tokens per frame, while PLLaVA [108]
-                                                                    variants, and introduce other cross-attention–based token
-applies adaptive average pooling across both spatial and
-                                                                    compression approaches.
-temporal dimensions.
-                                                                    Q-Former. Q-Former, introduced in BLIP-2 [115], is a
-Pixel Shuffle-Based. Pixel shuffle is a method that trades          lightweight Transformer designed for query-based token
-token count for channel dimensionality, rearranging high-           compression and vision–language alignment.
-resolution spatial tokens into fewer tokens with increased              Q-Former employs a small set of learnable query vectors
-channel depth.                                                      that interact with frozen visual features via stacked self-
-   Given an input feature map X ∈ RH×W ×C and a                     attention and cross-attention layers. In this mechanism,
-downsampling factor r, this approach rearranges the spatial         the queries (Q) are trainable embeddings initialized as a
-resolution into the channel dimension as:                           small set of tokens that aim to retrieve task-relevant in-
-                                                                    formation; the keys and values (K/V) are the fixed output
-               Y = PixelShuffle(X, r)                               features from the frozen vision encoder (e.g., patch em-
-                                                              (9)
-                 = reshape X, H/r, W/r, C · r2 ,                    beddings of the image). Through this process, the queries
-                                              
-                                                                    selectively aggregate task-relevant visual information into
-                 H   W      2                                       a compact set of embeddings, which are then linearly pro-
-where Y ∈ R r × r ×(Cr ) .
-                                                                    jected into the language embedding space and fed to the
-   This operation reduces the spatial token count by a factor       LLM as visual tokens. Building upon this principle, Q-
-of r2 while increasing the channel dimension accordingly,           Former efficiently compresses hundreds of visual tokens
-thus effectively trading token number for richer per-token          into only a few while preserving essential semantics, pro-
-channel representation. An additional module, typically an          viding a parameter-efficient and highly adaptable bridge
-MLP, is then applied to align the expanded channel dimen-           between vision encoders and LLMs. This design not only
-sion with the embedding dimension required by the LLM.              enables effective multimodal understanding but has also
-Such a token compression strategy has also been employed            been widely adopted and extended in subsequent works
-in many well-known models, including InternVL 1.5 [109]             such as MiniGPT-4 [116] and InstructBLIP [117].
-and NVLM [201].
-                                                                    Variants of Q-Former. Some later works [113], [118]–[120],
-Convolution-Based. Compared with parameter-free meth-               [181] have proposed simplified and enhanced variants of the
-ods such as pooling or pixel shuffle, convolutions selectively      Q-Former architecture. For example, Qwen-VL [118] adopts
-integrate local information through learnable weights rather        a single-layer cross-attention module, reducing architectural
-than merely taking the mean or maximum, thus preserving             complexity while retaining the ability to aggregate visual in-
-more task-relevant details. By stacking convolutional layers        formation and perform token compression. Honeybee [113]
-or using variable kernel sizes, the model can also capture          further observes that the conventional Q-Former may lead
-multi-scale abstract features, offering greater flexibility than    to the loss of fine-grained spatial information. To address
-simple pooling.                                                     this issue, it introduces two locality-enhanced projectors:
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                     10
-
-C-Abstractor and D-Abstractor. The C-Abstractor combines           kens. To address this limitation, they introduce cross-modal
-ResNet blocks with average pooling to perform downsam-             attention mechanisms, enabling more precise identification
-pling while preserving local structures, whereas the D-            and extraction of task-relevant information. AdaFV [204]
-Abstractor leverages the idea of Deformable Attention [202],       proposes a self-adaptive cross-modality attention mixture
-using reference points and sampling offsets to enhance lo-         mechanism that dynamically selects visual tokens based
-cality while maintaining flexibility in the number of output       on visual saliency and text–image similarity. VCM [186]
-tokens. MQT [119] proposes a variant of the Q-Former               introduces the concept of Vision Concept Modeling, which
-architecture that allows a variable number of query tokens.        dynamically determines the number and spatial locations of
-Specifically, given M query tokens, MQT randomly samples           required visual concepts according to a given instruction. It
-the first m (m < M ) tokens during training, enabling the          employs a multi-head cross-attention layer as a key compo-
-model to learn visual representations at varying granulari-        nent for semantic alignment in keyword selection, aligning
-ties. On average, this strategy reduces the number of visual       visual features with training signals to guide subsequent
-tokens by about half compared with the original Q-Former,          token retention or aggregation. Based on the number and
-while maintaining effective information compression. TG-           relevance of the selected keywords, VCM further estimates
-LLaVA [120] emphasizes the role of textual instructions in         the optimal number of tokens to retain.
-guiding key visual feature extraction. It introduces learnable
-latent embeddings to encode global text semantics and em-          3.2.3   Importance-Driven Compression
-ploys a single-layer Q-Former to integrate textual and visual
-information. The resulting mask is applied to the visual           Importance-driven token compression refers to methods
-features, refining them under text guidance. Considering           that reduce visual token redundancy by estimating the
-that using a standalone Q-Former may still lead to the             importance of each token and selectively retaining the most
-loss of visual information, LLaVA-Mini [181] introduces an         valuable ones. Rather than relying on fixed-length queries
-additional Modality-Pre Fusion module, which fuses visual          or simple pooling, these approaches identify the relative
-representations with the instruction tokens before feeding         importance of tokens and selectively prune or merge less in-
-them into the LLM, thereby mitigating such information             formative ones. Existing strategies include similarity-based
-loss.                                                              methods, attention-based methods, saliency-based methods,
-                                                                   and innovative metrics-based methods, which will be dis-
-Cross-Attention-Based. Instead of relying solely on the            cussed in detail below. This perspective highlights how im-
-Q-Former’s compressed token representations, some meth-            portance estimation shapes the trade-off between efficiency
-ods [203] utilize the cross-attention mechanism to identify        and information preservation in MLLMs.
-or extract task-relevant tokens.
-                                                                   Various Similarity Metrics. There exist various approaches
-    CATP [203] performs voting based on the cross-attention
-                                                                   to measuring token similarity. DynTok [125] introduces a
-probabilities between query tokens and image tokens, ac-
-                                                                   dynamic token compression method based on local token
-cumulates the scores across different layers and heads, and
-                                                                   similarity. Its core idea is to exploit the varying information
-prunes tokens according to their aggregated importance.
-                                                                   density of image patches across video frames: DynTok adap-
-    Several works [122]–[124], [176] move away from re-            tively groups visual tokens and merges them within each
-lying on learnable queries for token compression. Token-           group, thereby preserving more tokens in high-information-
-Packer [122] employs a coarse-to-fine visual information           density regions while achieving higher compression ratios
-extraction strategy. It first downsamples the original visual      in less informative areas. Experiments show that computing
-features to obtain low-resolution representations that act as      cosine similarity on CLIP-generated visual representations
-point-based queries. These queries are then paired with their      yields better performance than directly measuring similarity
-corresponding regions in the high-resolution features to           in the LLM embedding space. LLaVA-Scissor [126] proposes
-form point–region pairs, which iteratively interact through        Semantic Connected Components (SCC), reframing token
-Point-to-Region cross-attention, progressively injecting rich      compression as a graph connected components partitioning
-visual information. Similarly, HiRes-LLaVA [123] abandons          task. By explicitly covering all semantic regions, this method
-learnable queries and leverages downsampled visual fea-            alleviates the common bias of attention-based approaches,
-tures as queries that interact with the original visual features   which often overemphasize only the most salient objects. In
-via cross-attention, resulting in a compact, compressed se-        SCC, token similarity is likewise measured using the cosine
-quence. mPLUG-DocOwl2 [124] uses global visual features            similarity of visual embeddings.
-as queries and the cropped image features as keys and val-
-ues, performing cross-attention to aggregate text semantics        Saliency-Based. SeqCompression [127] conducts a com-
-while significantly reducing the number of visual tokens           parative study between saliency-based and importance-
-for high-resolution images. QueCC [176] further injects the        agnostic token compression strategies, demonstrating that
-textual features of the user query into the visual represen-       the saliency-based “Cluster and Aggregate” method offers
-tations, enabling subsequent queries to carry task-specific        clear performance gains. Specifically, after the vision en-
-semantics. Combined with the cross-attention between the           coder and projector, visual tokens are clustered with K-
-downsampled tokens and their respective visual token re-           means++ according to embedding similarity, and tokens
-gions, it achieves extreme visual token compression while          within each cluster are subsequently merged into a single
-maintaining strong relevance to the textual task.                  representative token by averaging their embedding vectors.
-    Other studies argue that relying solely on visual features     Innovative Metrics-Based. Some studies [128] depart
-is insufficient to accurately identify the most informative to-    from the common attention-based similarity measures and
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                                                                          11
-
-instead propose novel definitions and designs for to-                                                                               Forward
-ken importance, similarity, or diversity. For example, Di-                 Vision
-                                                                                       Projector                                                                        vision token
-                                                                          Encoder                                      LLM                              LLM
-vPrune [128] formulates token pruning as a Max–Min Di-
-
-
-
-
-                                                                                                                                                           · ··
-                                                                                                                                    Token
-
-
-
-
-                                                                                                      · ··
-                                                                                                                       Layer       Reduction            Layer
-versity Problem (MMDP), aiming to construct a token subset                                                              N                               N+1             text token
-
-with the maximum minimum distance based on the original                              Tokenizer
-
-token set.                                                          (a) Importance-based      (b) Learnable module-based       (c) Token Merging-based      (d) Fusion-based
-
-                                                                   Importance
-3.3   Token Compression in LLM                                       Metric
-                                                                                                   Learnable Ranking
-                                                                                                                                                                    LLM Layer N
-                                                                                                                                                                K
-                                                                                                   Module                                                           Cross Attention
-Currently, the mainstream architectures for MLLMs typi-                             Drop
-                                                                                                                                                                V
-cally follow a classic design wherein visual information,                                                                                                                  Q
-                                                                                                                                 Merge similar tokens
-after being processed by a vision encoder and a projector,             Token Ranking
-
-generates a large number of vision tokens. Given that the          Fig. 5: Illustration of token compression strategies applied
-LLM component generally contains significantly more pa-            at the LLM module.
-rameters than the vision encoder and projector, the resulting
-sequence incurs substantial computational overhead when            to concatenate all vision and text tokens into a single long
-forwarded through the LLM.                                         sequence.
-    To address this issue, a growing body of research has
-focused on reducing token redundancy within the LLM                Importance-based This category of methods typically uti-
-component. These methods can be broadly categorized                lizes importance metrics to score vision token, followed by
-based on the generation stage at which token reduction is          a ranking process to retain only the most important tokens.
-applied, as illustrated in Figure 5. The first category (§3.3.1)   Among these metrics, the most commonly adopted is the
-performs token compression during the prefilling stage, i.e.,      attention from textual tokens to visual tokens, which helps
-it reduces the number of vision tokens at the first forward        preserve vision tokens that are relevant to the query. This
-pass of the sequence through the LLM. This approach was            allows for aggressive pruning of redundant visual infor-
-primarily motivated by early use cases such as short-form          mation without significantly affecting model performance.
-visual question answering (VQA), where the cost of the             FastV [205] was among the first to observe that vision tokens
-prefilling stage dominates that of decoding. However, with         receive substantially lower attention scores compared to text
-the rapid advancement of chain-of-thought (CoT) and the            tokens within the LLM, revealing the extreme sparsity in the
-increasing demand for long-form generation, attention has          information carried by vision tokens. Based on this observa-
-shifted to methods that apply token reduction during the           tion, FastV prunes half of the vision tokens at the second
-decoding stage (§3.3.2). These techniques typically reduce         layer of the LLM using the attention from the last textual
-the memory and computational cost by selectively pruning           token. PyramidDrop [206] further extended this line of
-or merging parts of the key-value cache (KV cache), which          analysis by identifying that the redundancy of vision tokens
-proves especially beneficial for long-sequence generation          tends to increase with LLM depth. Leveraging this insight,
-tasks.                                                             it introduced a multi-stage progressive pruning strategy.
-                                                                   Following these pioneering works, a number of subsequent
-3.3.1 Compression in Prefilling Stage                              studies, including [71], [134], [136], [137], [207]–[210], have
-The prefilling stage refers to the first forward pass of all       adopted text-to-image attention ranking as a straightfor-
-tokens through the LLM. Once a vision token is removed             ward and effective approach, applying either single-stage
-in the shallow layers of the LLM, deeper layers are no             or multi-stage pruning schemes. Beyond simple attention-
-longer able to access information from the corresponding           based ranking, some recent efforts have focused on refining
-image region. As a result, achieving significant acceleration      the evaluation of token importance [135], [188], [211], [212].
-during this stage while maintaining model performance is           For instance, SparseVLM [132] and AdaptInfer [213] pro-
-particularly challenging. Existing approaches often rely on        pose more fine-grained methods for selecting text tokens
-observations about the inherent behavior of LLMs when              that are most relevant to visual content, using these to more
-processing tokens. By analyzing patterns in vision token           accurately assess the significance of vision tokens. Other
-redundancy, researchers have proposed four representative          methods such as TransPrune [214] and VFlowOpt [214]
-methods.                                                           combine attention scores with additional indicators, like
-    One common line of work involves importance-based              information entropy maps, to improve the robustness of
-approaches, which rank and retain vision tokens accord-            token importance estimation.
-ing to predefined metrics that estimate their significance.            Additionally, VTW [131] takes a more radical approach
-Another line involves learnable module-based approaches,           by entirely removing vision tokens from certain layers of
-where additional trainable components are used to deter-           the model. In contrast, CrossMisalign [215] leverages vision-
-mine token importance and the appropriate compression              to-vision attention mechanisms to assess token importance,
-ratio. Both of these strategies primarily apply direct prun-       bypassing reliance on textual signals altogether.
-ing, retaining only a subset of tokens without integrating             Attention Bias Problem. As attention-based pruning meth-
-information from the discarded ones. In contrast, token            ods have advanced, several inherent issues have emerged.
-merging-based methods adopt a softer strategy by merging           One such issue is the attention bias observed during impor-
-similar vision tokens to preserve information. Lastly, fusion-     tance estimation. Feather [133] first noted that vision tokens
-based approaches inject visual information through cross-          located near output tokens in the input sequence tend
-attention or self-attention mechanisms, avoiding the need          to receive disproportionately high attention scores in the
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                   12
-
-shallow layers of the LLM. This phenomenon is attributed           scores of all visual tokens. Beyond predicting token impor-
-to the long-term decay property of Rotary Position Embed-          tance, learnable modules have also been applied to estimate
-ding (RoPE). To mitigate this, Feather proposes computing          the compression rate of the entire sequence. For example,
-importance without applying RoPE to eliminate positional           DyRate [142] incorporates a lightweight classifier to predict
-bias. AdaTP [216] addresses attention bias challenge by            the optimal pruning ratio for each input sequence. ATP-
-introducing a dedicated text encoder to compute cosine sim-        LLaVA [177] employs a MLP with dual prediction heads
-ilarity between textual and visual features, thereby offering      to learn instance-specific thresholds for token pruning. This
-a more balanced measure of token importance. VScan [71],           design enables adaptive token reduction during the genera-
-on the other hand, avoids the issue altogether by initiating       tion process.
-pruning from the intermediate layers of the LLM, rather
-                                                                   Token Merging-based In contrast to the previous two
-than at the shallow layers where attention bias is more
-                                                                   approaches that perform direct pruning by discarding less
-pronounced.
-                                                                   important tokens, token merging offers a softer compres-
-    Flash Attention Compatibility Problem. A technical chal-       sion strategy. Token merging techniques compute similarity
-lenge arises when integrating these attention-based pruning        measures and apply grouping or clustering algorithms to
-strategies with Flash Attention [217], which does not di-          fuse multiple vision tokens into fewer representative ones,
-rectly expose attention scores due to its design. Using stan-      thereby achieving compression. Such methods were initially
-dard attention mechanisms across all layers would degrade          popularized in the context of accelerating Vision Transform-
-inference efficiency. A common solution involves applying          ers (ViTs). For example, ToMe [34] introduces a bipartite
-Flash Attention at all layers, but selectively recomputing         soft matching algorithm to perform efficient token merging
-the queries, keys, values, and attention maps only at the          based on pairwise similarity.
-specific layers where attention-based ranking is needed.               In the MLLM setting, LLaVolta [144] is one of the first
-While this solution mitigates the overhead for single-layer        works to apply token merging, using a simple and direct
-pruning, inference latency increases significantly if pruning      average pooling strategy to aggressively compress vision
-is conducted at multiple layers. To address this more fun-         tokens. To mitigate the loss of performance caused by
-damentally, some studies have proposed alternative metrics         heavy compression, LLaVolta employs progressively lower
-that bypass the need for attention scores entirely [218]. TopV     compression ratios with multiple training stages. Subse-
-[138], for instance, ranks tokens using a combination of           quent methods have proposed more sophisticated designs
-feature similarity, relative spatial distance, and absolute cen-   in both similarity computation and clustering mechanisms.
-tral distance. PACT [139] incorporates hidden state norms          FiCoCo [86], for instance, first selects a subset of impor-
-in conjunction with a global query vector to assess token          tant tokens and then computes a correlation matrix be-
-importance. GreedyPrune [219] employs cosine similarity            tween these preserved tokens and the remaining ones. The
-between text and vision tokens as a ranking criterion. It is       merging process is then guided by minimizing information
-also worth noting that CATP [121] takes into account the           loss based on this matrix. In CrossMisalign [215], token
-differences across layers, proposing a composite ranking           merging is used primarily as a visual information recovery
-method that combines semantic relevance with layer-wise            mechanism. This method introduces a specialized recovery
-attention variations to produce more robust token impor-           scheme that merges semantically redundant tokens with
-tance estimations.                                                 their most similar counterparts, based on a dot-product
-Learnable Module-based Unlike importance-based meth-               similarity calculated from reused attention key embeddings.
-ods that rely on predefined metrics to rank tokens, learn-         In the video domain, to address inter-frame redundancy,
-able module-based approaches introduce trainable com-              FrameFusion [145] computes cosine similarity between each
-ponents that learn to assess token importance or deter-            visual token and its spatially corresponding token from the
-mine the appropriate compression ratio during training,            preceding frame. This approach aims to minimize repetitive
-thereby enabling dynamic compression. This paradigm was            information across consecutive frames by merging tokens
-widely adopted in early Vision Transformer (ViT) research.         that represent similar spatial regions over time. Compared
-For instance, DynamicViT [33] and AdaViT [220] attach              with such a sophisticated design, HoliTom [146] takes a
-lightweight decision networks to the ViT backbone as learn-        relatively simple approach by directly merging those tokens
-able modules, and employ Gumbel-Softmax [221] during               with lower attention scores.
-training to render the framework fully differentiable. This        Fusion-based The previously discussed methods achieve
-design significantly improves the computational efficiency         compression by directly pruning or merging tokens, thereby
-of ViTs.                                                           shortening the overall sequence length. In contrast, fusion-
-    In the MLLM domain, several works have adopted sim-            based approaches implement compression indirectly by
-ilar strategies [141]. In p-MoD [140], a weight predictor is       leveraging cross-attention or self-attention module to in-
-proposed to assign importance scores to each token. Before         tegrate visual information into other tokens, effectively
-each layer, tokens are sorted by their predicted weights,          avoiding excessively long input sequences. An early ex-
-and only the top R% of tokens are retained for further             ample is Flamingo [147], which introduced cross-attention
-processing. This allows the model to dynamically preserve          layers called GATED XATTN-DENSE, between layers of a
-informative visual tokens and skip less relevant ones in           pretrained language model. In this setup, the original text
-a flexible manner. Similarly, GlimpsePrune [143] utilizes a        tokens serve as queries, while visual features are treated
-visual token importance predictor to estimate the signifi-         as keys and values, enabling deep interaction between vi-
-cance of each token at a given layer, based on the attention       sion and language representations. Building on this idea,
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                     13
-
-mPLUG-Owl3 [148] adopts a similar architecture by com-                  Promising progress has also been made in KV-cache
-bining intra-text self-attention with cross-modal attention         compression in video domain, where the visual input is
-between text and image features. This design leverages tex-         especially long and redundant. DyCoke [152] proposes a
-tual tokens as queries to selectively extract relevant visual       dynamic compression mechanism based on the text-vision
-information, eliminating the need to pass through a long            attention. In each decoding step, only the KV pairs with high
-sequence of visual tokens. More recently, CrossLMM [149]            attention scores are retained. If the attention distribution
-has advanced this direction further by introducing a design         shifts significantly in subsequent decoding steps, the KV
-where compressed visual tokens and text tokens are used as          cache is updated accordingly. Given the substantial redun-
-queries, while the original long-sequence visual representa-        dancy present in video frames, Video-XL-2 [58] introduces a
-tions act as keys and values. It incorporates visual-to-visual      novel Bi-level KVs decoding. Based on the current query, the
-and text-to-visual cross-attention, ensuring that the LLM can       model dynamically selects whether to retrieve from dense
-access high-resolution visual content while mitigating the          or sparse KV representations, allowing it to discard a large
-performance degradation.                                            number of query-irrelevant KV pairs. In video streaming
-    In addition to cross-attention-based fusion, another line       scenarios, several specialized strategies have been proposed.
-of work explores extracting visual information via learnable        LiveVLM [155], for instance, first discards KV pairs of
-tokens through self-attention. For example, VoCo-LLaMA              unimportant visual tokens based on attention scores, then
-[150] introduces a single Vision Compression token and              merges the original KVs of each frame into a single KV
-modifies the attention mechanism such that textual tokens           tuple. InfiniPot-V [154] explores the estimation of token
-only attend to the VoCo token, effectively forcing the model        importance by integrating two distinct evaluation criteria:
-to abstract visual information into this compressed represen-       Temporal-axis Redundancy (TaR) and Value Norm (VaN).
-tation. Following a similar philosophy, Victor [222] appends        These jointly guide the model to retain only the most critical
-learned visual register tokens after the visual tokens, which       tokens during KV-cache compression. In addition, Stream-
-absorb visual content through attention. All original visual        Mem [156] implements KV-cache compression based on
-tokens are subsequently discarded in deeper layers, thereby         attention scores between visual tokens and generic queries.
-achieving efficient compression.                                    This is done while operating within a fixed-size KV memory
-                                                                    to allow for efficient question answering.
-3.3.2 Compression in Decoding Stage
-Compression in the Decoding Stage typically refers to KV-           3.4   Token Compression in Multi-Module
-cache compression, which aims to reduce the memory and              Beyond applying token compression within individual com-
-computational overhead of cached key and value tensors in           ponents such as the vision encoder (Sec. 3.1), the projector
-transformers during autoregressive decoding. This is com-           (Sec. 3.2), or the LLM (Sec. 3.3), an increasing number
-monly achieved through pruning, quantization, or merging            of recent approaches explore compression strategies across
-strategies, with the goal of preserving generation quality          multiple modules to achieve higher compression efficiency
-while improving efficiency. Due to the inherently long out-         and improved representational quality.
-puts produced by LLMs, there has long been a pressing need              Since most multi-module token compression approaches
-for KV-cache optimization. Consequently, a wide range of            are essentially built by combining the single-module tech-
-KV-cache compression techniques have been developed in              niques introduced earlier, we do not revisit their low-level
-the LLM domain, as seen in works such as StreamLLM [223],           technical details here. Instead, we focus on how these meth-
-FastGen [224], and H2o [225].                                       ods coordinate compression across different components
-    In the multimodal setting, this challenge has become            and organize it as a multi-stage process to maximize overall
-increasingly significant with the rise of multimodal chain-         efficiency and representational quality. In the following,
-of-thought (CoT) reasoning. Output lengths have expanded            we analyze two emerging design paradigms: multi-module
-from a few sentences to hundreds or even thousands of               collaborative compression, which emphasizes the joint and
-tokens, making both computational load and KV-cache                 coordinated reduction of tokens across vision and language
-memory consumption critical bottlenecks in the generation           pathways, and multi-stage progressive compression, which
-process. As a result, a growing number of studies have              structures token reduction as a progressive pipeline span-
-focused on KV-cache compression tailored for multimodal             ning early visual processing to late-stage LLM inference.
-models [136], [141], [226]. One of the earliest works, LOOK-
-M [151], proposes using cumulative attention scores to              3.4.1 Collaborative Compression.
-estimate token importance. It preserves the KV pairs of the         CrossGET [82] is one of the earliest works to adopt multi-
-most recent window and additionally retains a proportion            module token compression. It inserts CrossGET modules
-of visual KV pairs ranked by their importance. Another              between the self-attention and FFN layers of both the visual
-example, MustDrop [92], addresses both the prefilling and           and language branches, reducing the token count across
-decoding stages. It stores only the KV pairs of visual tokens       layers. This design addresses the limitation of previous
-that are retained in the final layer during the prefilling stage.   methods that required extracting visual information first
-Recognizing that not all attention heads equally contribute         and thus lacked text-guided supervision in early stages,
-to visual understanding, SparseMM [153] first identifies            enabling the earlier visual processing layers to be informed
-visual heads using an OCR-based task, then allocates more           by subsequent textual features. LLaMA-VID [98] leverages
-KV-cache budget to these heads. For non-visual heads, it            cross-modal interaction between visual tokens and textual
-adopts a more aggressive compression policy, striking a             queries to extract task-relevant visual information and gen-
-balance between performance and efficiency.                         erate context tokens. It further applies pooling on the visual
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                                                          14
-
-features to obtain content tokens, enabling each video frame
-
-
-
-
-                                                                 How to select desirable strategy (§4)
-to be represented by only two tokens (a context token and                                                      Temporal-Enhanced Compression for Videos (§4.1)
-a content token), which facilitates efficient understanding
-of long videos. PAR [100] provides a finer-grained analysis                                                    Purely-Visual vs. Text-guided Compression (§4.2)
-of visual token redundancy, categorizing it into external
-redundancy and internal redundancy. To address external
-redundancy, PAR removes task-irrelevant tokens through                                                             Token Merging vs. Token Dropping (§4.3)
-query rewriting, semantic clustering of visual tokens, and
-semantic retrieval. For internal redundancy, it introduces a
-                                                                                                                Plug-in Methods vs. Re-training Methods (§4.4)
-token router mechanism that further eliminates redundant
-tokens by applying predefined similarity and redundancy
-thresholds.                                                                                                      Efficient Training vs. Efficient Inference (§4.5)
-
-3.4.2 Progressive Compression.
-To further improve the inference efficiency of MLLMs, sev-     Fig. 6: Decision taxonomy for selecting an appropriate token
-eral studies [86], [92], [152], [227] have proposed rigorous   compression strategy (see §4).
-multi-stage token compression strategies that span multiple
-steps and phases of the inference process. MustDrop [92]
-adopts a multi-stage token compression strategy with care-     (§ 4.2); (iii) token merging versus token pruning, comparing
-fully designed mechanisms across the vision encoding, pre-     fundamental compression paradigms (§ 4.3); (iv) plug-in
-filling, and decoding stages. It combines techniques such      versus retraining methods, weighing deployment flexibility
-as merging highly similar spatial tokens, dual-attention       against performance optimization (§ 4.4); and (v) efficient
-filtering, and output-aware KV cache to achieve end-to-        training versus efficient inference, distinguishing between
-end acceleration throughout the entire inference pipeline.     optimization objectives (§ 4.5).
-DyCoke [152] also employs a two-stage token compression            For each factor, we analyze underlying technical advan-
-strategy. In the first stage, it merges and removes tokens     tages and disadvantages, providing practical recommenda-
-by computing the cosine similarity between corresponding       tions based on deployment constraints.
-tokens in adjacent video frames. In the second stage, it
-performs dynamic pruning within the KV cache, adaptively
-evaluating and retaining tokens based on their attention       4.1                                       Temporal-Enhanced Compression for Video Input
-scores. FiCoCo [86] formulates token compression as a three-   Compared with static images, video input introduces an
-stage process: filter, correlate, and compress, addressing     additional temporal dimension that substantially increases
-three key questions: which tokens to discard, where to         computational demands. As video duration grows or frame
-preserve discarded information, and how to fuse remaining      sampling rates rise, the number of visual tokens fed into lan-
-tokens while retaining critical information.                   guage models increases explosively, creating a fundamental
-     In summary, token compression in multi-module archi-      tension between inference efficiency and modeling fidelity.
-tectures represents a shift from isolated, single-stage re-    Although existing spatial compression strategies (refer to
-duction to a more holistic and system-level optimization       Sec 3.1) can be directly applied to individual frames, they
-of MLLMs. Rather than limiting compression to a single         often fail to exploit cross-frame redundancy. To address
-component such as the vision encoder, projector, or LLM,       this gap, recent research has proposed temporal-enhanced
-these approaches strategically integrate multiple stages of    token compression methods that explicitly consider temporal
-reduction — from early spatial downsampling and semantic       structure for efficient long-sequence modeling. Three central
-clustering to query-guided selection and late-stage pruning    challenges emerge:
-— in order to maximize both efficiency and representational     1) Spatial-temporal interaction: How to jointly compress
-quality. This trend highlights an important direction for          across spatial (h, w) and temporal (t) dimensions to
-future research: optimizing token reduction as a coordi-           form compact yet expressive representations (§ 4.1.1).
-nated, end-to-end process rather than a set of independent,     2) Temporal structure preservation: How to retain spa-
-module-specific techniques.                                        tiotemporal structure after compression for fine-grained
-                                                                   perception tasks such as motion direction estima-
-4  H OW TO S ELECT THE D ESIRABLE TOKEN C OM -                     tion [239], [240] and temporally grounded QA [9], [241]
-PRESSION S TRATEGY                                                 (§ 4.1.2).
-                                                                3) Scalability to extreme lengths: How to design com-
-The proliferation of token compression designs necessitates        pression and memory mechanisms that scale to hour-
-guidelines to help practitioners select optimal strategies         long videos containing tens of thousands of frames
-for specific deployment scenarios. As Figure 6 illustrates,        (§ 4.1.3).
-this section provides a comprehensive comparison of crit-
-ical selection factors: (i) temporal-enhanced compression
-for video inputs, which focuses on unique challenges of        4.1.1                                      Spatial-Temporal Compression
-processing long temporal sequences (§ 4.1); (ii) text-guided   Joint spatial-temporal compression strategies can be broadly
-versus purely visual compression, examining the trade-offs     divided into fixed and dynamic approaches, with hybrid
-between cross-modal guidance and visual-only approaches        strategies emerging at the intersection.
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                                  15
-
-            TABLE 2: Overview of temporal-enhanced compression strategies for video input (details refer to §4.1).
- Category     Method                Key Idea                                               Representative Works
-              Pooling               Average neighbor tokens across temporal dimen-         PLLaVA [108], Video-ChatGPT [228]
-                                    sion.
- Fixed        Convolution           2D/3D convolutions for joint spatio-temporal           VideoLLaMA2 [114], Qwen2-VL [25]
-                                    downsampling.
-              Query-based           Learnable queries that attend over all video tokens    Clapper [78], LinVT [88], CrossLMM [149]
-                                    (e.g., Q-former, Token Learner, Resampler).
-              Sequential Models     Process tokens in temporal order with explicit         BLIP-3-Video [229], STORM [230]
-                                    timestamp embeddings and recurrent memory.
-              Token Merging         Merge redundant tokens across frames                   TESTA [83], AuroraCap [231], DyCoke [152]
- Dynamic
-              Token Dropping        Drop temporally low-saliency or redundant tokens       LongVU [56], TimeChat-Online [57]
-              Global-Local Fusion   Global event-level clustering with local frame-level   LongVLM [232], Video-XL [55], HiCom [233],
- Hybrid                             aggregation.                                           PruneVid [179], Chat-UniVi [81], FiLA-Video [80],
-                                                                                           TempMe [174], Quicksviewer [234]
-              Slow-Fast Pathways    Two-Stream architecture: a high-resolution slow        SlowFast-LLaVA [235], LLaVA-Video [236], Clap-
-                                    pathway for spatial detail and a low-resolution fast   per [78], Keye-VL-1.5 [237]
-                                    pathway for motion dynamics.
-              Memory-bank           Long-term memory complemented by a short-term          MovieChat [173],    VidCompress     [238],   Flash-
-                                    memory.                                                VStream [197]
-
-
-
-Fixed Temporal Compression. Fixed strategies reduce the                 dependencies, yielding token representations enriched with
-number of tokens per frame or clip from N to a prede-                   historical context.
-fined M (M ≪ N ). Early Video-LLMs commonly adopted                     Dynamic Temporal Compression. In contrast to fixed-ratio
-uniform frame sampling or downsampling to bound token                   compression that uniformly compresses videos of varying
-budgets. Pooling-based designs (e.g., PLLaVA [108], Video-              information density into identical token counts, dynamic
-ChatGPT [228], TC-LLaVA [107]) average patches across                   compression methods adaptively adjust the number of re-
-adjacent frames to suppress redundancy, but often at the                tained tokens based on video content, enabling differenti-
-cost of motion detail. Convolution-based designs integrate              ated modeling between static and dynamic segments.
-temporal information more explicitly: VideoLLaMA2 intro-                    Temporal Token Merging. TESTA [83], AuroraCap [231],
-duces a 3D spatio-temporal convolution (STC Connector)                  and DyCoke [152] merge similar or redundant tokens across
-combined with RegStage to preserve local dynamics under                 frames, typically identifying merge candidates via token
-reduced cost, while Qwen2-VL [25] applies 2D convolutions               similarity. Building upon this foundation, learnable merging
-to fuse adjacent-frame features. To enhance temporal em-                strategies have emerged. InTI [243] introduces a lightweight
-bedding, Qwen2.5-VL [4] adopts 3D convolutional module                  weight prediction network that generates dynamic weights
-to downsample both spatially (4x) and temporally (2x).                  for spatially co-located tokens in adjacent frames, enabling
-    Query-based designs represent another reserach line. In-            more adaptive fusion. Similarly, Learnable VTM [244] as-
-stead of pooling all tokens, they learn a compact set of query          signs learnable saliency scores to each token, supporting
-tokens (e.g., Q-former, Resampler, Token Learner) that ag-              dynamic merge ratios that substantially reduce token counts
-gregate salient information through attention. For instance,            while preserving critical information.
-Clapper’s TimePerceiver applies cross-attention to capture                  Temporal Token Pruning. Unlike merging, pruning directly
-inter-frame dynamics, while LinVT and CrossLMM [149]                    discards less important tokens rather than fusing them [56],
-leverage user queries to guide compression, producing                   [57], [245]. LongVU [56] proposes a three-stage compression
-lightweight yet semantically aligned representations.                   pipeline where the final temporal-dependency-based spatial
-    Sequential models leverage linear complexity O(n) to effi-          token pruning uses the first frame as an anchor within
-ciently encode long video token sequences by first enhanc-              each sliding window, computing cosine similarity between
-ing temporal modeling before compressing token counts.                  spatially aligned tokens across frames and discarding highly
-BLIP-3-Video [229] proposes a Grouped Sequential Model                  similar ones to achieve extreme spatial compression. Simi-
-that processes video tokens in temporal order while group-              larly, TimeChat-Online [57] retains only temporally dynamic
-ing them by spatial location. Each group maintains in-                  information by measuring redundancy between temporally
-dependent temporal memory augmented with timestamp                      adjacent, spatially co-located tokens and discarding redun-
-positional encodings at each update step, ultimately aggre-             dant tokens in subsequent frames. This work also demon-
-gating into merely 16-32 video-level tokens via attention               strates that feature-level redundancy measures outperform
-mechanisms. Through systematic comparison against vari-                 pixel-level approaches.
-ous fixed compression methods, BLIP-3-Video demonstrates                Hybrid Strategies combine multiple principles to balance
-that its Grouped Sequential Model outperforms traditional               global coverage with local detail. A prevalent design is
-pooling and attentional pooling by preserving absolute                  global-local fusion, which clusters video segments into key
-temporal order alongside semantic completeness. Similarly,              events and then performs intra-event aggregation, thereby
-STORM [230] leverages the Mamba State Space Model [242]                 capturing both coarse event structure and fine-grained dy-
-to integrate temporal information, employing bidirectional              namics. Representative works include PruneVid [179], Chat-
-scanning to simultaneously capture spatial and temporal                 UniVi [81], and FiLA-Video [80]. LongVLM [232] combines
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                    16
-
-local token merging within clips with global semantic rep-           embedding as follows:
-resentations across all frames. TempMe [174] and Video-
-                                                                                                        T −2
-                                                                                                              
-XL [55] employ hierarchical merging or visual summariza-                                       1
-                                                                                   t = 0,         ,...,      ,1              (11)
-tion tokens (VSTs) to reduce redundancy while preserving                                     T −1       T −1
-temporal context. HiCom [233] groups sampled frames                      Temporal Encoding Modules. Beyond positional embed-
-in the spatiotemporal domain and performs instruction-               dings, dedicated architectural components can explicitly
-conditioned compression, whereas Quicksviewer [234] uses             model temporal dependencies. STORM [230] leverages
-Gumbel-Softmax to determine information density and per-             Mamba-based [248] state-space layers (MambaMixer) that
-forms block-wise resampling to reduce irrelevant redun-              inject temporal awareness through bidirectional scanning
-dancy.                                                               of token sequences, simultaneously capturing both spatial
-    Slow-fast dual streams. Inspired by action recognition,          and temporal dependencies. PVC [178] adopts a progressive
-SlowFast-LLaVA [235], LLaVA-Video [236], and Clapper                 encoding strategy where tokens of each frame are sequen-
-process video through two pathways: a slow pathway with              tially encoded and adaptively compressed to supplement
-low frame rate but high spatial detail, and a fast pathway           information not extracted from previous frames, ensuring
-with high frame rate but compact tokens. Keye-VL 1.5 [237]           cumulative temporal context preservation.
-further refines this by dynamically routing salient frames               Special Timestamp Tokens. An alternative strategy intro-
-to the slow branch while assigning static frames to the fast         duces explicit timestamp representations as separate to-
-branch, significantly improving token efficiency.                    kens. Video-XL-2 [58] interleaves timestamp tokens within
-    Memory-bank mechanisms. Flash-VStream [197] intro-               the visual token sequence to enhance temporal awareness
-duces STAR memory, consisting of (i) a Context Synopsis              throughout the model. Qwen3-VL [249] advances this ap-
-Memory that clusters low-resolution features into centroids          proach by adopting a textual token-based time encoding
-to preserve global temporal trends, and (ii) a Detail Aug-           strategy [193], [250], [251], wherein each video temporal
-mentation Memory that selectively retains high-resolution            patch is prefixed with a timestamp expressed as a formatted
-tokens for keyframes. This design offers flexible token              text string (e.g., <3.0 seconds>), moving beyond tradi-
-budgets while balancing coverage and detail. Similarly,              tional Video-RoPE to achieve precise, timestamp-grounded
-MovieChat [173] combines sliding windows with long-term              event localization for stronger video temporal modeling.
-and short-term memory, periodically merging tokens when
-capacity is exceeded, while VidCompress [238] enhances               4.1.3   Extreme-Long Video Compression
-this approach with memory-augmented cross-clip attention.
-                                                                     In hour-long video scenarios, MLLMs must process thou-
-                                                                     sands of frames, posing severe challenges to computational
-4.1.2   Temporal Structure Preservation                              efficiency and memory management. Addressing these chal-
-                                                                     lenges necessitates specialized designs across multiple di-
-During video compression, atomic operations such as token            mensions, including input sampling, encoding compression,
-merging and pruning can blur or discard the spatiotemporal           memory storage, and inference acceleration.
-positional information of visual tokens, thereby disrupting              Early explorations into long video understanding pri-
-the original temporal structure of videos. This degradation          marily focused on memory bank-based approaches to
-impairs MLLMs’ ability to perceive precise timestamp in-             store long-term temporal semantics. MovieChat [173] pi-
-formation, adversely affecting tasks that require absolute           oneered the integration of sliding windows with dual-
-temporal localization, such as temporal grounding [9], [246].        memory mechanisms, where short-term memory captures
-To mitigate this issue, several works have introduced ex-            fine-grained details within the current window while long-
-plicit time-aware mechanisms, which can be categorized               term memory aggregates global semantics from historical
-into three main approaches: augmenting video tokens with             segments, enabling processing over 10,000 frames on a
-temporal positional embeddings, incorporating dedicated              24GB GPU. Similarly, FlashVStream [252] proposes a more
-temporal encoding modules within the overall architecture,           elaborate flash memory architecture to achieve real-time
-and inserting special timestamp tokens.                              responses to user queries.
-    Temporal Positional Embeddings. The most direct approach             Beyond the memory-bank foundations, the Video-XL
-is to enrich visual tokens with temporal positional infor-           series demonstrates a clear evolution from adaptive com-
-mation. BLIP-3-Video’s Grouped Sequential Model [229]                pression to comprehensive optimization. Video-XL [55] in-
-processes frames sequentially with timestamp positional              troduces dynamic interval partitioning that assigns varying
-encodings and grouped memory mechanisms, maintaining                 numbers of Visual Summarization Tokens (VSTs) to com-
-separate temporal memory across different token groups to            press visual semantics. It enables processing 2,048 frames
-preserve both local temporal details and absolute tempo-             with near-lossless 16x compression and 95% accuracy at
-ral order. TimeChat-Online [57] retains the original Video-          32x compression. Video-XL-Pro [199] advances this by intro-
-RoPE [4], [247] positional encodings for important tokens            ducing reconstructive capability through the ReCoT frame-
-selected based on visual dynamics, thereby preserving spa-           work, which synthesizes dynamic tokens to capture motion
-tiotemporal information relative to the original video even          patterns, employs semantic-guided masking to focus on
-after pruning operations. PVC [178] also employs relative            dense regions, and incorporates query-aware selection to
-timestamps to indicate video frames and obtains temporal             prune low-relevance tokens. This enables handling over
-embeddings via MLP. Specifically, it uses either absolute            8,000 frames with near 99% accuracy. While these efforts
-positional embedding t = [0, 1, . . . , T ] or relative positional   optimize training-time compression, Video-XL-2 [58] shifts
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                    17
-
-TABLE 3: Comparison between Purely-Visual and Text-               ing on whether they leverage textual information, such as
-Guided token compression strategies with representative           user instructions or questions, compared in Table 3.
-works (details refer to §4.2).                                    Purely-visual Compression. These methods rely solely on
-         Purely-Visual                 Text-Guided                visual cues to eliminate redundant information. They sys-
-                                                                  tematically reduce tokens representing duplicate objects,
-Method Retain informative visual       Select text semantic
-       tokens according to             aligned visual tokens
-                                                                  uniform backgrounds, or semantically equivalent regions.
-       inherent vision                 according to textual       For video sequences, such approaches compress temporally
-       redundancy                      instruction or query       static content while preserving dynamic motions. Specifi-
-                                                                  cally, recent studies identify distinctive visual tokens [57],
-Features (i) Suitable for multi-turn   Suitable for single-turn   [96], [183] or aggregate repetitive semantic tokens into com-
-         dialogues, streaming          dialogues, long
-         video understanding,          VideoQA, high-ratio        pact representations [34], [83]. As VisionZip [93] pointed
-         visual captioning, (ii)       compression scenario,      out, these more compact visual tokens lead to better visual
-         Easy to deployment            visual grounding           representations.
-                                                                      Since purely-visual approaches are text-agnostic and
-Works    DeCo [105], VisionZip         FastV [129],
-                                                                  perform one-time compression, they are efficient for low-
-         [93], DART [183], HoloV       SparseVLM [132],
-         [96], TimeChat-Online         Q-Former [257], QueCC      latency applications such as multi-turn dialogue, online
-         [57]                          [176], PyramidDrop         responses and streaming video understanding [258]–[262].
-                                       [130], LLaVA-Mini [181]    Moreover, their general applicability to visually rich scenes
-                                                                  makes them effective for captioning [263], [264] tasks. For
-                                                                  deployment, they directly reduce visual tokens before the
-focus to inference efficiency through KV cache sparsifica-        LLM, avoiding extensive computation and memory con-
-tion, enabling processing over 10,000 frames on a single          sumption in the LLM’s shallow layers and enabling seam-
-GPU.                                                              less adaptation across different LLM architectures.
-    Under the video question-answering scenario, only a           Text-Guided Compression. In contrast, text-guided strate-
-subset of frames is typically relevant to a given question.       gies [148], [265] use cross-modal information to select text-
-This has motivated query-aware compression strategies.            relevant tokens according to a given instruction or query.
-LinVT [88] identifies candidate regions through spatiotem-        Typical methods estimate text-to-vision attention or similar-
-poral saliency analysis, then filters and aggregates them         ity or introduce proxy tokens for better cross-modal inter-
-according to the text query to ensure retained tokens capture     action [73], [82]. By only focusing on task-relevant visual
-both visual saliency and semantic relevance.                      semantics, these methods can achieve high compression
-    Beyond query-aware innovations, practical deployment          ratios while maintaining accuracy in tasks such as visual
-demands system-level efficiency. Long-VMNet [253] em-             question answering, grounding [9], [266], [267], and long-
-ploys a fixed-size memory bank (e.g., 5,880 tokens) en-           video reasoning [28], [29], [268]. However, since user queries
-abling memory reuse across queries after a single video           always vary across turns, text-guided compression often
-scan, requiring less than 1GB memory while supporting             requires re-encoding historical tokens, limiting efficiency
-10-hour videos. ReTaKe [254] detects keyframes via inter-         and reusability in multi-turn dialogue settings.
-frame distance peaks and marks them as pivots, while              Takeaway. Purely-visual and text-guided strategies are com-
-compressing non-pivot frames by pruning low-attention             plementary. A practical design is to first derive compact vi-
-tokens in their KV cache. Leveraging LLM prior knowledge,         sual representations via purely-visual compression and then
-it enables plug-and-play adaptation to existing VideoLLMs         apply text-guided selection within the language module to
-for processing 8x longer sequences. TimeViper [255] adopts        refine tokens relevant to the given textual query.
-a hybrid Mamba-Transformer architecture, combining linear
-complexity with precise attention to process over 10,000          4.3   Token Merging vs. Token Dropping
-frames.
-                                                                  Token merging and token dropping (also referred to as
-Summary. Extreme-long video understanding exhibits                pruning) are two fundamental operations in the token
-multi-dimensional synergy: 1) adaptive key frame sam-             compression paradigm. Their core distinction lies in the
-pling [56], [193], [256] and adaptive partitioning reduce         compression manner: merging is a soft strategy that aggre-
-input redundancy; 2) multi-module collaboration enables           gates less informative tokens into representative ones, while
-progressive encoding compression; 3) query-aware strate-          dropping is a hard operation that directly discards them. A
-gies dynamically adjust based on user intent; 4) KV-cache         natural question arises: should these two operations be treated
-sparsification improves inference efficiency. This evolution      identically? This subsection discusses their conceptual differ-
-from isolated optimizations to systematic, task-aware, end-       ences, selection mechanisms, and practical implications.
-to-end design establishes the foundation for practical hour-
-long video understanding.                                         Merging or Dropping. Token merging and dropping each
-                                                                  possess distinct advantages and drawbacks. As Table 4
-                                                                  summarizes, token merging maintains holistic semantics
-4.2   Purely-Visual vs. Text-guided Compression                   by smoothing token representations but may blur spa-
-As discussed in § 2.2, token compression in MLLMs aims to         tial or temporal locality. Token dropping, in contrast, pre-
-reduce two major types of redundancy: intra-visual (vision-       serves sparse and salient semantics yet risks losing fine-
-to-vision) and cross-modal (text-to-vision). Accordingly, ex-     grained contextual information. Quantitative analyses from
-isting methods can be grouped into two branches depend-           LLMC+ [270] reveal that for spatial redundancy, drop-based
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                           18
-
-TABLE 4: Comparison between token merging and token                 TABLE 5: Comparison between plug-in and re-training
-dropping strategies with representative works (details refer        methods with representative works (details refer to §4.4).
-to §4.3).                                                                    Plug-in                     Re-training
-         Token Merging                Token Dropping
-                                                                    Method A parameter-free strategy     A trainable strategy that
-Method A soft strategy that           A hard strategy that                 that can be directly          requires additional
-       aggregates visually            directly discards tokens             integrated into existing      training to obtain
-       redundant tokens into          considered less                      models without                learnable compression
-       compact and                    informative or                       additional training.          capability.
-       representative                 task-irrelevant.
-                                                                    Features (i) Training-free and       (i) Higher performance
-       embeddings.
-                                                                             parameter-free, (ii)        ceiling, (ii)Require
-Pros     (i) Preserves holistic and   (i) Retains sparse and                 Lightweight and efficient   additional training, (iii)
-         fine-grained semantics,      salient semantics (ii)                 for deployment, (iii)       Limited transferability
-         (ii) Suitable for            Suitable for compressing               Performance degradation     across models
-         compressing low-level        high-level visual features.            on fine-grained tasks.
-         visual features, (iii)
-                                                                    Works    FastV [129],                Honeybee [113],
-         Effective for spatial
-                                                                             SparseVLM [132],            DeCo [105],
-         redundancy.
-                                                                             PyramidDrop [130],          TokenPacker [122],
-Cons     May blur spatial or          May overlook subtle                    MustDrop [92]               HiCo [180]
-         temporal locality due to     contextual cues that are
-         averaging across             removed during pruning.
-         multiple tokens.
-                                                                    4.4   Plug-in Methods vs. Re-training Methods
-Works    ToMe [34], TESTA [83],       VisPruner [68], DivPrune      From the perspective of model adaptation, existing token
-         HoliTom [146],               [128], MADTP [73],
-         MustDrop [92]                DART [183], FlexSelect        compression methods can be broadly categorized into two
-                                      [189], CDPruner [269],        groups: plug-in methods, which can be seamlessly inte-
-                                      DTD [57]                      grated into pre-trained models without the need for extra
-                                                                    training, and re-training approaches, which require addi-
-                                                                    tional fine-tuning or end-to-end optimization. As illustrated
-                                                                    in Tab. 5, although both aim to reduce token redundancy
-strategies generally outperform merge-based ones in both            and accelerate inference, they differ markedly in design
-the vision encoder and the LLM component.                           philosophy, deployment cost, and the level of performance
-Attention-based or Similarity-based strategies for token            they can ultimately achieve.
-selection. Both token merging and dropping rely on iden-            Plug-in Methods.           Plug-in approaches focus on
-tifying “unimportant” tokens to aggregate or discard. Early         lightweight modules that require minimal or no
-works primarily used attention scores as indicators of token        training and can be seamlessly integrated into frozen
-importance. However, recent studies have exposed several            backbones.     Representative     strategies    include:   (1)
-limitations of attention-based selection. DART [183] and            parameter-free spatial transformations, such as global
-FEATHER [133] reported that attention scores introduce              or adaptive pooling employed in TC-LLaVA [107],
-a positional bias, favoring tokens located at the lower-            PLLaVA [108], DeCo [105], and AVG-LLaVA [106]; (2)
-right region of the image—typically appearing later in              pixel rearrangement operations, exemplified by pixel shuf-
-the sequence—regardless of their semantic significance.             fle and space-to-depth transformations in NVLM [201] and
-HoloV [96] further highlighted that MLLMs often over-               InternVL 1.5 [109]; (3) similarity-based token compression,
-fit to “highlighted tokens” and overlook holistic context,          where DynTok [125] dynamically groups video tokens
-leading to local overemphasis on salient regions. Moreover,         and performs intra-group merging, LLaVA-Scissor [126]
-attention-based selection can be incompatible with Flash At-        leverages Semantic Connected Components to preserve
-tention implementations, reducing efficiency and sometimes          semantic regions while reducing redundancy, and
-even underperforming random reduction baselines. To ad-             DivPrune [128] selects informative tokens by maximizing
-dress these issues, recent approaches increasingly adopt            diversity; and (4) inference-time KV cache compression,
-similarity-based token selection [57], [145], [271], where          where DyCoke [152] prunes the KV cache guided by
-redundancy is measured via feature-level similarity rather          attention scores, and MustDrop [92] adopts an output-
-than attention magnitude, enabling more stable and context-         aware KV Cache policy to reduce memory consumption
-aware compression.                                                  and accelerate decoding without backbone modification.
-Takeaway. Merging and dropping are complementary                        These methods are easy to deploy, highly compatible
-rather than competing strategies [79], [84], [175], [272], [273].   across models, and cost-efficient, making them ideal for
-Merging provides smooth aggregation suitable for dense              rapid inference acceleration or flexible deployment. How-
-or temporally redundant visual inputs, whereas dropping             ever, because they are often task-agnostic and rely on heuris-
-is preferable when sparse, high-level semantics suffice. Fu-        tics such as similarity thresholds or clustering, their seman-
-ture frameworks may benefit from adaptive hybrid designs            tic retention and performance upper bound can degrade
-that dynamically switch between soft aggregation and hard           under aggressive compression or complex task demands.
-pruning according to modality characteristics and redun-            Re-training Methods. Re-training approaches introduce
-dancy types.                                                        learnable modules or require end-to-end optimization, aim-
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                            19
-
-TABLE 6: Comparison between Efficient Training and Effi-            TABLE 7: Representative MLLMs and their efficiency-
-cient Inference strategies (details refer to §4.5).                 oriented training compression strategies.
-         Efficient Training          Efficient Inference                    Representative MLLMs           Compression Strategy
-Method Aim to mitigate training      Aim to lower inference         2022    Flamingo [147]                 GATED XATTN–DENSE
-       costs by reducing the         costs by performing
-       number of image tokens        token reduction during         2023    BLIP-2 [115], mPLUG-Owl        Q-former and its variants
-       during the forward            the prefill or decoding                [275], Qwen-VL [118], Video-
-       process.                      stage.                                 LLaMA [276], MiniGPT-4
-                                                                            [116]
-Features (i) The methodological      (i) The methodological
-                                                                            Video-ChatGPT [228]            Temporal and Spatial Pooling
-         design is relatively        design is more diverse,
-         simple, with a limited      with a greater body of
-                                                                    2024    PLLaVA [108], LongVLM          Temporal and Spatial Pooling
-         number of studies in this   research in this field. (ii)           [232], VideoLLaMA 2 [99]
-         area. (ii) The validation   The validation cost is
-         cost is substantial.        minimal.                               LLaVA-OneVision [10]           Bilinear Interpolation
-                                                                            LLaVA-Video [236]              Average Spatial Pooling
-Works    Flamingo [147],             FastV [129],
-         Q-Former [257],             SparseVLM [132],               2025    InternVL series [52], [109],   Pixel Shuffle
-         LLaVA-OneVision [10],       PyramidDrop [130],                     Qwen2VL series [4], [112]
-         Qwen2.5-VL [274],           VisionZip [93],
-         InternVL3.5 [52]            SparseMM [153]                         Seed1.5-VL [277]               Average Pooling
-
-
-
-ing for task-adaptive and semantically aware token com-             token compression methods suffer from notable perfor-
-pression. Representative methods include query-based de-            mance drops on tasks requiring high-resolution visual un-
-signs, such as Q-Former and its variants, including the             derstanding and complex text reasoning. In contrast, re-
-BLIP-2 [115], the simplified single-layer cross-attention in        training methods excel in task-specific scenarios and fine-
-Qwen-VL [118], the C-/D-Abstractor modules in Honey-                grained multimodal understanding, offering higher per-
-bee [113] for better locality modeling, and MQT [119],              formance ceilings and greater stability under aggressive
-which adapts the number of query tokens. Another line               compression, though at the cost of substantial additional
-of work employs downsampled-as-query cross-attention, as            training overhead and poor transferability across models.
-seen in TokenPacker [122] and HiRes-LLaVA [123], which                  In practice, hybrid strategies have gained increasing
-use downsampled features as queries to interact with high-          attention as a promising compromise between efficiency and
-resolution regions and achieve coarse-to-fine information in-       adaptability. A common design is to apply lightweight plug-
-jection. There are also text- and concept-guided compression        in techniques such as pooling or pixel unshuffle for early
-methods. TG-LLaVA [120] performs text-driven masking,               spatial reduction, then incorporate re-trained modules such
-QueCC [176] incorporates user query semantics through               as cross-attention or query-guided compression for semantic
-local cross-attention aggregation, and VCM [186] models             refinement, and finally adopt key-value cache pruning to
-vision concepts to dynamically determine concept granu-             improve decoding efficiency. This progressive integration,
-larity and spatial alignment. Finally, several multi-module         exemplified by the multi-stage design of MustDrop [92],
-and multi-stage token compression frameworks have been              reflects a trend toward combining the deployment flexibility
-proposed. CrossGET [82] breaks the sequential visual-first          of plug-in methods with the task adaptivity and perfor-
-processing paradigm, LLaMA-VID [98] constructs context              mance advantages of re-training approaches.
-and content tokens for each video frame, PAR [100] differ-
-entiates between external and internal redundancy through           4.5    Efficient Training vs. Efficient Inference
-query rewriting and token routing, and MustDrop [92]                Efficient training and efficient inference respectively address
-accelerates inference through a three-stage “vision-prefill-        the problem of token reduction during the training and
-decoding” merging strategy with dual-attention filtering.           inference phases. In this section, we focus on discussing
-    These methods typically achieve stronger semantic               the distinctions between these two approaches, compared
-preservation and task relevance because they are able to            in Table 6.
-leverage cross-modal attention, textual guidance, and pro-              Efficient training typically aims to mitigate costs during
-gressive refinement. They also tend to reach higher com-            pretraining and SFT, which demands hundreds of billions
-pression ratios without causing severe performance degra-           to trillions of tokens. In practice, most state-of-the-art mul-
-dation. However, their use comes with additional training           timodal models rely on relatively simple mechanisms for
-costs, greater data requirements, and increased engineering         token reduction as presented in Table 7. LLaVA-OneVision
-complexity, and their effectiveness may vary depending on           [10] utilizes bilinear interpolation to reduce tokens per
-the target task or application domain.                              frame. The InternVL [278] and Qwen2 series [274] apply
-Comparative Insights. Plug-in methods are well-suited for           pixel shuffle strategies, reducing the number of vision to-
-rapid deployment and inference acceleration when training           kens while expanding their feature dimensions. Similarly,
-resources are limited or when task requirements are rela-           Seed1.5-VL [277] employs a basic average pooling method.
-tively moderate. However, their performance upper bound             It is worth noting that a variety of new methods have
-is relatively limited. Recent studies such as FCoT-VL [182]         recently been proposed to accelerate training. For exam-
-further empirically demonstrate that current training-free          ple, LLaVolta [144] introduces staged training, where more
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                     20
-
-TABLE 8: Summary of benchmarks widely-used in visual token pruning studies. MQA denotes multiple-choice question
-answering, Open denotes open-ended question answering, Y/N denotes Yes/No question answering.
-
- Benchmark                  Answer Type              Metric             Num Examples               Focus              Data Link
-Image Domain
- GQA-testdev-balanced          Open                Accuracy                 12,578       General Image Perception       Link
- VQA-v2-testdev                Open                Accuracy                107,394       General Image Perception       Link
- VizWiz-val                    Open                Accuracy                  4,319       General Image Perception       Link
- POPE                          Y/N                  F1-Score                 3,000       General Image Perception       Link
- TextVQA-val                   Open                Accuracy                  5,000                 OCR                  Link
- ScienceQA-Image-test        MQA,Y/N               Accuracy                  2,017             Knowledge                Link
- MathVista-testmini          MQA,Open              Accuracy                  1,000        Knowledge,Reasoning           Link
- MathVerse-testmini          MQA,Open              Accuracy                  3,940        Knowledge,Reasoning           Link
- MMMU                        MQA,Open              Accuracy                 11,550        Knowledge,Reasoning           Link
- MME                           Y/N              Perception Score             2,374              Integrated              Link
- MMBench-en-dev                MQA                 Accuracy                  4,329              Integrated              Link
- MM-Vet                        Open                GPT-Score                  218               Integrated              Link
- SeedBench-Image               MQA                 Accuracy                 14,280              Integrated              Link
- LLaVA-BenchW                  Open                GPT-Score                   60               Integrated              Link
-Video Domain
- ActivityNet-QA-test           Open           Accuracy,GPT-Score            8,000              Integrated               Link
- MVBench                       MQA                Accuracy                  4,000        Temporal Understanding         Link
- EgoSchema                     MQA                Accuracy                  5,063             Long Video                Link
- LongVideoBench-val            MQA                Accuracy                  1,337         Long Video,Integrated         Link
- MLVU-dev                    MQA,Open         Accuracy,GPT-Score            2,593         Long Video,Integrated         Link
- Next-QA-MC-test               MQA                Accuracy                  8,564              Integrated               Link
- Video-ChatGPT                 Open               GPT-Score                 3,493              Integrated               Link
- Video-MME                     MQA                Accuracy                  2,700              Integrated               Link
-
-
-aggressive token reduction is applied in the early stages           become an urgent requirement.
-and the compression ratio is gradually decreased over time.
-PyramidDrop [130] removes tokens layer by layer inside the
-                                                                    5     B ENCHMARKS AND M ETRICS
-LLM. From the perspective of task similarity, both LLM
-prefilling and training involve a single forward pass of            In this section, we first provide a detailed overview of the
-a sequence through the LLM. Therefore, in principle, all            benchmarks (§5.1) and evaluation metrics (§5.2) commonly
-strategies that can be applied during LLM prefilling could          used in MLLM token compression studies.
-also be used for efficient training.
-    However, why have these diverse methods not been                5.1   Benchmarks
-widely adopted by mainstream LVLMs? We identify three               Table 8 summarizes the image and video understanding
-main reasons. First, compatibility issues: many prefilling ac-      benchmarks commonly used in token pruning studies. De-
-celeration methods are not compatible with Flash Attention,         pending on the primary capability being evaluated, these
-which directly affects training efficiency. Second, validation      benchmarks can be grouped into several categories.
-cost: adopting a new strategy requires validation during                For image understanding benchmarks, the categories
-training, which is far more expensive than inference, making        include:
-researchers more conservative. As long as current costs               • General Image Perception: Evaluates basic visual
-remain acceptable, new methods are unlikely to be adopted                recognition skills in natural images, such as identifying
-unless they prove to be a breakthrough. Third, inductive bias:           objects, scenes, attributes, and spatial relationships.
-existing compression techniques often design customized               • Optical Character Recognition (OCR): Measures the
-strategies based on observations from certain tasks or bench-            ability to recognize and interpret textual content em-
-marks, thereby introducing strong inductive bias. Such                   bedded in unstructured visual formats. This skill is cru-
-methods may lead to performance degradation in scenarios                 cial for enabling effective interaction between MLLMs
-where visual information is denser or task distributions                 and humans.
-differ significantly. Since current MLLMs are intended for            • Knowledge: Assesses the integration of visual percep-
-general-purpose use, any degradation in certain capabilities             tion with domain-specific or general world knowledge
-is unacceptable.                                                         across diverse disciplines.
-    In the field of efficient inference, nearly all of the afore-     • Reasoning: Goes beyond perception, requiring logical
-mentioned methods are designed for this scenario, and                    inference and problem-solving based on visual content
-the area is evolving rapidly. The popularity of this topic               combined with specific prior knowledge.
-is largely due to its low exploration cost. Moreover, for             • Integrated Image Understanding: Provides a holistic
-the practical deployment of large multimodal models, the                 evaluation by combining visual perception and rea-
-volume of API requests is extremely high, and minimizing                 soning tasks into a single benchmark, thereby testing
-latency is crucial. As a result, controlling inference cost has          comprehensive multimodal understanding.
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                  21
-
-    For video understanding benchmarks, the categories in-       efforts have focused on translating these methods into real-
-clude:                                                           world applications, thereby maximizing their societal im-
-   • Temporal Understanding: Measures the ability to cap-        pact. In this section, we provide a concise overview of the
-     ture and interpret temporal dynamics, such as action        key aspects that are critical for the applications.
-     sequences, motion patterns, and event localizations.
-   • Long Video Understanding: Evaluates the capacity
-     to process and reason over long-form videos, ranging        6.1   Image Understanding
-     from several to tens of minutes.                            In image understanding, current algorithms primarily focus
-   • Integrated Video Understanding: Offers a holistic as-       on accelerating the processing of high-resolution inputs,
-     sessment of perception and reasoning skills in video        which is essential for downstream tasks.
-     contexts by combining multiple evaluation dimensions.
-                                                                 Medical Image Processing. A key application lies in med-
-                                                                 ical imaging, where MLLMs must rapidly and accurately
-5.2     Metrics                                                  interpret clinical data, underscoring the need to balance
-The evaluation of MLLM token compression methods                 efficiency and accuracy. Extensive research [279], [280] has
-primarily considers two perspectives: downstream task            been devoted to evaluating the capabilities of these models.
-performance (effectiveness) and computational efficiency         However, despite the rapid advancement, current mod-
-(efficiency), either theoretical or practical.                   els remain limited in effectively handling high-resolution
-                                                                 medical imaging examination results. The incorporation of
-                                                                 efficient token compression algorithms presents a promising
-5.2.1    Effectiveness
-                                                                 avenue to further improve both efficiency and effectiveness
-Effectiveness evaluation typically follows the standard of       in such settings.
-original benchmarks. Most benchmarks adopt Accuracy as
-the primary metric, which measures whether the model’s           Multi-page Document Understanding. Another valuable
-prediction matches the ground-truth answer. For open-            application is document understanding, where models must
-ended tasks without a single correct answer (e.g., image         process long documents and generate concise summaries
-captioning), GPT-Score is often employed to provide a nu-        or meaningful solutions from the input. Prior studies [281]
-merical rating of the MLLM’s response.                           have primarily focused on improving accuracy and expand-
-                                                                 ing the range of document lengths that models can handle.
-                                                                 Inspired by advances in high-resolution image processing,
-5.2.2    Efficiency
-                                                                 where algorithms accelerate computation without sacrific-
-Efficiency can be evaluated from several complementary           ing accuracy, similar techniques [124], [148] can be applied
-aspects:                                                         to document understanding. Such integration would allow
-  • Token Retention Count/Ratio: Measures the absolute           models to manage longer inputs within limited context
-     number or relative percentage of visual tokens pre-         lengths while also improving overall efficiency.
-     served after compression. Token compression methods
-     are commonly compared under the same retention              Satellite and Remote Sensing Imagery. In industrial ap-
-     count/ratio in downstream tasks. However, identical         plications, MLLMs have been deployed to interpret satellite
-     retention levels do not guarantee equal inference la-       and remote sensing imagery [282]. These images typically
-     tency, as factors such as the compression position can      contain rich structural information at high resolutions, yet
-     significantly influence runtime.                            practical deployments face computational resource con-
-  • Prefilling/Decoding FLOPs: Captures the theoretical
-                                                                 straints. Efficiently processing such imagery remains a sig-
-     computational cost of the query prefilling and decoding     nificant challenge. Recent studies [283], [284] have explored
-     stages, measured in floating-point operations.              token compression strategies to address this bottleneck,
-  • Prefilling/Decoding Latency: Reports the actual wall-
-                                                                 achieving notable progress by enabling models to handle
-     clock time required for the model to process input          higher-resolution inputs more efficiently—an advancement
-     (prefilling) and generate output tokens (decoding). Un-     of considerable importance for industrial deployment.
-     like FLOPs, which is hardware-agnostic, this metric is
-     dependent on the specific infrastructure and implemen-      6.2   Video Understanding
-     tation.
-  • Memory Usage: This metric quantifies the peak mem-           In the realm of video understanding tasks, previous research
-     ory footprint during inference, which is especially crit-   has primarily concentrated on addressing the inherent chal-
-     ical for deploying MLLMs on resource-constrained de-        lenges associated with comprehending lengthy videos. Ef-
-     vices. Token compression can reduce the memory re-          forts have been made to reduce data redundancy and en-
-     quired for attention key–value caches and intermediate      hance efficiency in processing extended video content.
-     representations, but the reduction is highly dependent      Embodied AI. A practical application of such algorithms
-     on how compression is implemented.                          lies in the development of robot learning and embodied AI.
-                                                                 In these settings, embodied agents or robots must respond
-                                                                 in real time to the visual input they receive during contin-
-6     A PPLICATION S CENARIOS                                    uous video perception. The token compression strategy [74]
-Following the development of advanced algorithms that            addresses this challenge by efficiently capturing both spatial
-significantly enhance the efficiency of MLLMs, subsequent        and temporal information, thereby enabling fine-grained
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                    22
-
-video understanding while maintaining computational effi-         validation. Consequently, they often exhibit poor transfer-
-ciency. This capability is essential for the real-world deploy-   ability across datasets, architectures, and modalities, as well
-ment of robots and embodied agents, making them more              as insufficient robustness under distribution shift.
-suitable for practical applications.                                  A key weakness lies in the absence of a principled theory
-Streaming Video Understanding. Another significant ap-            of token importance. Current practices—such as ranking
-plication domain is streaming video understanding, where          tokens by attention weights, pairwise similarity, or mutual
-models must process continuous video streams and deliver          information—lack causal or generalization-based justifica-
-real-time responses with minimal latency. Prior studies [57],     tion. These metrics indicate correlation rather than necessity,
-[285]–[287] have adopted token compression techniques             offering little explanation of whether the retained tokens
-to address the high temporal redundancy in dense video            are truly sufficient for the downstream objective or merely
-streams (e.g., 1-10 FPS), store compact historical representa-    coincidental with good performance.
-tions through memory mechanisms, and efficiently retrieve             By connecting token selection to sufficiency, causality,
-question-relevant KV caches during inference. These strate-       and robustness, future work can move beyond ad-hoc
-gies enable models to maintain responsiveness and accuracy        heuristics toward a principled understanding of why com-
-while managing computational resources effectively, a criti-      pression works, enabling generalizable and theoretically
-cal requirement for real-time applications.                       sound compression strategies for MLLMs.
-
-Instructional Video Summary. Other real-world appli-              7.2   Lack of Task- and Content-Aware Adaptivity
-cations, such as meeting summarization and lecture key-           Most existing token compression strategies operate in a
-point extraction, also require models to achieve efficient        task-agnostic and content-agnostic manner, applying a fixed
-video understanding while preserving fine-grained details.        compression ratio or heuristic rule regardless of the task
-Several studies [5], [6] have investigated these challenging      type or the visual complexity of the input. However, the
-scenarios and proposed a variety of solutions. A central idea     granularity of information required to fulfill a given ques-
-underlying these approaches is the selective retention of in-     tion varies substantially. As M 3 [91] observed, for most
-formative tokens while discarding redundant ones, thereby         benchmarks, especially those mainly crafted from natural
-improving overall efficiency and facilitating the practical       scenes (such as COCO [291]), can be handled well with only
-adoption of such methods in real-world tasks.                     9 tokens per image. In contrast, dense visual perception
-                                                                  tasks such as document understanding or OCR require a
-6.3   Other Applications                                          greater amount of tokens (144 ∼ 576 tokens) per image to
-                                                                  handle the task well. A uniform compression policy thus
-Beyond accelerating the processing of high-resolution im-         risks either retaining redundant tokens for simple tasks or
-ages and long videos through redundant token reduction,           discarding crucial details for complex ones, leading to ineffi-
-token pruning demonstrates considerable potential across          ciency and degraded understanding. Similarly, multimodal
-diverse applications. A key advantage of this approach is its     inputs such as images or video clips exhibit vastly different
-ability to guide model attention toward the most relevant         levels of informational richness. Compressing them under
-image or video regions [288]. By filtering out background         a single fixed strategy ignores variations in object density,
-noise and irrelevant objects, models can allocate compu-          scene complexity, and visual salience. Yet few existing meth-
-tational capacity to critical visual information essential for    ods explicitly model this heterogeneity or incorporate adap-
-accurately interpreting and responding to prompts. Prior          tive mechanisms conditioned on either the task semantics or
-studies [289], [290] have shown that this improved focus          the visual content itself.
-can mitigate visual hallucinations, where models generate              Future research should explore task- and content-aware
-text inconsistent with visual input. Through selective token      compression, where the model dynamically determines the
-pruning, these strategies improve the grounding of model          degree and manner of token reduction. Some recent stud-
-outputs in the actual visual context.                             ies [100], [101], [186] have begun to move in this direction,
-                                                                  introducing adaptive mechanisms that modulate compres-
-                                                                  sion according to textual queries or visual content complex-
-7     O PEN C HALLENGES AND F UTURE W ORK                         ity. However, how to further couple such adaptive compres-
-Despite the rapid progress in token compression for               sion with improved training strategies to achieve stronger
-MLLMs, several open challenges remain that warrant fur-           generalization across diverse tasks remains an open ques-
-ther investigation. We discuss remaining open challenges          tion. For instance, VisionThink [190] proposes a reinforce-
-and future research directions in this section.                   ment learning-based approach that enables the model to
-                                                                  autonomously decide whether the higher-resolution visual
-                                                                  input is necessary for a given task, offering a promising step
-7.1   Lack of Theoretical Understanding                           toward fully adaptive token compression. Such adaptive
-Although token compression has achieved notable em-               strategies would align the compression process more closely
-pirical success, most existing approaches remain largely          with the cognitive demands of multimodal understanding,
-experience-driven and lack rigorous theoretical ground-           improving both efficiency and fidelity across diverse tasks.
-ing. Apart from a few works, such as DeCo [105] and
-DART [183], which analyze how compression influences              7.3   Performance Degradation in Practical Tasks
-representation learning within MLLMs, the majority of             Although many token compression methods demonstrate
-methods rely on heuristic intuition and limited empirical         competitive results on general Visual QA tasks [292], often
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                                 23
-
-maintaining comparable accuracy even when reducing vi-            R EFERENCES
-sual tokens to 1/3 or 1/4 of the original, this performance       [1]    H. Liu, C. Li, Q. Wu, and Y. J. Lee, “Visual instruction tuning,”
-stability does not generalize well to real-world applica-                in Advances in Neural Information Processing Systems 36: Annual
-tions. Tasks that require fine-grained perception, such as               Conference on Neural Information Processing Systems 2023, NeurIPS
-OCR [293], [294], document understanding [295], and dense                2023, New Orleans, LA, USA, December 10 - 16, 2023, A. Oh,
-                                                                         T. Naumann, A. Globerson, K. Saenko, M. Hardt, and S. Levine,
-reasoning over structured visual layouts, tend to experience             Eds., 2023. 1
-a substantial drop in accuracy after compression. These           [2]    H. Liu, C. Li, Y. Li, B. Li, Y. Zhang, S. Shen, and Y. J. Lee, “Llava-
-scenarios demand precise localization, text recognition, and             next: Improved reasoning, ocr, and world knowledge,” 2024. 1
-                                                                  [3]    K. Ataallah, X. Shen, E. Abdelrahman, E. Sleiman, D. Zhu, J. Ding,
-structural alignment, where the loss of subtle spatial or                and M. Elhoseiny, “Minigpt4-video: Advancing multimodal llms
-semantic cues introduced by aggressive compression be-                   for video understanding with interleaved visual-textual tokens,”
-comes detrimental. This performance gap highlights a key                 ArXiv preprint, vol. abs/2404.03413, 2024. 1
-limitation: current compression schemes prioritize average        [4]    S. Bai, K. Chen, X. Liu, J. Wang, W. Ge, S. Song, K. Dang, P. Wang,
-                                                                         S. Wang, J. Tang, H. Zhong, Y. Zhu, M. Yang, Z. Li, J. Wan,
-efficiency rather than task-specific fidelity, which constrains          P. Wang, W. Ding, Z. Fu, Y. Xu, J. Ye, X. Zhang, T. Xie, Z. Cheng,
-their applicability in practical multimodal systems requiring            H. Zhang, Z. Yang, H. Xu, and J. Lin, “Qwen2.5-vl technical
-high-resolution understanding or domain-level precision.                 report,” arXiv preprint arXiv:2502.13923, 2025. 1, 15, 16, 19
-                                                                  [5]    K. Li, Y. He, Y. Wang, Y. Li, W. Wang, P. Luo, Y. Wang, L. Wang,
-7.4 Limitations of Existing Evaluation                                   and Y. Qiao, “Videochat: Chat-centric video understanding,”
-                                                                         ArXiv preprint, vol. abs/2305.06355, 2023. 1, 22
-From an evaluation perspective, the efficiency and effective-     [6]    B. Zhang, K. Li, Z. Cheng, Z. Hu, Y. Yuan, G. Chen, S. Leng,
-ness of existing token compression methods are primarily                 Y. Jiang, H. Zhang, X. Li et al., “Videollama 3: Frontier multimodal
-                                                                         foundation models for image and video understanding,” arXiv
-assessed through downstream multimodal tasks. We iden-                   preprint arXiv:2501.13106, 2025. 1, 22
-tify three key limitations in current MLLM token compres-         [7]    P. Tong, E. Brown, P. Wu, S. Woo, A. J. V. IYER, S. C. Akula,
-sion evaluation practices:                                               S. Yang, J. Yang, M. Middepogu, Z. Wang et al., “Cambrian-1:
-    Lack of systematic task categorization. As shown in                  A fully open, vision-centric exploration of multimodal llms,”
-                                                                         Advances in Neural Information Processing Systems, vol. 37, pp.
-Table 8, benchmarks are grouped into broad categories,                   87 310–87 356, 2024. 1, 3, 7
-offering limited insight into how token compression af-           [8]    D. Li, Y. Liu, H. Wu, Y. Wang, Z. Shen, B. Qu, X. Niu, F. Zhou,
-fects specific visual understanding capabilities (e.g., spatial          C. Huang, Y. Li et al., “Aria: An open multimodal native mixture-
-                                                                         of-experts model,” arXiv preprint arXiv:2410.05993, 2024. 1
-relation reasoning or object motion tracking) and content
-                                                                  [9]    S. Ren, L. Yao, S. Li, X. Sun, and L. Hou, “Timechat: A time-
-domains (e.g., table or chart interpretation).                           sensitive multimodal large language model for long video under-
-    Inefficient evaluation processes. Current evaluations                standing,” in Proceedings of the IEEE/CVF Conference on Computer
-typically employ at least ten benchmarks encompassing tens               Vision and Pattern Recognition, 2024, pp. 14 313–14 323. 1, 14, 16,
-                                                                         17
-of thousands of examples. Many benchmarks exhibit sub-            [10]   B. Li, Y. Zhang, D. Guo, R. Zhang, F. Li, H. Zhang, K. Zhang,
-stantial overlap in evaluation focus, leading to redundant               P. Zhang, Y. Li, Z. Liu et al., “Llava-onevision: Easy visual task
-assessments and inefficient resource utilization.                        transfer,” arXiv preprint arXiv:2408.03326, 2024. 1, 4, 19
-    Absence of consistent evaluation standards. The se-           [11]   Y. Zhang, J. Wu, W. Li, B. Li, Z. Ma, Z. Liu, and C. Li,
-                                                                         “Video instruction tuning with synthetic data,” 2024. [Online].
-lection of benchmarks and metrics varies widely across                   Available: https://arxiv.org/abs/2410.02713 1
-studies, with each work emphasizing different strengths.          [12]   S. Tong, E. L. Brown II, P. Wu, S. Woo, A. J. IYER, S. C. Akula,
-This inconsistency hinders fair cross-method comparison.                 S. Yang, J. Yang, M. Middepogu, Z. Wang et al., “Cambrian-1: A
-    Although recent efforts have introduced more challeng-               fully open, vision-centric exploration of multimodal llms,” in The
-                                                                         Thirty-eighth Annual Conference on Neural Information Processing
-ing evaluation settings tailored for token compression ap-               Systems. 1
-proaches [296], a systematic and standardized evaluation          [13]   Z. Sun, S. Shen, S. Cao, H. Liu, C. Li, Y. Shen, C. Gan, L.-Y.
-framework remains necessary to enable fair comparisons                   Gui, Y.-X. Wang, Y. Yang, K. Keutzer, and T. Darrell, “Aligning
-                                                                         large multimodal models with factually augmented rlhf,” ArXiv
-and advance progress in this field.                                      preprint, vol. abs/2309.14525, 2023. 1
-                                                                  [14]   L.-C.-T. Xiaomi, “Mimo-vl technical report,” 2025. [Online].
-8   C ONCLUSION                                                          Available: https://arxiv.org/abs/2506.03569 1
-                                                                  [15]   T. Wan, A. Wang, B. Ai, B. Wen, C. Mao, C.-W. Xie, D. Chen, F. Yu,
-MLLMs represent a significant advancement in cross-modal                 H. Zhao, J. Yang, J. Zeng, J. Wang, J. Zhang, J. Zhou, J. Wang,
-understanding, yet computational efficiency remains a crit-              J. Chen, K. Zhu, K. Zhao, K. Yan, L. Huang, M. Feng, N. Zhang,
-ical bottleneck. Token compression emerges as a promis-                  P. Li, P. Wu, R. Chu, R. Feng, S. Zhang, S. Sun, T. Fang, T. Wang,
-ing solution by reducing redundancy across MLLM com-                     T. Gui, T. Weng, T. Shen, W. Lin, W. Wang, W. Wang, W. Zhou,
-                                                                         W. Wang, W. Shen, W. Yu, X. Shi, X. Huang, X. Xu, Y. Kou, Y. Lv,
-ponents, enhancing both training and inference efficiency                Y. Li, Y. Liu, Y. Wang, Y. Zhang, Y. Huang, Y. Li, Y. Wu, Y. Liu,
-while alleviating long-context reasoning complexity. The                 Y. Pan, Y. Zheng, Y. Hong, Y. Shi, Y. Feng, Z. Jiang, Z. Han, Z.-
-field has evolved from single-module to multi-module com-                F. Wu, and Z. Liu, “Wan: Open and advanced large-scale video
-                                                                         generative models,” arXiv preprint arXiv:2503.20314, 2025. 1
-pression, from fixed-rate to adaptive dynamic approaches,         [16]   L. Li, Y. Liu, L. Yao, P. Zhang, C. An, L. Wang, X. Sun,
-and from static images to complex video sequences. How-                  L. Kong, and Q. Liu, “Temporal reasoning transfer from text
-ever, key challenges persist: the absence of unified evalua-             to video,” in ICLR 2025. OpenReview.net, 2025. [Online].
-tion frameworks for token compression, limited integration               Available: https://openreview.net/forum?id=sHAvMp5J4R 1
-                                                                  [17]   K. Ouyang, Y. Liu, L. Yao, Y. Cai, H. Zhou, J. Zhou, F. Meng, and
-with mainstream training or inference acceleration libraries,            X. Sun, “Conan: Progressive learning to reason like a detective
-and insufficient synergy with other MLLM efficiency tech-                over multi-scale visual evidence,” arXiv preprint arXiv:2510.20470,
-niques. This survey provides a systematic foundation for                 2025. 1
-advancing efficient, scalable, and practically deployable         [18]   H. Touvron, L. Martin, K. Stone, P. Albert, A. Almahairi,
-                                                                         Y. Babaei, N. Bashlykov, S. Batra, P. Bhargava, S. Bhosale et al.,
-multimodal large language models through strategic token                 “Llama 2: Open foundation and fine-tuned chat models,” arXiv
-compression methodologies.                                               preprint arXiv:2307.09288, 2023. 1, 3
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                                                    24
-
-[19]   A. Dubey, A. Jauhri, A. Pandey, A. Kadian, A. Al-Dahle, A. Let-              [36]   R. Choudhury, G. Zhu, S. Liu, K. Niinuma, K. Kitani, and L. Jeni,
-       man, A. Mathur, A. Schelten, A. Yang, A. Fan, A. Goyal,                             “Don’t look twice: Faster video transformers with run-length
-       A. Hartshorn, A. Yang, A. Mitra, A. Sravankumar, A. Korenev,                        tokenization,” Advances in Neural Information Processing Systems,
-       A. Hinsvark, A. Rao, A. Zhang, A. Rodriguez, A. Gregerson,                          vol. 37, pp. 28 127–28 149, 2024. 1
-       A. Spataru, B. Rozière, B. Biron, B. Tang, B. Chern, C. Caucheteux,         [37]   R. Koner, G. Jain, P. Jain, V. Tresp, and S. Paul, “Lookupvit:
-       C. Nayak, C. Bi, C. Marra, C. McConnell, C. Keller, C. Touret,                      Compressing visual information to a limited number of tokens,”
-       C. Wu, C. Wong, C. C. Ferrer, C. Nikolaidis, D. Allonsius, D. Song,                 in European Conference on Computer Vision. Springer, 2024, pp.
-       D. Pintz, D. Livshits, D. Esiobu, D. Choudhary, D. Mahajan,                         322–337. 1, 3, 7
-       D. Garcia-Olano, D. Perino, D. Hupkes, E. Lakomkin, E. Al-                   [38]   K. Zhou, “Lvp: Language-guide visual projector for efficient
-       Badawy, E. Lobanova, E. Dinan, E. M. Smith, F. Radenovic,                           multimodal llm.” 1
-       F. Zhang, G. Synnaeve, G. Lee, G. L. Anderson, G. Nail, G. Mi-               [39]   Y. He, F. Chen, J. Liu, W. Shao, H. Zhou, K. Zhang, and B. Zhuang,
-       alon, G. Pang, G. Cucurell, H. Nguyen, H. Korevaar, H. Xu,                          “Zipvl: Efficient large vision-language models with dynamic
-       H. Touvron, I. Zarov, I. A. Ibarra, I. M. Kloumann, I. Misra, I. Ev-                token sparsification and kv cache compression,” 2024. 1
-       timov, J. Copet, J. Lee, J. Geffert, J. Vranes, J. Park, J. Mahadeokar,      [40]   Q. Wu, W. Lin, Y. Zhou, W. Ye, Z. Zen, X. Sun, and R. Ji,
-       J. Shah, J. van der Linde, J. Billock, J. Hong, J. Lee, J. Fu, J. Chi,              “Accelerating multimodal large language models via dynamic
-       J. Huang, J. Liu, J. Wang, J. Yu, J. Bitton, J. Spisak, J. Park, J. Rocca,          visual-token exit and the empirical findings,” arXiv preprint
-       J. Johnstun, J. Saxe, J. Jia, K. V. Alwala, K. Upasani, K. Plawiak,                 arXiv:2411.19628, 2024. 1
-       K. Li, K. Heafield, K. Stone, and et al., “The llama 3 herd of               [41]   H. Wang, Y. Nie, Y. Ye, D. GuanYu, Y. Wang, S. Li, H. Yu, J. Lu,
-       models,” ArXiv preprint, vol. abs/2407.21783, 2024. 1                               and C. Huang, “Dynamic-vlm: Simple dynamic visual token
-[20]   OpenAI, “Introducing chatgpt,” 2022. 1                                              compression for videollm,” arXiv preprint arXiv:2412.09530, 2024.
-[21]   A. Yang, B. Yang, B. Hui, B. Zheng, B. Yu, C. Zhou, C. Li, C. Li,                   1, 5
-       D. Liu, F. Huang, G. Dong, H. Wei, H. Lin, J. Tang, J. Wang,                 [42]   Y. Jiang, Q. Wu, W. Lin, W. Yu, and Y. Zhou, “What kind of visual
-       J. Yang, J. Tu, J. Zhang, J. Ma, J. Xu, J. Zhou, J. Bai, J. He, J. Lin,             tokens do we need? training-free visual token pruning for multi-
-       K. Dang, K. Lu, K. Chen, K. Yang, M. Li, M. Xue, N. Ni, P. Zhang,                   modal large language models from the perspective of graph,” in
-       P. Wang, R. Peng, R. Men, R. Gao, R. Lin, S. Wang, S. Bai, S. Tan,                  Proceedings of the AAAI Conference on Artificial Intelligence, vol. 39,
-       T. Zhu, T. Li, T. Liu, W. Ge, X. Deng, X. Zhou, X. Ren, X. Zhang,                   no. 4, 2025, pp. 4075–4083. 1
-       X. Wei, X. Ren, Y. Fan, Y. Yao, Y. Zhang, Y. Wan, Y. Chu, Y. Liu,            [43]   ——, “What kind of visual tokens do we need? training-free vi-
-       Z. Cui, Z. Zhang, and Z. Fan, “Qwen2 technical report,” ArXiv                       sual token pruning for multi-modal large language models from
-       preprint, vol. abs/2407.10671, 2024. 1                                              the perspective of graph,” in Proceedings of the AAAI Conference
-[22]   D. Guo, D. Yang, H. Zhang, J. Song, R. Zhang, R. Xu, Q. Zhu,                        on Artificial Intelligence, vol. 39, no. 4, 2025, pp. 4075–4083. 1
-       S. Ma, P. Wang, X. Bi et al., “Deepseek-r1: Incentivizing reasoning          [44]   R. Zhang, R. Shao, G. Chen, M. Zhang, K. Zhou, W. Guan, and
-       capability in llms via reinforcement learning,” arXiv preprint                      L. Nie, “Falcon: Resolving visual redundancy and fragmentation
-       arXiv:2501.12948, 2025. 1                                                           in high-resolution multimodal large language models via visual
-[23]   A. Dosovitskiy, L. Beyer, A. Kolesnikov, D. Weissenborn, X. Zhai,                   registers,” arXiv preprint arXiv:2501.16297, 2025. 1, 5
-       T. Unterthiner, M. Dehghani, M. Minderer, G. Heigold, S. Gelly               [45]   H. Wang, Z. Yu, G. Spadaro, C. Ju, V. Quétu, S. Xiao, and
-       et al., “An image is worth 16x16 words: Transformers for image                      E. Tartaglione, “Folder: Accelerating multi-modal large lan-
-       recognition at scale,” in International Conference on Learning Repre-               guage models with enhanced performance,” arXiv preprint
-       sentations, 2020. 1                                                                 arXiv:2501.02430, 2025. 1
-[24]   H. Liu, C. Li, Q. Wu, and Y. J. Lee, “Visual instruction tuning,”            [46]   Z. Wen, Y. Gao, W. Li, C. He, and L. Zhang, “Token pruning
-       arXiv preprint arXiv:2304.08485, 2023. 1                                            in multimodal large language models: Are we solving the right
-[25]   P. Wang, S. Bai, S. Tan, S. Wang, Z. Fan, J. Bai, K. Chen, X. Liu,                  problem?” arXiv preprint arXiv:2502.11501, 2025. 1
-       J. Wang, W. Ge, Y. Fan, K. Dang, M. Du, X. Ren, R. Men, D. Liu,              [47]   H. Zhang, M. Lyu, C. He, Y. Ao, and Y. Lin, “Towards adaptive vi-
-       C. Zhou, J. Zhou, and J. Lin, “Qwen2-vl: Enhancing vision-                          sual token pruning for large multimodal models,” arXiv preprint
-       language model’s perception of the world at any resolution,”                        arXiv:2509.00320, 2025. 1
-       2024. 1, 15                                                                  [48]   J. Ma, Q. Zhang, M. Lu, Z. Wang, Q. Zhou, J. Song, and
-[26]   OpenAI, “Hello gpt-4o,” 2024. [Online]. Available: https:                           S. Zhang, “Mmg-vid: Maximizing marginal gains at segment-
-       //openai.com/index/hello-gpt-4o/ 1                                                  level and token-level for efficient video llms,” arXiv preprint
-[27]   P. Wu and S. Xie, “V*: Guided visual search as a core mechanism                     arXiv:2508.21044, 2025. 1
-       in multimodal llms,” arXiv preprint arXiv:2312.14135, 2023. 1                [49]   K. Zeng, G. Zhong, J. Cheng, J. Yuan, and Z. Li, “Avam: Uni-
-[28]   C. Fu, Y. Dai, Y. Luo, L. Li, S. Ren, R. Zhang, Z. Wang, C. Zhou,                   versal training-free adaptive visual anchoring embedded into
-       Y. Shen, M. Zhang et al., “Video-mme: The first-ever compre-                        multimodal large language model for multi-image question an-
-       hensive evaluation benchmark of multi-modal llms in video                           swering,” arXiv preprint arXiv:2508.17860, 2025. 1
-       analysis,” ArXiv preprint, vol. abs/2405.21075, 2024. 1, 17                  [50]   Z. Tang, Z. Ma, S. Wang, Z. Li, L. Zhang, H. Zhao, Y. Li,
-[29]   J. Zhou, Y. Shu, B. Zhao, B. Wu, S. Xiao, X. Yang, Y. Xiong,                        and Q. Wang, “Covipal: Layer-wise contextualized visual to-
-       B. Zhang, T. Huang, and Z. Liu, “Mlvu: A comprehensive bench-                       ken pruning for large vision-language models,” arXiv preprint
-       mark for multi-task long video understanding,” ArXiv preprint,                      arXiv:2508.17243, 2025. 1
-       vol. abs/2406.04264, 2024. 1, 17                                             [51]   K. Zhao, W. Yuan, A. L. Hung, and D. Zeng, “Pore: Position-
-[30]   Y. Liang, C. Ge, Z. Tong, Y. Song, J. Wang, and P. Xie, “Not all                    reweighted visual token pruning for vision language models,”
-       patches are what you need: Expediting vision transformers via                       arXiv preprint arXiv:2508.17807, 2025. 1
-       token reorganizations,” arXiv preprint arXiv:2202.07800, 2022. 1             [52]   W. Wang, Z. Gao, L. Gu, H. Pu, L. Cui, X. Wei, Z. Liu, L. Jing, S. Ye,
-[31]   H. Yin, A. Vahdat, J. Alvarez, A. Mallya, J. Kautz, and                             J. Shao et al., “Internvl3. 5: Advancing open-source multimodal
-       P. Molchanov, “Adavit: Adaptive tokens for efficient vision trans-                  models in versatility, reasoning, and efficiency,” arXiv preprint
-       former,” arXiv preprint arXiv:2112.07658, 2021. 1                                   arXiv:2508.18265, 2025. 1, 19
-[32]   M. Fayyaz, S. A. Koohpayegani, F. R. Jafari, S. Sengupta, H. R. V.           [53]   J. Liu, J. Lin, Y. Wei, K. Shao, K. Tao, J. Huang, X. Yang,
-       Joze, E. Sommerlade, H. Pirsiavash, and J. Gall, “Adaptive token                    Z. Chen, H. Wang, and X. Jin, “Revisiting mllm token technol-
-       sampling for efficient vision transformers,” in European conference                 ogy through the lens of classical visual coding,” arXiv preprint
-       on computer vision. Springer, 2022, pp. 396–414. 1                                  arXiv:2508.13460, 2025. 1
-[33]   Y. Rao, W. Zhao, B. Liu, J. Lu, J. Zhou, and C.-J. Hsieh, “Dynam-            [54]   Z. Zhang, S. Liu, W. Yu, X. Wang et al., “Top-down compression:
-       icvit: Efficient vision transformers with dynamic token sparsifi-                   Revisit efficient vision token projection for visual instruction
-       cation,” Advances in neural information processing systems, vol. 34,                tuning,” arXiv preprint arXiv:2505.11945, 2025. 1
-       pp. 13 937–13 949, 2021. 1, 12                                               [55]   Y. Shu, Z. Liu, P. Zhang, M. Qin, J. Zhou, Z. Liang, T. Huang, and
-[34]   D. Bolya, C.-Y. Fu, X. Dai, P. Zhang, C. Feichtenhofer, and                         B. Zhao, “Video-xl: Extra-long vision language model for hour-
-       J. Hoffman, “Token merging: Your vit but faster,” arXiv preprint                    scale video understanding,” in Proceedings of the Computer Vision
-       arXiv:2210.09461, 2022. 1, 5, 6, 12, 17, 18                                         and Pattern Recognition Conference, 2025, pp. 26 160–26 169. 1, 5,
-[35]   S. Peng, D. Fu, B. Wei, Y. Cao, L. Gao, and Z. Tang, “Vote&mix:                     15, 16
-       Plug-and-play token reduction for efficient vision transformer,”             [56]   X. Shen, Y. Xiong, C. Zhao, L. Wu, J. Chen, C. Zhu, Z. Liu,
-       arXiv preprint arXiv:2408.17062, 2024. 1                                            F. Xiao, B. Varadarajan, F. Bordes et al., “Longvu: Spatiotemporal
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                                               25
-
-       adaptive compression for long video-language understanding,”              [77]   P. K. A. Vasu, F. Faghri, C.-L. Li, C. Koc, N. True, A. Antony,
-       arXiv preprint arXiv:2410.17434, 2024. 1, 3, 5, 8, 15, 17                        G. Santhanam, J. Gabriel, P. Grasch, O. Tuzel et al., “Fastvlm: Effi-
-[57]   L. Yao, Y. Li, Y. Wei, L. Li, S. Ren, Y. Liu, K. Ouyang, L. Wang,                cient vision encoding for vision language models,” in Proceedings
-       S. Li, S. Li et al., “Timechat-online: 80% visual tokens are naturally           of the Computer Vision and Pattern Recognition Conference, 2025, pp.
-       redundant in streaming videos,” arXiv preprint arXiv:2504.17343,                 19 769–19 780. 3, 7
-       2025. 1, 3, 5, 15, 16, 17, 18, 22                                         [78]   L. Kong, H. Zhang, J. Zhang, J. Huang, K. Li, Q. Wang, and
-[58]   M. Qin, X. Liu, Z. Liang, Y. Shu, H. Yuan, J. Zhou, S. Xiao,                     F. Zhang, “Clapper: Compact learning and video representation
-       B. Zhao, and Z. Liu, “Video-xl-2: Towards very long-video un-                    in vlms,” arXiv preprint arXiv:2505.15529, 2025. 3, 15
-       derstanding through task-aware kv sparsification,” arXiv preprint         [79]   R. Zhang, Y. Lyu, R. Shao, G. Chen, W. Guan, and L. Nie, “Token-
-       arXiv:2506.19225, 2025. 1, 3, 5, 13, 16                                          level correlation-guided compression for efficient multimodal
-[59]   Z. Liu, Y. Dong, Z. Liu, W. Hu, J. Lu, and Y. Rao, “Oryx mllm: On-               document understanding,” arXiv preprint arXiv:2407.14439, 2024.
-       demand spatial-temporal understanding at arbitrary resolution,”                  3, 7, 18
-       arXiv preprint arXiv:2409.12961, 2024. 1                                  [80]   Y. Guo, W. Dong, J. Song, S. Zhu, X. Zhang, H. Yang, Y. Wang,
-[60]   Z. Liu, Y. Dong, J. Wang, Z. Liu, W. Hu, J. Lu, and Y. Rao, “Ola:                Y. Du, X. Chen, and B. Zheng, “Fila-video: Spatio-temporal
-       Pushing the frontiers of omni-modal language model,” arXiv                       compression for fine-grained long video understanding,” arXiv
-       preprint arXiv:2502.04328, 2025. 1                                               preprint arXiv:2504.20384, 2025. 3, 7, 15
-[61]   Y. Ji, J. Zhang, H. Xia, J. Chen, L. Shou, G. Chen, and H. Li,            [81]   P. Jin, R. Takanobu, W. Zhang, X. Cao, and L. Yuan, “Chat-univi:
-       “Specvlm: Enhancing speculative decoding of video llms via                       Unified visual representation empowers large language models
-       verifier-guided token pruning,” arXiv preprint arXiv:2508.16201,                 with image and video understanding,” in Proceedings of the
-       2025. 1, 5                                                                       IEEE/CVF Conference on Computer Vision and Pattern Recognition,
-[62]   S. Dong, J. Hu, M. Zhang, M. Yin, Y. Fu, and Q. Qian, “Mm-                       2024, pp. 13 700–13 710. 3, 7, 15
-       tok: Multimodal coverage maximization for efficient inference of          [82]   D. Shi, C. Tao, A. Rao, Z. Yang, C. Yuan, and J. Wang, “Cross-
-       vlms,” arXiv preprint arXiv:2508.18264, 2025. 1                                  get: Cross-guided ensemble of tokens for accelerating vision-
-[63]   J. Chen, X. Liu, Z. Wen, Y. Wang, S. Huang, and H. Chen,                         language transformers,” arXiv preprint arXiv:2305.17455, 2023. 3,
-       “Variation-aware vision token dropping for faster large vision-                  7, 13, 17, 19
-       language models,” arXiv preprint arXiv:2509.01552, 2025. 1                [83]   S. Ren, S. Chen, S. Li, X. Sun, and L. Hou, “Testa: Temporal-spatial
-                                                                                        token aggregation for long-form video-language understanding,”
-[64]   X. Wang, J. Zhang, T. Wang, H. Zhang, and F. Zheng, “Seeing
-                                                                                        arXiv preprint arXiv:2310.19060, 2023. 3, 7, 15, 17, 18
-       more, saying more: Lightweight language experts are dynamic
-                                                                                 [84]   Y. Shang, M. Cai, B. Xu, Y. J. Lee, and Y. Yan, “Llava-prumerge:
-       video token compressors,” arXiv preprint arXiv:2509.00969, 2025.
-                                                                                        Adaptive token reduction for efficient large multimodal models,”
-       1, 5
-                                                                                        arXiv preprint arXiv:2403.15388, 2024. 3, 5, 7, 8, 18
-[65]   K. H. I. Arif, J. Yoon, D. S. Nikolopoulos, H. Vandierendonck,
-                                                                                 [85]   M. Huang, R. Huang, H. Shi, Y. Chen, C. Zheng, X. Sun, X. Jiang,
-       D. John, and B. Ji, “Hired: Attention-guided token dropping for
-                                                                                        Z. Li, and H. Cheng, “Efficient multi-modal large language mod-
-       efficient inference of high-resolution vision-language models,” in
-                                                                                        els via visual token grouping,” arXiv preprint arXiv:2411.17773,
-       Proceedings of the AAAI Conference on Artificial Intelligence, vol. 39,
-                                                                                        2024. 3, 7
-       no. 2, 2025, pp. 1773–1781. 3, 5
-                                                                                 [86]   Y. Han, X. Liu, P. Ding, D. Wang, H. Chen, Q. Yan, and
-[66]   D. Song, W. Wang, S. Chen, X. Wang, M. Guan, and B. Wang,
-                                                                                        S. Huang, “Rethinking token reduction in mllms: Towards a
-       “Less is more: A simple yet effective token reduction method
-                                                                                        unified paradigm for training-free acceleration,” arXiv e-prints,
-       for efficient multi-modal llms,” 2024. [Online]. Available:
-                                                                                        pp. arXiv–2411, 2024. 3, 7, 12, 14
-       https://arxiv.org/abs/2409.10994 3, 6
-                                                                                 [87]   J. Hyun, S. Hwang, S. H. Han, T. Kim, I. Lee, D. Wee, J.-Y.
-[67]   A. Jeddi, N. Baghbanzadeh, E. Dolatabadi, and B. Taati,                          Lee, S. J. Kim, and M. Shim, “Multi-granular spatio-temporal
-       “Similarity-aware token pruning: Your vlm but faster,” arXiv                     token merging for training-free acceleration of video llms,” arXiv
-       preprint arXiv:2503.11549, 2025. 3, 6                                            preprint arXiv:2507.07990, 2025. 3, 5, 7
-[68]   Q. Zhang, A. Cheng, M. Lu, R. Zhang, Z. Zhuo, J. Cao, S. Guo,             [88]   L. Gao, Y. Zhong, Y. Zeng, H. Tan, D. Li, and Z. Zhao, “Linvt:
-       Q. She, and S. Zhang, “Beyond text-visual attention: Exploiting                  Empower your image-level large language model to understand
-       visual cues for effective token pruning in vlms,” arXiv preprint                 videos,” arXiv preprint arXiv:2412.05185, 2024. 3, 7, 15, 17
-       arXiv:2412.01818, 2024. 3, 5, 6, 18                                       [89]   Q. Zhu, X. Wang, Z. Lu, J. Lao, C. Jin, J. Chen, Y. Peng, Q. Zhu,
-[69]   J. Liu, F. Du, G. Zhu, N. Lian, J. Li, and B. Chen, “Hiprune:                    L. Zhong, J. Liu et al., “Admire: Adaptive method to enhance
-       Training-free visual token pruning via hierarchical attention in                 multiple image resolutions in text-rich multi-image understand-
-       vision-language models,” arXiv preprint arXiv:2508.00553, 2025.                  ing,” in Proceedings of the 31st ACM SIGKDD Conference on Knowl-
-       3, 6                                                                             edge Discovery and Data Mining V. 2, 2025, pp. 5237–5248. 3, 7
-[70]   S. Yang, R. Xu, C. Cui, T. Wang, D. Lin, and J. Pang, “Vflowopt:          [90]   X. Li, Y. Wang, J. Yu, X. Zeng, Y. Zhu, H. Huang, J. Gao,
-       A token pruning framework for lmms with visual information                       K. Li, Y. He, C. Wang et al., “Videochat-flash: Hierarchical
-       flow-guided optimization,” arXiv preprint arXiv:2508.05211, 2025.                compression for long-context video modeling,” arXiv preprint
-       3, 5, 6                                                                          arXiv:2501.00574, 2024. 3
-[71]   C. Zhang, K. Ma, T. Fang, W. Yu, H. Zhang, Z. Zhang, Y. Xie,              [91]   M. Cai, J. Yang, J. Gao, and Y. J. Lee, “Matryoshka multimodal
-       K. Sycara, H. Mi, and D. Yu, “Vscan: Rethinking visual token re-                 models,” arXiv preprint arXiv:2405.17430, 2024. 3, 5, 7, 22
-       duction for efficient large vision-language models,” arXiv preprint       [92]   T. Liu, L. Shi, R. Hong, Y. Hu, Q. Yin, and L. Zhang, “Multi-
-       arXiv:2505.22654, 2025. 3, 7, 8, 11, 12                                          stage vision token dropping: Towards efficient multimodal large
-[72]   Z. Wang, J. Chen, W. Zhou, H. Zhu, J. Liang, L. Shan, M. Liu,                    language model,” arXiv preprint arXiv:2411.10803, 2024. 3, 8, 13,
-       D. Xu, Q. Yang, and B. Qin, “Smarttrim: Adaptive tokens and                      14, 18, 19
-       attention pruning for efficient vision-language models,” arXiv            [93]   S. Yang, Y. Chen, Z. Tian, C. Wang, J. Li, B. Yu, and J. Jia,
-       preprint arXiv:2305.15033, 2023. 3, 6                                            “Visionzip: Longer is better but not necessary in vision language
-[73]   J. Cao, P. Ye, S. Li, C. Yu, Y. Tang, J. Lu, and T. Chen, “Madtp: Mul-           models,” in Proceedings of the Computer Vision and Pattern Recogni-
-       timodal alignment-guided dynamic token pruning for accelerat-                    tion Conference, 2025, pp. 19 792–19 802. 3, 4, 5, 7, 17, 19
-       ing vision-language transformer,” in Proceedings of the IEEE/CVF          [94]   L. Jiang, W. Huang, T. Liu, Y. Zeng, J. Li, L. Cheng, and X. Xu,
-       conference on computer vision and pattern recognition, 2024, pp.                 “Fopru: Focal pruning for efficient large vision-language mod-
-       15 710–15 719. 3, 6, 17, 18                                                      els,” arXiv preprint arXiv:2411.14164, 2024. 3, 8
-[74]   J. Li, K. Li, C. Gao, Y. Li, and X. Chen, “Egoprune: Efficient token      [95]   B. Xu, Y. Shang, Y. Ge, Q. Lou, and Y. Yan, “freepruner: A
-       pruning for egomotion video reasoning in embodied agent,”                        training-free approach for large multimodal model acceleration,”
-       arXiv preprint arXiv:2507.15428, 2025. 3, 6, 21                                  arXiv preprint arXiv:2411.15446, 2024. 3, 8
-[75]   J. Liu, L. Niu, W. Chen, J. Zhou, and F. Meng, “Laco: Efficient           [96]   X. Zou, D. Lu, Y. Wang, Y. Yan, Y. Lyu, X. Zheng, L. Zhang,
-       layer-wise compression of visual tokens for multimodal large                     and X. Hu, “Don’t just chase ”highlighted tokens” in mllms:
-       language models,” arXiv preprint arXiv:2507.02279, 2025. 3, 7                    Revisiting visual holistic context retention,” 2025. [Online].
-[76]   H. Tang and C. Shen, “Learning compact vision tokens for effi-                   Available: https://arxiv.org/abs/2510.02912 3, 5, 8, 17, 18
-       cient large multimodal models,” arXiv preprint arXiv:2506.07138,          [97]   H. Wang, J. Kai, H. Bai, L. Hou, B. Jiang, Z. He, and
-       2025. 3, 7                                                                       Z. Lin, “Fourier-vlm: Compressing vision tokens in the fre-
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                                              26
-
-      quency domain for large vision-language models,” arXiv preprint                 language models with instruction tuning,” Advances in neural
-      arXiv:2508.06038, 2025. 3, 7                                                    information processing systems, vol. 36, pp. 49 250–49 267, 2023. 3, 9
-[98] Y. Li, C. Wang, and J. Jia, “Llama-vid: An image is worth 2 tokens         [118] J. Bai, S. Bai, S. Yang, S. Wang, S. Tan, P. Wang, J. Lin, C. Zhou,
-      in large language models,” in European Conference on Computer                   and J. Zhou, “Qwen-vl: A versatile vision-language model for
-      Vision. Springer, 2024, pp. 323–340. 3, 8, 13, 19                               understanding, localization, text reading, and beyond,” 2023.
-[99] Z. Cheng, S. Leng, H. Zhang, Y. Xin, X. Li, G. Chen, Y. Zhu,                     [Online]. Available: https://arxiv.org/abs/2308.12966 3, 9, 19
-      W. Zhang, Z. Luo, D. Zhao et al., “Videollama 2: Advancing                [119] W. Hu, Z.-Y. Dou, L. Li, A. Kamath, N. Peng, and K.-W. Chang,
-      spatial-temporal modeling and audio understanding in video-                     “Matryoshka query transformer for large vision-language mod-
-      llms,” arXiv preprint arXiv:2406.07476, 2024. 3, 8, 19                          els,” Advances in Neural Information Processing Systems, vol. 37, pp.
-[100] Y. Liu, F. Wu, R. Li, Z. Tang, and K. Li, “Par: Prompt-aware token              50 168–50 188, 2024. 3, 9, 10, 19
-      reduction method for efficient large multimodal models,” arXiv            [120] D. Yan, P. Li, Y. Li, H. Chen, Q. Chen, W. Luo, W. Dong,
-      preprint arXiv:2410.07278, 2024. 3, 8, 14, 19, 22                               Q. Yan, H. Zhang, and C. Shen, “Tg-llava: Text guided llava
-[101] S. Li, J. Xu, X.-H. Li, C. Deng, and L.-L. Huang, “Qg-vtc:                      via learnable latent embeddings,” 2024. [Online]. Available:
-      Question-guided visual token compression in mllms for efficient                 https://arxiv.org/abs/2409.09564 3, 9, 10, 19
-      vqa,” arXiv preprint arXiv:2504.00654, 2025. 3, 8, 22                     [121] Y. Li, J. Yang, Z. Shen, L. Han, H. Xu, and R. Tang, “Catp:
-[102] Y. Chen, J. Xu, X.-Y. Zhang, W.-Z. Liu, Y.-Y. Liu, and C.-L. Liu,               Contextually adaptive token pruning for efficient and enhanced
-      “Recoverable compression: A multimodal vision token recovery                    multimodal in-context learning,” arXiv preprint arXiv:2508.07871,
-      mechanism guided by text information,” in Proceedings of the                    2025. 3, 5, 12
-      AAAI Conference on Artificial Intelligence, vol. 39, no. 2, 2025, pp.     [122] W. Li, Y. Yuan, J. Liu, D. Tang, S. Wang, J. Qin, J. Zhu, and
-      2293–2301. 3, 8                                                                 L. Zhang, “Tokenpacker: Efficient visual projector for multimodal
-[103] D. Wang, J. Cui, M. Li, W. Lin, B. Chen, and H. Zhang, “Instruc-                llm,” International Journal of Computer Vision, pp. 1–19, 2025. 3, 5,
-      tion tuning-free visual token complement for multimodal llms,”                  10, 18, 19
-      in European Conference on Computer Vision. Springer, 2024, pp.            [123] R. Huang, X. Ding, C. Wang, J. Han, Y. Liu, H. Zhao, H. Xu,
-      446–462. 3, 8                                                                   L. Hou, W. Zhang, and X. Liang, “Hires-llava: Restoring frag-
-[104] X. Chu, L. Qiao, X. Zhang, S. Xu, F. Wei, Y. Yang, X. Sun, Y. Hu,               mentation input in high-resolution large vision-language mod-
-      X. Lin, B. Zhang et al., “Mobilevlm v2: Faster and stronger base-               els,” in Proceedings of the Computer Vision and Pattern Recognition
-      line for vision language model,” arXiv preprint arXiv:2402.03766,               Conference, 2025, pp. 29 814–29 824. 3, 5, 10, 19
-      2024. 3, 5, 8, 9                                                          [124] A. Hu, H. Xu, L. Zhang, J. Ye, M. Yan, J. Zhang, Q. Jin, F. Huang,
-[105] L. Yao, L. Li, S. Ren, L. Wang, Y. Liu, X. Sun, and L. Hou, “Deco:              and J. Zhou, “mplug-docowl2: High-resolution compressing for
-      Decoupling token compression from semantic abstraction in mul-                  ocr-free multi-page document understanding,” arXiv preprint
-      timodal large language models,” arXiv preprint arXiv:2405.20985,                arXiv:2409.03420, 2024. 3, 10, 21
-      2024. 3, 5, 8, 9, 17, 18, 22                                              [125] H. Zhang, J. Zhang, X. Ji, Q. Wang, and F. Zhang, “Dyntok:
-[106] Z. Lan, L. Niu, F. Meng, W. Li, J. Zhou, and J. Su, “Avg-llava: A               Dynamic compression of visual tokens for efficient and effective
-      large multimodal model with adaptive visual granularity,” arXiv                 video understanding,” arXiv preprint arXiv:2506.03990, 2025. 3, 5,
-      preprint arXiv:2410.02745, 2024. 3, 9, 18                                       10, 18
-[107] M. Gao, J. Liu, M. Li, J. Xie, Q. Liu, B. Zhao, X. Chen, and              [126] B. Sun, J. Zhao, X. Wei, and Q. Hou, “Llava-scissor: Token com-
-      H. Xiong, “Tc-llava: Rethinking the transfer from image to video                pression with semantic connected components for video llms,”
-      understanding with temporal considerations,” 2024. [Online].                    arXiv preprint arXiv:2506.21862, 2025. 3, 5, 10, 18
-      Available: https://arxiv.org/abs/2409.03206 3, 9, 15, 18                  [127] Y. Omri, P. Shroff, and T. Tambe, “Token sequence com-
-[108] L. Xu, Y. Zhao, D. Zhou, Z. Lin, S. K. Ng, and J. Feng, “Pllava:                pression for efficient multimodal computing,” arXiv preprint
-      Parameter-free llava extension from images to videos for video                  arXiv:2504.17892, 2025. 3, 10
-      dense captioning,” arXiv preprint arXiv:2404.16994, 2024. 3, 8, 9,        [128] S. R. Alvar, G. Singh, M. Akbari, and Y. Zhang, “Divprune:
-      15, 18, 19                                                                      Diversity-based visual token pruning for large multimodal mod-
-[109] Z. Chen, W. Wang, H. Tian, S. Ye, Z. Gao, E. Cui, W. Tong, K. Hu,               els,” in Proceedings of the Computer Vision and Pattern Recognition
-      J. Luo, Z. Ma et al., “How far are we to gpt-4v? closing the gap to             Conference, 2025, pp. 9392–9401. 3, 5, 10, 11, 18
-      commercial multimodal models with open-source suites,” Science            [129] L. Chen, H. Zhao, T. Liu, S. Bai, J. Lin, C. Zhou, and B. Chang,
-      China Information Sciences, vol. 67, no. 12, p. 220101, 2024. 3, 9, 18,         “An image is worth 1/2 tokens after layer 2: Plug-and-play infer-
-      19                                                                              ence acceleration for large vision-language models,” in European
-[110] Z. Liu, L. Zhu, B. Shi, Z. Zhang, Y. Lou, S. Yang, H. Xi, S. Cao,               Conference on Computer Vision. Springer, 2024, pp. 19–35. 3, 5, 17,
-      Y. Gu, D. Li et al., “Nvila: Efficient frontier visual language                 18, 19
-      models,” arXiv preprint arXiv:2412.04468, 2024. 3                         [130] L. Xing, Q. Huang, X. Dong, J. Lu, P. Zhang, Y. Zang, Y. Cao,
-[111] Z. Chen, W. Wang, Y. Cao, Y. Liu, Z. Gao, E. Cui, J. Zhu, S. Ye,                C. He, J. Wang, F. Wu et al., “Pyramiddrop: Accelerating your
-      H. Tian, Z. Liu et al., “Expanding performance boundaries of                    large vision-language models via pyramid visual redundancy
-      open-source multimodal models with model, data, and test-time                   reduction,” arXiv preprint arXiv:2410.17247, 2024. 3, 5, 17, 18, 19,
-      scaling,” arXiv preprint arXiv:2412.05271, 2024. 3                              20
-[112] P. Wang, S. Bai, S. Tan, S. Wang, Z. Fan, J. Bai, K. Chen, X. Liu,        [131] Z. Lin, M. Lin, L. Lin, and R. Ji, “Boosting multimodal large
-      J. Wang, W. Ge, Y. Fan, K. Dang, M. Du, X. Ren, R. Men, D. Liu,                 language models with visual tokens withdrawal for rapid infer-
-      C. Zhou, J. Zhou, and J. Lin, “Qwen2-vl: Enhancing vision-                      ence,” in Proceedings of the AAAI Conference on Artificial Intelli-
-      language model’s perception of the world at any resolution,”                    gence, vol. 39, no. 5, 2025, pp. 5334–5342. 3, 11
-      arXiv preprint arXiv:2409.12191, 2024. 3, 4, 19                           [132] Y. Zhang, C.-K. Fan, J. Ma, W. Zheng, T. Huang, K. Cheng,
-[113] J. Cha, W. Kang, J. Mun, and B. Roh, “Honeybee: Locality-                       D. Gudovskiy, T. Okuno, Y. Nakata, K. Keutzer et al., “Sparsevlm:
-      enhanced projector for multimodal llm,” in Proceedings of the                   Visual token sparsification for efficient vision-language model
-      IEEE/CVF Conference on Computer Vision and Pattern Recognition,                 inference,” arXiv preprint arXiv:2410.04417, 2024. 3, 5, 11, 17, 18,
-      2024, pp. 13 817–13 827. 3, 8, 9, 18, 19                                        19
-[114] Z. Cheng, S. Leng, H. Zhang, Y. Xin, X. Li, G. Chen, Y. Zhu,              [133] M. Endo, X. Wang, and S. Yeung-Levy, “Feather the throttle:
-      W. Zhang, Z. Luo, D. Zhao et al., “Videollama 2: Advancing                      Revisiting visual token pruning for vision-language model ac-
-      spatial-temporal modeling and audio understanding in video-                     celeration,” arXiv preprint arXiv:2412.13180, 2024. 3, 5, 8, 11, 18
-      llms,” arXiv preprint arXiv:2406.07476, 2024. 3, 15                       [134] X. Ye, Y. Gan, Y. Ge, X.-P. Zhang, and Y. Tang, “Atp-llava:
-[115] J. Li, D. Li, S. Savarese, and S. Hoi, “Blip-2: Bootstrapping                   Adaptive token pruning for large vision language models,” in
-      language-image pre-training with frozen image encoders and                      Proceedings of the Computer Vision and Pattern Recognition Confer-
-      large language models,” in International conference on machine                  ence, 2025, pp. 24 972–24 982. 3, 11
-      learning. PMLR, 2023, pp. 19 730–19 742. 3, 8, 9, 19                      [135] Y. Zhong, Z. Liu, Y. Li, and L. Wang, “Aim: Adaptive inference of
-[116] D. Zhu, J. Chen, X. Shen, X. Li, and M. Elhoseiny, “Minigpt-4:                  multi-modal llms via token merging and pruning,” arXiv preprint
-      Enhancing vision-language understanding with advanced large                     arXiv:2412.03248, 2024. 3, 11
-      language models,” arXiv preprint arXiv:2304.10592, 2023. 3, 9, 19         [136] J. Zhuang, L. Lu, M. Dai, R. Hu, J. Chen, Q. Liu, and H. Hu,
-[117] W. Dai, J. Li, D. Li, A. Tiong, J. Zhao, W. Wang, B. Li, P. N.                  “St3: Accelerating multimodal large language model by spatial-
-      Fung, and S. Hoi, “Instructblip: Towards general-purpose vision-                temporal visual token trimming,” in Proceedings of the AAAI
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                                                27
-
-      Conference on Artificial Intelligence, vol. 39, no. 10, 2025, pp. 11 049–   [156] Y. Yang, Z. Zhao, S. N. Shukla, A. Singh, S. K. Mishra, L. Zhang,
-      11 057. 3, 11, 13                                                                 and M. Ren, “Streammem: Query-agnostic kv cache memory for
-[137] S. Zhao, Z. Wang, F. Juefei-Xu, X. Xia, M. Liu, X. Wang, M. Liang,                streaming video understanding,” arXiv preprint arXiv:2508.15717,
-      N. Zhang, D. N. Metaxas, and L. Yu, “Accelerating multimodal                      2025. 3, 13
-      large language models by searching optimal vision token reduc-              [157] A. Wang, F. Sun, H. Chen, Z. Lin, J. Han, and G. Ding, “[cls]
-      tion,” in Proceedings of the Computer Vision and Pattern Recognition              token tells everything needed for training-free efficient mllms,”
-      Conference, 2025, pp. 29 869–29 879. 3, 11                                        arXiv preprint arXiv:2412.05819, 2024. 3, 7
-[138] C. Yang, Y. Sui, J. Xiao, L. Huang, Y. Gong, C. Li, J. Yan, Y. Bai,         [158] Y. Liu, Y. Wang, B. Shi, X. Zhang, W. Dai, C. Li, H. Xiong,
-      P. Sadayappan, X. Hu et al., “Topv: Compatible token pruning                      and Q. Tian, “Meteor: Multi-encoder collaborative token prun-
-      with inference time optimization for fast and low-memory mul-                     ing for efficient vision language models,” arXiv preprint
-      timodal vision language model,” in Proceedings of the Computer                    arXiv:2507.20842, 2025. 3, 5, 6, 7
-      Vision and Pattern Recognition Conference, 2025, pp. 19 803–19 813.         [159] Y. Jin, J. Li, Y. Liu, T. Gu, K. Wu, Z. Jiang, M. He, B. Zhao, X. Tan,
-      3, 5, 12                                                                          Z. Gan et al., “Efficient multimodal large language models: A
-[139] M. Dhouib, D. Buscaldi, S. Vanier, and A. Shabou, “Pact: Pruning                  survey,” arXiv preprint arXiv:2405.10739, 2024. 2
-      and clustering-based token reduction for faster visual language             [160] G. Shinde, A. Ravi, E. Dey, S. Sakib, M. Rampure, and N. Roy,
-      models,” in Proceedings of the Computer Vision and Pattern Recogni-               “A survey on efficient vision-language models,” Wiley Interdis-
-      tion Conference, 2025, pp. 14 582–14 592. 3, 12                                   ciplinary Reviews: Data Mining and Knowledge Discovery, vol. 15,
-[140] J. Zhang, D. Meng, Z. Zhang, Z. Huang, T. Wu, and L. Wang,                        no. 3, p. e70036, 2025. 2
-      “p-mod: Building mixture-of-depths mllms via progressive ratio              [161] P. Nguyen and N.-M. Cheung, “Token compression meets com-
-      decay,” arXiv preprint arXiv:2412.04449, 2024. 3, 12                              pact vision transformers: A survey and comparative evaluation
-[141] W. Huang, Z. Zhai, Y. Shen, S. Cao, F. Zhao, X. Xu, Z. Ye,                        for edge ai,” arXiv preprint arXiv:2507.09702, 2025. 2, 6
-      Y. Hu, and S. Lin, “Dynamic-llava: Efficient multimodal large               [162] K. Shao, K. Tao, K. Zhang, S. Feng, M. Cai, Y. Shang, H. You,
-      language models via dynamic vision-language context sparsifi-                     C. Qin, Y. Sui, and H. Wang, “When tokens talk too much: A
-      cation,” arXiv preprint arXiv:2412.00876, 2024. 3, 12, 13                         survey of multimodal long-context token compression across im-
-[142] X. Liang, C. Guan, J. Lu, H. Chen, H. Wang, and H. Hu, “Dynamic                   ages, videos, and audios,” arXiv preprint arXiv:2507.20198, 2025.
-      token reduction during generation for vision language models,”                    2
-      arXiv preprint arXiv:2501.14204, 2025. 3, 12                                [163] OpenAI., “Gpt-4 technical report,” 2023. 3
-[143] Q.-S. Zeng, Y. Li, Q. Wang, P.-T. Jiang, Z. Wu, M.-M. Cheng,                [164] T. Brown, B. Mann, N. Ryder, M. Subbiah, J. D. Kaplan, P. Dhari-
-      and Q. Hou, “A glimpse to compress: Dynamic visual to-                            wal, A. Neelakantan, P. Shyam, G. Sastry, A. Askell et al., “Lan-
-      ken pruning for large vision-language models,” arXiv preprint                     guage models are few-shot learners,” NeurIPS, 2020. 3
-      arXiv:2508.01548, 2025. 3, 12                                               [165] R. Taori, I. Gulrajani, T. Zhang, Y. Dubois, X. Li, C. Guestrin,
-[144] J. Chen, L. Ye, J. He, Z.-Y. Wang, D. Khashabi, and A. Yuille,                    P. Liang, and T. B. Hashimoto, “Stanford alpaca: An instruction-
-      “Efficient large multi-modal models via visual context compres-                   following llama model,” 2023. 3
-      sion,” Advances in Neural Information Processing Systems, vol. 37,          [166] A. Q. Jiang, A. Sablayrolles, A. Mensch, C. Bamford, D. S. Chap-
-      pp. 73 986–74 007, 2024. 3, 12, 19                                                lot, D. d. l. Casas, F. Bressand, G. Lengyel, G. Lample, L. Saulnier
-[145] T. Fu, T. Liu, Q. Han, G. Dai, S. Yan, H. Yang, X. Ning, and                      et al., “Mistral 7b,” arXiv preprint arXiv:2310.06825, 2023. 3
-      Y. Wang, “Framefusion: Combining similarity and importance for              [167] X. Zhai, B. Mustafa, A. Kolesnikov, and L. Beyer, “Sigmoid loss
-      video token reduction on large visual language models,” arXiv                     for language image pre-training,” in Proceedings of the IEEE/CVF
-      preprint arXiv:2501.01986, 2024. 3, 12, 18                                        International Conference on Computer Vision, 2023, pp. 11 975–
-[146] K. Shao, K. Tao, C. Qin, H. You, Y. Sui, and H. Wang, “Holitom:                   11 986. 3
-      Holistic token merging for fast video large language models,”               [168] A. Radford, J. W. Kim, C. Hallacy, A. Ramesh, G. Goh, S. Agar-
-      arXiv preprint arXiv:2505.21334, 2025. 3, 5, 12, 18                               wal, G. Sastry, A. Askell, P. Mishkin, J. Clark et al., “Learning
-[147] J.-B. Alayrac, J. Donahue, P. Luc, A. Miech, I. Barr, Y. Hasson,                  transferable visual models from natural language supervision,”
-      K. Lenc, A. Mensch, K. Millican, M. Reynolds et al., “Flamingo: a                 in International conference on machine learning. PmLR, 2021, pp.
-      visual language model for few-shot learning,” Advances in neural                  8748–8763. 3
-      information processing systems, vol. 35, pp. 23 716–23 736, 2022. 3,        [169] R. Bavishi, E. Elsen, C. Hawthorne, M. Nye, A. Odena, A. Somani,
-      12, 19                                                                            and S. Taşırlar, “Introducing our multimodal models,” 2023. 3
-[148] J. Ye, H. Xu, H. Liu, A. Hu, M. Yan, Q. Qian, J. Zhang, F. Huang,           [170] C. Team, “Chameleon: Mixed-modal early-fusion foundation
-      and J. Zhou, “mplug-owl3: Towards long image-sequence under-                      models,” arXiv preprint arXiv:2405.09818, 2024. 3
-      standing in multi-modal large language models,” arXiv preprint              [171] A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N.
-      arXiv:2408.04840, 2024. 3, 5, 13, 17, 21                                          Gomez, Ł. Kaiser, and I. Polosukhin, “Attention is all you need,”
-[149] S. Yan, J. Han, J. Tsai, H. Xue, R. Fang, L. Hong, Z. Guo,                        Advances in neural information processing systems, vol. 30, 2017. 4
-      and R. Zhang, “Crosslmm: Decoupling long video sequences                    [172] J. Li, D. Li, S. Savarese, and S. C. H. Hoi, “BLIP-2: bootstrapping
-      from lmms via dual cross-attention mechanisms,” arXiv preprint                    language-image pre-training with frozen image encoders and
-      arXiv:2505.17020, 2025. 3, 13, 15                                                 large language models,” in International Conference on Machine
-[150] X. Ye, Y. Gan, X. Huang, Y. Ge, and Y. Tang, “Voco-llama: Towards                 Learning, ICML 2023, 23-29 July 2023, Honolulu, Hawaii, USA, ser.
-      vision compression with large language models,” in Proceedings                    Proceedings of Machine Learning Research, A. Krause, E. Brun-
-      of the Computer Vision and Pattern Recognition Conference, 2025, pp.              skill, K. Cho, B. Engelhardt, S. Sabato, and J. Scarlett, Eds., vol.
-      29 836–29 846. 3, 5, 13                                                           202, 2023, pp. 19 730–19 742. 5
-[151] J. Chen, L. Ye, J. He, Z.-Y. Wang, D. Khashabi, and A. Yuille,              [173] E. Song, W. Chai, G. Wang, Y. Zhang, H. Zhou, F. Wu, H. Chi,
-      “Efficient large multi-modal models via visual context compres-                   X. Guo, T. Ye, Y. Zhang et al., “Moviechat: From dense token to
-      sion,” Advances in Neural Information Processing Systems, vol. 37,                sparse memory for long video understanding,” in Proceedings of
-      pp. 73 986–74 007, 2024. 3, 13                                                    the IEEE/CVF Conference on Computer Vision and Pattern Recogni-
-[152] K. Tao, C. Qin, H. You, Y. Sui, and H. Wang, “Dycoke: Dynamic                     tion, 2024, pp. 18 221–18 232. 5, 15, 16
-      compression of tokens for fast video large language models,” in             [174] L. Shen, T. Hao, T. He, S. Zhao, Y. Zhang, P. Liu, Y. Bao, and
-      Proceedings of the Computer Vision and Pattern Recognition Confer-                G. Ding, “Tempme: Video temporal token merging for efficient
-      ence, 2025, pp. 18 992–19 001. 3, 13, 14, 15, 18                                  text-video retrieval,” arXiv preprint arXiv:2409.01156, 2024. 5, 15,
-[153] J. Wang, Z. Liu, Y. Rao, and J. Lu, “Sparsemm: Head sparsity                      16
-      emerges from visual concept responses in mllms,” arXiv preprint             [175] Z. Wang, D. Gong, S. Wang, Z. Huang, and Y. Luo, “Is less
-      arXiv:2506.05344, 2025. 3, 5, 13, 19                                              more? exploring token condensation as training-free test-time
-[154] M. Kim, K. Shim, J. Choi, and S. Chang, “Infinipot-v: Memory-                     adaptation,” arXiv preprint arXiv:2410.14729, 2024. 5, 18
-      constrained kv cache compression for streaming video under-                 [176] K. Y. Li, S. Goyal, J. D. Semedo, and J. Z. Kolter, “Inference
-      standing,” arXiv preprint arXiv:2506.15745, 2025. 3, 13                           optimal vlms need fewer visual tokens and more parameters,”
-[155] Z. Ning, G. Liu, Q. Jin, W. Ding, M. Guo, and J. Zhao, “Livevlm:                  arXiv preprint arXiv:2411.03312, 2024. 5, 10, 17, 19
-      Efficient online video understanding via streaming-oriented kv              [177] X. Ye, Y. Gan, Y. Ge, X.-P. Zhang, and Y. Tang, “Atp-llava:
-      cache and retrieval,” arXiv preprint arXiv:2505.15269, 2025. 3, 13                Adaptive token pruning for large vision language models,” in
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                                              28
-
-      Proceedings of the Computer Vision and Pattern Recognition Confer-        [199] X. Liu, Y. Shu, Z. Liu, A. Li, Y. Tian, and B. Zhao, “Video-xl-
-      ence, 2025, pp. 24 972–24 982. 5, 12                                            pro: Reconstructive token compression for extremely long video
-[178] C. Yang, X. Dong, X. Zhu, W. Su, J. Wang, H. Tian, Z. Chen,                     understanding,” arXiv preprint arXiv:2503.18478, 2025. 8, 16
-      W. Wang, L. Lu, and J. Dai, “Pvc: Progressive visual token                [200] R. Rombach, A. Blattmann, D. Lorenz, P. Esser, and B. Ommer,
-      compression for unified image and video processing in large                     “High-resolution image synthesis with latent diffusion models,”
-      vision-language models,” in Proceedings of the Computer Vision and              in Proceedings of the IEEE/CVF conference on computer vision and
-      Pattern Recognition Conference, 2025, pp. 24 939–24 949. 5, 16                  pattern recognition, 2022, pp. 10 684–10 695. 8
-[179] X. Huang, H. Zhou, and K. Han, “Prunevid: Visual token                    [201] W. Dai, N. Lee, B. Wang, Z. Yang, Z. Liu, J. Barker,
-      pruning for efficient video large language models,” 2024.                       T. Rintamaki, M. Shoeybi, B. Catanzaro, and W. Ping, “Nvlm:
-      [Online]. Available: https://arxiv.org/abs/2412.16117 5, 15                     Open frontier-class multimodal llms,” 2024. [Online]. Available:
-[180] X. Li, Y. Wang, J. Yu, X. Zeng, Y. Zhu, H. Huang, J. Gao,                       https://arxiv.org/abs/2409.11402 9, 18
-      K. Li, Y. He, C. Wang et al., “Videochat-flash: Hierarchical              [202] Z. Xia, X. Pan, S. Song, L. E. Li, and G. Huang, “Vision trans-
-      compression for long-context video modeling,” arXiv preprint                    former with deformable attention,” in Proceedings of the IEEE/CVF
-      arXiv:2501.00574, 2024. 5, 7, 18                                                conference on computer vision and pattern recognition, 2022, pp.
-[181] S. Zhang, Q. Fang, Z. Yang, and Y. Feng, “Llava-mini: Efficient                 4794–4803. 10
-      image and video large multimodal models with one vision to-               [203] R. Liao, C. Zhao, J. Li, W. Feng, Y. Lyu, B. Chen, and H. Yang,
-      ken,” arXiv preprint arXiv:2501.03895, 2025. 5, 9, 10, 17                       “Catp: Cross-attention token pruning for accuracy preserved
-[182] J. Li, J. Fan, F. Tang, G. Huang, S. Zhu, S. Liu, N. Xie, W. Liu, and           multimodal model inference,” in 2025 IEEE Conference on Artificial
-      Y. Liao, “Fcot-vl: Advancing text-oriented large vision-language                Intelligence (CAI). IEEE, 2025, pp. 1100–1104. 10
-      models with efficient visual token compression,” arXiv preprint           [204] J. Han, L. Du, Y. Wu, X. Zhou, H. Du, and W. Zheng, “Adafv:
-      arXiv:2502.18512, 2025. 5, 19                                                   Rethinking of visual-language alignment for vlm acceleration,”
-[183] Z. Wen, Y. Gao, S. Wang, J. Zhang, Q. Zhang, W. Li, C. He, and                  arXiv preprint arXiv:2501.09532, 2025. 10
-      L. Zhang, “Stop looking for important tokens in multimodal                [205] L. Chen, H. Zhao, T. Liu, S. Bai, J. Lin, C. Zhou, and B. Chang,
-      language models: Duplication matters more,” arXiv preprint                      “An image is worth 1/2 tokens after layer 2: Plug-and-play infer-
-      arXiv:2502.11494, 2025. 5, 17, 18, 22                                           ence acceleration for large vision-language models,” in European
-[184] L. Shen, G. Gong, T. He, Y. Zhang, P. Liu, S. Zhao, and G. Ding,                Conference on Computer Vision. Springer, 2024, pp. 19–35. 11
-      “Fastvid: Dynamic density pruning for fast video large language           [206] L. Xing, Q. Huang, X. Dong, J. Lu, P. Zhang, Y. Zang, Y. Cao,
-      models,” arXiv preprint arXiv:2503.11187, 2025. 5                               C. He, J. Wang et al., “Pyramiddrop: Accelerating your large
-[185] W. Zeng, Z. Huang, K. Ji, and Y. Yan, “Skip-vision: Efficient                   vision-language models via pyramid visual redundancy reduc-
-      and scalable acceleration of vision-language models via adaptive                tion,” arXiv preprint arXiv:2410.17247, 2024. 11
-      token skipping,” arXiv preprint arXiv:2503.21817, 2025. 5                 [207] Y. Zhu, C. Xie, S. Liang, B. Zheng, and S. Guo, “Focusllava: A
-                                                                                      coarse-to-fine approach for efficient and effective visual token
-[186] R. Luo, R. Shan, L. Chen, Z. Liu, L. Wang, M. Yang, and X. Xia,
-                                                                                      compression,” arXiv preprint arXiv:2411.14228, 2024. 11
-      “Vcm: Vision concept modeling based on implicit contrastive
-      learning with vision-language instruction fine-tuning,” arXiv             [208] X. Huang, H. Zhou, and K. Han, “Prunevid: Visual token prun-
-      preprint arXiv:2504.19627, 2025. 5, 10, 19, 22                                  ing for efficient video large language models,” arXiv preprint
-                                                                                      arXiv:2412.16117, 2024. 11
-[187] D. Li, Z. Yang, and S. Lu, “Todre: Visual token pruning via
-      diversity and task awareness for efficient large vision-language          [209] B. Cheng, Y. Ma, L. Wu, S. Liu, A. Ma, X. Wu, D. Leng, and Y. Yin,
-      models,” arXiv preprint arXiv:2505.18757, 2025. 5                               “Hico: Hierarchical controllable diffusion model for layout-to-
-                                                                                      image generation,” arXiv preprint arXiv:2410.14324, 2024. 11
-[188] K. Li, X. Chen, C. Gao, Y. Li, and X. Chen, “Balanced token
-                                                                                [210] T. Fu, T. Liu, Q. Han, G. Dai, S. Yan, H. Yang, X. Ning, and
-      pruning: Accelerating vision language models beyond local opti-
-                                                                                      Y. Wang, “Framefusion: Combining similarity and importance for
-      mization,” arXiv preprint arXiv:2505.22038, 2025. 5, 11
-                                                                                      video token reduction on large visual language models,” arXiv
-[189] Y. Zhang, Y. Lu, T. Wang, F. Rao, Y. Yang, and L. Zhu, “Flexselect:             preprint arXiv:2501.01986, 2024. 11
-      Flexible token selection for efficient long video understanding,”
-                                                                                [211] J. Lee, K. Xuan, C. Ekbote, S. Polisetty, Y. R. Fung, and P. P. Liang,
-      arXiv preprint arXiv:2506.00993, 2025. 5, 18
-                                                                                      “Tamp: Token-adaptive layerwise pruning in multimodal large
-[190] S. Yang, J. Li, X. Lai, B. Yu, H. Zhao, and J. Jia, “Visionthink: Smart         language models,” arXiv preprint arXiv:2504.09897, 2025. 11
-      and efficient vision language model via reinforcement learning,”          [212] W. Ye, Q. Wu, W. Lin, and Y. Zhou, “Fit and prune:
-      arXiv preprint arXiv:2507.13348, 2025. 5, 22                                    Fast and training-free visual token pruning for multi-
-[191] S. Yin, C. Fu, S. Zhao, K. Li, X. Sun, T. Xu, and E. Chen, “A survey            modal large language models,” 2024. [Online]. Available:
-      on multimodal large language models,” National Science Review,                  https://arxiv.org/abs/2409.10197 11
-      vol. 11, no. 12, p. nwae403, 2024. 4                                      [213] W. Zhang, Z. Zhu, N. Li, K. Liu, and Y. Liu, “Adaptinfer:
-[192] J. Wu, W. Gan, Z. Chen, S. Wan, and P. S. Yu, “Multimodal large                 Adaptive token pruning for vision-language model inference
-      language models: A survey,” in 2023 IEEE International Conference               with dynamical text guidance,” arXiv preprint arXiv:2508.06084,
-      on Big Data (BigData). IEEE, 2023, pp. 2247–2256. 4                             2025. 11
-[193] L. Yao, H. Wu, K. Ouyang, Y. Zhang, C. Xiong, B. Chen, X. Sun,            [214] A. Li, Y. Duan, J. Zhang, C. Ma, Y. Xie, G. Carneiro, M. Yaqub,
-      and J. Li, “Generative frame sampler for long video understand-                 and H. Wang, “Transprune: Token transition pruning for efficient
-      ing,” arXiv preprint arXiv:2503.09146, 2025. 4, 16, 17                          large vision-language model,” arXiv preprint arXiv:2507.20630,
-[194] M. Oquab, T. Darcet, T. Moutakanni, H. Vo, M. Szafraniec,                       2025. 11
-      V. Khalidov, P. Fernandez, D. Haziza, F. Massa, A. El-Nouby et al.,       [215] R. Xu, Y. Wang, Y. Luo, and B. Du, “Rethinking visual token re-
-      “Dinov2: Learning robust visual features without supervision,”                  duction in lvlms under cross-modal misalignment,” arXiv preprint
-      arXiv preprint arXiv:2304.07193, 2023. 7                                        arXiv:2506.22283, 2025. 11, 12
-[195] A. Radford, J. W. Kim, C. Hallacy, A. Ramesh, G. Goh, S. Agar-            [216] F. Sun, L. Shen, H. Chen, S. Zhao, J. Han, and G. Ding, “Adatp:
-      wal, G. Sastry, A. Askell, P. Mishkin, J. Clark et al., “Learning               Attention-debiased token pruning for video large language mod-
-      transferable visual models from natural language supervision,”                  els,” arXiv preprint arXiv:2505.20100, 2025. 12
-      in International conference on machine learning. PMLR, 2021, pp.          [217] T. Dao, D. Fu, S. Ermon, A. Rudra, and C. Ré, “Flashattention:
-      8748–8763. 7                                                                    Fast and memory-efficient exact attention with io-awareness,”
-[196] H. Wu, M. Tang, X. Zheng, and H. Jiang, “When language over-                    Advances in neural information processing systems, vol. 35, pp.
-      rules: Revealing text dominance in multimodal large language                    16 344–16 359, 2022. 12
-      models,” arXiv preprint arXiv:2508.10552, 2025. 7                         [218] Q. Wang, H. Ye, M.-Y. Chung, Y. Liu, Y. Lin, M. Kuo, M. Ma,
-[197] H. Zhang, Y. Wang, Y. Tang, Y. Liu, J. Feng, and X. Jin,                        J. Zhang, and Y. Chen, “Corematching: A co-adaptive sparse
-      “Flash-vstream: Efficient real-time understanding for long video                inference framework with token and neuron pruning for compre-
-      streams,” arXiv preprint arXiv:2506.23825, 2025. 8, 15, 16                      hensive acceleration of vision-language models,” arXiv preprint
-[198] S. Jie, Y. Tang, J. Guo, Z.-H. Deng, K. Han, and Y. Wang, “To-                  arXiv:2505.19235, 2025. 12
-      ken compensator: Altering inference cost of vision transformer            [219] R. Pei, W. Sun, Z. Fu, and J. Wang, “Greedyprune: Retenting
-      without re-tuning,” in European conference on computer vision.                  critical visual token set for large vision language models,” arXiv
-      Springer, 2024, pp. 76–94. 8                                                    preprint arXiv:2506.13166, 2025. 12
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                                            29
-
-[220] L. Meng, H. Li, B.-C. Chen, S. Lan, Z. Wu, Y.-G. Jiang, and S.-N.       [242] A. Gu and T. Dao, “Mamba: Linear-time sequence modeling with
-      Lim, “Adavit: Adaptive vision transformers for efficient image                selective state spaces,” in First conference on language modeling,
-      recognition,” in Proceedings of the IEEE/CVF conference on computer           2024. 15
-      vision and pattern recognition, 2022, pp. 12 309–12 318. 12             [243] G. Zhang, J. Liu, S. Cao, X. Zhao, K. Zhao, K. Ma, and L. Wang,
-[221] E. Jang, S. Gu, and B. Poole, “Categorical reparameterization with            “Dynamic and compressive adaptation of transformers from
-      gumbel-softmax,” arXiv preprint arXiv:1611.01144, 2016. 12                    images to videos,” arXiv preprint arXiv:2408.06840, 2024. 15
-[222] Y. Wen, Q. Cao, Q. Fu, S. Mehta, and M. Najibi, “Efficient vision-      [244] S.-H. Lee, J. Wang, Z. Zhang, D. Fan, and X. Li, “Video to-
-      language models by summarizing visual tokens into compact                     ken merging for long-form video understanding,” arXiv preprint
-      registers,” arXiv preprint arXiv:2410.14072, 2024. 13                         arXiv:2410.23782, 2024. 15
-[223] G. Xiao, Y. Tian, B. Chen, S. Han, and M. Lewis, “Efficient             [245] J. Cho, J. Lee, M. Hayat, K. Hwang, F. Porikli, and S. Choi, “Floc:
-      streaming language models with attention sinks,” arXiv preprint               Facility location-based efficient visual token compression for long
-      arXiv:2309.17453, 2023. 13                                                    video understanding,” arXiv preprint arXiv:2511.00141, 2025. 15
-[224] S. Ge, Y. Zhang, L. Liu, M. Zhang, J. Han, and J. Gao, “Model tells     [246] J. Gao, C. Sun, Z. Yang, and R. Nevatia, “Tall: Temporal activity
-      you what to discard: Adaptive kv cache compression for llms,”                 localization via language query,” in Proceedings of the IEEE inter-
-      arXiv preprint arXiv:2310.01801, 2023. 13                                     national conference on computer vision, 2017, pp. 5267–5275. 16
-[225] Z. Zhang, Y. Sheng, T. Zhou, T. Chen, L. Zheng, R. Cai, Z. Song,        [247] X. Wei, X. Liu, Y. Zang, X. Dong, P. Zhang, Y. Cao, J. Tong,
-      Y. Tian, C. Ré, C. Barrett et al., “H2o: Heavy-hitter oracle for             H. Duan, Q. Guo, J. Wang et al., “Videorope: What makes
-      efficient generative inference of large language models,” Advances            for good video rotary position embedding?” arXiv preprint
-      in Neural Information Processing Systems, vol. 36, pp. 34 661–34 710,         arXiv:2502.05173, 2025. 16
-      2023. 13                                                                [248] A. Gu and T. Dao, “Mamba: Linear-time sequence modeling with
-[226] Z. Liu, B. Liu, J. Wang, Y. Dong, G. Chen, Y. Rao, R. Krishna, and            selective state spaces,” in First Conference on Language Modeling,
-      J. Lu, “Efficient inference of vision instruction-following models            2024. 16
-      with elastic cache,” arXiv preprint arXiv:2407.18121, 2024. 13          [249] S. Bai, Y. Cai, R. Chen, K. Chen, X. Chen, Z. Cheng, L. Deng,
-[227] D. Zheng, M. Huang, B. Jiang, H. Hu, and X. Chen, “Towards                    W. Ding, C. Gao, C. Ge, W. Ge, Z. Guo, Q. Huang, J. Huang,
-      lossless ultimate vision token compression for vlms,” arXiv                   F. Huang, B. Hui, S. Jiang, Z. Li, M. Li, M. Li, K. Li, Z. Lin,
-      preprint arXiv:2512.09010, 2025. 14                                           J. Lin, X. Liu, J. Liu, C. Liu, Y. Liu, D. Liu, S. Liu, D. Lu, R. Luo,
-[228] M. Maaz, H. Rasheed, S. Khan, and F. S. Khan, “Video-chatgpt:                 C. Lv, R. Men, L. Meng, X. Ren, X. Ren, S. Song, Y. Sun, J. Tang,
-      Towards detailed video understanding via large vision and lan-                J. Tu, J. Wan, P. Wang, P. Wang, Q. Wang, Y. Wang, T. Xie, Y. Xu,
-      guage models,” arXiv preprint arXiv:2306.05424, 2023. 15, 19                  H. Xu, J. Xu, Z. Yang, M. Yang, J. Yang, A. Yang, B. Yu, F. Zhang,
-[229] M. S. Ryoo, H. Zhou, S. Kendre, C. Qin, L. Xue, M. Shu, J. Park,              H. Zhang, X. Zhang, B. Zheng, H. Zhong, J. Zhou, F. Zhou,
-      K. Ranasinghe, S. Savarese, R. Xu et al., “xgen-mm-vid (blip-3-               J. Zhou, Y. Zhu, and K. Zhu, “Qwen3-vl technical report,” arXiv
-      video): You only need 32 tokens to represent a video even in                  preprint arXiv:2511.21631, 2025. 16
-      vlms,” arXiv preprint arXiv:2410.16267, 2024. 15, 16                    [250] S. Chen, X. Lan, Y. Yuan, Z. Jie, and L. Ma, “Timemarker: A versa-
-[230] J. Jiang, X. Li, Z. Liu, M. Li, G. Chen, Z. Li, D.-A. Huang, G. Liu,          tile video-llm for long and short video understanding with supe-
-      Z. Yu, K. Keutzer et al., “Token-efficient long video understanding           rior temporal localization ability,” arXiv preprint arXiv:2411.18211,
-      for multimodal llms,” arXiv preprint arXiv:2503.04130, 2025. 15,              2024. 16
-      16                                                                      [251] Y. Wu, X. Hu, Y. Sun, Y. Zhou, W. Zhu, F. Rao, B. Schiele, and
-[231] W. Chai, E. Song, Y. Du, C. Meng, V. Madhavan, O. Bar-Tal, J.-                X. Yang, “Number it: Temporal grounding videos like flipping
-      N. Hwang, S. Xie, and C. D. Manning, “Auroracap: Efficient,                   manga,” arXiv preprint arXiv:2411.10332, 2024. 16
-      performant video detailed captioning and a new benchmark,”              [252] H. Zhang, Y. Wang, Y. Tang, Y. Liu, J. Feng, J. Dai, and X. Jin,
-      arXiv preprint arXiv:2410.03051, 2024. 15                                     “Flash-vstream: Memory-based real-time understanding for long
-[232] Y. Weng, M. Han, H. He, X. Chang, and B. Zhuang, “Longvlm:                    video streams,” arXiv preprint arXiv:2406.08085, 2024. 16
-      Efficient long video understanding via large language models,”          [253] S. Gurukar and A. Kadav, “Long-vmnet: Accelerating long-
-      in European Conference on Computer Vision. Springer, 2024, pp.                form video understanding via fixed memory,” arXiv preprint
-      453–470. 15, 19                                                               arXiv:2503.13707, 2025. 17
-[233] Z. Liu, C.-W. Xie, P. Li, L. Zhao, L. Tang, Y. Zheng, C. Liu, and       [254] X. Wang, Q. Si, J. Wu, S. Zhu, L. Cao, and L. Nie, “Retake:
-      H. Xie, “Hybrid-level instruction injection for video token com-              Reducing temporal and knowledge redundancy for long video
-      pression in multi-modal large language models,” in Proceedings                understanding,” arXiv preprint arXiv:2412.20504, 2024. 17
-      of the Computer Vision and Pattern Recognition Conference, 2025, pp.    [255] B. Xu, Z. Xiao, J. Li, J. Ju, Z. Luo, J. Luan, and Q. Jin, “Timeviper:
-      8568–8578. 15, 16                                                             A hybrid mamba-transformer model for efficient long video
-[234] J. Qi, Y. Yao, Y. Bai, B. Xu, J. Li, Z. Liu, and T.-S. Chua, “An lmm          understanding,” arXiv preprint arXiv:2511.16595, 2025. 17
-      for efficient video understanding via reinforced compression of         [256] S. Wang, T. Niu, R. Yang, D. Liu, X. He, Z. Wen, C. He, X. Hu, and
-      video cubes,” arXiv preprint arXiv:2504.15270, 2025. 15, 16                   L. Zhang, “Videocompressa: Data-efficient video understanding
-[235] M. Xu, M. Gao, Z. Gan, H.-Y. Chen, Z. Lai, H. Gang, K. Kang, and              via joint temporal compression and spatial reconstruction,” arXiv
-      A. Dehghan, “Slowfast-llava: A strong training-free baseline for              preprint arXiv:2511.18831, 2025. 17
-      video large language models,” arXiv preprint arXiv:2407.15841,          [257] J. Li, D. Li, S. Savarese, and S. Hoi, “Blip-2: Bootstrapping
-      2024. 15, 16                                                                  language-image pre-training with frozen image encoders and
-[236] Y. Zhang, J. Wu, W. Li, B. Li, Z. Ma, Z. Liu, and C. Li, “Llava-              large language models,” in International conference on machine
-      video: Video instruction tuning with synthetic data,” Transactions            learning. PMLR, 2023, pp. 19 730–19 742. 17, 19
-      on Machine Learning Research, 2025. 15, 16, 19                          [258] Z. Ning, J. Zhao, Q. Jin, W. Ding, and M. Guo, “Inf-mllm: Efficient
-[237] B. Yang, B. Wen, B. Ding, C. Liu, C. Chu, C. Song, C. Rao, C. Yi,             streaming inference of multimodal large language models on a
-      D. Li, D. Zang et al., “Kwai keye-vl 1.5 technical report,” arXiv             single gpu,” arXiv preprint arXiv:2409.09086, 2024. 17
-      preprint arXiv:2509.01563, 2025. 15, 16                                 [259] J. Lin, Z. Fang, C. Chen, Z. Wan, F. Luo, P. Li, Y. Liu, and
-[238] X. Lan, Y. Yuan, Z. Jie, and L. Ma, “Vidcompress: Memory-                     M. Sun, “Streamingbench: Assessing the gap for mllms to achieve
-      enhanced temporal compression for video understanding in large                streaming video understanding,” arXiv preprint arXiv:2411.03628,
-      language models,” arXiv preprint arXiv:2410.11417, 2024. 15, 16               2024. 17
-[239] Y. Liu, S. Li, Y. Liu, Y. Wang, S. Ren, L. Li, S. Chen, X. Sun,         [260] H. Xiong, Z. Yang, J. Yu, Y. Zhuge, L. Zhang, J. Zhu, and
-      and L. Hou, “Tempcompass: Do video llms really understand                     H. Lu, “Streaming video understanding and multi-round in-
-      videos?” arXiv preprint arXiv:2403.00476, 2024. 14                            teraction with memory-enhanced knowledge,” arXiv preprint
-[240] Z. Shangguan, C. Li, Y. Ding, Y. Zheng, Y. Zhao, T. Fitzgerald,               arXiv:2501.13468, 2025. 17
-      and A. Cohan, “Tomato: Assessing visual temporal reasoning              [261] Z. Huang, X. Li, J. Li, J. Wang, X. Zeng, C. Liang, T. Wu,
-      capabilities in multimodal foundation models,” arXiv preprint                 X. Chen, L. Li, and L. Wang, “Online video understanding: A
-      arXiv:2410.23266, 2024. 14                                                    comprehensive benchmark and memory-augmented method,”
-[241] Y. Liu, Z. Ma, Z. Qi, Y. Wu, Y. Shan, and C. W. Chen, “Et bench:              arXiv preprint arXiv:2501.00584, 2024. 17
-      Towards open-ended event-level video-language understand-               [262] P. Zhang, X. Dong, Y. Cao, Y. Zang, R. Qian, X. Wei, L. Chen,
-      ing,” Advances in Neural Information Processing Systems, vol. 37,             Y. Li, J. Niu, S. Ding et al., “Internlm-xcomposer2. 5-omnilive:
-      pp. 32 076–32 110, 2024. 14                                                   A comprehensive multimodal system for long-term streaming
-JOURNAL OF LATEX CLASS FILES, NOVEMBER 2025                                                                                                             30
-
-      video and audio interactions,” arXiv preprint arXiv:2412.09596,                  mote sensing imagery: Coarse-to-fine text-guided token prun-
-      2024. 17                                                                         ing,” arXiv preprint arXiv:2503.07588, 2025. 21
-[263] L. Yuan, J. Wang, H. Sun, Y. Zhang, and Y. Lin, “Tarsier2:                 [284] Y. Niu, Z. Song, Q. Luo, G. Chen, M. Ma, and F. Li, “Atmformer:
-      Advancing large vision-language models from detailed video de-                   An adaptive token merging vision transformer for remote sens-
-      scription to comprehensive video understanding,” arXiv preprint                  ing image scene classification,” Remote Sensing, vol. 17, no. 4, p.
-      arXiv:2501.07888, 2025. 17                                                       660, 2025. 21
-[264] L. Yao, Y. Zhang, Z. Wang, X. Hou, T. Ge, Y. Jiang, X. Sun, and            [285] J. Chen, Z. Lv, S. Wu, K. Q. Lin, C. Song, D. Gao, J.-W. Liu,
-      Q. Jin, “Edit as you wish: Video caption editing with multi-                     Z. Gao, D. Mao, and M. Z. Shou, “Videollm-online: Online video
-      grained user control,” in Proceedings of the 32nd ACM International              large language model for streaming video,” in Proceedings of the
-      Conference on Multimedia, 2024, pp. 1924–1933. 17                                IEEE/CVF Conference on Computer Vision and Pattern Recognition,
-[265] J.-B. Alayrac, J. Donahue, P. Luc, A. Miech, I. Barr, Y. Hasson,                 2024, pp. 18 407–18 418. 22
-      K. Lenc, A. Mensch, K. Millican, M. Reynolds et al., “Flamingo:            [286] S. Di, Z. Yu, G. Zhang, H. Li, T. Zhong, H. Cheng, B. Li,
-      a visual language model for few-shot learning,” in Advances in                   W. He, F. Shu, and H. Jiang, “Streaming video question-
-      Neural Information Processing Systems, 2022. 17                                  answering with in-context video kv-cache retrieval,” arXiv
-[266] Z. Liu, P. Han, H. Yu, H. Li, and J. You, “Time-r1: To-                          preprint arXiv:2503.00540, 2025. 22
-      wards comprehensive temporal reasoning in llms,” arXiv preprint            [287] Y. Wang, X. Liu, X. Gui, X. Lin, B. Yang, C. Liao, T. Chen,
-      arXiv:2505.13508, 2025. 17                                                       and L. Zhang, “Accelerating streaming video large language
-[267] X. Zeng, K. Li, C. Wang, X. Li, T. Jiang, Z. Yan, S. Li, Y. Shi, Z. Yue,         models via hierarchical token compression,” arXiv preprint
-      Y. Wang et al., “Timesuite: Improving mllms for long video under-                arXiv:2512.00891, 2025. 22
-      standing via grounded tuning,” arXiv preprint arXiv:2410.19702,            [288] L. Lei, J. Gu, X. Ma, C. Tang, J. Chen, and T. Xu, “Generic
-      2024. 17                                                                         token compression in multimodal large language models from an
-[268] H. Wu, D. Li, B. Chen, and J. Li, “Longvideobench: A bench-                      explainability perspective,” arXiv preprint arXiv:2506.01097, 2025.
-      mark for long-context interleaved video-language understand-                     22
-      ing,” ArXiv preprint, vol. abs/2407.15754, 2024. 17                        [289] Z. Kong, Y. Li, F. Zeng, L. Xin, S. Messica, X. Lin, P. Zhao,
-[269] Q. Zhang, M. Liu, L. Li, M. Lu, Y. Zhang, J. Pan, Q. She,                        M. Kellis, H. Tang, and M. Zitnik, “Token reduction should go
-      and S. Zhang, “Beyond attention or similarity: Maximizing con-                   beyond efficiency in generative models–from vision, language to
-      ditional diversity for token pruning in mllms,” arXiv preprint                   multimodality,” arXiv preprint arXiv:2505.18227, 2025. 22
-      arXiv:2506.10967, 2025. 18                                                 [290] X. Zhang, L. Zhu, H. He, S. Zeng, O. Fu, J. Hu, Z. Yao, and
-[270] C. Lv, B. Zhang, Y. Yong, R. Gong, Y. Huang, S. Gu, J. Wu, Y. Shi,               Y. Lu, “Adatok: Adaptive token compression with object-aware
-      J. Guo, and W. Wang, “Llmc+: Benchmarking vision-language                        representations for efficient multimodal llms,” arXiv preprint
-      model compression with a plug-and-play toolkit,” arXiv preprint                  arXiv:2511.14169, 2025. 22
-      arXiv:2508.09981, 2025. 17                                                 [291] T.-Y. Lin, M. Maire, S. Belongie, J. Hays, P. Perona, D. Ramanan,
-[271] X. Liu, Y. Wang, J. Ma, and L. Zhang, “Video compression                         P. Dollár, and C. L. Zitnick, “Microsoft coco: Common objects in
-      commander: Plug-and-play inference acceleration for video large                  context,” in Computer Vision–ECCV 2014: 13th European Confer-
-      language models,” arXiv preprint arXiv:2505.14454, 2025. 18                      ence, Zurich, Switzerland, September 6-12, 2014, Proceedings, Part V
-                                                                                       13. Springer, 2014, pp. 740–755. 22
-[272] Q. Cao, B. Paranjape, and H. Hajishirzi, “Pumer: Pruning and
-                                                                                 [292] C. Fu, P. Chen, Y. Shen, Y. Qin, M. Zhang, X. Lin, J. Yang,
-      merging tokens for efficient vision language models,” arXiv
-                                                                                       X. Zheng, K. Li, X. Sun, Y. Wu, and R. Ji, “Mme: A comprehensive
-      preprint arXiv:2305.17530, 2023. 18
-                                                                                       evaluation benchmark for multimodal large language models,”
-[273] X. Wu, F. Zeng, X. Wang, and X. Chen, “Ppt: Token pruning
-                                                                                       2024. [Online]. Available: https://arxiv.org/abs/2306.13394 22
-      and pooling for efficient vision transformers,” arXiv preprint
-                                                                                 [293] Y. Liu, Z. Li, M. Huang, B. Yang, W. Yu, C. Li, X.-C. Yin, C.-L.
-      arXiv:2310.01812, 2023. 18
-                                                                                       Liu, L. Jin, and X. Bai, “Ocrbench: on the hidden mystery of ocr
-[274] S. Bai, K. Chen, X. Liu, J. Wang, W. Ge, S. Song, K. Dang, P. Wang,
-                                                                                       in large multimodal models,” Science China Information Sciences,
-      S. Wang, J. Tang et al., “Qwen2. 5-vl technical report,” arXiv
-                                                                                       vol. 67, no. 12, p. 220102, 2024. 23
-      preprint arXiv:2502.13923, 2025. 19
-                                                                                 [294] Y. Shi, H. Wang, W. Xie, H. Zhang, L. Zhao, Y.-F. Zhang, X. Li,
-[275] Q. Ye, H. Xu, G. Xu, J. Ye, M. Yan, Y. Zhou, J. Wang, A. Hu,                     C. Fu, Z. Wen, W. Liu et al., “Mme-videoocr: Evaluating ocr-based
-      P. Shi, Y. Shi, C. Jiang, C. Li, Y. Xu, H. Chen, J. Tian, Q. Qi,                 capabilities of multimodal llms in video scenarios,” arXiv preprint
-      J. Zhang, and F. Huang, “mplug-owl: Modularization empowers                      arXiv:2505.21333, 2025. 23
-      large language models with multimodality,” 2023. 19                        [295] M. Mathew, D. Karatzas, and C. Jawahar, “Docvqa: A dataset for
-[276] H. Zhang, X. Li, and L. Bing, “Video-llama: An instruction-tuned                 vqa on document images,” in Proceedings of the IEEE/CVF winter
-      audio-visual language model for video understanding,” arXiv                      conference on applications of computer vision, 2021, pp. 2200–2209.
-      preprint arXiv:2306.02858, 2023. 19                                              23
-[277] D. Guo, F. Wu, F. Zhu, F. Leng, G. Shi, H. Chen, H. Fan, J. Wang,          [296] C. Liao, W. Wang, Z. Wen, X. Zheng, Y. Wang, H. He, Y. Lyu,
-      J. Jiang, J. Wang et al., “Seed1. 5-vl technical report,” arXiv preprint         L. Jiang, X. Zou, Y. Fu et al., “Are we using the right benchmark:
-      arXiv:2505.07062, 2025. 19                                                       An evaluation framework for visual token compression meth-
-[278] Z. Chen, J. Wu, W. Wang, W. Su, G. Chen, S. Xing, M. Zhong,                      ods,” arXiv preprint arXiv:2510.07143, 2025. 23
-      Q. Zhang, X. Zhu, L. Lu, B. Li, P. Luo, T. Lu, Y. Qiao, and
-      J. Dai, “Internvl: Scaling up vision foundation models and
-      aligning for generic visual-linguistic tasks,” ArXiv preprint, vol.
-      abs/2312.14238, 2023. 19
-[279] H. Xiao, F. Zhou, X. Liu, T. Liu, Z. Li, X. Liu, and X. Huang,
-      “A comprehensive survey of large language models and multi-
-      modal large language models in medicine,” Information Fusion, p.
-      102888, 2024. 21
-[280] Y. Hu, C. Xu, B. Lin, W. Yang, and Y. Y. Tang, “Medical multi-
-      modal large language models: A systematic review,” Intelligent
-      Oncology, 2025. 21
-[281] Y. Ding, S. Luo, Y. Dai, Y. Jiang, Z. Li, G. Martin, and Y. Peng,
-      “A survey on mllm-based visually rich document understand-
-      ing: Methods, challenges, and emerging trends,” arXiv preprint
-      arXiv:2507.09861, 2025. 21
-[282] F. Wang, H. Wang, Z. Guo, D. Wang, Y. Wang, M. Chen, Q. Ma,
-      L. Lan, W. Yang, J. Zhang et al., “Xlrs-bench: Could your mul-
-      timodal llms understand extremely large ultra-high-resolution
-      remote sensing imagery?” in Proceedings of the Computer Vision
-      and Pattern Recognition Conference, 2025, pp. 14 325–14 336. 21
-[283] J. Luo, Y. Zhang, X. Yang, K. Wu, Q. Zhu, L. Liang, J. Chen,
-      and Y. Li, “When large vision-language model meets large re-
-
+# A Survey of Token Compression for Efficient Multimodal Large Language Models
+
+Kele Shao∗,1,2
+
+taokeda@westlake.edu.cn
+
+eda Tao∗,1,2   
+Kejia Zhang3   
+Sicheng Feng2,4   
+Mu Cai5   
+Yuzhang Shang6   
+Haoxuan You7   
+Can Qin8   
+Yang Sui9   
+Huan Wang $^ { \dag , 2 }$
+
+shaokele@gmail.com kejiaz171@gmail.com fengsicheng@u.nus.edu im.mucai@gmail.com yuzhang.shang@ucf.edu haoxuanyou@gmail.com qin.ca@northeastern.edu   
+yangsui.research@gmail.com   
+wanghuan@westlake.edu.cn
+
+1 Zhejiang University 2 Westlake University 3 Xiamen University 4 National University of Singapore 5 University of Wisconsin-Madison 6 University of Central Florida 7 Columbia University $^ 8$ Salesforce AI Research $^ 9$ Rice University ∗ Equal Contribution $^ \dagger$ Corresponding Author
+
+Reviewed on OpenReview: https://openreview.net/forum?id=G2od9JVHkE
+
+# Abstract
+
+Multimodal large language models (MLLMs) have made remarkable strides, largely driven by their ability to process increasingly long and complex contexts, such as high-resolution images, extended video sequences, and lengthy audio input. While this ability significantly enhances MLLM capabilities, it introduces substantial computational challenges, primarily due to the quadratic complexity of self-attention mechanisms with numerous input tokens. To mitigate these bottlenecks, token compression has emerged as an auspicious and critical approach, efficiently reducing the number of tokens during both training and inference. In this paper, we present the first systematic survey and synthesis of the burgeoning field of multimodal long context token compression. Recognizing that effective compression strategies are deeply tied to the unique characteristics and redundancies of each modality, we categorize existing approaches by their primary data focus, enabling researchers to quickly access and learn methods tailored to their specific area of interest: (1) image-centric compression, which addresses spatial redundancy in visual data; (2) video-centric compression, which tackles spatio-temporal redundancy in dynamic sequences; and (3) audio-centric compression, which handles temporal and spectral redundancy in acoustic signals. Beyond this modality-driven categorization, we further dissect methods based on their underlying mechanisms, including transformation-based, similarity-based, attention-based, and query-based approaches. By providing a comprehensive and structured overview, this survey aims to consolidate current progress, identify key challenges, and inspire future research directions in this rapidly evolving domain.
+
+![](images/2940adeff70fe8129c3147a4b762451224dae2bee61d6cb9f4c7c80ba58d585e.jpg)  
+Figure 1: Left: Image, video, and audio data types can scale in their representation dimensions, leading to a corresponding increase in the number of tokens. Right: Top-performing MLLMs cannot address real-world demands, as the number of tokens for multimodal input, especially video, vastly exceeds that of text, and most visual tokens are redundant. Therefore, token compression is crucial to address this limitation.
+
+# 1 Introduction
+
+Multimodal large language models (MLLMs) (Liu et al., 2023; Li et al., 2025a; Xu et al., 2024a; Bai et al., 2023; Xu et al., 2025b; Lin et al., 2024a; Zhang et al., 2023a; Li et al., 2024a; 2023d; Cheng et al., 2024c; Zhang et al., 2025a; Song et al., 2024b) have demonstrated exceptional performance on complex tasks, including visual question answering (VQA), automatic speech recognition (ASR) and multimodal content generation, by extending the architectural of large language models (LLMs) (Chiang et al., 2023; Team, 2024; AI@Meta, 2024; Abdin et al., 2024). These powerful models derive their strength from processing long and diverse contexts, such as high-resolution images, extended video sequences, and long audio input, using transformer architectures.
+
+Achieving this capability, however, faces a significant challenge: the quadratic complexity of the self-attention mechanism. As the number of tokens increases, this complexity leads to substantial computational and memory demands. This problem is particularly pronounced in MLLMs, where the tokenization of visual and audio data can generate sequences of orders of magnitude longer than text (Shao et al., 2025; Tao et al., 2025a; Yang et al., 2025c; Song et al., 2025c).
+
+For instance, as illustrated in Figure 1, the number of image tokens is directly proportional to resolution, while the number of audio tokens is proportional to duration, and video tokens scale with both resolution and duration. A single content-rich video can produce tens of millions of tokens, dramatically exacerbating computational inefficiencies and leading to severe inference latency (90 minutes video will be converted into 54M tokens)1. Consequently, addressing this computational bottleneck is critical for unlocking the full potential of MLLMs in real-world applications.
+
+To address the challenges posed by the long context, token compression has emerged as a critical research focus for enhancing the inference efficiency and practical deployment of MLLMs. This approach is highly effective because multimodal inputs, like those processed by vision transformers (ViT), contain significant redundancy (Rao et al., 2021; Liang et al., 2022; Bolya et al., 2022; Ryoo et al., 2021; Touvron et al., 2021; Vaswani et al., 2017; Yang et al., 2025d). Extensive research, for example, demonstrates that more than $5 0 \%$ of tokens in a typical MLLM sequence receive minimal attention during inference (Chen et al., 2024a; Huang et al., 2025c; Tao et al., 2025a; Shao et al., 2025; Alvar et al., 2025; Shang et al., 2025). While some advanced techniques integrate compression directly into a model’s architecture or training framework (Chen et al., 2024c; Dai et al., 2024; Wang et al., 2024c; Bai et al., 2025; Li et al., 2025a; Zhang et al., 2024d; Cai et al., 2024a; Yao et al., 2024; Cha et al., 2024; Chu et al., 2023; 2024a; Li et al., 2024d), a major advantage of token compression is its ability to be applied as a post-optimization technique without requiring expensive retraining. These methods typically operate by first establishing a specialized metric to evaluate token importance, then performing a corresponding pruning or compression. By significantly accelerating inference and reducing memory consumption, these techniques enable the practical deployment of MLLMs in real-world applications (Lin et al., 2025a; Chu et al., 2023; 2024a; Wei et al., 2025; Ma et al., 2024b).
+
+Recent extensive research demonstrates that token compression substantially enhances inference efficiency, driving the continuous development of diverse compression strategies and sophisticated methodologies (Shen et al., 2025a; Chai et al., 2025; Alvar et al., 2025; Huang et al., 2025c; Yang et al., 2025c; Shang et al., 2025; Zhang et al., 2025b; Cao et al., 2023; Yang et al., 2025a; Chen et al., 2024a; Tao et al., 2025c; Zhang et al., 2024c; Liu et al., 2024c; Yang et al., 2025d; Ma et al., 2025b). However, the inherent heterogeneity of multimodal data means that redundancy differs across modalities. Unlike textual prompts, where redundancy is primarily in syntactic or semantic, visual and auditory data exhibit unique structural properties. For instance, high-resolution images contain strong local correlations, while video streams feature extensive spatiotemporal redundancy across frames, and audio signals often contain extended segments of silence or stationary noise. Consequently, most existing methods focus on compressing one or two specific modalities.
+
+Significant strides have been made in compressing tokens in text LLMs. For instance, (Li et al., 2025d) has thoroughly explored prompt compression for text LLMs, highlighting advancements in this domain. In MLLMs, position paper (Kong et al., 2025) has begun to broaden our understanding, emphasizing that token compression offers benefits beyond mere efficiency. Furthermore, some researchers argue that the focus of research for efficient AI is shifting from model-centric compression to data-centric compression (Liu et al., 2025d). However, there has not yet been a systematic classification of token compression methods specifically for MLLMs, leaving an opportunity for a comprehensive survey in this area.
+
+Motivated by the critical need for efficiency in MLLMs and a desire to address this current research fragmentation, this work presents the first comprehensive, structured survey of long-context token compression techniques. We systematically categorize existing approaches according to their primary modality focus:
+
+• Image-centric token compression addresses inherent spatial redundancy, leveraging the fact that neighboring patches usually represent similar textures or colors;   
+• Video-centric token compression targets spatiotemporal redundancy, mitigating the significant inter-frame correlation where consecutive frames typically share extensive background elements and limited motion;   
+• Audio-centric token compression mitigates temporal and spectral redundancy, as salient information often concentrates within sparse, brief segments and specific frequency bands amidst silent pauses or background noise.
+
+Importantly, while acknowledging modality-specific influences on redundancy patterns and optimal compression strategies, we observe that fundamental algorithmic principles frequently transcend individual modalities. Effective compression fundamentally centers on three core computational objectives: importance identification, redundancy quantification, and token merging or pruning. These objectives manifest similarly across visual, temporal, and auditory domains despite distinct structural constraints. Consequently, we further categorize methodologies according to their underlying mechanisms: transform-based, similarity-based, attention-based, and query-based approaches.
+
+This work presents the first structured survey of token compression techniques for MLLMs, a critical step in navigating their inherent computational complexities. By consolidating current progress, this survey identifies key challenges and illuminates promising future research directions, providing a foundational resource for both researchers and developers.
+
+The remaining sections of the article are organized as follows: we will first discuss the architecture of MLLMs in the background section (Section 2.1), followed by an examination of how token compression has been utilized in prior methods for large language models (LLMs, Section 2.2) and vision transformers (ViTs, Section 2.3). Subsequent sections will be dedicated to token compression methods for specific modalities: Section 3 for image LLMs, Section 4 for video LLMs, and Section 5 for audio LLMs. Following this, Section 6 will provide insights into token compression research. Finally, Section 7 will introduce the broad application space of token compression, followed by the concluding Section 8.
+
+![](images/55c6c07bd8de7b685aa8b601980eac5ed5ea45c6f01c2d75e45e0097a6537679.jpg)  
+Figure 2: Representative Architecture of MLLMs. Within MLLM reasoning processes, token sequences comprise concatenated system tokens, multimodal tokens, and text tokens. Multimodal tokens usually constitute the majority of the sequence tokens.
+
+# 2 Background
+
+# 2.1 Multimodal Architecture
+
+The general multimodal large language model (MLLM) framework (see Figure 2), consists of three core components: (1) a modality-specific encoder $( g )$ , (2) a projector module $( P )$ , and (3) a pre-trained large language model (LLM).
+
+The process begins with the modality encoder, $g$ , which is responsible for processing a given input, such as a visual or audio signal. This encoder compresses the high-dimensional raw data into a sequence of compact and semantically meaningful patch embeddings. For an input image $X _ { v }$ and an audio $X _ { a }$ , this can be expressed as:
+
+$$
+Z _ { v } = g ( X _ { v } ) , \quad Z _ { a } = g ( X _ { a } ) .
+$$
+
+The encoding function $g$ is a flexible component that can be specialized for various modalities, including vision, audio, sensor data, etc. Widely adopted encoders implementing this function include:
+
+• Vision encoders: CLIP (Radford et al., 2021), SigLIP (Zhai et al., 2023), DINO (Caron et al., 2021; Oquab et al., 2023), and ViT (Bai et al., 2025); • Audio encoders: Whisper (Radford et al., 2023) and Audio-CLIP (Guzhov et al., 2022).
+
+Subsequently, the encoded embeddings ( $Z _ { v }$ or $Z _ { a }$ ) are transformed by the projector module, $P$ . The primary role of this module is to bridge the modality gap by mapping the embeddings into the same latent space as the text embeddings of LLM.
+
+$$
+H _ { v } = P ( Z _ { v } ) , \quad H _ { a } = P ( Z _ { a } ) .
+$$
+
+The output of the projector, a sequence of projected embeddings, can then be seamlessly concatenated with the text prompts and fed into the LLM.
+
+The pre-trained LLM (Chiang et al., 2023; Team, 2024; AI $@$ Meta, 2024) forms the core of the framework, with its large-scale parameters providing emergent capabilities such as zero-shot generalization and in-context learning. The LLM receives a composite input sequence formed by concatenating the projected multimodal embeddings $H _ { v }$ and $H _ { a }$ , as well as the textual prompt embeddings $H _ { q }$ . The textual prompt $X _ { q }$ is first converted into embeddings $H _ { q }$ by an integrated tokenizer.
+
+The LLM then generates a response sequence $Y _ { a }$ through autoregressive decoding:
+
+$$
+p ( Y _ { a } | H _ { v } , H _ { a } , H _ { q } ) = \prod _ { i = 1 } ^ { L } p ( y _ { i } | H _ { v } , H _ { a } , H _ { q } , y _ { < i } ) ,
+$$
+
+![](images/96361410280ed76dfb4809e9721c76c83445648a5a4d5ca846bc2830d7f6f617.jpg)  
+Figure 3: Taxonomy of Multimodal Token Compression. Our classification organizes existing methods by their dominant data modality, accounting for inherent differences in redundancy across modalities. This is further refined by a dissection of their underlying mechanisms, enabling researchers to quickly pinpoint methods tailored to specific research domains.
+
+where $L$ signifies the output sequence length.
+
+The high dimensionality of multimodal data poses a computational challenge. As shown in Figure 2, the token sequence processed comprises a mix of system prompt, multimodal context, and textual instruction. In most reasoning tasks, multimodal tokens constitute over 80% of the total sequence length (Chen et al., 2024a), thereby forming the primary computational bottleneck. This bottleneck obstacle to scaling MLLMs and achieving efficient inference. Consequently, a key strategy to optimize computational efficiency involves employing specialized projector architectures. These projectors are designed to reduce the number of multimodal tokens while preserving their semantic fidelity, thus mitigating the computational burden.
+
+While MLLM architecture presents unique challenges, token compression has been explored for both encoders and LLMs independently. Therefore, the subsequent sections will first dive into techniques relevant to these individual components, paving the way for more efficient multimodal models. Specifically, Section 2.2 will focus on token compression methods for large language models (LLMs), and Section 2.3 will explore techniques for vision transformers (ViTs).
+
+# 2.2 Large Language Model Token Compression
+
+The backbone of modern MLLMs is often built upon and fine-tuned from powerful text-based LLMs. As a foundational component, a solid understanding of token compression techniques developed for text LLMs is crucial, as they offer an accurate and lightweight solution for handling real-world long-context scenarios, such as understanding an entire book or a code repository. Within the domain of large language models, these methods are frequently termed prompt compression (Li et al., 2025d).
+
+AutoCompressor (Chevalier et al., 2023) condenses context into summary vectors as soft prompts. Extensible Tokenization (Shao et al., 2024) employs intermediate modules to compress embeddings, while SentenceVAE (An et al., 2024) represents sentences with single tokens. Selective Context (Li et al., 2023g) employs self-information metrics to eliminate low-information tokens. LLMLingua (Jiang et al., 2023a;b; Pan et al., 2024) series utilizes hierarchical token pruning with instruction tuning and further introduces LongLLMLingua (Jiang et al., 2023b) to mitigate position decay through semantic density ranking.
+
+In parallel, query-guided methods like QUITO (Wang et al., 2024e) and QUITO-X (Wang et al., 2024f) leverage attention scores or information bottleneck theory for relevance-based filtering. AdaComp (Zhang et al., 2024a) implements adaptive extraction governed by query complexity predictors. Concept Distillation (Shi et al., 2024) employs Abstract Meaning Representation (AMR) graphs to distill key concepts, whereas xRAG (Cheng et al., 2024b) collapses documents into single-token representations. ICAE (Ge et al., 2023) encodes context into discrete memory slots. Recursive frameworks including RCC (Huang et al., 2024) and XL3M (Wang et al., 2024d) generate piecewise summaries through relevant fusion. SoftPromptComp (Wang et al., 2024a) fuses natural language prompts with dynamic embeddings, while PromptIntern (Zou et al., 2024) internalizes task instructions into model parameters via phased training.
+
+Targeting inference efficiency, KV cache compression techniques prune redundant memory states to accelerate generation. H2O (Zhang et al., 2023b) and StreamingLLM (Xiao et al., 2024) utilize heavy-hitter policies and attention sinks to maintain generation quality under limited budgets. Furthermore, SnapKV (Li et al., 2024e) and PyramidKV (Cai et al., 2024b) enhance long-context performance by pinpointing key attention clusters or dynamically adjusting cache allocations across layers.
+
+While these text-centric token compression techniques have demonstrated notable efficacy, their direct application to MLLMs faces fundamental challenges. The inherent heterogeneity of multimodal data introduces distinct redundancy patterns absent in unimodal text. These include, but are not limited to, spatial correlations in high-resolution images, spatiotemporal continuity in video sequences, and spectral-temporal locality in audio streams. Such specialized redundancies necessitate the development of dedicated compression strategies. Consequently, this survey systematically reviews emerging token compression methodologies for MLLMs that effectively reduce token redundancy while preserving task performance.
+
+# 2.3 Vision Transformer Token Compression
+
+Visual token compression, originally pioneered in vision transformers (ViTs) (Vaswani et al., 2017; Dosovitskiy et al., 2020; Dong et al., 2022; Liu et al., 2021; Fan et al., 2021; Li et al., 2022; Graham et al., 2021; Huang et al., 2025a; Feng & Zhang, 2023), offers insights for addressing analogous challenges in MLLMs.
+
+Spatial redundancy manifests in ViTs through adjacent image patches, where not all tokens contribute equally to classification outcomes, compounded by semantic imbalance: foreground objects demand disproportionate computational resources compared to homogeneous backgrounds. To mitigate these issues, visual token compression techniques are employed to reduce computational overhead while maintaining model accuracy.
+
+Foundational approaches, including DynamicViT (Rao et al., 2021) and EViT (Liang et al., 2022), quantify token relevance through attention scores, dynamically pruning low-saliency tokens. Complementary techniques like ToMe (Bolya et al., 2022) and TokenLearner (Ryoo et al., 2021) either merge semantically similar tokens using similarity metrics or generate compact token sets via learned spatial attention mechanisms. DeiT (Touvron et al., 2021) employs lightweight ‘student’ heads to predict categorical labels from compressed token subsets. Furthermore, methods such as MADTP (Cao et al., 2024) leverage cross-modal alignment to filter tokens.
+
+The preceding analysis demonstrates that ViT token compression methodologies offer substantive inspiration for token reduction in MLLMs. However, MLLMs possess not only multimodal tokens encoding low-level features but also text tokens conveying high-level abstractions, coupled with significantly longer token sequences. Consequently, token compression in MLLMs presents greater challenges than in ViT while being increasingly critical for computational efficiency. Therefore, this survey analyzes the evolution and future directions of token compression techniques for MLLMs operating in long-context multimodal environments.
+
+# 2.4 Problem Definition and Taxonomy Scope
+
+To clarify the scope of this survey and distinguish token compression from related efficient computing techniques, we establish a strict criterion based on the physical reduction of information flow. We define a method as token compression if and only if it explicitly reduces the number of tokens passed to subsequent layers or modules.
+
+Formally, given an input sequence $\mathbf { X } \in \mathbb { R } ^ { N \times D }$ , a token compression operator $\tau$ produces an output $\mathbf { X } ^ { \prime } \in$ $\mathbb { R } ^ { M \times D }$ where $M \ < \ N$ , while aiming to retain the essential semantic information of $\mathbf { X }$ . Based on this definition, we delineate the boundaries with related concepts as follows:
+
+• Input-level Compression: We classify techniques such as frame sampling and key-frame extraction as a generalized form of token compression operating at the Input Level. By selecting a subset of frames (e.g., extracting key-frames from a video), the initial token count $N$ is reduced prior to the encoding stage. We distinguish this from Feature-level Compression (e.g., token pruning or merging), which dynamically operates on intermediate embeddings within the network layers. Exclusion of Attention Sparsity: We exclude attention sparsity mechanisms (and related efficient attention variants) from the scope of token compression. While these methods reduce computational complexity (e.g., from $O ( N ^ { 2 } )$ to linear) by masking interactions, they typically output a sequence of the same length ( $N  N$ ) to the next layer. They sparsify the computation graph, whereas token compression sparsifies the representation.
+
+# 3 Image-centric Token Compression
+
+Multimodal long context token compression methods generally fall into four categories based on their underlying mechanisms: transformation-based approaches directly transform the cross-modality information to compress tokens by altering their scale or representation; similarity-based techniques reduce tokens by leveraging the inherent resemblances between them; attention-based strategies exploit the sparsity of attention within the multimodal data to guide compression; and query-based methods selectively refine multimodal information, guided by prompts, to distill the most relevant tokens. Each of these methods has its own set of advantages and disadvantages, which are summarized in Table 1. Representative image-centric token compression methods are further compared in Table 2.
+
+Table 1: Four Categories of Methods Based on Intrinsic Mechanisms: Diagram, Summary, and Pros & Cons.   
+
+<table><tr><td>Method</td><td>Transformation-based Similarity-based</td><td></td><td>Attention-based Token Index</td><td>Query-based</td></tr><tr><td>Diagram</td><td>e.g., Pool, Conv</td><td>e.g., KNN unique</td><td>12 3456 1 7 7 X 2 3 2 Mean 8 1 1 9 3 3 4 3 5 2 3 8 4 5 4 X 311 322 2 Attention Matrix</td><td>Text 00 III * Encoder Cross LLM Attention Learned Query Distilled Token Information</td></tr><tr><td>Summary</td><td>Transform tokens into a more compact form</td><td>Compress by merging or grouping similar tokens</td><td>Remove less attentive to- kens via attention spar- sity</td><td>Use external queries to guide token compression</td></tr><tr><td>Pros</td><td>Preserve the structural representation of infor- mation well</td><td>Simplify processing, flex- ibility in choosing where to compress</td><td>Dynamically prune to- kens by relevance; tie to original computation, boosting interpretability</td><td>Suitable for specific and video tasks, as com- pressed information is more relevant and con- cise</td></tr><tr><td>Cons</td><td>Limited by the trans- formation method, com- pression rate isn&#x27;t flexi- ble enough</td><td>May lose fine-grained info if tokens over- generalized; poor struc- tural feature retention</td><td>Explicit attention score calculation might be in- compatible with main- stream acceleration li- braries</td><td>Not user-friendly for multi-turn conver- sations; requires re- condensing information</td></tr></table>
+
+# 3.1 Transformation-based Image-centric Compression
+
+Transformation-based image-centric compression methods leverage the spatial redundancy inherent in 2D image representations. Some image token compression techniques are derived from image downsampling operations (e.g., pooling, bilinear interpolation). Based on the specific transformation method, these can be broadly categorized as follows:
+
+# 3.1.1 Pixel Unshuffle
+
+Pixel unshuffle is the inverse operation of pixel shuffle. It transforms a feature map from a high spatial resolution with a small number of channels into a lower-resolution feature map with a larger number of channels. This reduces the number of tokens. The transformation can be mathematically expressed as:
+
+$$
+{ \mathrm { P i x e l ~ U n s h u f f i e : ~ } } H \times W \times D \to { \frac { H } { r } } \times { \frac { W } { r } } \times ( D \cdot r ^ { 2 } ) ,
+$$
+
+where $H$ , $W$ denote the height and width of the token grid, $D$ is the hidden dimension of each token, and $r$ is the downsampling ratio. Here $r$ is a positive integer, typically 2. Therefore, as summarized in Table 1, the token compression ratio for transformation-based methods is usually limited to a few specific values, generally compressing the number of tokens to $2 5 \%$ .
+
+Recent works like InternVL series (Chen et al., 2024c;b; Gao et al., 2024b; Zhu et al., 2025a), Qwen2 series (Wang et al., 2024c; Bai et al., 2025), and NVLM (Dai et al., 2024) utilize pixel unshuffle to reduce the tokens generated by the vision tower by a factor of one-quarter. Subsequently, an MLP is employed to align the visual dimension with the text dimension, addressing the mismatch in the hidden dimension.
+
+# 3.1.2 Spatial Pooling / Interpolation
+
+Unlike pixel unshuffle, pooling and interpolation directly perform 2D downsampling on tokens, without altering the hidden dimension. This process can be defined as:
+
+$$
+\mathrm { P o o l i n g \ / \ I n t e r p o l a t i o n { : } \ } H \times W \times D \to \frac { H } { S } \times \frac { W } { S } \times D ,
+$$
+
+where $S$ is the downsampling factor.
+
+LLaVA-OneVision (Li et al., 2025a) employs bilinear interpolation for 2D downsampling of aligned tokens, while LLaVA-Video (Zhang et al., 2024d) uses average pooling for downsampling. M $^ 3$ (Cai et al., 2024a) utilizes a simple pooling operation to learn an inherently multi-granular representation during training. This allows the model to achieve comparable performance with fewer tokens during inference, effectively addressing efficiency concerns. DeCo (Yao et al., 2024) argues that the Q-former (Liu et al., 2023; Li et al., 2023c) is an inefficient visual compressor and similarly achieves token compression through a straightforward average pooling approach, leading to improved convergence efficiency and performance.
+
+# 3.1.3 Spatial Convolution
+
+Convolutional operations offer a more sophisticated approach to token compression compared to simple pooling or interpolation, by learning to abstract local information while reducing spatial dimensions. The transformation can be expressed as:
+
+$$
+\mathrm { C o n v o l u t i o n : } \ H \times W \times D _ { i n } \to \frac { H } { S } \times \frac { W } { S } \times D _ { o u t } ,
+$$
+
+where S is the stride, which determines the downsampling factor, and $D _ { i n }$ , $D _ { o u t }$ represent the input and output channel dimensions, respectively.
+
+Honeybee (Cha et al., 2024) proposes the C-Abstractor, which uses convolution to extract and compress token information while preserving locality. MobileVLM (Chu et al., 2023), on the other hand, employs an LDP module that utilizes depth-wise convolution to reduce the number of tokens by 75%.
+
+# 3.1.4 Comparative Analysis of Transformation Methods
+
+These transformation-based image-centric compression methods effectively utilize all image tokens while consciously preserving the spatial local information of 2D features. Pixel unshuffle, pooling, and interpolation are inherently parameter-free, thus introducing no additional weight overhead, a key advantage. In contrast, convolution learn a more sophisticated local abstraction by introducing trainable weights.
+
+Another notable difference lies in how these methods handle feature dimensions: pixel unshuffle typically alters the hidden dimension, necessitating a subsequent trained MLP to align with the text dimension. Conversely, pooling and interpolation can be implemented in a training-free manner as they operate directly on the aligned token dimension.
+
+By extracting more condensed information, they achieve a superior balance between performance and efficiency. However, due to the inherent characteristics of 2D downsampling, their token compression ratios are typically limited to a few specific magnitudes, with a $2 5 \%$ compression rate being the most common.
+
+# 3.2 Similarity-based Image-centric Compression
+
+Similarity-based image-centric compression methods reduce the number of visual tokens by identifying and merging similar tokens based on their distance or similarity in an implicit space. This typically involves selecting representative cluster-center tokens to encapsulate visual information.
+
+Early works in this area include ToMe (Bolya et al., 2023), an acceleration method for ViTs. ToMe introduces a token merge module between the attention and MLP blocks, calculating token similarity and merging similar tokens via bipartite soft matching. This process creates a new set of tokens, $\tau$ , by replacing the most
+
+similar tokens with their merged representations.
+
+$$
+\mathcal { T } = ( { \mathcal { T } } _ { o r i g i n a l } \setminus \bigcup _ { i = 1 } ^ { k } C _ { i } ) \cup \{ \mathrm { M e r g e } ( C _ { i } ) \} _ { i = 1 } ^ { k } ,
+$$
+
+where each $C _ { i }$ is a set of tokens identified as highly similar by ToMe’s matching algorithm.
+
+In the context of MLLMs, FOLDER (Wang et al., 2025a) employs a similar approach, inserting a token merge module within the last attention block of the vision encoder. This reduces the number of tokens that were subsequently passed to the LLM decoder. DivPrune (Alvar et al., 2025) reframes the token compression problem as a Max-Min diversity problem (Porumbel et al., 2011), aiming to select a subset of tokens with maximal internal differences. AuroraCap (Chai et al., 2025) adopts a strategy consistent with ToMe, performing token merging within each attention and MLP block of the vision tower. This progressively reduces the number of tokens throughout the ViT model. While the aforementioned methods primarily leverage similarity-based clustering of tokens within the ViT, TopV (Yang et al., 2025a) extends this principle to compress tokens within the LLM layers. TopV comprehensively considers both the similarity and distance functions between features to guide the token compression process, operating directly within the multimodal representation space of the LLM.
+
+# 3.2.1 Analysis of Similarity Methods
+
+While similarity-based methods effectively reduce tokens, this merging often overlooks the original spatial information of the tokens, leading to spatial misunderstanding (in Tab. 1). Subsequent work frequently employs methods like DPC-KNN (Du et al., 2016; Rodriguez & Laio, 2014) or techniques focused on local spatial similarity merging to prevent excessive spatial information degradation. Furthermore, when tokens are overgeneralized, similarity-based methods struggle to distinguish between them, easily leading to misjudgment.
+
+# 3.3 Attention-based Image-centric Compression
+
+Attention-based token compression methods leverage the inherent sparsity of visual feature attention to guide token pruning. Tokens with low attention scores can often be considered removable without significantly impacting the original computation. Specifically, these methods utilize the attention mechanism to identify and preserve pivotal tokens. It is worth noting that this shares the same underlying philosophy as sparse attention methods (Yuan et al., 2025; Zhang et al., 2025d; Lu et al., 2025; Yin et al., 2025), which focus on executing the critical attention computations, yet manifest at a different scale: the former operates on token quantity while the latter operates on computational pathways. In vision language models, both the vision encoder and the LLM decoder incorporate transformers. Consequently, attention-based compression strategies can be broadly categorized into those applied within the encoder and those within the decoder.
+
+# 3.3.1 Attention in Encoder
+
+Methods focusing on the vision encoder primarily select visual tokens based on attention scores within a single image or crops, relying on the capabilities of the vision transformer (ViT). This reduces the number of visual tokens before they’re passed to the LLM. To achieve this, the set of retained tokens, $\tau _ { \mathrm { e n c o d e r } }$ , is determined by selecting the top $k$ tokens based on their attention scores relative to the [CLS] token:
+
+$$
+{ \mathcal { T } } _ { \mathrm { e n c o d e r } } = \mathrm { T o p K } _ { k } \left( \left\{ { \mathrm { A t t e n t i o n } } \left( \mathbf { v } _ { i } , \mathbf { v } _ { \mathrm { c l s } } \right) \mid \mathbf { v } _ { i } \in { \mathcal { V } } \right\} \right) ,
+$$
+
+where $\nu$ is the original set of visual tokens, ${ \bf v } _ { i }$ is the $_ i$ -th visual token, and $\mathbf { v } _ { \mathrm { c l s } }$ is the [CLS] token. This strategy ensures that only the most salient visual information, as highlighted by the [CLS] attention, is carried forward for further processing.
+
+Prumerge (Shang et al., 2025) selects cluster centers for visual tokens based on [CLS] attention in the encoder. It then merges the remaining less attentive tokens using K-nearest neighbors (KNN) clustering and a weighted cluster center update mechanism. VisionZip (Yang et al., 2025c) retains visual tokens with high attention scores and subsequently merges the remaining tokens through clustering. VisPruner (Zhang et al., 2025f) similarly preserves a subset of high-attention visual tokens. Then it progressively removes duplicates based on similarity in multiple rounds, ultimately retaining an additional set of diverse tokens. GlobalCom $^ 2$ (Liu et al., 2025c) employs a hierarchical strategy. It coordinates the attention scores of thumbnail tokens to guide the pruning of high-resolution crops, thereby achieving effective global context reduction.
+
+Table 2: Comparison of Training-Free Token Compression Methods for Image LLMs in Understanding Tasks   
+
+<table><tr><td rowspan="2">Method</td><td rowspan="2">#Vision Tokens</td><td rowspan="2">Res.</td><td colspan="10">Benchmarks</td></tr><tr><td>VQA 2</td><td>GQA</td><td>VisWiz</td><td>SciQA</td><td>VQAT</td><td>POPE</td><td>MME</td><td>MMB</td><td>SEED LLaVAW</td><td>MM-Vet</td></tr><tr><td>BLIP-2 (Li et al., 2023c)</td><td>32</td><td>224</td><td>65.0 41.0</td><td>19.6</td><td>61.0</td><td>42.5</td><td>85.3</td><td>1293.8</td><td></td><td>46.4</td><td>38.1</td><td>22.4</td></tr><tr><td>IDEFICS-9B (Laurençon et al., 2023)</td><td>64</td><td>224</td><td>50.9</td><td>38.4 35.5</td><td></td><td>25.9</td><td></td><td></td><td>48.2</td><td></td><td></td><td>−</td></tr><tr><td>MobileVLM-3B (Chu et al., 2024a)</td><td>144</td><td>336</td><td></td><td>59.0</td><td>61.0</td><td>47.5</td><td>84.9</td><td>1288.9</td><td>59.6</td><td></td><td></td><td>−</td></tr><tr><td>mPLUG-Owl2 (Ye et al., 2023)</td><td>1024</td><td>448</td><td>79.4</td><td>56.1 54.5</td><td>68.7</td><td>54.3</td><td></td><td>1450.2</td><td>64.5</td><td>57.8</td><td></td><td>36.2</td></tr><tr><td>Video-LLaVA (Lin et al., 2024a)</td><td>256</td><td>224</td><td>74.7</td><td>60.3 48.1</td><td>66.4</td><td>51.8</td><td>84.4</td><td></td><td>60.9</td><td></td><td>73.1</td><td>32.0</td></tr><tr><td>Qwen-VL (Wang et al., 2024c)</td><td>256</td><td>448</td><td>78.8</td><td>59.3 35.2</td><td>67.1</td><td>63.8</td><td></td><td></td><td>38.2</td><td>56.3</td><td></td><td></td></tr><tr><td>LLaVA-v1.5 (Liu et al., 2023)</td><td>576</td><td>336</td><td>78.5</td><td>62.0 50.0</td><td>66.8</td><td>58.2</td><td>85.9</td><td>1510.7</td><td>64.3</td><td>58.6</td><td>63.4</td><td>30.5</td></tr><tr><td colspan="14">LLaVA-v1.5-7B w/ Token Compression Methods (Training Free)</td></tr><tr><td>ToMe (Bolya et al., 2023)</td><td>192</td><td>336</td><td>68.0</td><td>54.3</td><td></td><td>52.1</td><td>−</td><td>1563.0</td><td>60.5</td><td></td><td></td><td>—</td></tr><tr><td>FastV (Chen et al., 2024a)</td><td>192</td><td>336</td><td>67.1</td><td>52.7</td><td></td><td></td><td>52.5</td><td>64.8</td><td>1612.0 61.2</td><td>57.1</td><td></td><td>27.7</td></tr><tr><td>SparseVLM (Zhang et al., 2024c)</td><td>192</td><td>336</td><td>75.6</td><td>57.6</td><td></td><td>56.1</td><td>83.6</td><td>1721.0</td><td>62.5</td><td>55.8</td><td></td><td>31.5</td></tr><tr><td>MustDrop (Liu et al., 2024c)</td><td>192</td><td>336</td><td>76.0</td><td>58.2 51.4</td><td></td><td>56.5</td><td></td><td>1787.0</td><td>62.3</td><td>—</td><td></td><td>−</td></tr><tr><td>PruMerge+ (Shang et al., 2025)</td><td>144</td><td>336</td><td>76.8</td><td></td><td>68.3</td><td>57.1</td><td>84.0</td><td>1462.4</td><td>64.9</td><td></td><td></td><td></td></tr><tr><td>ATP-LLaVA (Ye et al., 2025b)</td><td>144</td><td>336</td><td>76.4</td><td>59.5</td><td></td><td></td><td>84.2</td><td>1473.9</td><td>66.0</td><td>57.3</td><td></td><td>31.5</td></tr><tr><td>VisionZip++ (Yang et al., 2025c)</td><td>128</td><td>336</td><td>76.6</td><td>58.9</td><td></td><td>57.0</td><td>83.7</td><td>1823.0</td><td></td><td>55.8</td><td></td><td>32.9</td></tr><tr><td>VisPruner (Zhang et al., 2025f)</td><td>128</td><td>336</td><td>75.8</td><td>58.2 52.7</td><td></td><td>57.0</td><td>84.6</td><td>1461.4</td><td>62.7</td><td></td><td></td><td>33.7</td></tr><tr><td>VisionZip++ (Yang et al., 2025c)</td><td>64</td><td>336</td><td>74.2 57.0</td><td></td><td></td><td>56.0</td><td>80.9</td><td>1756.0</td><td>—</td><td>53.4</td><td></td><td>30.2</td></tr><tr><td>TokenCarve (Tan et al., 2025)</td><td>64</td><td>336</td><td>74.8 —</td><td></td><td></td><td>57.0</td><td>79.9</td><td>1754.0</td><td>62.0</td><td></td><td></td><td>29.3</td></tr><tr><td>VisPruner (Zhang et al., 2025f)</td><td>32</td><td>336</td><td>52.2 67.7</td><td>53.0</td><td></td><td>53.9</td><td>72.7</td><td>1271.0</td><td>58.4</td><td></td><td></td><td>28.8</td></tr><tr><td colspan="9">MLLMs w/ Token Compression</td><td rowspan="3"></td><td rowspan="3"></td><td rowspan="3"></td><td rowspan="3"></td></tr><tr><td>LLaMA-VID (Li et al., 2024d) LLaVA-Mini (Zhang et al., 2025g)</td><td>2</td><td>336</td><td></td><td>55.5</td><td>68.8</td><td>49.0</td><td>83.1</td><td></td></tr><tr><td>VoCo-LLAMA (Ye et al., 2025c)</td><td>1 1</td><td>336 336</td><td>77.6 72.3</td><td>60.9 57.0</td><td>56.2 70.4 65.4</td><td>57.0</td><td>84.7 81.4</td><td>1466.0 1323.3</td><td>65.6 58.8</td><td>58.5 68.9 53.7</td></tr></table>
+
+# 3.3.2 Attention in Decoder
+
+Unlike attention-based compression within the encoder, methods focusing on attention in the decoder leverage the capabilities of the LLMs to guide token compression. Here, attention is computed across all tokens within the LLM’s attention window, which includes not only visual tokens but also textual tokens. This allows the LLM to determine the importance of visual and textual information in a joint space, leading to more contextaware token pruning.
+
+A common approach for compression in the decoder involves selecting the most salient visual tokens. The set of retained tokens, $\tau _ { \mathrm { d e c o d e r } }$ , is typically determined by choosing the top $k$ visual tokens based on the average attention they receive from all other tokens in that layer’s attention window:
+
+$$
+\begin{array} { l } { { \displaystyle \bar { \cal A } ( { \bf v } _ { i } ) = \frac { 1 } { | { \cal S } | } \sum _ { { \bf s } _ { j } \in { \cal S } } \mathrm { A t t e n t i o n } \left( { \bf v } _ { i } , { \bf s } _ { j } \right) } , } \\ { { \displaystyle \mathcal T } _ { \mathrm { d e c o d e r } } = \mathrm { T o p K } _ { k } \left( \{ \bar { \cal A } ( { \bf v } _ { i } ) \mid { \bf v } _ { i } \in \mathcal { V } \} \right) , } \end{array}
+$$
+
+where $\nu$ denotes the set of visual tokens, and $\boldsymbol { S }$ represents the entire set of tokens present in the current layer’s attention window (which may include visual, textual, or special tokens). This method allows the model to prioritize the visual information that is most relevant in the ongoing context.
+
+FastV (Chen et al., 2024a) is among the first to identify a significant inefficiency in large vision language models (LVLMs), namely the extremely low attention efficiency of visual tokens. For instance, in LLaVAv1.5, visual tokens received only $0 . 2 1 \%$ of the attention obtained by system prompts after the second layer. FastV posits that this is due to an overabundance of visual signals, leading to specific features aggregating onto “anchor” tokens via shallow self-attention mechanisms. Consequently, pruning $5 0 \%$ of visual tokens based on attention scores after the second layer maintains maximal performance. PyramidDrop (Xing et al., 2025) structures the token compression process within the LLM into multiple stages. It employs progressive token compression to avoid excessive loss of visual information in shallower layers. VTW (Lin et al., 2025c)
+
+takes a more aggressive pruning approach, arguing that visual tokens can be entirely removed after a certain layer within the LLM. The specific layer for visual token removal is determined using a calibration dataset. FitPrune (Ye et al., 2025a) focuses on reducing the length of visual tokens per layer. It considers both the self-attention of visual tokens and their cross-attention with text tokens to guide compression. The goal is to find an optimal pruning “recipe” that minimizes the distributional gap before and after pruning. ST $^ { 1 3 }$ (Zhuang et al., 2025) dynamically reduces tokens during the generation process. It also progressively prunes inattentive visual tokens as the layer goes deeper. ATP-LLaVA (Ye et al., 2025b) introduces an adaptive token pruning (ATP) module within the decoder layers. This module trains threshold heads to adaptively predict pruning thresholds for the current layer and instance, thereby removing redundant or text-irrelevant visual tokens. ZipVL (He et al., 2025) achieves progressive compression by determining the compression ratio for each layer based on its attention score distribution. This allows for a granular and adaptive reduction of visual tokens throughout the model.
+
+# 3.3.3 Critical Challenge for Pruning in Decoder
+
+While these methods leverage attention scores within the LLM decoder to offer sophisticated ways to compress visual tokens, they face a significant practical challenge: the explicit need to access attention scores. This direct access is often incompatible with highly optimized acceleration libraries like FlashAttention (Dao et al., 2022; Dao, 2024), which compute attention implicitly or in a fused manner for speed. This incompatibility can be mitigated by performing an additional, separate attention calculation solely for pruning purposes. However, for progressive pruning strategies such as FitPrune, ST3, and ZipVL, this additional computational overhead becomes significantly more pronounced, potentially negating the efficiency gains.
+
+# 3.4 Query-based Image-centric Compression
+
+Visual information often contains a substantial amount of features irrelevant to the given query. Querybased image-centric compression leverages the query prompt to guide the compression of visual tokens. These methods can be broadly categorized into two types: (1) Token Distillation: These methods compress visual tokens by distilling visual tokens into a specific, reduced number of tokens. (2) Cross-Modal Selection: These approaches compress tokens by matching between modality-aligned visual and text tokens.
+
+# 3.4.1 Token Distillation
+
+Token distillation originates from the early projector designs of MLLM. The goal is to distill visual tokens to learn the most text-relevant visual representations, reduce visual tokens while also aligning modalities.
+
+The Q-Former series (Liu et al., 2023; Li et al., 2023c), a pioneering approach, uses learnable queries and cross-attention to extract pertinent visual cues from visual features. Similarly, mPLUG-Owl (Ye et al., 2023), MiniGPT-4 (Zhu et al., 2024), Flamingo (Alayrac et al., 2022), and Qwen-VL (Bai et al., 2023) all employ variations of learnable query-based architectures to condense visual information into a smaller fixed set of tokens that are then aligned with the language model. LLaMA-VID (Li et al., 2024d) employs a highly aggressive approach to visual token compression. For a single image or video frame, it utilizes context attention where the text query aggregates text-related visual cues from the visual embedding. Ultimately, it represents an entire image’s information using only two tokens. LLaVA-Mini (Zhang et al., 2025g) achieves comparable performance by pre-fusing visual information directly into text tokens, requiring just one visual token. While previous methods relied on external modules for visual token compression, VoCo-LLaMA (Ye et al., 2025c) is notable as the first approach to use LLMs themselves for visual token compression. It distills the LLM’s understanding of visual tokens into the processing of VoCo tokens via attention distillation. Victor (Wen et al., 2024) introduces a small number of learnable “register tokens” after the visual tokens. It then uses the shallow layers of a large model to distill visual information into these registers, discarding all original visual tokens to significantly improve inference and training efficiency.
+
+# 3.4.2 Cross-Modal Selection
+
+Cross-modal selection aims to reduce the number of tokens in one modality by leveraging aligned tokens from another. This compression is achieved by identifying and retaining only the most relevant information across modalities, leading to more efficient and effective processing. Several notable approaches have been proposed to address this challenge:
+
+Table 3: Comparison of Training-Free Token Compression Methods for Video LLMs in Understanding Tasks   
+
+<table><tr><td rowspan="2">Method</td><td rowspan="2">#Token | &quot;Ratio</td><td colspan="2">ActivityNet</td><td colspan="4">Video-ChatGPT CI</td><td rowspan="2">Next-QA</td><td rowspan="2">↑</td><td rowspan="2">EgoSchema LongVideoBench VideoMME MVBench ↑</td><td rowspan="2">↑</td><td rowspan="2">↑</td></tr><tr><td></td><td>Acc.</td><td>Score</td><td>DO CU</td><td>TU CO</td><td>mc</td></tr><tr><td colspan="10">LLaVA-OneVision (Li et al., 2025a) 100% |48.09 3.47</td><td>58.6</td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td>50% Visual Token Retained Ratio</td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>FastV (Chen et al., 2024a)</td><td>50%</td><td>47.95</td><td>3.47</td><td>3.36</td><td>3.77 3.50</td><td>2.99</td><td>2.57</td><td>81.1</td><td>58.0</td><td></td><td>57.5</td><td></td></tr><tr><td>DyCoke (Tao et al., 2025a)</td><td>50</td><td>47.88</td><td>3.47</td><td>3.33</td><td>3.76 3.51</td><td>3.01</td><td>2.58</td><td>81.1</td><td>57.7</td><td></td><td>57.4</td><td>57.5</td></tr><tr><td>PLLaVA (Xu et al., 2024a) LLaVA-Scissor (Sun et al., 2025)</td><td>50%</td><td>47.59</td><td>3.45</td><td>3.36 3.73</td><td>3.52</td><td>3.00</td><td>2.66</td><td>81.0</td><td>57.7</td><td></td><td>56.9</td><td>−</td></tr><tr><td></td><td>550%</td><td>47.89</td><td>3.47</td><td>3.37 3.76</td><td>3.47</td><td>3.00</td><td>2.65</td><td>81.12</td><td>57.6</td><td></td><td>57.4</td><td>−</td></tr><tr><td colspan="10">25% - 35% Visual Token Retained Ratio</td><td></td><td></td></tr><tr><td>FastV (Chen et al., 2024a)</td><td>35%</td><td>47.83</td><td>3.46</td><td>3.32 3.74</td><td>3.47</td><td>2.97</td><td>2.61</td><td>80.5</td><td>57.8</td><td></td><td>56.0</td><td>61.3</td></tr><tr><td>DyCoke (Tao et al., 2025a)</td><td>35%</td><td>47.81</td><td>3.45</td><td>3.31 3.74</td><td>3.46</td><td>2.98</td><td>2.54</td><td>80.9</td><td>57.7</td><td></td><td>56.2</td><td>61.8</td></tr><tr><td>PLLaVA (Xu et al., 2024a)</td><td>35%</td><td>47.23</td><td>3.42</td><td>3.26</td><td>3.70 3.39</td><td>2.92</td><td>2.59</td><td>79.66</td><td>56.07</td><td></td><td>54.26</td><td>59.5</td></tr><tr><td>VisionZip (Yang et al., 2025c)</td><td>25%</td><td></td><td></td><td></td><td></td><td></td><td></td><td>−</td><td>60.3</td><td>56.5</td><td>58.2</td><td>57.9</td></tr><tr><td>PruneVid (Huang et al., 2025c)</td><td>25%</td><td></td><td></td><td></td><td></td><td></td><td></td><td>−</td><td>59.9</td><td>55.7</td><td>57.4</td><td>57.4</td></tr><tr><td>FastVID (Shen et al., 2025a)</td><td>25%</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>56.3</td><td>58.0</td><td>56.5</td></tr><tr><td>LLaVA-Scissor (Sun et al., 2025)</td><td>25%</td><td>47.79</td><td>3.47</td><td>3.33 3.76</td><td>3.47</td><td>2.98</td><td>2.62</td><td>80.66</td><td>57.64</td><td></td><td>56.44</td><td></td></tr><tr><td>HoliTom (Shao et al., 2025)</td><td>25%</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>61.2</td><td>56.7</td><td>58.9</td><td>58.4</td></tr><tr><td colspan="10">5% - 15% Visual Token Retained Ratio</td><td></td><td></td></tr><tr><td>VisionZip (Yang et al., 2025c)</td><td>15%</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>59.8</td><td>54.4</td><td>56.1</td><td>56.5</td></tr><tr><td>PruneVid (Huang et al., 2025c)</td><td>10% 1%</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>59.8</td><td>54.5 56.3</td><td>56.0 57.3</td><td>56.2 55.9</td></tr><tr><td>FastVID (Shen et al., 2025a) LLaVA-Scissor (Sun et al., 2025)</td><td>10%</td><td>47.75</td><td>3.46</td><td></td><td></td><td></td><td></td><td></td><td>57.5</td><td></td><td>55.2</td><td>57.9</td></tr><tr><td>HoliTom (Shao et al., 2025)</td><td>10%</td><td></td><td></td><td>3.26 3.68 3.41</td><td></td><td>2.90 2.52</td><td></td><td>80.0</td><td>61.2</td><td>56.3</td><td>56.8</td><td>57.3</td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>
+
+SparseVLM (Zhang et al., 2024c) employs visual tokens to pre-select relevant text tokens. By leveraging the visual modality as an initial filter, SparseVLM efficiently narrows down the textual search space, focusing on information pertinent to the visual content. AdaFV (Han et al., 2025) employs a dual-metric approach for selecting the most informative visual tokens. It calculates both text-to-image similarity and visual saliency extracted from the vision encoder. By combining these two indicators, AdaFV identifies visual tokens that are not only semantically aligned with the text but also visually prominent or significant. TRIM (Song et al., 2025a) introduces a unique method that begins by identifying outlier tokens based on the similarity between text and visual tokens; these outliers are deemed important. Subsequently, a clustering algorithm is utilized to merge the remaining, less critical tokens. This approach prioritizes distinct, highly relevant tokens before consolidating the rest.
+
+# 3.4.3 Analysis of Similarity Methods
+
+While query-based methods can precisely retain query-relevant tokens compared to the three prior approaches, they are unsuitable for multi-turn QA scenarios. This is because the initial query’s token retention is based on its specific question. A subsequent query may target different tokens, necessitating a re-execution of the token compression process. This makes the approach highly inefficient for multi-turn conversations.
+
+# 4 Video-centric Token Compression
+
+Processing long high-definition (HD) videos poses significant challenges for VLMs due to the immense number of tokens generated, far exceeding those from high-resolution images. Unlike image-centric compression, video inherently possesses an additional temporal redundancy. While capturing complete temporal information typically requires a frame rate of at least 24 frames per second (FPS), processing a 10-minute HD video at even 1 FPS still yields token sequences orders of magnitude larger than those from high-resolution images, rendering conventional transformer-based MLLMs impractical for real-world deployment over the videos.
+
+To address this, current video LLMs commonly employ a 1 FPS sampling rate to reduce token counts. Furthermore, unlike methods for single images, which often encode both the global image and a series of local patches for detailed feature extraction, video processing often foregoes this detailed frame-level segmentation to keep token numbers manageable. Even with these strategies, the quantity of video tokens remains substantial. During model training and understanding, transformation-based methods, such as the pooling technique used in LLaVA-Video (Zhang et al., 2024d), are usually employed to reduce tokens and aid the model’s comprehension of video content.
+
+Beyond training-time optimizations, alternative approaches primarily focus on post-training optimization. Specifically, similarity-based and attention-based methods offer generic compression techniques for pretrained video MLLMs. These methods process encoded token sequences without modifying model weights, enabling plug-and-play acceleration across diverse architectures. By dynamically identifying critical spatiotemporal regions and pruning redundant tokens, these techniques significantly enhance the practicality of video MLLMs for real-world applications.
+
+To fully grasp token compression for video LLMs, it is recommended to first review Section 3, which details spatial compression methods. Next, we will primarily discuss techniques addressing the temporal domain. Similar to image-centric methods, selected video-centric token compression methods are compared in Table 3.
+
+# 4.1 Transformation-based Video-centric Compression
+
+Like image LLMs, video LLMs use encoders for visual tokens. Consequently, transformation-based videocentric compression methods fundamentally operate on the principles established in Section 3.1, with the added capability of performing 3D transformations. A multitude of models showcase cross-modal applicability, performing effectively in both image and video inference tasks. Following the structure of Section 3.1, we will now detail transformation-based video-centric compression methods.
+
+# 4.1.1 2D/3D Pooling
+
+In video LLMs, token pooling is a crucial strategy for managing the high dimensionality of video data. While 2D spatial pooling, as seen in LLaVA-Video (Zhang et al., 2024d), can effectively reduce the token count within individual frames, its efficacy alone may be limited for long-duration videos. A growing number of video LLMs, including PLLaVA (Xu et al., 2024a), Video-ChatGPT (Maaz et al., 2024), SlowFastLLaVA (Xu et al., 2025d), and LongVLM (Weng et al., 2024), consequently emphasize temporal pooling, which involves downsampling at the frame level.
+
+Notably, PLLaVA demonstrates that model performance exhibits greater sensitivity to temporal pooling than to spatial pooling, highlighting its critical role. For extremely long video sequences, LLaMA-VID (Li et al., 2024d) employs a more aggressive adaptive pooling approach. This method intelligently maintains original resolution for single-image inputs but compresses each video frame to a single token during extended sequence processing, achieving substantial data reduction while aiming to preserve essential information.
+
+This dual focus on spatial and increasingly on temporal pooling underscores their combined importance in enabling efficient processing and comprehensive understanding of video content, particularly as video durations extend. SlowFast-LLaVA (Xu et al., 2025d) incorporates a two-stream SlowFast projector into a LLaVA-style architecture, using a slow pathway to sample fewer, spatially rich frames and a fast pathway to sample more, spatially compressed frames, then concatenates both for the LLM—achieving efficient long-form video understanding with reduced token count while preserving spatiotemporal details.
+
+# 4.1.2 2D/3D Convolution
+
+Similar to pooling, convolution can also be employed for downsampling video tokens, but it does so in a parameterized manner. Instead of simply aggregating information like pooling, convolution layers learn filters to process and condense spatial and temporal features. VideoLLaMA 2 (Cheng et al., 2024c), for instance, thoroughly investigated both 2D and 3D pooling and convolution approaches. Their experiments showed that 3D convolution yielded the best balance of performance and efficiency for video token downsampling. This suggests that learning intricate spatiotemporal relationships through convolutions is more effective for comprehensive video understanding compared to pooling alone.
+
+![](images/655ffae1271775dbf7bf63021bc4b47cf475e836c20906ded8f4dfd5fc088819.jpg)  
+Figure 4: Trade-off between Retained Ratio and Performance across Modalities. Left: We visualize changes in token retention and model performance on the $\mathrm { \Delta V Q A ^ { 2 } }$ (Goyal et al., 2017) for image LLMs using each method’s reported setup with $L L a V A – 1 . 5 – 7 B$ (Liu et al., 2023). Right: For video LLMs, we plot the video-token retention ratio and the corresponding performance deltas on the VideoMME benchmark (Fu et al., 2025a), following each method’s reported configuration with $L L a V A – O V  – \gamma B$ (Li et al., 2025a). As different methods target distinct compression regimes, we primarily report results at the compression rates specified in their original papers.
+
+# 4.2 Similarity-based Video-centric Compression
+
+Given the temporal redundancy inherent in video, where adjacent frames often exhibit high visual similarity, temporal compression is frequently prioritized over or integrated with spatial compression. To effectively handle this temporal redundancy, video frames are typically first clustered.
+
+Chat-UniVi (Jin et al., 2024) initially pools each video frame into a single frame-level representation token. It then utilizes DPC-KNN (Du et al., 2016; Rodriguez & Laio, 2014) (density peak clustering based on Knearest neighbors) to amalgamate non-essential frames based on these frame representation tokens. Within each resulting cluster, tokens from multiple frames are further clustered to obtain concise spatiotemporal visual representations. Similarly, FastVID (Shen et al., 2025a) divides video frames solely based on the similarity of their adjacent frame representation tokens. It then employs DPC-KNN within these clustered frames to merge tokens, thereby reducing spatiotemporal redundancy. PruneVid (Huang et al., 2025c) adopts the same frame clustering methodology as Chat-UniVi. The key distinction is that it performs an initial merging of temporally static tokens before executing the spatiotemporal token consolidation. HoliTom (Shao et al., 2025) argues that relying on a single frame-level representation token for video frame clustering can lead to suboptimal detail capture, and that the preliminary merging of static temporal tokens is disconnected from the original frame clustering method. HoliTom re-conceptualizes temporal redundancy compression as an optimization problem aimed at maximizing the compressible temporal redundant features within all clustered frames, thus addressing temporal compression more holistically. DyCoke (Tao et al., 2025a) groups frames into sets of four, directly performing temporal pruning within each group.
+
+While some methods do not explicitly cluster video frames, FrameFusion (Fu et al., 2025b), for example, acts as a token compression technique for video LLMs. It directly merges temporally redundant tokens exceeding a specific threshold in the shallow layers of the model.
+
+# 4.3 Attention-based Video-centric Compression
+
+Current attention-based token compression methods in video LLMs and image LLMs share significant similarities. When attention is applied within the encoder to guide token compression, videos are typically treated as a sequence of images fed into an image encoder, making these approaches similar to image-centric token compression. For a more concise discussion of such attention-based methods, please refer to Section 3.3.
+
+In contrast, methods employing attention within the decoder process video frames sequentially, concatenating their tokens over time. For longer videos, particularly in the context of streaming video LLMs, windowed attention is commonly used to mitigate computational overhead by focusing on local temporal visual information. However, it’s notable that even these windowed attention-based methods within the decoder often share the same foundational principles as those discussed in Section 3.3.
+
+# 4.4 Query-based Video-centric Compression
+
+# 4.4.1 Token Distillation
+
+Token distillation in video LLMs commonly relies on specialized adaptor modules, such as the Q-former (Liu et al., 2023; Li et al., 2023c) or Token Turing Machines (Ryoo et al., 2023). These modules typically process video tokens with the learnable query tokens to be attended.
+
+Token Turing Machines (TTMs) (Ryoo et al., 2023) maintain a compact external memory of summary tokens, sequentially compressing both new input tokens and memory at each timestep via a Transformerbased read/write mechanism, allowing scalable and efficient processing of long video sequences. BLIP-3- Video (Ryoo et al., 2024) introduces an explicit temporal encoder that abstracts hundreds of frame-level visual tokens into as few as 16–32 spatiotemporal tokens using learnable pooling and sequential models, enabling efficient video understanding with limited token usage. LinVT (Gao et al., 2024a) proposes a plug-and-play Linear Video Tokenizer, which linearly aggregates frame-level visual tokens into a compact set of video tokens through spatio-temporal scoring, multi-scale pooling, and text-conditioned aggregation, enabling existing image-LLMs to efficiently process videos and dynamically extract question-relevant information. LongVMNet (Gurukar $\&$ Kadav, 2025) accelerates long-form video understanding by using a neural sampler to select discriminative visual tokens from clips and storing them in a fixed-size memory bank for each video; downstream queries are answered by processing only these memory tokens, greatly reducing computational cost while preserving key spatiotemporal information. STORM (Jiang et al., 2025a) inserts a Mambabased (Gu $\&$ Dao, 2024a) temporal encoder between the image encoder and LLM, using spatiotemporal scanning and pooling to inject temporal context into frame tokens and then aggressively compresses tokens by temporal and spatial pooling, enabling efficient long video understanding with minimal token loss. To understand more methods and applications of token distillation in video LLMs, please also refer to Section 3.4 for a detailed explanation.
+
+# 4.4.2 Cross-Modal Selection
+
+In video large language models (video LLMs), a query is commonly used to guide the selection of salient frames. In extreme cases, only a handful of frames are relevant to the posed question, allowing the tokens from the vast majority of remaining frames to be discarded. When dealing with an immense number of frames, finding query-relevant information can be akin to searching for a "needle in a haystack" for the LLM. Query-based token compression methods can pre-filter query-relevant tokens, significantly alleviating the computational burden on the LLM.
+
+LongVU (Shen et al., 2025b) exemplifies this approach. It calculates the relevance of each video frame to the query via cross-modal interaction. This relevance score then dictates a lower compression ratio for key frames, better preserving critical information, all while ensuring the total number of tokens remains within the maximum context length of the LLM.
+
+# 5 Audio-centric Token Compression
+
+For audio LLMs, the demand for longer context arises from the need to process higher sampling rates and extended durations of audio.
+
+The extraction of information from the audio modality can be categorized according to the format of audio representation: (1) continuous sequence modeling: this approach utilizes a pre-trained audio encoder, typically models like Whisper (Radford et al., 2023) or Conformer (Gulati et al., 2020), to produce continuous audio embeddings; (2) discrete sequence modeling: this method transforms the input audio signal into discrete audio tokens, usually via vector quantization, where continuous audio features are encoded into a learnable codebook. Mainstream methods include HuBERT (Hsu et al., 2021) and EnCodec (Défossez et al., 2022; Zeghidour et al., 2021).
+
+The second category inherently reduces the number of tokens by the design of the tokenizer structure and the codebook. Nevertheless, detailed exploration of these specific design considerations falls outside the purview of this survey.
+
+Audio, a 1D signal representing amplitude over time, must be transformed into a suitable format for deep learning models, especially when integrating with MLLMs. MLLMs often leverage architectures designed for 2D data (like images) or general sequences. While the raw waveform is the source, spectrograms (especially Mel-spectrograms) are frequently the preferred representation for audio in MLLMs. This preference arises because spectrograms allow the application of processing techniques similar to those used for images, thereby facilitating multimodal learning.
+
+Consequently, much like the visual modality, we categorize audio token compression methods as follows:
+
+# 5.1 Transformation-based audio-centric Compression
+
+Following the visual modality’s categories, we can classify methods based on their downsampling operations:
+
+# 5.1.1 Token Stacking
+
+Similar to the pixel unshuffle operation in 2D image processing, this approach for audio LLMs token compression involves stacking multiple consecutive tokens along the hidden dimension of the token. This effectively reduces the total number of tokens. Notably, HTS-AT (Chen et al., 2022), an early example of audio token stacking for classification tasks within audio transformers, utilized 2D pixel-unshuffling on the 2D features extracted from Mel spectrograms to reduce audio tokens. More recent methods such as SLAM-ASR (Ma et al., 2024c), LLaMA-Omni (Fang et al., 2024), Llama-AVSR (Cappellazzo et al., 2025a) and others (Fathullah et al., 2024) stack the audio token. Since these token stacking operations alter the hidden dimension, an MLP is typically used to realign the dimension for compatibility with other modalities.
+
+# 5.1.2 Pooling
+
+Another common technique for reducing the number of audio tokens is pooling. Models like Qwen2- audio (Chu et al., 2024b) and Qwen2.5-Omni (Xu et al., 2025b) leverage pooling layers with a stride of 2 to directly decrease the length of the audio representation in a parameter-free manner. This effectively downsamples the audio features, leading to a more compact token sequence. Extending this concept, LlamaMTSK (Cappellazzo et al., 2025b) employs a matryoshka-based training approach for flexible token compression. It trains the model with multi-scale audio and video information by applying average pooling or token stacking at different rates to the initial tokens. This enables Llama-MTSK to dynamically adjust the number of tokens processed during inference, balancing compression and performance within a single model.
+
+# 5.1.3 Temporal Convolution
+
+For audio tokens, 1D convolutions applied across the temporal dimension can reduce the number of tokens. This method simultaneously allows for the alignment of the hidden dimension for subsequent LLM. Approaches like SpeechVerse (Das et al., 2024), Baichuan-Audio (Li et al., 2025c), OSUM (Geng et al., 2025), and LUCY (Gao et al., 2025) have employed this technique, often resulting in a downsampled audio representation with an effective sampling rate of 12.5 Hz.
+
+These methods demonstrate how insights from image compression, particularly involving transformations, can be effectively applied to the audio domain to achieve more efficient token representation for large models.
+
+# 5.2 Similarity-based audio-centric Compression
+
+Similarity-based compression methods aim for each audio token to carry unique information rather than being overly redundant. Similar to the ToMe (Bolya et al., 2022) method used in vision transformers (ViT), A-ToMe (Li et al., 2023f) inserts a token merge module between the multihead self-attention (MHSA) and feed-forward network (FFN). This module merges adjacent audio tokens that have high cosine similarity.
+
+# 5.3 Attention-based audio-centric Compression
+
+For audio tasks, attention-based methods are also effectively utilized to compress tokens.
+
+# 5.3.1 Attention in Encoder
+
+Top-K (Lee & Lee, 2025) is a token selection method operating within the audio spectrogram transformer block. It retains only the top K audio tokens ranked by the magnitude of their attention scores. This prunes less attentive tokens, focusing on those with higher relevance as determined by the self-attention mechanism.
+
+# 5.3.2 Attention in Decoder
+
+SpeechPrune (Lin et al., 2025b), works in the LLM backbone. It prunes audio tokens based on attention scores provided by the first transformer layer. By utilizing the initial layer’s attention, SpeechPrune efficiently identifies and discards less crucial tokens early in the processing pipeline, aiming to reduce computational load and improve efficiency for subsequent layers without significant loss of information.
+
+# 5.4 Query-based audio-centric Compression
+
+Audio feature representations can also be compressed using other modalities or learned query mechanisms. Analogous to image LLMs, these methods can be broadly categorized into token distillation and cross-modal selection, based on whether learned queries are explicitly employed.
+
+# 5.4.1 Token Distillation
+
+This category leverages learnable query tokens to distill comprehensive audio information into a compact, fixed-length representation.
+
+Video-LLaMA (Zhang et al., 2023a) and SALMONN series (Tang et al., 2024; Sun et al., 2024b) employ an audio Q-former to transform variable-length audio inputs into a fixed-length sequence of learnable queries, thereby condensing audio information for the LLM. MMCE-Qformer (Xue et al., 2024) compresses acoustic information by utilizing learnable queries to extract global acoustic context from contextual audio embeddings. Concurrently, a cross-attention mechanism, guided by input text embeddings, captures local acoustic context relevant to each text token. This dual approach distills both broad and specific audio features into compact, text-relevant representations. MMS-LLaVA (Yeo et al., 2025) reduces multimodal token length for efficient speech LLMs. It first halves the sequence length with an Early AV-Fusion Module, which combines visual and audio features. Subsequently, an AV Q-Former further compresses these fused features into a fixed number of queries, effectively capturing full speech context to bridge the token gap with text.
+
+# 5.4.2 Cross-Modal Selection
+
+Similar to the visual modality, audio token compression can also be guided by information from other modalities. Speechprune (Lin et al., 2025b), for example, leverages audio-text correlation to identify semantically important audio segments. This is achieved by calculating a cross-modal similarity matrix based on cosine similarity, which then guides the compression of audio tokens. This approach ensures that the most relevant audio information is retained.
+
+# 5.5 Discussion about Specific Redundancy of Audio
+
+Distinct from visual modalities, audio signals exhibit high sampling rates and significant spectro-temporal correlations. Even brief speech segments yield hundreds of tokens, a substantial portion of which encapsulate overlapping or redundant information. This section delineates redundancy patterns inherent to audio—specifically spectral redundancy, temporal redundancy, and silence or repetitive noise—to establish a foundation for efficient token compression in audio LLMs.
+
+# 5.5.1 Spectral and Temporal Redundancy
+
+Like video, audio exhibits intrinsic temporal structure. Consequently, compressing tokens along the temporal dimension is a well-founded strategy (Someki et al., 2025). Concurrently, given that the high sampling rate of audio generates dense token sequences that burden computational efficiency, it is imperative to mitigate spectral redundancy while preserving semantic integrity. Recently, Bhati et al. (2025) pioneered token pruning for audio LLMs by utilizing spectral features for segmentation before addressing temporal redundancy. Their method achieves a substantial reduction in token density with minimal fine-tuning requirements.
+
+# 5.5.2 Silence and Audio Noise
+
+Many ASR pipelines explicitly remove long pauses and noise, effectively performing coarse-grained pruning at the waveform level. Nevertheless, end-to-end systems still receive audio-token sequences with muted or noisy segments. Although some tokens are redundant, others carry contextual cues beneficial to downstream tasks; consequently, developing principled audio-token pruning remains a promising yet challenging avenue for future work.
+
+# 6 Discussions
+
+# 6.1 Synergies and Distinctions with Other Compression Methods
+
+Beyond token compression, the research community has seen the emergence of several other compression methods, including model quantization (Lin et al., 2024b; Xiao et al., 2023a; Frantar et al., 2023; Shang et al., 2023; Sui et al., 2024a; Gholami et al., 2022), network pruning (Han et al., 2016; Ma et al., 2023; Sui et al., 2021; Cheng et al., 2024a), knowledge distillation (Hinton et al., 2015; Gou et al., 2021), and low-rank factorization (Yu et al., 2017; Yin et al., 2021; Xiao et al., 2023b; Sui et al., 2024b; Yang et al., 2024). These methods typically focus on directly compressing model weights to achieve efficiency.
+
+For Transformer-based models, the computational cost (FLOPs) is mainly dominated by matrix multiplications, particularly in the self-attention and feed-forward layers. A simplified formulation is given as:
+
+$$
+\mathrm { F L O P s } \propto O ( N \cdot D ^ { 2 } + N ^ { 2 } \cdot D ) ,
+$$
+
+where $N$ is the number of tokens, $D$ is the model dimension.
+
+# 6.1.1 Weight-Focused Compression Methods
+
+These methods mainly target the model dimension ( $D$ ) by reducing the effective size or complexity of the model weights. Model Quantization reduces weight precision, directly impacting the memory associated with $D$ . A key limitation is that highly aggressive quantization (e.g., 4-bit) often compromises accuracy, meaning there’s no "free lunch" when it comes to achieving lossless performance. Furthermore, effectively accelerating these lower bit-rates often necessitates specialized hardware. Network Pruning removes redundant connections, effectively reducing the active parameters contributing to $D$ . For LLMs, aggressive structured pruning (e.g., beyond 20% for downstream tasks) often leads to significant performance degradation or near-collapse due to the difficulty in preserving architectural integrity. Knowledge Distillation trains a smaller student model (with a smaller $D$ ) to mimic a larger teacher (Hinton et al., 2015). Its main limitation is the "knowledge gap", as the student may struggle to fully capture the teacher’s comprehensive knowledge, leading to performance disparities, especially on complex or out-of-distribution data. Low-Rank Factorization decomposes weight matrices into lower-rank approximations, thus reducing parameters related to $D$ . The challenge lies in finding an optimal low-rank approximation for diverse tasks without performance loss, as this is often task-dependent and complex to apply consistently across deep networks.
+
+# 6.1.2 Token Compression
+
+In contrast, token compression directly targets the sequence length ( $N$ ) by reducing the number of tokens processed for long contexts. By reducing $N$ , token compression significantly impacts FLOPs:
+
+$$
+\mathrm { F L O P s } \propto O ( M \cdot D ^ { 2 } + M ^ { 2 } \cdot D ) ,
+$$
+
+where $M \ll N$ represents the reduced sequence length after token compression.
+
+This approach offers benefits like greater efficiency for long context processing, overcoming context window limitations, and closer alignment with API cost reduction, as many LLM APIs charge by token count.
+
+# 6.1.3 Complementary Nature and Synergistic Gains
+
+The methods for compressing model weights and token compression are structurally orthogonal and can be effectively combined for superior results. For example: NVILA (Liu et al., 2025e) pushes inference latency reduction and throughput maximization to the extreme by simultaneously applying quantization and token compression. CoreMatching (Wang et al., 2025b) achieves synergistic acceleration by concurrently compressing both neurons (a form of pruning/weight reduction) and tokens.
+
+This orthogonality means that combining these approaches holds the potential for compounded efficiency gains that are greater than applying either method in isolation.
+
+# 6.2 Token Compression: Efficiency and Beyond
+
+Token compression is often perceived solely as a training-free method to boost efficiency. However, its significance extends far beyond this, having been intrinsically incorporated into the design of MLLM, particularly within the modality transition modules (e.g., adapter). This integration not only facilitates superior modality alignment but also enhances the quality of information, leading to more efficient and stable training.
+
+# 6.2.1 Enhanced Modality Alignment
+
+Effectively aligning and comprehending information from disparate modalities remains a significant challenge. Traditional encoders segment and tokenize all multimodal information to align with linguistic representations. However, low-quality and low-density multimodal representations expand the alignment space, complicating the task of modality matching. Token compression addresses this by enabling a more precise correspondence between language representations and multimodal information.
+
+A prime example is the Q-Former (Liu et al., 2023; Li et al., 2023c), which employs a trainable vector to distill visual tokens, achieving direct alignment of the modality simultaneously. Similarly, M $^ 3$ (Cai et al., 2024a) adopts a coarse-to-fine semantic granularity training approach, empowering MLLMs to align with and interpret visual representations at various levels.
+
+# 6.2.2 Improved Information Representation
+
+The sheer volume of multimodal information often leads to inefficient training and inference, with an overabundance of multimodal tokens that potentially degrade the capabilities of the text modality (BellverSoler et al., 2025). This issue is compounded by inherent redundancies within multimodal data itself: (1) Feature Redundancy arises from similar backgrounds in visual data or silent segments in audio. (2) Task-Irrelevant Redundancy is evident in tasks like visual question answering (VQA), where a significant portion of multimodal representations may be irrelevant to deriving the correct answer. (3) Attention Computation Redundancy emerges from two aspects: first, due to the nature of attention mechanisms, tokens positioned later in a sequence often receive disproportionately higher attention (Wen et al., 2025), suggesting potential computational redundancy for tokens not at the sequence’s end; and second, because multimodal information receives inherently less attention than textual data (Chen et al., 2024a; Song et al., 2025a), an abundance of multimodal tokens can still introduce substantial computational redundancy.
+
+Addressing these issues, the method classifications discussed earlier directly correspond to these types of data redundancy. Specifically, the transformation-based methods along with similarity-based approaches, are effective in mitigating the feature redundancy. Furthermore, attention-based methods play a crucial role in minimizing attention computation redundancy. Lastly, query-based methods are designed to reduce task-irrelevant redundancy.
+
+# 6.2.3 Enable One-Shot Long-Context Understanding
+
+Limited by the inherent length of the context, MLLMs are unable to comprehend real-world scenarios involving extremely long contexts, such as understanding entire code repositories or extended video and audio sequences (Qu et al., 2025). However, token compression significantly condenses and abstracts original information representations, making it possible for MLLMs to understand these long contexts in a single pass.
+
+Traditional methods for handling long contexts in MLLMs, like FlashAttention (Dao et al., 2022; Dao, 2024) or RingAttention (Liu et al., 2024a), involve architectural changes to the model’s attention mechanism to directly accommodate longer sequences. While effective, these require fundamental model modifications. Token compression offers a different, often simpler, route. Instead of redesigning the model to fit more tokens, it focuses on making each token more powerful. By creating information-dense tokens, we pack more meaning into fewer pieces of data. This lets existing MLLM architectures process significantly longer conceptual contexts without major overhauls. It’s a more efficient and accessible way to achieve that crucial one-shot understanding of vast, complex real-world information (Song et al., 2025b).
+
+# 6.3 Combining Different Token Compression Methods
+
+In Section 6.2.2, we explored three distinct types of redundancy and the corresponding methods to reduce them. This raises a natural question: can we combine multiple token compression methods to achieve a synergistic effect?
+
+We observe that while certain approaches operate orthogonally, others may exhibit conflicts.
+
+For instance, we can first eliminate structural redundancy by addressing feature redundancy, and subsequently filter out task-irrelevant redundancy by selecting tokens most pertinent to the user query. Since these strategies address distinct dimensions of the data, this combination is fundamentally orthogonal.
+
+Similarly, strategic combinations can yield superior performance through careful design. VisionZip (Yang et al., 2025c), for example, prioritizes tokens with high attention scores in the ViT to preserve critical information, while consolidating the remaining tokens via similarity-based merging. This approach safeguards key features from being diluted by similarity-based aggregation. Although these methods are not strictly orthogonal, a tailored design enables them to complement each other effectively.
+
+Conversely, certain combinations may conflict, such as pairing external query-based pruners with attentionbased selection in the decoder. Since the decoder’s cross-attention naturally acts as a text-guided filter for multimodal tokens, applying an external query-based compressor beforehand often yields diminishing returns. This occurs because the specific information required to answer a query dictates a lower bound on the token count, limiting the potential for further compression.
+
+# 6.4 Cross-modal token compression
+
+For the joint compression of token across modalities, the prevalent paradigm utilizes the textual modality to compress visual or audio representations. This approach underpins the vast majority of query-based attention methods (See Section 3.4, 4.4, and 5.4).
+
+Conversely, some approaches leverage the visual modality to guide text token compression; for instance, SparseVLM (Zhang et al., 2024c) employs mutual supervision between text and visual modalities to compress tokens in both. Additionally, OmniZip (Tao et al., 2025b) introduces a "listen-to-prune" mechanism, utilizing audio cues to jointly guide the compression of audio and video tokens. Furthermore, given the inherent and distinct redundancies within each modality, orthogonal compression strategies can be stacked to further maximize token reduction. To the best of our knowledge, literature exploring strategies beyond text-guided compression remains scarce; consequently, cross-modal joint optimization represents a promising direction for future research.
+
+# 6.5 Current Challenges
+
+# 6.5.1 Performance Degradation
+
+While token compression can effectively condense multimodal features, it also introduces a risk of performance degradation. Current research on visual MLLMs, for example, shows that for models like LLaVA-OV-7B (Li et al., 2025a), near-lossless performance can be achieved by retaining as few as 10% of the original tokens. However, performance declines sharply when the compression rate is pushed further. This challenge is more pronounced for larger and more recent models such as Qwen2.5-VL (Bai et al., 2025), LLaVA-Video7B (Zhang et al., 2024d), and LLaVA-OV-72B (Li et al., 2025a), where achieving lossless compression seems to be more difficult.
+
+This increased difficulty may stem from the models’ enhanced representational capabilities. It has been suggested that less capable models are inherently less sensitive to information loss from aggressive compression, as their weaker understanding already struggles to process the complex, uncompressed data fully. In contrast, more sophisticated models, which possess a more nuanced and holistic comprehension of multimodal tokens, are more susceptible to the subtle degradation caused by compression. For these models, achieving high performance requires a far more delicate and precise approach to preserve the token.
+
+# 6.5.2 Task-Specific Challenges
+
+Token compression, while beneficial for efficiency, can be destructive to performance on tasks that demand high representational fidelity. For optical character recognition (OCR), which requires a high information density within local regions, compression often leads to the loss of critical details and a subsequent drop in performance. This is particularly evident on benchmarks like RefCOCO (Yu et al., 2016), where the model’s ability to ground objects based on fine-grained textual cues is compromised.
+
+A similar challenge arises in preserving temporal perception. Video and audio are fundamentally structured by fixed sampling rates (Liu et al., 2025d). By merging adjacent frames or sequential tokens, compression methods disrupt this inherent temporal consistency, hindering the model’s ability to reason about motion, pace, and other crucial temporal dynamics essential for a complete understanding of the content.
+
+# 6.5.3 Deployment Hurdles
+
+Despite their potential, many token compression methods face barriers to real-world deployment, stemming from a fundamental incompatibility with current large-scale model architectures and applications.
+
+A major challenge lies in their integration with modern acceleration libraries (Dao et al., 2022; Dao, 2024). Methods that rely on explicit attention scores to prune tokens cannot be seamlessly integrated into current optimized frameworks, as these libraries fuse matrix multiplication and softmax operations to maximize throughput and minimize memory usage, thus making those scores inaccessible. This creates a critical gap, as these compression methods cannot leverage the performance gains of state-of-the-art deployment pipelines.
+
+Furthermore, task-aware token compression methods are not suit for multi-turn conversational tasks. Methods that perform token compression internally within the model’s backbone or rely on cross-modal fusion are not natively compatible with this type of application. They lack an efficient mechanism to carry over and update a compressed representation across turns, instead requiring a costly re-computation of the entire conversation history for each new query.
+
+# 6.5.4 Evaluation Challenges
+
+Rethinking Evaluation Metrics. Current evaluation methods for token compression techniques face limitations, hindering accurate and comprehensive comparisons.
+
+Table 4: Common Benchmarks for Performance Evaluation of Image-Language and Video-Language Tasks.   
+
+<table><tr><td>Benchmark</td><td>Task</td><td>Metric</td><td>System Prompt</td></tr><tr><td colspan="4">Image Task</td></tr><tr><td>GQA (Hudson &amp; Manning, 2019) MMB (Liu et al., 2024d)</td><td>CE-VQA MC-VQA</td><td>Exact Match Accuracy</td><td>Answer the question using a single word or phrase. Answer with the option&#x27;s letter from the given choices di-</td></tr><tr><td></td><td></td><td></td><td>rectly.</td></tr><tr><td>MME (Yin et al., 2024) POPE (Li et al., 2023e)</td><td>CE-VQA CE-VQA</td><td>Perception Score F1 Score</td><td>Answer the question using a single word or phrase. Answer the question using a single word or phrase.</td></tr><tr><td>ScienceQA-Image (Lu et al., 2022)</td><td>Visual reasoning</td><td>Exact Match</td><td>Answer with the option&#x27;s letter from the given choices di-</td></tr><tr><td>SeedBench-Image (Li et al., 2023a)</td><td>MC-VQA</td><td>Accuracy</td><td>rectly. Answer with the option&#x27;s letter from the given choices di-</td></tr><tr><td>VizWiz (Gurari et al., 2018)</td><td>CE-VQA</td><td>Exact Match</td><td>rectly. When the provided information is insufficient, respond</td></tr><tr><td></td><td></td><td></td><td>with &quot;Unanswerable&quot;. Answer the question using a sin- gle word or phrase.</td></tr><tr><td>VQA2 (Goyal et al., 2017) MM-Vet (Yu et al., 2023)</td><td>CE-VQA Visual reasoning</td><td>Exact Match GPT-score</td><td>Answer the question using a single word or phrase. First please perform reasoning, and think step by step to</td></tr><tr><td>LLaVAW (Liu et al., 2023)</td><td>Visual reasoning</td><td>GPT-score</td><td>provide the best answer to the following question: A chat between a curious human and an artificial intelli- gence assistant. The assistant gives helpful, detailed, and</td></tr><tr><td colspan="4">Video Task</td></tr><tr><td>ActivityNet (Yu et al., 2019) VideoChatGPT (Maaz et al., 2023)</td><td>CE-VQA OE-VQA</td><td>Accuracy / GPT-score</td><td>Answer the question using a single word or phrase. Evaluate the temporal accuracy of the prediction com-</td></tr><tr><td></td><td></td><td>GPT-score</td><td>pared to the answer.*</td></tr><tr><td>NextQA (Xiao et al., 2021) EgoSchema (Mangalam et al., 2023)</td><td>CE-VQA MC-VQA</td><td>WUPS Accuracy</td><td>Answer a question using a short phrase or sentence. Answer with the option&#x27;s letter from the given choices di-</td></tr><tr><td>MVBench (Li et al., 2024a)</td><td>MC-VQA</td><td>Accuracy</td><td>rectly. Carefully watch the video and pay attention to the cause and sequence of events, the detail and movement of ob- jects, and the action and pose of persons. Based on your</td></tr><tr><td>LongVideo Bench (Wu et al., 2024)</td><td></td><td></td><td>observations, select the best option that accurately ad- dresses the question. Answer with the option&#x27;s letter from the given choices di-</td></tr><tr><td>VideoMME (Fu et al., 2025a)</td><td>MC-VQA MC-VQA</td><td>Accuracy Accuracy</td><td>rectly. Select the best answer to the following multiple-choice question based on the video and the subtitles. Respond</td></tr><tr><td>PerceptionTest (Patraucean et al., 2024)</td><td>MC-VQA</td><td>Accuracy</td><td>with only the letter (A, B, C, or D) of the correct option. Answer with the option&#x27;s letter from the given choices di-</td></tr><tr><td>VideoDC (LMMs-Lab, 2024)</td><td>Video Caption</td><td>GPT-score</td><td>rectly. Please provide a detailed description of the video, focusing</td></tr><tr><td></td><td></td><td></td><td>on the main subjects, their actions, and the background scenes Describe the video in detail.</td></tr><tr><td>AuroraCap (Chai et al., 2025) Chardes-STA (Gao et al., 2017)</td><td>Video Caption Temporal Grounding</td><td>VDCscore IoU</td><td>Please find the visual event described by a sentence in the video, determining its starting and ending times.</td></tr></table>
+
+For methods requiring training, various factors like training data and methodologies make it challenging to isolate and directly compare the effectiveness of different methods.
+
+For training-free token compression methods, current evaluations often rely on metrics such as the number of compressed tokens and FLOPs. However, these metrics offer an incomplete picture. While the number of compressed tokens provides a preliminary classification, the compression location significantly impacts the downstream computational load; earlier pruning generally leads to greater reductions. Similarly, FLOPs, while useful for theoretical computational estimates, frequently do not accurately reflect actual inference speed. Therefore, for training-free methods, more practical metrics like Time To First Token (TTFT) and decoding latency per token are crucial for a more accurate assessment of real-world inference acceleration.
+
+Evaluation Benchmarks Gap. Current evaluation datasets for MLLM token compression often rely on general multimodal benchmarks (Table 4), provide insufficient granularity. For example, in challenging long video understanding tasks, performance hinges more on sparse frame sampling, capturing key frames, than on the specific token compression method. This can obscure the true impact of token compression, making its efficacy appear negligible. Furthermore, relying solely on VQA datasets that demand only low-fidelity information is insufficient, as they lack the fine-grained sensitivity required to evaluate token compression.
+
+This reveals a critical gap: current datasets often fail to isolate and precisely measure the effect of token compression. Therefore, adopting specific designed evaluation methodologies like EffiVLM-Bench (Wang et al., 2025c), VTC-Bench (Liao et al., 2025) and challenging benchmarks such as OCR (Yu et al., 2016) and temporal grounding (Gao et al., 2017) benchmarks, is crucial for accurately assessing the true efficacy and nuanced benefits of token compression methods.
+
+# 6.6 Pruning Location and Trade-offs
+
+Given the cascaded architecture of current MLLMs, the placement of the pruning operation directly influences the trade-off between computational efficiency and performance.
+
+Pruning tokens at an early stage, such as within the encoder or projector, can dramatically shorten the sequence length. This significantly reduces the computational burden on the downstream LLM, leading to faster inference. However, this early compression carries a higher risk of discarding critical information, which can negatively impact model performance.
+
+Conversely, token compression at a later stage, within the LLM’s internal modules, is more computationally demanding. However, it reduces the risk of erroneous judgment because the tokens have already undergone initial processing and feature extraction, thereby retaining more refined information. The optimal location for token compression within these architectures remains an open question, warranting further investigation.
+
+# 6.7 Future Directions
+
+# 6.7.1 Joint Token Compression for Multimodal Settings
+
+While distinct modalities exhibit unique redundancy patterns requiring specialized handling, the field is rapidly evolving towards Omnimodal Large Language Models (omni LLMs) capable of real-time, joint inference (Xu et al., 2025b; Tong et al., 2025; Xu et al., 2025c; Xie & Wu, 2024; Tang et al., 2025; Yang et al., 2025b; Ge et al., 2025; Fu et al., 2024; Shu et al., 2025a; Sun et al., 2024a; Li et al., 2024c). However, singlemodal deployments remain constrained by their unimodal inputs. As established in Sections 3, 4, and 5, fundamental algorithmic principles (including transformation-based, similarity-based, attention-based, and query-based approaches) demonstrate transmodal applicability, indicating the viability of developing a unified multimodal token compression framework. A promising future direction lies in exploiting cross-modal synergy to reduce the aggregate token count. Pioneering efforts like OmniZip (Tao et al., 2025b) have begun to explore this by utilizing audio cues to guide visual pruning, underscoring the predictive utility of one modality over another. Future research should further investigate deep joint compression mechanisms, where the redundancy of audio, video, and textual tokens is evaluated holistically, enabling efficient, long-context interaction for next-generation omni LLMs.
+
+# 6.7.2 Improved Architecture
+
+Current token compression methods are often employed as a remedial measure to process long contexts efficiently. However, a more valuable approach might involve designing model architectures that intrinsically account for data redundancy during their initial conception. By doing so, the number of tokens could be reduced during the abstraction of data features. This is particularly relevant for current architectures, especially those of video LLMs, where generated tokens still exhibit significant redundancy. Therefore, exploring architectural designs that inherently foster more condensed information abstraction from the outset represents a promising research direction.
+
+Furthermore, recent architectures utilizing linear attention (Gu & Dao, 2024b; Peng et al., 2023; Sun et al., 2023; Qiu et al., 2025) have emerged as a parallel solution, mitigating the computational explosion associated with increasing token counts through linear complexity. However, determining how to effectively identify and eliminate input redundancy within these novel frameworks to achieve more compact data representations remains a promising avenue for future exploration.
+
+# 7 Applications
+
+The potential of multimodal token compression extends beyond technical enhancements, emerging as a universal efficiency engine for data-intensive AI systems. Multimodal models frequently process extreme-length token sequences exhibiting high task-agnostic redundancy according to empirical analyses. Capitalizing on recent breakthroughs, we delineate four high-impact application domains:
+
+# 7.1 GUI Agents and Human-Computer Interaction
+
+Graphical user interface (GUI) agents perceive and interact with visual interfaces, interpret natural language instructions, analyze GUI states, and execute corresponding actions. These agents have to parse screen streams in real-time, producing extensive token sequences that often exceed computational limits (Zhang et al., 2024b; Wang et al., 2024a). Multimodal token compression enhances the efficiency of GUI agents. This approach mitigates context overflow in extended operation sequences by dynamically compressing redundant visual elements (e.g., extra white space or simple backgrounds). For some small but important control elements, it should also eliminate other irrelevant visual elements and highlight their importance. For instance, ShowUI (Lin et al., 2025a) is the first model to apply token selection strategy to GUI agents. ShowUI segments GUI screenshots into connected components by clustering pixels with similar RGB values, significantly reducing the total number of discrete elements. During both training and inference phases, the system employs an adaptive token selection strategy that probabilistically prunes redundant tokens within these components, thereby optimizing computational efficiency while preserving functional semantics However, excessive compression risks inducing operational ambiguity, necessitating careful calibration.
+
+# 7.2 Healthcare and Medical Imaging
+
+The effective synthesis of multimodal medical data is pivotal to advancing contemporary medical diagnosis and research. MLLMs can integrate radiographic findings, medical histories, and ancillary diagnostic tests to generate differential diagnoses, which clinicians can correlate with patient records and physician notes to enhance diagnostic accuracy (Liang et al., 2024). Furthermore, MLLMs can automatically draft preliminary radiology reports, potentially reducing the workload of radiologists (Beddiar $\&$ Oussalah, 2023; Bazi et al., 2023; He et al., 2020). A major challenge for MLLMs in medical imaging is the processing of high-resolution images, such as Whole-slide Images (WSIs) in pathology, which can contain billions of pixels. To overcome this, TCP-LLaVA (Lyu et al., 2025) uses a set of trainable compression tokens to aggregate and condense crucial information from thousands of visual and textual inputs. Instead of feeding every single image patch token into the language model, only these compressed tokens are forwarded for answer generation. Token compression holds vast potential for widespread application in the field of healthcare and medical imaging, enabling the efficient analysis of complex, high-resolution images.
+
+# 7.3 Robotics and Autonomous Systems
+
+Leveraging the significant capabilities of video LLMs in long-form video comprehension enables their deployment in robotics (Wei et al., 2025) and autonomous driving systems (Ma et al., 2024b; Zhou et al., 2024; Zhu et al., 2025b). However, the inherent computational complexity of long-duration video processing creates fundamental latency-efficiency tradeoffs that challenge real-time implementation. Token compression addresses this by prioritizing salient spatio-temporal dynamics (e.g., agent movements, action trajectories) and fine-grained per-frame details, enabling computationally efficient video understanding for these domains. VTS (Ma et al., 2024b) proposes a token pruning strategy for autonomous driving scenarios. VTS employs a proposal model based on a lightweight convolutional neural network that is able to adaptively identify keyframes and pry less informative tokens (e.g., invariant backgrounds and stationary objects). StreamVLN (Wei et al., 2025) further enhances inference efficiency for real-time navigation by employing a voxel-based spatial pruning strategy at test time to reduce memory tokens. This approach makes real-time navigation feasible.
+
+# 7.4 Efficient Reasoning
+
+Token compression improves efficiency by removing redundant input tokens. However, in many cases, the main source of computational cost shifts from input to output, most notably in reasoning models (Team et al., 2025; Guo et al., 2025a; Jaech et al., 2024), where lengthy generation chains are common. The “slowthinking” paradigm improves reasoning ability but results in lengthy reasoning chains (Feng et al., 2025a; Sui et al., 2025; Chen et al., 2025; Feng et al., 2025c;b). Some efficient reasoning methods compress these chains using similar techniques (e.g., attention mechanisms, semantic importance) (Ma et al., 2025a; Xia et al., 2025; Liu et al., 2024b; Fang et al., 2025), typically requiring fine-tuning via Supervised Fine-Tuning (SFT) or Reinforcement Learning (RL). Beyond token compression, other approaches improve reasoning efficiency by compressing model (Magister et al., 2022; Li et al., 2023b; Feng et al., 2024; Zhang et al., 2025e) or accelerating decoding (Sun et al., 2024c; Ma et al., 2024a; Luo et al., 2025a; Xu et al., 2025a; Ding et al., 2025).
+
+# 8 Conclusion
+
+This paper presents the first structured survey of token compression techniques for Multimodal Large Language Models (MLLMs), establishing a taxonomy based on modality-specific redundancy and underlying compression mechanisms. While current methods demonstrate promising efficiency gains, several critical challenges remain on the path toward scalable and robust MLLMs. Future research must move beyond simple redundancy reduction to address the preservation of cross-modal alignment under high compression ratios and the maintenance of causal reasoning capabilities in temporal sequences. Furthermore, the field necessitates the development of specialized benchmarks designed to rigorously evaluate multi-frame comprehension and long-term context retention. We hope this survey serves as a roadmap, guiding the community to tackle these open problems and push the boundaries of processing increasingly complex multimodal data.
+
+# 9 Acknowledgment
+
+This paper is supported by Young Scientists Fund of the National Natural Science Foundation of China (NSFC) (No. 62506305), Zhejiang Leading Innovative and Entrepreneur Team Introduction Program (No. 2024R01007), Key Research and Development Program of Zhejiang Province (No. 2025C01026), Scientific Research Project of Westlake University (No. WU2025WF003), Chinese Association for Artificial Intelligence (CAAI) & Ant Group Research Fund - AGI Track (No. 2025CAAI-ANT-13). It is also supported by the research funds of National Talent Program and Hangzhou Municipal Talent Program.
+
+# References
+
+Marah Abdin, Jyoti Aneja, Harkirat Behl, Sébastien Bubeck, Ronen Eldan, Suriya Gunasekar, Michael Harrison, Russell J Hewett, Mojan Javaheripi, Piero Kauffmann, et al. Phi-4 technical report. arXiv preprint arXiv:2412.08905, 2024.   
+AI@Meta. Llama 3 model card. https://github.com/meta-llama/llama3/blob/main/MODEL_CARD.md, 2024.   
+Jean-Baptiste Alayrac, Jeff Donahue, Pauline Luc, Antoine Miech, Iain Barr, Yana Hasson, Karel Lenc, Arthur Mensch, Katherine Millican, Malcolm Reynolds, et al. Flamingo: A visual language model for few-shot learning. NeurIPS, 2022.   
+Saeed Ranjbar Alvar, Gursimran Singh, Mohammad Akbari, and Yong Zhang. Divprune: Diversity-based visual token pruning for large multimodal models. In CVPR, 2025.   
+Hongjun An, Yifan Chen, Zhe Sun, and Xuelong Li. Sentencevae: Enable next-sentence prediction for large language models with faster speed, higher accuracy and longer context. arXiv preprint arXiv:2408.00655, 2024.   
+Kazi Hasan Ibn Arif, JinYi Yoon, Dimitrios S Nikolopoulos, Hans Vandierendonck, Deepu John, and Bo Ji. Hired: Attention-guided token dropping for efficient inference of high-resolution vision-language models in resource-constrained environments. In AAAI, 2025.   
+Jinze Bai, Shuai Bai, Yunfei Chu, Zeyu Cui, Kai Dang, Xiaodong Deng, Yang Fan, Wenbin Ge, Yu Han, Fei Huang, et al. Qwen technical report. arXiv preprint arXiv:2309.16609, 2023.   
+Shuai Bai, Keqin Chen, Xuejing Liu, Jialin Wang, Wenbin Ge, Sibo Song, Kai Dang, Peng Wang, Shijie Wang, Jun Tang, et al. Qwen2. 5-vl technical report. arXiv preprint arXiv:2502.13923, 2025.   
+Yakoub Bazi, Mohamad Mahmoud Al Rahhal, Laila Bashmal, and Mansour Zuair. Vision-language model for visual question answering in medical imagery. Bioengineering, 10(3):380, 2023.   
+Romaissa Beddiar and Mourad Oussalah. Explainability in medical image captioning. Explainable Deep Learning and Artificial Intelligence, pp. 239–261, 2023.   
+Jaime Bellver-Soler, Mario Rodriguez-Cantelar, Ricardo Córdoba, and Luis Fernando D’Haro. Cutting through overload: Efficient token dropping for speech emotion recognition in multimodal large language models. In ACL, 2025.   
+Saurabhchand Bhati, Samuel Thomas, Hilde Kuehne, Rogerio Feris, and James Glass. Towards audio token compression in large audio language models. arXiv preprint arXiv:2511.20973, 2025.   
+Daniel Bolya, Cheng-Yang Fu, Xiaoliang Dai, Peizhao Zhang, Christoph Feichtenhofer, and Judy Hoffman. Token merging: Your vit but faster. In ICLR, 2022.   
+Daniel Bolya, Cheng-Yang Fu, Xiaoliang Dai, Peizhao Zhang, Christoph Feichtenhofer, and Judy Hoffman. Token merging: Your vit but faster. In ICLR, 2023.   
+Mu Cai, Jianwei Yang, Jianfeng Gao, and Yong Jae Lee. Matryoshka multimodal models. In NeurIPS Workshop, 2024a.   
+Zefan Cai, Yichi Zhang, Bofei Gao, Yuliang Liu, Tianyu Liu, Keming Lu, Wayne Xiong, Yue Dong, Baobao Chang, Junjie Hu, and Xiao Wen. Pyramidkv: Dynamic kv cache compression based on pyramidal information funneling. arXiv preprint arXiv:2406.02069, 2024b.   
+Jianjian Cao, Peng Ye, Shengze Li, Chong Yu, Yansong Tang, Jiwen Lu, and Tao Chen. Madtp: Multimodal alignment-guided dynamic token pruning for accelerating vision-language transformer. In CVPR, 2024.   
+Qingqing Cao, Bhargavi Paranjape, and Hannaneh Hajishirzi. Pumer: Pruning and merging tokens for efficient vision language models. arXiv preprint arXiv:2305.17530, 2023.   
+Umberto Cappellazzo, Minsu Kim, Honglie Chen, Pingchuan Ma, Stavros Petridis, Daniele Falavigna, Alessio Brutti, and Maja Pantic. Large language models are strong audio-visual speech recognition learners. In ICASSP, 2025a.   
+Umberto Cappellazzo, Minsu Kim, and Stavros Petridis. Adaptive audio-visual speech recognition via matryoshka-based multimodal llms. arXiv preprint arXiv:2503.06362, 2025b.   
+Mathilde Caron, Hugo Touvron, Ishan Misra, Hervé Jégou, Julien Mairal, Piotr Bojanowski, and Armand Joulin. Emerging properties in self-supervised vision transformers. In CVPR, 2021.   
+Junbum Cha, Wooyoung Kang, Jonghwan Mun, and Byungseok Roh. Honeybee: Locality-enhanced projector for multimodal llm. In CVPR, 2024.   
+Wenhao Chai, Enxin Song, Yilun Du, Chenlin Meng, Vashisht Madhavan, Omer Bar-Tal, Jenq-Neng Hwang, Saining Xie, and Christopher D Manning. Auroracap: Efficient, performant video detailed captioning and a new benchmark. In ICLR, 2025.   
+Ke Chen, Xingjian Du, Bilei Zhu, Zejun Ma, Taylor Berg-Kirkpatrick, and Shlomo Dubnov. Hts-at: A hierarchical token-semantic audio transformer for sound classification and detection. In ICASSP, 2022.
+
+Liang Chen, Haozhe Zhao, Tianyu Liu, Shuai Bai, Junyang Lin, Chang Zhou, and Baobao Chang. An image is worth 1/2 tokens after layer 2: Plug-and-play inference acceleration for large vision-language models. In ECCV, 2024a.
+
+Xinghao Chen, Anhao Zhao, Heming Xia, Xuan Lu, Hanlin Wang, Yanjun Chen, Wei Zhang, Jian Wang, Wenjie Li, and Xiaoyu Shen. Reasoning beyond language: A comprehensive survey on latent chain-ofthought reasoning. arXiv preprint arXiv:2505.16782, 2025.
+
+Zhe Chen, Weiyun Wang, Yue Cao, Yangzhou Liu, Zhangwei Gao, Erfei Cui, Jinguo Zhu, Shenglong Ye, Hao Tian, Zhaoyang Liu, et al. Expanding performance boundaries of open-source multimodal models with model, data, and test-time scaling. arXiv preprint arXiv:2412.05271, 2024b.
+
+Zhe Chen, Weiyun Wang, Hao Tian, Shenglong Ye, Zhangwei Gao, Erfei Cui, Wenwen Tong, Kongzhi Hu, Jiapeng Luo, Zheng Ma, et al. How far are we to gpt-4v? closing the gap to commercial multimodal models with open-source suites. Science China Information Sciences, 67(12):220101, 2024c.
+
+Hongrong Cheng, Miao Zhang, and Javen Qinfeng Shi. A survey on deep neural network pruning: Taxonomy, comparison, analysis, and recommendations. TPAMI, 2024a.
+
+Xin Cheng, Xun Wang, Xingxing Zhang, Tao Ge, Si-Qing Chen, Furu Wei, Huishuai Zhang, and Dongyan Zhao. Xrag: Extreme context compression for retrieval-augmented generation with one token. In NeurIPS, 2024b.
+
+Zesen Cheng, Sicong Leng, Hang Zhang, Yifei Xin, Xin Li, Guanzheng Chen, Yongxin Zhu, Wenqi Zhang, Ziyang Luo, Deli Zhao, et al. Videollama 2: Advancing spatial-temporal modeling and audio understanding in video-llm. arXiv preprint arXiv:2406.07476, 2024c.
+
+Alexis Chevalier, Alexander Wettig, Anirudh Ajith, and Danqi Chen. Adapting language models to compress contexts. arXiv preprint arXiv:2305.14788, 2023.
+
+Wei-Lin Chiang, Zhuohan Li, Zi Lin, Ying Sheng, Zhanghao Wu, Hao Zhang, Lianmin Zheng, Siyuan Zhuang, Yonghao Zhuang, Joseph E. Gonzalez, Ion Stoica, and Eric P. Xing. Vicuna: An open-source chatbot impressing gpt-4 with 90%\* chatgpt quality. https://lmsys.org/blog/2023-03-30-vicuna, March 2023.
+
+Xiangxiang Chu, Limeng Qiao, Xinyang Lin, Shuang Xu, Yang Yang, Yiming Hu, Fei Wei, Xinyu Zhang, Bo Zhang, Xiaolin Wei, et al. Mobilevlm: A fast, strong and open vision language assistant for mobile devices. arXiv preprint arXiv:2312.16886, 2023.
+
+Xiangxiang Chu, Limeng Qiao, Xinyu Zhang, Shuang Xu, Fei Wei, Yang Yang, Xiaofei Sun, Yiming Hu, Xinyang Lin, Bo Zhang, et al. Mobilevlm v2: Faster and stronger baseline for vision language model. arXiv preprint arXiv:2402.03766, 2024a.
+
+Yunfei Chu, Jin Xu, Qian Yang, Haojie Wei, Xipin Wei, Zhifang Guo, Yichong Leng, Yuanjun Lv, Jinzheng He, Junyang Lin, et al. Qwen2-audio technical report. arXiv preprint arXiv:2407.10759, 2024b.
+
+Wenliang Dai, Nayeon Lee, Boxin Wang, Zhuolin Yang, Zihan Liu, Jon Barker, Tuomas Rintamaki, Mohammad Shoeybi, Bryan Catanzaro, and Wei Ping. Nvlm: Open frontier-class multimodal llms. arXiv preprint arXiv:2409.11402, 2024.
+
+Tri Dao. Flashattention-2: Faster attention with better parallelism and work partitioning. In ICLR, 2024.
+
+Tri Dao, Daniel Y. Fu, Stefano Ermon, Atri Rudra, and Christopher Ré. Flashattention: Fast and memoryefficient exact attention with io-awareness. In NeurIPS, 2022.
+
+Nilaksh Das, Saket Dingliwal, Srikanth Ronanki, Rohit Paturi, Zhaocheng Huang, Prashant Mathur, Jie Yuan, Dhanush Bekal, Xing Niu, Sai Muralidhar Jayanthi, et al. Speechverse: A large-scale generalizable audio language model. arXiv preprint arXiv:2405.08295, 2024.
+
+Alexandre Défossez, Jade Copet, Gabriel Synnaeve, and Yossi Adi. High fidelity neural audio compression. TMLR, 2022. ISSN 2835-8856.
+
+Yifu Ding, Wentao Jiang, Shunyu Liu, Yongcheng Jing, Jinyang Guo, Yingjie Wang, Jing Zhang, Zengmao Wang, Ziwei Liu, Bo Du, et al. Dynamic parallel tree search for efficient llm reasoning. arXiv preprint arXiv:2502.16235, 2025.
+
+Xiaoyi Dong, Jianmin Bao, Dongdong Chen, Weiming Zhang, Nenghai Yu, Lu Yuan, Dong Chen, and Baining Guo. Cswin transformer: A general vision transformer backbone with cross-shaped windows. In CVPR, 2022.
+
+Alexey Dosovitskiy, Lucas Beyer, Alexander Kolesnikov, Dirk Weissenborn, Xiaohua Zhai, Thomas Unterthiner, Mostafa Dehghani, Matthias Minderer, Georg Heigold, Sylvain Gelly, et al. An image is worth 16x16 words: Transformers for image recognition at scale. In ICLR, 2020.
+
+Mingjing Du, Shifei Ding, and Hongjie Jia. Study on density peaks clustering based on k-nearest neighbors and principal component analysis. Knowlege Based System, 99:135–145, 2016.
+
+Haoqi Fan, Bo Xiong, Karttikeya Mangalam, Yanghao Li, Zhicheng Yan, Jitendra Malik, and Christoph Feichtenhofer. Multiscale vision transformers. In ICCV, 2021.
+
+Gongfan Fang, Xinyin Ma, and Xinchao Wang. Thinkless: Llm learns when to think. arXiv preprint arXiv:2505.13379, 2025.
+
+Qingkai Fang, Shoutao Guo, Yan Zhou, Zhengrui Ma, Shaolei Zhang, and Yang Feng. Llama-omni: Seamless speech interaction with large language models. arXiv preprint arXiv:2409.06666, 2024.
+
+Yassir Fathullah, Chunyang Wu, Egor Lakomkin, Junteng Jia, Yuan Shangguan, Ke Li, Jinxi Guo, Wenhan Xiong, Jay Mahadeokar, Ozlem Kalinli, et al. Prompting large language models with speech recognition abilities. In ICASSP, 2024.
+
+Sicheng Feng, Gongfan Fang, Xinyin Ma, and Xinchao Wang. Efficient reasoning models: A survey. arXiv preprint arXiv:2504.10903, 2025a.
+
+Sicheng Feng, Kaiwen Tuo, Song Wang, Lingdong Kong, Jianke Zhu, and Huan Wang. Rewardmap: Tackling sparse rewards in fine-grained visual reasoning via multi-stage reinforcement learning. arXiv preprint arXiv:2510.02240, 2025b.
+
+Sicheng Feng, Song Wang, Shuyi Ouyang, Lingdong Kong, Zikai Song, Jianke Zhu, Huan Wang, and Xinchao Wang. Can mllms guide me home? a benchmark study on fine-grained visual reasoning from transit maps. arXiv preprint arXiv:2505.18675, 2025c.
+
+Tao Feng, Yicheng Li, Li Chenglin, Hao Chen, Fei Yu, and Yin Zhang. Teaching small language models reasoning through counterfactual distillation. In EMNLP, 2024.
+
+Zhanzhou Feng and Shiliang Zhang. Efficient vision transformer via token merger. IEEE Transactions on Image Processing, 32:4156–4169, 2023.
+
+Elias Frantar, Saleh Ashkboos, Torsten Hoefler, and Dan Alistarh. gptq: Accurate post-training compression for generative pretrained transformers. In ICLR, 2023.
+
+Chaoyou Fu, Haojia Lin, Zuwei Long, Yunhang Shen, Yuhang Dai, Meng Zhao, Yi-Fan Zhang, Shaoqi Dong, Yangze Li, Xiong Wang, et al. Vita: Towards open-source interactive omni multimodal llm. arXiv preprint arXiv:2408.05211, 2024.
+
+Chaoyou Fu, Yuhan Dai, Yongdong Luo, Lei Li, Shuhuai Ren, Renrui Zhang, Zihan Wang, Chenyu Zhou, Yunhang Shen, Mengdan Zhang, et al. Video-mme: The first-ever comprehensive evaluation benchmark of multi-modal llms in video analysis. In CVPR, 2025a.
+
+Tianyu Fu, Tengxuan Liu, Qinghao Han, Guohao Dai, Shengen Yan, Huazhong Yang, Xuefei Ning, and Yu Wang. Framefusion: Combining similarity and importance for video token reduction on large visual language models. In ICCV, 2025b.
+
+Heting Gao, Hang Shao, Xiong Wang, Chaofan Qiu, Yunhang Shen, Siqi Cai, Yuchen Shi, Zihan Xu, Zuwei Long, Yike Zhang, et al. Lucy: Linguistic understanding and control yielding early stage of her. arXiv preprint arXiv:2501.16327, 2025.
+
+Jiyang Gao, Chen Sun, Zhenheng Yang, and Ram Nevatia. Tall: Temporal activity localization via language query. In ICCV, 2017.
+
+Lishuai Gao, Yujie Zhong, Yingsen Zeng, Haoxian Tan, Dengjie Li, and Zheng Zhao. Linvt: Empower your image-level large language model to understand videos. arXiv preprint arXiv:2412.05185, 2024a.
+
+Zhangwei Gao, Zhe Chen, Erfei Cui, Yiming Ren, Weiyun Wang, Jinguo Zhu, Hao Tian, Shenglong Ye, Junjun He, Xizhou Zhu, et al. Mini-internvl: A flexible-transfer pocket multi-modal model with 5% parameters and 90% performance. Visual Intelligence, 2(1):1–17, 2024b.
+
+Tao Ge, Jing Hu, Lei Wang, Xun Wang, Si-Qing Chen, and Furu Wei. In-context autoencoder for context compression in a large language model. arXiv preprint arXiv:2307.06945, 2023.
+
+Yuying Ge, Yixiao Ge, Chen Li, Teng Wang, Junfu Pu, Yizhuo Li, Lu Qiu, Jin Ma, Lisheng Duan, Xinyu Zuo, et al. Arc-hunyuan-video-7b: Structured video comprehension of real-world shorts. arXiv preprint arXiv:2507.20939, 2025.
+
+Xuelong Geng, Kun Wei, Qijie Shao, Shuiyun Liu, Zhennan Lin, Zhixian Zhao, Guojian Li, Wenjie Tian, Peikun Chen, Yangze Li, et al. Osum: Advancing open speech understanding models with limited resources in academia. arXiv preprint arXiv:2501.13306, 2025.
+
+Amir Gholami, Sehoon Kim, Zhen Dong, Zhewei Yao, Michael W Mahoney, and Kurt Keutzer. A survey of quantization methods for efficient neural network inference. In Proceedings of the Book: Low-Power Computer Vision, pp. 291–326. 2022.
+
+Jianping Gou, Baosheng Yu, Stephen J Maybank, and Dacheng Tao. Knowledge distillation: A survey. IJCV, 129(6):1789–1819, 2021.
+
+Yash Goyal, Tejas Khot, Douglas Summers-Stay, Dhruv Batra, and Devi Parikh. Making the v in vqa matter: Elevating the role of image understanding in visual question answering. In CVPR, 2017.
+
+Benjamin Graham, Alaaeldin El-Nouby, Hugo Touvron, Pierre Stock, Armand Joulin, Hervé Jégou, and Matthijs Douze. Levit: A vision transformer in convnet’s clothing for faster inference. In ICCV, 2021.
+
+Albert Gu and Tri Dao. Mamba: Linear-time sequence modeling with selective state spaces. In Proceedings of the Conference on Language Modeling, 2024a.
+
+Albert Gu and Tri Dao. Mamba: Linear-time sequence modeling with selective state spaces. In First conference on language modeling, 2024b.
+
+Anmol Gulati, James Qin, Chung-Cheng Chiu, Niki Parmar, Yu Zhang, Jiahui Yu, Wei Han, Shibo Wang, Zhengdong Zhang, Yonghui Wu, et al. Conformer: Convolution-augmented transformer for speech recognition. In Interspeech, 2020.
+
+Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Ruoyu Zhang, Runxin Xu, Qihao Zhu, Shirong Ma, Peiyi Wang, Xiao Bi, et al. Deepseek-r1: Incentivizing reasoning capability in llms via reinforcement learning. arXiv preprint arXiv:2501.12948, 2025a.
+
+Dong Guo, Faming Wu, Feida Zhu, Fuxing Leng, Guang Shi, Haobin Chen, Haoqi Fan, Jian Wang, Jianyu Jiang, Jiawei Wang, et al. Seed1. 5-vl technical report. arXiv preprint arXiv:2505.07062, 2025b.
+
+Danna Gurari, Qing Li, Abigale J Stangl, Anhong Guo, Chi Lin, Kristen Grauman, Jiebo Luo, and Jeffrey P Bigham. Vizwiz grand challenge: Answering visual questions from blind people. In CVPR, 2018.
+
+Saket Gurukar and Asim Kadav. Long-vmnet: Accelerating long-form video understanding via fixed memory. arXiv preprint arXiv:2503.13707, 2025.
+
+Andrey Guzhov, Federico Raue, Jörn Hees, and Andreas Dengel. Audioclip: Extending clip to image, text and audio. In ICASSP, 2022.
+
+Jiayi Han, Liang Du, Yiwen Wu, Xiangguo Zhou, Hongwei Du, and Weibo Zheng. Adafv: Accelerating vlms with self-adaptive cross-modality attention mixture. arXiv preprint arXiv:2501.09532, 2025.
+
+Song Han, Huizi Mao, and William J Dally. Deep compression: Compressing deep neural network with pruning, trained quantization and huffman coding. In ICLR, 2016.
+
+Yuhang Han, Xuyang Liu, Zihan Zhang, Pengxiang Ding, Donglin Wang, Honggang Chen, Qingsen Yan, and Siteng Huang. Filter, correlate, compress: Training-free token reduction for mllm acceleration. arXiv preprint arXiv:2411.17686, 2024.
+
+Xuehai He, Yichen Zhang, Luntian Mou, Eric Xing, and Pengtao Xie. Pathvqa: 30000+ questions for medical visual question answering. arXiv preprint arXiv:2003.10286, 2020.
+
+Yefei He, Feng Chen, Jing Liu, Wenqi Shao, Hong Zhou, Kaipeng Zhang, and Bohan Zhuang. Zipvl: Efficient large vision-language models with dynamic token sparsification and kv cache compression. In ICCV, 2025.
+
+Geoffrey Hinton, Oriol Vinyals, and Jeff Dean. Distilling the knowledge in a neural network. arXiv preprint arXiv:1503.02531, 2015.
+
+Wei-Ning Hsu, Benjamin Bolte, Yao-Hung Hubert Tsai, Kushal Lakhotia, Ruslan Salakhutdinov, and Abdelrahman Mohamed. Hubert: Self-supervised speech representation learning by masked prediction of hidden units. IEEE/ACM Transactions on Audio, Speech, and Language Processing., 29:3451–3460, 2021.
+
+Lianyu Hu, Fanhua Shang, Liang Wan, and Wei Feng. Illava: An image is worth fewer than 1/3 input tokens in large multimodal models. arXiv preprint arXiv:2412.06263, 2024.
+
+Chensen Huang, Guibo Zhu, Xuepeng Wang, Yifei Luo, Guojing Ge, Haoran Chen, Dong Yi, and Jinqiao Wang. Recurrent context compression: Efficiently expanding the context window of llm. arXiv preprint arXiv:2406.06110, 2024.
+
+Hsiang-Wei Huang, Wenhao Chai, Kuang-Ming Chen, Cheng-Yen Yang, and Jenq-Neng Hwang. Tosa: Token merging with spatial awareness. In IROS, 2025a.
+
+Hsiang-Wei Huang, Fu-Chen Chen, Wenhao Chai, Che-Chun Su, Lu Xia, Sanghun Jung, Cheng-Yen Yang, Jenq-Neng Hwang, Min Sun, and Cheng-Hao Kuo. Zero-shot 3d question answering via voxel-based dynamic token compression. In CVPR, 2025b.
+
+Xiaohu Huang, Hao Zhou, and Kai Han. Prunevid: Visual token pruning for efficient video large language models. In ACL, 2025c.
+
+Drew A Hudson and Christopher D Manning. Gqa: A new dataset for real-world visual reasoning and compositional question answering. In CVPR, 2019.
+
+Jeongseok Hyun, Sukjun Hwang, Su Ho Han, Taeoh Kim, Inwoong Lee, Dongyoon Wee, Joon-Young Lee, Seon Joo Kim, and Minho Shim. Multi-granular spatio-temporal token merging for training-free acceleration of video llms. arXiv preprint arXiv:2507.07990, 2025.
+
+Aaron Jaech, Adam Kalai, Adam Lerer, Adam Richardson, Ahmed El-Kishky, Aiden Low, Alec Helyar, Aleksander Madry, Alex Beutel, Alex Carney, et al. Openai o1 system card. arXiv preprint arXiv:2412.16720, 2024.
+
+Huiqiang Jiang, Qianhui Wu, Chin-Yew Lin, Yuqing Yang, and Lili Qiu. Llmlingua: Compressing prompts for accelerated inference of large language models. In EMNLP, 2023a.
+
+Huiqiang Jiang, Qianhui Wu, Xufang Luo, Dongsheng Li, Chin-Yew Lin, Yuqing Yang, and Lili Qiu. Longllmlingua: Accelerating and enhancing llms in long context scenarios via prompt compression. In ACL, 2023b.
+
+Jindong Jiang, Xiuyu Li, Zhijian Liu, Muyang Li, Guo Chen, Zhiqi Li, De-An Huang, Guilin Liu, Zhiding Yu, Kurt Keutzer, et al. Token-efficient long video understanding for multimodal llms. arXiv preprint arXiv:2503.04130, 2025a.
+
+Yutao Jiang, Qiong Wu, Wenhao Lin, Wei Yu, and Yiyi Zhou. What kind of visual tokens do we need? training-free visual token pruning for multi-modal large language models from the perspective of graph. In AAAI, 2025b.
+
+Peng Jin, Ryuichi Takanobu, Wancai Zhang, Xiaochun Cao, and Li Yuan. Chat-univi: Unified visual representation empowers large language models with image and video understanding. In CVPR, 2024.
+
+Zhenglun Kong, Yize Li, Fanhu Zeng, Lei Xin, Shvat Messica, Xue Lin, Pu Zhao, Manolis Kellis, Hao Tang, and Marinka Zitnik. Token reduction should go beyond efficiency in generative models–from vision, language to multimodality. arXiv preprint arXiv:2505.18227, 2025.
+
+Hugo Laurençon, Lucile Saulnier, Léo Tronchon, Stas Bekman, Amanpreet Singh, Anton Lozhkov, Thomas Wang, Siddharth Karamcheti, Alexander Rush, Douwe Kiela, et al. Obelics: An open web-scale filtered dataset of interleaved image-text documents. In NeurIPS, 2023.
+
+Taehan Lee and Hyukjun Lee. Token pruning in audio transformers: Optimizing performance and decoding patch importance. arXiv preprint arXiv:2504.01690, 2025.
+
+Bo Li, Yuanhan Zhang, Dong Guo, Renrui Zhang, Feng Li, Hao Zhang, Kaichen Zhang, Peiyuan Zhang, Yanwei Li, Ziwei Liu, and Chunyuan Li. Llava-onevision: Easy visual task transfer. TMLR, 2025a.
+
+Bohao Li, Rui Wang, Guangzhi Wang, Yuying Ge, Yixiao Ge, and Ying Shan. Seed-bench: Benchmarking multimodal llms with generative comprehension. arXiv preprint arXiv:2307.16125, 2023a.
+
+Chenglin Li, Qianglong Chen, Liangyue Li, Caiyu Wang, Yicheng Li, Zulong Chen, and Yin Zhang. Mixed distillation helps smaller language model better reasoning. arXiv preprint arXiv:2312.10730, 2023b.
+
+Junnan Li, Dongxu Li, Silvio Savarese, and Steven Hoi. Blip-2: Bootstrapping language-image pre-training with frozen image encoders and large language models. In ICML, 2023c.
+
+Kaiyuan Li, Xiaoyue Chen, Chen Gao, Yong Li, and Xinlei Chen. Balanced token pruning: Accelerating vision language models beyond local optimization. arXiv preprint arXiv:2505.22038, 2025b.
+
+KunChang Li, Yinan He, Yi Wang, Yizhuo Li, Wenhai Wang, Ping Luo, Yali Wang, Limin Wang, and Yu Qiao. Videochat: Chat-centric video understanding. arXiv preprint arXiv:2305.06355, 2023d.
+
+Kunchang Li, Yali Wang, Yinan He, Yizhuo Li, Yi Wang, Yi Liu, Zun Wang, Jilan Xu, Guo Chen, Ping Luo, et al. Mvbench: A comprehensive multi-modal video understanding benchmark. In CVPR, 2024a.
+
+Tianpeng Li, Jun Liu, Tao Zhang, Yuanbo Fang, Da Pan, Mingrui Wang, Zheng Liang, Zehuan Li, Mingan Lin, Guosheng Dong, et al. Baichuan-audio: A unified framework for end-to-end speech interaction. arXiv preprint arXiv:2502.17239, 2025c.
+
+Xinhao Li, Yi Wang, Jiashuo Yu, Xiangyu Zeng, Yuhan Zhu, Haian Huang, Jianfei Gao, Kunchang Li, Yinan He, Chenting Wang, et al. Videochat-flash: Hierarchical compression for long-context video modeling. arXiv preprint arXiv:2501.00574, 2024b.
+
+Yadong Li, Haoze Sun, Mingan Lin, Tianpeng Li, Guosheng Dong, Tao Zhang, Bowen Ding, Wei Song, Zhenglin Cheng, Yuqi Huo, Song Chen, Xu Li, Da Pan, Shusen Zhang, Xin Wu, Zheng Liang, Jun Liu, Tao Zhang, Keer Lu, Yaqi Zhao, Yanjun Shen, Fan Yang, Kaicheng Yu, Tao Lin, Jianhua Xu, Zenan Zhou, and Weipeng Chen. Baichuan-omni technical report. arXiv preprint arXiv:2410.08565, 2024c.
+
+Yanghao Li, Chao-Yuan Wu, Haoqi Fan, Karttikeya Mangalam, Bo Xiong, Jitendra Malik, and Christoph Feichtenhofer. Mvitv2: Improved multiscale vision transformers for classification and detection. In CVPR, 2022.
+
+Yanwei Li, Chengyao Wang, and Jiaya Jia. Llama-vid: An image is worth 2 tokens in large language models. In ECCV, 2024d.
+
+Yifan Li, Yifan Du, Kun Zhou, Jinpeng Wang, Wayne Xin Zhao, and Ji-Rong Wen. Evaluating object hallucination in large vision-language models. In EMNLP, 2023e.
+
+Yuang Li, Yu Wu, Jinyu Li, and Shujie Liu. Accelerating transducers through adjacent token merging. In Interspeech, 2023f.
+
+Yucheng Li, Bo Dong, Chenghua Lin, and Frank Guerin. Compressing context to enhance inference efficiency of large language models. In EMNLP, 2023g.
+
+Yuhong Li, Yingbing Huang, Bowen Yang, Bharat Venkitesh, Acyr Locatelli, Hanchen Ye, Tianle Cai, Patrick Lewis, and Deming Chen. Snapkv: Llm knows what you are looking for before generation. In NeurIPS, 2024e.
+
+Zongqian Li, Yinhong Liu, Yixuan Su, and Nigel Collier. Prompt compression for large language models: A survey. In NAACL, 2025d.
+
+Chia Xin Liang, Pu Tian, Caitlyn Heqi Yin, Yao Yua, Wei An-Hou, Li Ming, Tianyang Wang, Ziqian Bi, and Ming Liu. A comprehensive survey and guide to multimodal large language models in vision-language tasks. arXiv preprint arXiv:2411.06284, 2024.
+
+Youwei Liang, Chongjian Ge, Zhan Tong, Yibing Song, Jue Wang, and Pengtao Xie. Not all patches are what you need: Expediting vision transformers via token reorganizations. In ICLR, 2022.
+
+Chenfei Liao, Wensong Wang, Zichen Wen, Xu Zheng, Yiyu Wang, Haocong He, Yuanhuiyi Lyu, Lutao Jiang, Xin Zou, Yuqian Fu, et al. Are we using the right benchmark: An evaluation framework for visual token compression methods. arXiv preprint arXiv:2510.07143, 2025.
+
+Bin Lin, Yang Ye, Bin Zhu, Jiaxi Cui, Munan Ning, Peng Jin, and Li Yuan. Video-llava: Learning united visual representation by alignment before projection. In EMNLP, 2024a.
+
+Ji Lin, Jiaming Tang, Haotian Tang, Shang Yang, Wei-Ming Chen, Wei-Chen Wang, Guangxuan Xiao, Xingyu Dang, Chuang Gan, and Song Han. Awq: Activation-aware weight quantization for on-device llm compression and acceleration. In MLSys, 2024b.
+
+Kevin Qinghong Lin, Linjie Li, Difei Gao, Zhengyuan Yang, Shiwei Wu, Zechen Bai, Stan Weixian Lei, Lijuan Wang, and Mike Zheng Shou. Showui: One vision-language-action model for gui visual agent. In CVPR, pp. 19498–19508, 2025a.
+
+Yueqian Lin, Yuzhe Fu, Jingyang Zhang, Yudong Liu, Jianyi Zhang, Jingwei Sun, Hai Li, Yiran Chen, et al. Speechprune: Context-aware token pruning for speech information retrieval. In ICME, 2025b.
+
+Zhihang Lin, Mingbao Lin, Luxi Lin, and Rongrong Ji. Boosting multimodal large language models with visual tokens withdrawal for rapid inference. In AAAI, 2025c.
+
+Hao Liu, Matei Zaharia, and Pieter Abbeel. Ringattention with blockwise transformers for near-infinite context. In ICLR, 2024a.
+
+Haotian Liu, Chunyuan Li, Qingyang Wu, and Yong Jae Lee. Visual instruction tuning. In NeurIPS, 2023.
+
+Juntao Liu, Liqiang Niu, Wenchao Chen, Jie Zhou, and Fandong Meng. Laco: Efficient layer-wise compression of visual tokens for multimodal large language models. arXiv preprint arXiv:2507.02279, 2025a.
+
+Tengxiao Liu, Qipeng Guo, Xiangkun Hu, Cheng Jiayang, Yue Zhang, Xipeng Qiu, and Zheng Zhang. Can language models learn to skip steps? arXiv preprint arXiv:2411.01855, 2024b.
+
+Ting Liu, Liangtao Shi, Richang Hong, Yue Hu, Quanjun Yin, and Linfeng Zhang. Multi-stage vision yoken dropping: Towards efficient multimodal large language model. arXiv preprint arXiv:2411.10803, 2024c.
+
+Xuyang Liu, Yiyu Wang, Junpeng Ma, and Linfeng Zhang. Video compression commander: Plug-and-play inference acceleration for video large language models. arXiv preprint arXiv:2505.14454, 2025b.
+
+Xuyang Liu, Ziming Wang, Yuhang Han, Yingyao Wang, Jiale Yuan, Jun Song, Bo Zheng, Linfeng Zhang, Siteng Huang, and Honggang Chen. Compression with global guidance: Towards training-free highresolution mllms acceleration. arXiv preprint arXiv:2501.05179, 2025c.
+
+Xuyang Liu, Zichen Wen, Shaobo Wang, Junjie Chen, Zhishan Tao, Yubo Wang, Xiangqi Jin, Chang Zou, Yiyu Wang, Chenfei Liao, et al. Shifting ai efficiency from model-centric to data-centric compression. arXiv preprint arXiv:2505.19147, 2025d.
+
+Yuan Liu, Haodong Duan, Yuanhan Zhang, Bo Li, Songyang Zhang, Wangbo Zhao, Yike Yuan, Jiaqi Wang, Conghui He, Ziwei Liu, et al. Mmbench: Is your multi-modal model an all-around player? In ECCV, 2024d.
+
+Ze Liu, Yutong Lin, Yue Cao, Han Hu, Yixuan Wei, Zheng Zhang, Stephen Lin, and Baining Guo. Swin transformer: Hierarchical vision transformer using shifted windows. In ICCV, 2021.
+
+Zhijian Liu, Ligeng Zhu, Baifeng Shi, Zhuoyang Zhang, Yuming Lou, Shang Yang, Haocheng Xi, Shiyi Cao, Yuxian Gu, Dacheng Li, et al. Nvila: Efficient frontier visual language models. In CVPR, 2025e.
+
+LMMs-Lab. Video detail caption, November 2024. Accessed: 2024-11.
+
+Enzhe Lu, Zhejun Jiang, Jingyuan Liu, Yulun Du, Tao Jiang, Chao Hong, Shaowei Liu, Weiran He, Enming Yuan, Yuzhi Wang, et al. Moba: Mixture of block attention for long-context llms. arXiv preprint arXiv:2502.13189, 2025.
+
+Pan Lu, Swaroop Mishra, Tanglin Xia, Liang Qiu, Kai-Wei Chang, Song-Chun Zhu, Oyvind Tafjord, Peter Clark, and Ashwin Kalyan. Learn to explain: Multimodal reasoning via thought chains for science question answering. In NeurIPS, 2022.
+
+Feng Luo, Yu-Neng Chuang, Guanchu Wang, Hoang Anh Duy Le, Shaochen Zhong, Hongyi Liu, Jiayi Yuan, Yang Sui, Vladimir Braverman, Vipin Chaudhary, et al. Autol2s: Auto long-short reasoning for efficient large language models. arXiv preprint arXiv:2505.22662, 2025a.
+
+Yongdong Luo, Wang Chen, Xiawu Zheng, Weizhong Huang, Shukang Yin, Haojia Lin, Chaoyou Fu, Jinfa Huang, Jiayi Ji, Jiebo Luo, et al. Quota: Query-oriented token assignment via cot query decouple for long video comprehension. arXiv preprint arXiv:2503.08689, 2025b.
+
+Weimin Lyu, Qingqiao Hu, Kehan Qi, Zhan Shi, Wentao Huang, Saumya Gupta, and Chao Chen. Efficient whole slide pathology vqa via token compression. arXiv preprint arXiv:2507.14497, 2025.
+
+Chang Ma, Haiteng Zhao, Junlei Zhang, Junxian He, and Lingpeng Kong. Non-myopic generation of language models for reasoning and planning. In ICLR, 2024a.
+
+Xinyin Ma, Gongfan Fang, and Xinchao Wang. Llm-pruner: On the structural pruning of large language models. In NeurIPS, 2023.
+
+Xinyin Ma, Guangnian Wan, Runpeng Yu, Gongfan Fang, and Xinchao Wang. Cot-valve: Lengthcompressible chain-of-thought tuning. In ACL, 2025a.
+
+Yunsheng Ma, Amr Abdelraouf, Rohit Gupta, Ziran Wang, and Kyungtae Han. Video token sparsification for efficient multimodal llms in autonomous driving. arXiv preprint arXiv:2409.11182, 2024b.
+
+Zehong Ma, Shiliang Zhang, Longhui Wei, and Qi Tian. Efficient multi-modal long context learning for training-free adaptation. In ICML, 2025b.
+
+Ziyang Ma, Guanrou Yang, Yifan Yang, Zhifu Gao, Jiaming Wang, Zhihao Du, Fan Yu, Qian Chen, Siqi Zheng, Shiliang Zhang, et al. An embarrassingly simple approach for llm with strong asr capacity. arXiv preprint arXiv:2402.08846, 2024c.
+
+Muhammad Maaz, Hanoona Rasheed, Salman Khan, and Fahad Shahbaz Khan. Video-chatgpt: Towards detailed video understanding via large vision and language models. In ACL, 2023.
+
+Muhammad Maaz, Hanoona Rasheed, Salman Khan, and Fahad Khan. Video-chatgpt: Towards detailed video understanding via large vision and language models. In ACL, 2024.
+
+Lucie Charlotte Magister, Jonathan Mallinson, Jakub Adamek, Eric Malmi, and Aliaksei Severyn. Teaching small language models to reason. In ACL, 2022.
+
+Karttikeya Mangalam, Raiymbek Akshulakov, and Jitendra Malik. Egoschema: A diagnostic benchmark for very long-form video language understanding. In NeurIPS, 2023.
+
+Maxime Oquab, Timothée Darcet, Théo Moutakanni, Huy Vo, Marc Szafraniec, Vasil Khalidov, Pierre Fernandez, Daniel Haziza, Francisco Massa, Alaaeldin El-Nouby, et al. Dinov2: Learning robust visual features without supervision. arXiv preprint arXiv:2304.07193, 2023.
+
+Zhuoshi Pan, Qianhui Wu, Huiqiang Jiang, Menglin Xia, Xufang Luo, Jue Zhang, Qingwei Lin, Victor Rühle, Yuqing Yang, Chin-Yew Lin, et al. Llmlingua-2: Data distillation for efficient and faithful task-agnostic prompt compression. In Findings of ACL, 2024.
+
+Viorica Patraucean, Lucas Smaira, Ankush Gupta, Adria Recasens, Larisa Markeeva, Dylan Banarse, Skanda Koppula, Mateusz Malinowski, Yi Yang, Carl Doersch, et al. Perception test: A diagnostic benchmark for multimodal video models. In NeurIPS, 2024.
+
+Bo Peng, Eric Alcaide, Quentin Anthony, Alon Albalak, Samuel Arcadinho, Stella Biderman, Huanqi Cao, Xin Cheng, Michael Chung, Leon Derczynski, et al. Rwkv: Reinventing rnns for the transformer era. In Findings of EMNLP, 2023.
+
+Kunat Pipatanakul, Potsawee Manakul, Natapong Nitarach, Warit Sirichotedumrong, Surapon Nonesung, Teetouch Jaknamon, Parinthapat Pengpun, Pittawat Taveekitworachai, Adisai Na-Thalang, Sittipong Sripaisarnmongkol, et al. Typhoon 2: A family of open text and multimodal thai large language models. arXiv preprint arXiv:2412.13702, 2024.
+
+Daniel Cosmin Porumbel, Jin-Kao Hao, and Fred Glover. A simple and effective algorithm for the maxmin diversity problem. Ann. Oper. Res., 186:275–293, 2011.
+
+Zihan Qiu, Zekun Wang, Bo Zheng, Zeyu Huang, Kaiyue Wen, Songlin Yang, Rui Men, Le Yu, Fei Huang, Suozhi Huang, et al. Gated attention for large language models: Non-linearity, sparsity, and attentionsink-free. NeurIPS, 2025.
+
+Tianyuan Qu, Longxiang Tang, Bohao Peng, Senqiao Yang, Bei Yu, and Jiaya Jia. Does your vision-language model get lost in the long video sampling dilemma? arXiv preprint arXiv:2503.12496, 2025.
+
+Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sastry, Amanda Askell, Pamela Mishkin, Jack Clark, et al. Learning transferable visual models from natural language supervision. In ICML, 2021.
+
+Alec Radford, Jong Wook Kim, Tao Xu, Greg Brockman, Christine McLeavey, and Ilya Sutskever. Robust speech recognition via large-scale weak supervision. In ICML, 2023.
+
+Yongming Rao, Wenliang Zhao, Benlin Liu, Jiwen Lu, Jie Zhou, and Cho-Jui Hsieh. Dynamicvit: Efficient vision transformers with dynamic token sparsification. In NeurIPS, 2021.
+
+Alex Rodriguez and Alessandro Laio. Clustering by fast search and find of density peaks. science, 344(6191): 1492–1496, 2014.
+
+Michael S Ryoo, AJ Piergiovanni, Anurag Arnab, Mostafa Dehghani, and Anelia Angelova. Tokenlearner: What can 8 learned tokens do for images and videos? arXiv preprint arXiv:2106.11297, 2021.
+
+Michael S Ryoo, Keerthana Gopalakrishnan, Kumara Kahatapitiya, Ted Xiao, Kanishka Rao, Austin Stone, Yao Lu, Julian Ibarz, and Anurag Arnab. Token turing machines. In CVPR, 2023.
+
+Michael S Ryoo, Honglu Zhou, Shrikant Kendre, Can Qin, Le Xue, Manli Shu, Jongwoo Park, Kanchana Ranasinghe, Silvio Savarese, Ran Xu, et al. Xgen-mm-vid (blip-3-video): You only need 32 tokens to represent a video even in vlms. arXiv preprint arXiv:2410.16267, 2024.
+
+Yuzhang Shang, Zhihang Yuan, Bin Xie, Bingzhe Wu, and Yan Yan. Post-training quantization on diffusion models. In CVPR, 2023.
+
+Yuzhang Shang, Mu Cai, Bingxin Xu, Yong Jae Lee, and Yan Yan. Llava-prumerge: Adaptive token reduction for efficient large multimodal models. In ICCV, 2025.
+
+Kele Shao, Keda Tao, Can Qin, Haoxuan You, Yang Sui, and Huan Wang. Holitom: Holistic token merging for fast video large language models. In NeurIPS, 2025.
+
+Ninglu Shao, Shitao Xiao, Zheng Liu, and Peitian Zhang. Flexibly scaling large language models contexts through extensible tokenization. arXiv preprint arXiv:2401.07793, 2024.
+
+Leqi Shen, Guoqiang Gong, Tao He, Yifeng Zhang, Pengzhang Liu, Sicheng Zhao, and Guiguang Ding. Fastvid: Dynamic density pruning for fast video large language models. NeurIPS, 2025a.
+
+Xiaoqian Shen, Yunyang Xiong, Changsheng Zhao, Lemeng Wu, Jun Chen, Chenchen Zhu, Zechun Liu, Fanyi Xiao, Balakrishnan Varadarajan, Florian Bordes, et al. Longvu: Spatiotemporal adaptive compression for long video-language understanding. In ICML, 2025b.
+
+Kaize Shi, Xueyao Sun, Qing Li, and Guandong Xu. Compressing long context for enhancing rag with amr-based concept distillation. arXiv preprint arXiv:2405.03085, 2024.
+
+Fangxun Shu, Lei Zhang, Hao Jiang, and Cihang Xie. Audio-visual llm for video understanding. In CVPR, 2025a.
+
+Yan Shu, Zheng Liu, Peitian Zhang, Minghao Qin, Junjie Zhou, Zhengyang Liang, Tiejun Huang, and Bo Zhao. Video-xl: Extra-long vision language model for hour-scale video understanding. In CVPR, 2025b.
+
+Masao Someki, Shikhar Bharadwaj, Atharva Anand Joshi, Chyi-Jiunn Lin, Jinchuan Tian, Jee-weon Jung, Markus Mueller, Nathan Susanj, Jing Liu, and Shinji Watanabe. Context-driven dynamic pruning for large speech foundation models. arXiv preprint arXiv:2505.18860, 2025.
+
+Dingjie Song, Wenjun Wang, Shunian Chen, Xidong Wang, Michael Guan, and Benyou Wang. Less is more: A simple yet effective token reduction method for efficient multi-modal llms. In COLING, 2025a.
+
+Enxin Song, Wenhao Chai, Guanhong Wang, Yucheng Zhang, Haoyang Zhou, Feiyang Wu, Haozhe Chi, Xun Guo, Tian Ye, Yanting Zhang, et al. Moviechat: From dense token to sparse memory for long video understanding. In CVPR, 2024a.
+
+Enxin Song, Wenhao Chai, Weili Xu, Jianwen Xie, Yuxuan Liu, and Gaoang Wang. Video-mmlu: A massive multi-discipline lecture understanding benchmark. arXiv preprint arXiv:2504.14693, 2025b.
+
+Wei Song, Yadong Li, Jianhua Xu, Guowei Wu, Lingfeng Ming, Kexin Yi, Weihua Luo, Houyi Li, Yi Du, Fangda Guo, et al. M3gia: A cognition inspired multilingual and multimodal general intelligence ability benchmark. arXiv preprint arXiv:2406.05343, 2024b.
+
+Wei Song, Yuran Wang, Zijia Song, Yadong Li, Haoze Sun, Weipeng Chen, Zenan Zhou, Jianhua Xu, Jiaqi Wang, and Kaicheng Yu. Dualtoken: Towards unifying visual understanding and generation with dual visual vocabularies. arXiv preprint arXiv:2503.14324, 2025c.
+
+Yang Sui, Miao Yin, Yi Xie, Huy Phan, Saman Aliari Zonouz, and Bo Yuan. Chip: Channel independencebased pruning for compact neural networks. In NeurIPS, 2021.   
+Yang Sui, Yanyu Li, Anil Kag, Yerlan Idelbayev, Junli Cao, Ju Hu, Dhritiman Sagar, Bo Yuan, Sergey Tulyakov, and Jian Ren. Bitsfusion: 1.99 bits weight quantization of diffusion model. Advances in Neural Information Processing Systems, 37:76775–76818, 2024a.   
+Yang Sui, Miao Yin, Yu Gong, and Bo Yuan. Co-exploring structured sparsification and low-rank tensor decomposition for compact dnns. IEEE Trans. Neural Netw. Learn. Syst., 36(4):6642–6654, 2024b.   
+Yang Sui, Yu-Neng Chuang, Guanchu Wang, Jiamu Zhang, Tianyi Zhang, Jiayi Yuan, Hongyi Liu, Andrew Wen, Hanjie Chen, Xia Hu, et al. Stop overthinking: A survey on efficient reasoning for large language models. arXiv preprint arXiv:2503.16419, 2025.   
+Boyuan Sun, Jiaxing Zhao, Xihan Wei, and Qibin Hou. Llava-scissor: Token compression with semantic connected components for video llms. arXiv preprint arXiv:2506.21862, 2025.   
+Guangzhi Sun, Wenyi Yu, Changli Tang, Xianzhao Chen, Tian Tan, Wei Li, Lu Lu, Zejun Ma, Yuxuan Wang, and Chao Zhang. video-salmonn: Speech-enhanced audio-visual large language models. arXiv preprint arXiv:2406.15704, 2024a.   
+Guangzhi Sun, Wenyi Yu, Changli Tang, Xianzhao Chen, Tian Tan, Wei Li, Lu Lu, Zejun MA, Yuxuan Wang, and Chao Zhang. Video-salmonn: Speech-enhanced audio-visual large language models. In ICML, 2024b.   
+Hanshi Sun, Momin Haider, Ruiqi Zhang, Huitao Yang, Jiahao Qiu, Ming Yin, Mengdi Wang, Peter Bartlett, and Andrea Zanette. Fast best-of-n decoding via speculative rejection. In NeurIPS, 2024c.   
+Yutao Sun, Li Dong, Shaohan Huang, Shuming Ma, Yuqing Xia, Jilong Xue, Jianyong Wang, and Furu Wei. Retentive network: A successor to transformer for large language models. arXiv preprint arXiv:2307.08621, 2023.   
+Xudong Tan, Peng Ye, Chongjun Tu, Jianjian Cao, Yaoxin Yang, Lin Zhang, Dongzhan Zhou, and Tao Chen. Tokencarve: Information-preserving visual token compression in multimodal large language models. arXiv preprint arXiv:2503.10501, 2025.   
+Changli Tang, Wenyi Yu, Guangzhi Sun, Xianzhao Chen, Tian Tan, Wei Li, Lu Lu, Zejun MA, and Chao Zhang. Salmonn: Towards generic hearing abilities for large language models. In ICLR, 2024.   
+Changli Tang, Yixuan Li, Yudong Yang, Jimin Zhuang, Guangzhi Sun, Wei Li, Zejun Ma, and Chao Zhang. video-salmonn 2: Captioning-enhanced audio-visual large language models. arXiv preprint arXiv:2506.15220, 2025.   
+Keda Tao, Can Qin, Haoxuan You, Yang Sui, and Huan Wang. Dycoke: Dynamic compression of tokens for fast video large language models. In CVPR, 2025a.   
+Keda Tao, Kele Shao, Bohan Yu, Weiqiang Wang, Huan Wang, et al. Omnizip: Audio-guided dynamic token compression for fast omnimodal large language models. arXiv preprint arXiv:2511.14582, 2025b.   
+Keda Tao, Haoxuan You, Yang Sui, Can Qin, and Huan Wang. Plug-and-play 1. x-bit kv cache quantization for video large language models. arXiv preprint arXiv:2503.16257, 2025c.   
+Kimi Team, Angang Du, Bofei Gao, Bowei Xing, Changjiu Jiang, Cheng Chen, Cheng Li, Chenjun Xiao, Chenzhuang Du, Chonghua Liao, et al. Kimi k1. 5: Scaling reinforcement learning with llms. arXiv preprint arXiv:2501.12599, 2025.   
+Qwen Team. Qwen2 technical report. arXiv preprint arXiv:2407.10671, 2024.   
+Wenwen Tong, Hewei Guo, Dongchuan Ran, Jiangnan Chen, Jiefan Lu, Kaibin Wang, Keqiang Li, Xiaoxu Zhu, Jiakui Li, Kehan Li, et al. Interactiveomni: A unified omni-modal model for audio-visual multi-turn dialogue. arXiv preprint arXiv:2510.13747, 2025.
+
+Hugo Touvron, Matthieu Cord, Matthijs Douze, Francisco Massa, Alexandre Sablayrolles, and Hervé Jégou. Training data-efficient image transformers & distillation through attention. In ICML, 2021.
+
+Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N Gomez, Łukasz Kaiser, and Illia Polosukhin. Attention is all you need. In NeurIPS, 2017.
+
+Cangqing Wang, Yutian Yang, Ruisi Li, Dan Sun, Ruicong Cai, Yuzhu Zhang, and Chengqian Fu. Adapting llms for efficient context processing through soft prompt compression. In Proceedings of the International Conference on Modeling, Natural Language Processing and Machine Learning, 2024a.
+
+Haicheng Wang, Zhemeng Yu, Gabriele Spadaro, Chen Ju, Victor Quétu, Shuai Xiao, and Enzo Tartaglione. Folder: Accelerating multi-modal large language models with enhanced performance. In ICCV, 2025a.
+
+Han Wang, Yuxiang Nie, Yongjie Ye, Deng GuanYu, Yanjie Wang, Shuai Li, Haiyang Yu, Jinghui Lu, and Can Huang. Dynamic-vlm: Simple dynamic visual token compression for videollm. arXiv preprint arXiv:2412.09530, 2024b.
+
+Peng Wang, Shuai Bai, Sinan Tan, Shijie Wang, Zhihao Fan, Jinze Bai, Keqin Chen, Xuejing Liu, Jialin Wang, Wenbin Ge, et al. Qwen2-vl: Enhancing vision-language model’s perception of the world at any resolution. arXiv preprint arXiv:2409.12191, 2024c.
+
+Qinsi Wang, Hancheng Ye, Ming-Yu Chung, Yudong Liu, Yueqian Lin, Martin Kuo, Mingyuan Ma, Jianyi Zhang, and Yiran Chen. Corematching: A co-adaptive sparse inference framework with token and neuron pruning for comprehensive acceleration of vision-language models. In ICML, 2025b.
+
+Shengnan Wang, Youhui Bai, Lin Zhang, Pingyi Zhou, Shixiong Zhao, Gong Zhang, Sen Wang, Renhai Chen, Hua Xu, and Hongwei Sun. Xl3m: A training-free framework for llm length extension based on segment-wise inference. arXiv preprint arXiv:2405.17755, 2024d.
+
+Wenshan Wang, Yihang Wang, Yixing Fan, Huaming Liao, and Jiafeng Guo. Quito: Accelerating longcontext reasoning through query-guided context compression. In CCIR, 2024e.
+
+Yihang Wang, Xu Huang, Bowen Tian, Yueyang Su, Lei Yu, Huaming Liao, Yixing Fan, Jiafeng Guo, and Xueqi Cheng. Quito-x: A new perspective on context compression from the information bottleneck theory. arXiv preprint arXiv:2408.10497, 2024f.
+
+Zekun Wang, Minghua Ma, Zexin Wang, Rongchuan Mu, Liping Shan, Ming Liu, and Bing Qin. Effivlmbench: A comprehensive benchmark for evaluating training-free acceleration in large vision-language models. ACL, 2025c.
+
+Zhenhailong Wang, Senthil Purushwalkam, Caiming Xiong, Silvio Savarese, Heng Ji, and Ran Xu. Dymu: Dynamic merging and virtual unmerging for efficient vlms. arXiv preprint arXiv:2504.17040, 2025d.
+
+Meng Wei, Chenyang Wan, Xiqian Yu, Tai Wang, Yuqiang Yang, Xiaohan Mao, Chenming Zhu, Wenzhe Cai, Hanqing Wang, Yilun Chen, et al. Streamvln: Streaming vision-and-language navigation via slowfast context modeling. arXiv preprint arXiv:2507.05240, 2025.
+
+Yuxin Wen, Qingqing Cao, Qichen Fu, Sachin Mehta, and Mahyar Najibi. Efficient vision-language models by summarizing visual tokens into compact registers. arXiv preprint arXiv:2410.14072, 2024.
+
+Zichen Wen, Yifeng Gao, Weijia Li, Conghui He, and Linfeng Zhang. Token pruning in multimodal large language models: Are we solving the right problem? arXiv preprint arXiv:2502.11501, 2025.
+
+Yuetian Weng, Mingfei Han, Haoyu He, Xiaojun Chang, and Bohan Zhuang. Longvlm: Efficient long video understanding via large language models. In ECCV, 2024.
+
+Haoning Wu, Dongxu Li, Bei Chen, and Junnan Li. Longvideobench: A benchmark for long-context inter leaved video-language understanding. In NeurIPS, 2024.
+
+Heming Xia, Yongqi Li, Chak Tou Leong, Wenjie Wang, and Wenjie Li. Tokenskip: Controllable chain-ofthought compression in llms. arXiv preprint arXiv:2502.12067, 2025.
+
+Guangxuan Xiao, Ji Lin, Mickael Seznec, Hao Wu, Julien Demouth, and Song Han. Smoothquant: Accurate and efficient post-training quantization for large language models. In ICML, 2023a.
+
+Guangxuan Xiao, Yuandong Tian, Beidi Chen, Song Han, and Mike Lewis. Efficient streaming language models with attention sinks. In ICLR, 2024.
+
+Jinqi Xiao, Chengming Zhang, Yu Gong, Miao Yin, Yang Sui, Lizhi Xiang, Dingwen Tao, and Bo Yuan. Haloc: Hardware-aware automatic low-rank compression for compact neural networks. In AAAI, 2023b.
+
+Junbin Xiao, Xindi Shang, Angela Yao, and Tat-Seng Chua. Next-qa: Next phase of question-answering to explaining temporal actions. In CVPR, 2021.
+
+Zhifei Xie and Changqiao Wu. Mini-omni2: Towards open-source gpt-4o with vision, speech and duplex capabilities. arXiv preprint arXiv:2410.11190, 2024.
+
+Long Xing, Qidong Huang, Xiaoyi Dong, Jiajie Lu, Pan Zhang, Yuhang Zang, Yuhang Cao, Conghui He, Jiaqi Wang, Feng Wu, et al. Pyramiddrop: Accelerating your large vision-language models via pyramid visual redundancy reduction. In CVPR, 2025.
+
+Fangzhi Xu, Hang Yan, Chang Ma, Haiteng Zhao, Jun Liu, Qika Lin, and Zhiyong Wu. $\phi$ -decoding: Adaptive foresight sampling for balanced inference-time exploration and exploitation. arXiv preprin arXiv:2503.13288, 2025a.
+
+Jin Xu, Zhifang Guo, Jinzheng He, Hangrui Hu, Ting He, Shuai Bai, Keqin Chen, Jialin Wang, Yang Fan, Kai Dang, et al. Qwen2. 5-omni technical report. arXiv preprint arXiv:2503.20215, 2025b.
+
+Jin Xu, Zhifang Guo, Hangrui Hu, Yunfei Chu, Xiong Wang, Jinzheng He, Yuxuan Wang, Xian Shi, Ting He, Xinfa Zhu, et al. Qwen3-omni technical report. arXiv preprint arXiv:2509.17765, 2025c.
+
+Lin Xu, Yilin Zhao, Daquan Zhou, Zhijie Lin, See Kiong Ng, and Jiashi Feng. Pllava: Parameter-free llava extension from images to videos for video dense captioning. arXiv preprint arXiv:2404.16994, 2024a.
+
+Mingze Xu, Mingfei Gao, Zhe Gan, Hong-You Chen, Zhengfeng Lai, Haiming Gang, Kai Kang, and Afshin Dehghan. Slowfast-llava: A strong training-free baseline for video large language models. arXiv preprint arXiv:2407.15841, 2024b.
+
+Mingze Xu, Mingfei Gao, Shiyu Li, Jiasen Lu, Zhe Gan, Zhengfeng Lai, Meng Cao, Kai Kang, Yinfei Yang, and Afshin Dehghan. Slowfast-llava-1.5: A family of token-efficient video large language models for long-form video understanding. arXiv preprint arXiv:2503.18943, 2025d.
+
+Jinlong Xue, Yayue Deng, Yicheng Han, Yingming Gao, and Ya Li. Improving audio codec-based zero-shot text-to-speech synthesis with multi-modal context and large language model. In Interspeech, 2024.
+
+Cheng Yang, Yang Sui, Jinqi Xiao, Lingyi Huang, Yu Gong, Yuanlin Duan, Wenqi Jia, Miao Yin, Yu Cheng, and Bo Yuan. Moe-i2: Compressing mixture of experts models through inter-expert pruning and intraexpert low-rank decomposition. arXiv preprint arXiv:2411.01016, 2024.
+
+Cheng Yang, Yang Sui, Jinqi Xiao, Lingyi Huang, Yu Gong, Chendi Li, Jinghua Yan, Yu Bai, Ponnuswamy Sadayappan, Xia Hu, et al. Topv: Compatible token pruning with inference time optimization for fast and low-memory multimodal vision language model. In CVPR, 2025a.
+
+Qize Yang, Shimin Yao, Weixuan Chen, Shenghao Fu, Detao Bai, Jiaxing Zhao, Boyuan Sun, Bowen Yin, Xihan Wei, and Jingren Zhou. Humanomniv2: From understanding to omni-modal reasoning with context. arXiv preprint arXiv:2506.21277, 2025b.
+
+Senqiao Yang, Yukang Chen, Zhuotao Tian, Chengyao Wang, Jingyao Li, Bei Yu, and Jiaya Jia. Visionzip: Longer is better but not necessary in vision language models. In CVPR, 2025c.
+
+Senqiao Yang, Junyi Li, Xin Lai, Bei Yu, Hengshuang Zhao, and Jiaya Jia. Visionthink: Smart and efficient vision language model via reinforcement learning. arXiv preprint arXiv:2507.13348, 2025d.
+
+Linli Yao, Lei Li, Shuhuai Ren, Lean Wang, Yuanxin Liu, Xu Sun, and Lu Hou. Deco: Decoupling token compression from semantic abstraction in multimodal large language models. arXiv preprint arXiv:2405.20985, 2024.
+
+Linli Yao, Yicheng Li, Yuancheng Wei, Lei Li, Shuhuai Ren, Yuanxin Liu, Kun Ouyang, Lean Wang, Shicheng Li, Sida Li, Lingpeng Kong, Qi Liu, Yuanxing Zhang, and Xu Sun. Timechat-online: 80% visual tokens are naturally redundant in streaming videos. In ACMMM, 2025.
+
+Qinghao Ye, Haiyang Xu, Guohai Xu, Jiabo Ye, Ming Yan, Yiyang Zhou, Junyang Wang, Anwen Hu, Pengcheng Shi, Yaya Shi, et al. Mplug-owl: Modularization empowers large language models with multi modality. arXiv preprint arXiv:2304.14178, 2023.
+
+Weihao Ye, Qiong Wu, Wenhao Lin, and Yiyi Zhou. Fit and prune: Fast and training-free visual token pruning for multi-modal large language models. In AAAI, 2025a.
+
+Xubing Ye, Yukang Gan, Yixiao Ge, Xiao-Ping Zhang, and Yansong Tang. Atp-llava: Adaptive token pruning for large vision language models. In CVPR, 2025b.
+
+Xubing Ye, Yukang Gan, Xiaoke Huang, Yixiao Ge, and Yansong Tang. Voco-llama: Towards vision compression with large language models. In CVPR, 2025c.
+
+Jeong Hun Yeo, Hyeongseop Rha, Se Jin Park, and Yong Man Ro. Mms-llama: Efficient llm-based audiovisual speech recognition with minimal multimodal speech tokens. arXiv preprint arXiv:2503.11315, 2025.
+
+Miao Yin, Yang Sui, Siyu Liao, and Bo Yuan. Towards efficient tensor decomposition-based dnn model compression with optimization framework. In CVPR, 2021.
+
+Shukang Yin, Chaoyou Fu, Sirui Zhao, Ke Li, Xing Sun, Tong Xu, and Enhong Chen. A survey on multimoda large language models. National Science Review, 11(12):nwae403, 2024.
+
+Wangsong Yin, Daliang Xu, Mengwei Xu, Gang Huang, and Xuanzhe Liu. Dynamic sparse attention on mobile socs. arXiv preprint arXiv:2508.16703, 2025.
+
+Licheng Yu, Patrick Poirson, Shan Yang, Alexander C Berg, and Tamara L Berg. Modeling context in referring expressions. In ECCV, 2016.
+
+Weihao Yu, Zhengyuan Yang, Linjie Li, Jianfeng Wang, Kevin Lin, Zicheng Liu, Xinchao Wang, and Lijuan Wang. Mm-vet: Evaluating large multimodal models for integrated capabilities. In ICML, 2023.
+
+Xiyu Yu, Tongliang Liu, Xinchao Wang, and Dacheng Tao. On compressing deep models by low rank and sparse decomposition. In ICCV, 2017.
+
+Zhou Yu, Dejing Xu, Jun Yu, Ting Yu, Zhou Zhao, Yueting Zhuang, and Dacheng Tao. Activitynet-qa: A dataset for understanding complex web videos via question answering. In AAAI, 2019.
+
+Jingyang Yuan, Huazuo Gao, Damai Dai, Junyu Luo, Liang Zhao, Zhengyan Zhang, Zhenda Xie, Yuxing Wei, Lean Wang, Zhiping Xiao, et al. Native sparse attention: Hardware-aligned and natively trainable sparse attention. In ACL, 2025.
+
+Neil Zeghidour, Alejandro Luebs, Ahmed Omran, Jan Skoglund, and Marco Tagliasacchi. Soundstream: An end-to-end neural audio codec. IEEE/ACM Transactions on Audio, Speech, and Language Processing., 30:495–507, 2021.
+
+Weili Zeng, Ziyuan Huang, Kaixiang Ji, and Yichao Yan. Skip-vision: Efficient and scalable acceleration of vision-language models via adaptive token skipping. In ICCV, 2025.
+
+Xiaohua Zhai, Basil Mustafa, Alexander Kolesnikov, and Lucas Beyer. Sigmoid loss for language image pre-training. In CVPR, 2023.
+
+Boqiang Zhang, Kehan Li, Zesen Cheng, Zhiqiang Hu, Yuqian Yuan, Guanzheng Chen, Sicong Leng, Yuming Jiang, Hang Zhang, Xin Li, et al. Videollama 3: Frontier multimodal foundation models for image and video understanding. arXiv preprint arXiv:2501.13106, 2025a.
+
+Ce Zhang, Kaixin Ma, Tianqing Fang, Wenhao Yu, Hongming Zhang, Zhisong Zhang, Yaqi Xie, Katia Sycara, Haitao Mi, and Dong Yu. Vscan: Rethinking visual token reduction for efficient large visionlanguage models. arXiv preprint arXiv:2505.22654, 2025b.
+
+Hang Zhang, Xin Li, and Lidong Bing. Video-llama: An instruction-tuned audio-visual language model for video understanding. In EMNLP, 2023a.
+
+Hongzhi Zhang, Jingyuan Zhang, Xingguang Ji, Qi Wang, and Fuzheng Zhang. Dyntok: Dynamic compression of visual tokens for efficient and effective video understanding. arXiv preprint arXiv:2506.03990, 2025c.
+
+Jintao Zhang, Chendong Xiang, Haofeng Huang, Jia Wei, Haocheng Xi, Jun Zhu, and Jianfei Chen. Spargeattn: Accurate sparse attention accelerating any model inference. In ICML, 2025d.
+
+Nan Zhang, Yusen Zhang, Prasenjit Mitra, and Rui Zhang. When reasoning meets compression: Benchmarking compressed large reasoning models on complex reasoning tasks. arXiv preprint arXiv:2504.02010, 2025e.
+
+Qianchi Zhang, Hainan Zhang, Liang Pang, Hongwei Zheng, and Zhiming Zheng. Adacomp: Extractive context compression with adaptive predictor for retrieval-augmented large language models. arXiv preprint arXiv:2409.01579, 2024a.
+
+Qizhe Zhang, Aosong Cheng, Ming Lu, Renrui Zhang, Zhiyong Zhuo, Jiajun Cao, Shaobo Guo, Qi She, and Shanghang Zhang. Beyond text-visual attention: Exploiting visual cues for effective token pruning in vlms. In ICCV, 2025f.
+
+Renshan Zhang, Yibo Lyu, Rui Shao, Gongwei Chen, Weili Guan, and Liqiang Nie. Token-level correlationguided compression for efficient multimodal document understanding. arXiv preprint arXiv:2407.14439, 2024b.
+
+Shaolei Zhang, Qingkai Fang, Zhe Yang, and Yang Feng. Llava-mini: Efficient image and video large multimodal models with one vision token. In ICLR, 2025g.
+
+Yuan Zhang, Chun-Kai Fan, Junpeng Ma, Wenzhao Zheng, Tao Huang, Kuan Cheng, Denis Gudovskiy, Tomoyuki Okuno, Yohei Nakata, Kurt Keutzer, et al. Sparsevlm: Visual token sparsification for efficient vision-language model inference. arXiv preprint arXiv:2410.04417, 2024c.
+
+Yuanhan Zhang, Jinming Wu, Wei Li, Bo Li, Zejun Ma, Ziwei Liu, and Chunyuan Li. Video instruction tuning with synthetic data. arXiv preprint arXiv:2410.02713, 2024d.
+
+Zhenyu Zhang, Ying Sheng, Tianyi Zhou, Tianlong Chen, Lianmin Zheng, Ruisi Cai, Zhao Song, Yuandong Tian, Christopher Ré, Clark Barrett, et al. H2o: Heavy-hitter oracle for efficient generative inference of large language models. In NeurIPS, 2023b.
+
+Shiyu Zhao, Zhenting Wang, Felix Juefei-Xu, Xide Xia, Miao Liu, Xiaofang Wang, Mingfu Liang, Ning Zhang, Dimitris N Metaxas, and Licheng Yu. Accelerating multimodal large language models by searching optimal vision token reduction. In CVPR, 2025.
+
+Yiwu Zhong, Zhuoming Liu, Yin Li, and Liwei Wang. Aim: Adaptive inference of multi-modal llms via token merging and pruning. In ICCV, 2025.
+
+Hao Zhou, Zhanning Gao, Maosheng Ye, Zhili Chen, Qifeng Chen, Tongyi Cao, and Honggang Qi. Hints of prompt: Enhancing visual representation for multimodal llms in autonomous driving. arXiv preprint arXiv:2411.13076, 2024.
+
+Deyao Zhu, Jun Chen, Xiaoqian Shen, Xiang Li, and Mohamed Elhoseiny. Minigpt-4: Enhancing visionlanguage understanding with advanced large language models. In ICLR, 2024.
+
+Jinguo Zhu, Weiyun Wang, Zhe Chen, Zhaoyang Liu, Shenglong Ye, Lixin Gu, Hao Tian, Yuchen Duan, Weijie Su, Jie Shao, et al. Internvl3: Exploring advanced training and test-time recipes for open-source multimodal models. arXiv preprint arXiv:2504.10479, 2025a.
+
+Junhan Zhu, Hesong Wang, Mingluo Su, Zefang Wang, and Huan Wang. Obs-diff: Accurate pruning for diffusion models in one-shot. arXiv preprint arXiv:2510.06751, 2025b.
+
+Jiedong Zhuang, Lu Lu, Ming Dai, Rui Hu, Jian Chen, Qiang Liu, and Haoji Hu. St3: Accelerating multimodal large language model by spatial-temporal visual token trimming. In AAAI, 2025.
+
+Jiaru Zou, Mengyu Zhou, Tao Li, Shi Han, and Dongmei Zhang. Promptintern: Saving inference costs by internalizing recurrent prompt during large language model fine-tuning. arXiv preprint arXiv:2407.02211, 2024.
