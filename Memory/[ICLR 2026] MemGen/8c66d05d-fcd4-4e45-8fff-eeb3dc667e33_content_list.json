@@ -1,0 +1,4073 @@
+[
+    {
+        "type": "text",
+        "text": "MemGen: Weaving Generative Latent Memory for Self-Evolving Agents ",
+        "text_level": 1,
+        "bbox": [
+            143,
+            109,
+            852,
+            161
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Guibin Zhang $^ \\dagger$ , Muxin $\\bar { \\mathbf { F } } \\mathbf { u } ^ { \\dagger }$ , Shuicheng Yan ",
+        "bbox": [
+            143,
+            166,
+            431,
+            183
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "National University of Singapore †Equal Contribution ",
+        "bbox": [
+            145,
+            189,
+            379,
+            219
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Agent memory shapes how Large Language Model (LLM)-powered agents, akin to the human brain, progressively refine themselves through environment interactions. Existing paradigms remain constrained: parametric memory forcibly adjusts model parameters, and retrieval-based memory externalizes experience into structured databases, yet neither captures the fluid interweaving of reasoning and memory that underlies human cognition. To address this gap, we propose MemGen, a dynamic generative memory framework that equips agents with a human-esque cognitive faculty. It consists of a memory trigger, which monitors the agent’s reasoning state to decide explicit memory invocation, and a memory weaver, which takes the agent’s current state as stimulus to construct a latent token sequence as machine-native memory to enrich its reasoning. In this way, MemGen enables agents to recall and augment latent memory throughout reasoning, producing a tightly interwoven cycle of memory and cognition. Extensive experiments across eight benchmarks show that MemGen surpasses leading external memory systems such as ExpeL and AWM by up to $3 8 . 2 2 \\%$ , exceeds GRPO by up to $1 3 . 4 4 \\%$ , and exhibits strong cross-domain generalization ability. More importantly, we find that without explicit supervision, MemGen spontaneously evolves distinct human-like memory faculties, including planning memory, procedural memory, and working memory, suggesting an emergent trajectory toward more naturalistic forms of machine cognition. ",
+        "bbox": [
+            143,
+            237,
+            856,
+            479
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "z Date: October 14, 2025 § Github: https://github.com/KANABOON1/MemGen ",
+        "bbox": [
+            142,
+            497,
+            517,
+            527
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "1 Introduction ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            568,
+            272,
+            585
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "The ascent of Large Language Model (LLM)-powered agents marks a paradigm shift across diverse domains (Luo et al., 2025b; Yang et al., 2024b; Qian et al., 2025; Singh et al., 2025; Pantiukhin et al., 2025; Ren et al., 2025). Pivotal to this success is the concept of agent memory (Zhang et al., 2024b; Wu et al., 2025b), which enables LLM agents to learn progressively from environmental interactions (Zhang et al., 2025a; Qiu et al., 2025b). Crucially, this conception of agent memory extends beyond that of conversational agents (i.e., personalized memory (Wu et al., 2025b)), whose primary role is to sustain coherence across long-horizon, multi-turn dialogues (Chhikara et al., 2025; Xu et al., 2025a; Packer et al., 2024; Zhong et al., 2023). Rather, the scope of this paper is primarily on enabling agents to internalize experience, simulate human-like cognitive iteration, and progressively enhance problem-solving competence (Gao et al., 2025). ",
+        "bbox": [
+            114,
+            588,
+            883,
+            724
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "The memory serving as this self-evolving engine typically manifests in two dominant paradigms. The first is (I) parametric memory, which internalizes experiences by directly updating agents’ parameters (Yao et al., 2024; Zeng et al., 2023; Chen et al., 2024b, 2025). While this approach can yield substantial performance gains, its reliance on parameter modification inevitably entails catastrophic forgetting, i.e., the erosion of general knowledge (Dou et al., 2024). Conversely, the second paradigm is (II) retrieval-based memory, which externalizes past experiences into a structured database, such as (i) raw trajectories (Luo et al., 2025a; Zhang et al., 2025a; Zhao et al., 2024), (ii) high-level experiences (Zhao et al., 2024; Fang et al., 2025; Wang et al., 2024c), and (iii) condensed skills like reusable APIs (Zheng et al., 2025) or MCP boxes (Qiu et al., 2025b,a). Although this non-invasive approach circumvents catastrophic forgetting, its efficacy is fundamentally tethered to context engineering. It adheres to a rigid execution pipeline, providing retrieved context to the agent without achieving the fluid, seamless integration characteristic of truly internalized memory (Su et al., 2025b). ",
+        "bbox": [
+            114,
+            732,
+            883,
+            898
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            22,
+            277,
+            62,
+            724
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "1 ",
+        "bbox": [
+            493,
+            935,
+            503,
+            946
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "image",
+        "img_path": "images/542a39c60163cb9d76c5ee6989c29a616e07df80b7d799151f7299ad4cb7697d.jpg",
+        "image_caption": [
+            "Figure 1 The comparison among parametric memory, retrieval-based memory and MemGen. We drew inspiration from the layout presented in Figure 1 of Li et al. (2025a). "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            117,
+            89,
+            877,
+            328
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Given these deficiencies, latent memory offers a compelling alternative, leveraging latent states as a machinenative, high-density medium for memory. Existing approaches either use the (i) key-value (KV) cache to maintain dynamic memory set (Gim et al., 2024; Jin et al., 2024; Hongkang Yang et al., 2024), yet which is primarily confined to addressing long-context issues, or (ii) latent token embeddings to store agent experiences (Wang et al., 2024b, 2025a), which still rely on invasive LLM parameter updates. LatentSeek (Li et al., 2025a) and SoftCoT (Xu et al., 2025b,c) similarly belong to this category, utilizing latent embeddings to steer agent generation. Nevertheless, all these methods diverge from human cognition in two critical dimensions: they lack the seamless interleaving of reasoning and memory, a process where thought and memory dynamically reshape one another, and remain largely retrieval-based, fetching memories by embedding similarity (Wang et al., 2024b) rather than generatively reconstructing them into novel, coherent insights. This leads to our pivotal research question: ",
+        "bbox": [
+            114,
+            369,
+            882,
+            535
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "How can we architect agent memory as a dynamic cognitive faculty, capable of fluid, reconstructive processes that interweave seamlessly with reasoning? ",
+        "bbox": [
+            119,
+            545,
+            874,
+            575
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "To address this challenge, we introduce MemGen, a dynamic and generative memory framework designed to endow any LLM agent with a more human-esque cognitive faculty. At its core, MemGen continuously monitors an agent’s cognitive state, enabling it to dynamically invoke a generative process that synthesizes a bespoke latent memory at any critical juncture during its reasoning process. Practically, MemGen comprises two synergistic components: a reinforcement learning (RL)-trained $\\clubsuit$ memory trigger, which acts as a metacognitive monitor to discern the opportune moments for explicit memory invocation; and a $\\spadesuit$ memory weaver, which takes the agent’s current state as a stimulus to draw upon relevant implicit parametric memory (potentially augmented with externally retrieved information) and then reconstructs this synthesis into a succinct, machine-native latent memory. With the reasoning core fixed, MemGen inherently mitigates catastrophic forgetting when exposed to new data, and, moving beyond the static and extractive paradigm of prior memory systems, equips agents with a fluid, generative faculty deeply integrated with reasoning cores. ",
+        "bbox": [
+            114,
+            587,
+            883,
+            753
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Experimental Observation. Extensive experiments across nine benchmarks and four baseline categories demonstrate that MemGen delivers $\\bullet$ substantial performance gains, with improvements of up to $3 1 . 7 \\%$ on ALFWorld (Shridhar et al., 2021) and $2 7 . 1 \\%$ on KodCode (Xu et al., 2025d) with $_ { \\mathsf { Q w e n 3 - 8 B } }$ , surpassing parametric memory (REINFORCE $^ { + + }$ , $+ 5 . 8 \\%$ ) and the GRPO method $\\left( + 5 . 3 2 \\% \\right)$ ; $\\pmb { \\varrho }$ strong cross-domain generalization, where training in the math domain not only avoids degradation elsewhere but also boosts performance in science reasoning $( + 6 . 0 6 \\% )$ and code generation $( + 5 . 1 \\% )$ ; and $\\otimes$ continual learning ability, maintaining stable performance in previously trained domains even after fine-tuning on three additional ones. ",
+        "bbox": [
+            114,
+            761,
+            883,
+            867
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Analysis & Interpretation. Beyond quantitative evaluation, we sought to interpret the learned behavior of MemGen. Through post-hoc interventions examining the impact of removing specific latent memory on different agent failure modes, we found that MemGen implicitly evolves a human-like memory hierarchy without any external guidance, including $\\bullet$ planning memory, where certain latent tokens specifically support high-level task planning, $\\pmb { \\varrho }$ procedural memory, where some latent memory tokens facilitate the agent’s recall of task-specific procedural skills, such as tool usage and answer formatting, and $\\otimes$ working memory, where certain tokens help the agent maintain coherence and understanding over long contexts within a single task session. These specializations strongly reveal that MemGen endows the agent with precise, functionally distinct memory. ",
+        "bbox": [
+            112,
+            875,
+            879,
+            905
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "discarded",
+        "text": "2 ",
+        "bbox": [
+            493,
+            935,
+            504,
+            946
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            114,
+            90,
+            883,
+            196
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "2 Related Work ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            219,
+            284,
+            238
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "LLM & Agent Memory. As outlined in Section 1, existing memory mechanisms designed to evolve the problem-solving capacity of LLM agents can be broadly categorized into three classes: (I) parametric memory, which either integrates past experiences directly into agent parameters through finetuning, as in FireAct (Chen et al., 2023), AgentLumos (Yin et al., 2024), and others (Zhang et al., 2024a; Fu et al., 2025), or maintains them in external parameter modules (Tack et al., 2024; Wang et al., 2024a); (II) retrieval-based memory, which abstracts prior experiences into transferable knowledge (Zhang et al., 2025a; Zhao et al., 2024), or distills them into reusable tools and skills (Zheng et al., 2025; Wang et al., 2025b; Qiu et al., 2025b,a); and (III) latent memory, which leverages implicit representations to encode and retrieve experience (Wang et al., 2024b, 2025a; Hu et al., 2025b; Liu et al., 2024; Sun et al., 2025). Our MemGen falls within the latent memory paradigm, yet distinguishes itself from prior approaches through its more human-esque interweaving of reasoning and memory, as well as its generative, rather than purely retrieval-based, nature. ",
+        "bbox": [
+            114,
+            244,
+            883,
+            411
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Latent Computation. Our method is also closely related to latent computation, wherein latent states are employed to intervene in or reshape the LLM’s reasoning process (Zhu et al., 2025). Prominent paradigms include: (I) architecturally enabling native latent reasoning, exemplified by Coconut (Hao et al., 2024), CODI (Shen et al., 2025), LatentR3 (Zhang et al., 2025b) and CoLaR (Tan et al., 2025), which render the LLM’s inference process inherently latent and machine-native; and (II) employing latent computation to steer LLM generation, as in LaRS (Xu et al., 2023), LatentSeek (Li et al., 2025a), SoftCoT (Xu et al., 2025c,b), and Coprocessor (Liu et al., 2024), which leverage latent representations to modulate the quality of generated outputs. These aforementioned works have greatly inspired the latent memory design in this paper: Latent memory can likewise be viewed as an instantiation of the latter, supplementing essential memory context to enhance the problem-solving capacity of agents (Wang et al., 2024b, 2025a). ",
+        "bbox": [
+            114,
+            419,
+            883,
+            570
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "LLM Decoding $\\&$ RL. Two additional topics that relate to our work are LLM decoding and reinforcement learning (RL). From the decoding perspective, MemGen dynamically generates and inserts latent tokens, which shares similarity with speculative decoding where a drafter model receives the current decoding context and produces subsequent drafted tokens (Cai et al., 2024; Fu et al., 2024; Li et al., 2025b; Goel et al., 2025). . However, these methods primarily aim to accelerate LLM inference, whereas MemGen focuses on leveraging latent states as effective carriers of memory. From the RL perspective, MemGen employs rule-based RL to train the memory trigger, which is closely related to reinforcement learning with variable reward (RLVR), including GRPO from DeepSeek-R1 (DeepSeek-AI et al., 2025) and its various derivatives (Qian et al., 2025; Wu et al., 2025a; Wei et al., 2025; Fu et al., 2025). While there exist efforts combining RL with agent memory, to our knowledge, most do not address self-improving memory; for example, MemAgent (Yu et al., 2025) and MEM1 (Zhou et al., 2025) focus on handling long-context inputs rather than evolving memory mechanisms. ",
+        "bbox": [
+            114,
+            579,
+            883,
+            744
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "3 Preliminary ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            767,
+            264,
+            787
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Notation. We formalize the agent’s interaction within an environment $\\varepsilon$ . An agent, powered by an LLM parameterized by $\\theta$ , is denoted as $\\pi \\theta$ . For a given task $\\mathbf { x }$ , the agent’s interaction unfolds as a high-level trajectory, denoted as follows $\\tau = ( s _ { 0 } , a _ { 0 } , s _ { 1 } , a _ { 1 } , \\dots , s _ { T } )$ , where $s _ { t }$ represents the state of the environment and $a _ { t }$ is the high-level action taken by the agent. More internally, each action $a _ { t }$ is essentially a sequence of tokens, $a _ { t } = ( \\mathbf { z } _ { t , 1 } , \\mathbf { z } _ { t , 2 } , \\ldots , \\mathbf { z } _ { t , L _ { t } } )$ , generated autoregressively by the LLM. The generation of the $j$ -th token is conditioned on the current state $s _ { t }$ and all previously generated tokens within that action: ",
+        "bbox": [
+            114,
+            794,
+            883,
+            886
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "img_path": "images/b4cdbec5099aa35731fbccca030cfbf2685a6d7636934e4ab373a7c02f58d6f2.jpg",
+        "text": "$$\n\\mathbf { z } _ { t , j } \\sim \\pi _ { \\boldsymbol { \\theta } } \\big ( \\cdot \\mid s _ { t } , \\mathbf { z } _ { t , < j } \\big ) .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            421,
+            896,
+            576,
+            912
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "discarded",
+        "text": "3 ",
+        "bbox": [
+            493,
+            935,
+            504,
+            946
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "image",
+        "img_path": "images/3c8220ce763ce1b3b463c3e2b717cabe2749d92772d197497242f92c7b24ca29.jpg",
+        "image_caption": [
+            "Figure 2 The overview of our proposed MemGen. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            117,
+            90,
+            879,
+            412
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "After an entire action sequence $\\mathbf { a } _ { t }$ is generated, it is executed in the environment, which transitions the state from $s _ { t }$ to $s _ { t + 1 }$ . The success of the trajectory $\\tau$ is evaluated by a reward function $R ( \\tau )$ . ",
+        "bbox": [
+            116,
+            450,
+            882,
+            481
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Problem Formalization Given a history of past experiences $\\mathcal { H } = \\{ ( x _ { i } , \\tau _ { i } ) \\} _ { i = 1 } ^ { N }$ , the objective is to leverage this history to maximize the agent’s performance on new tasks. The policy $\\pi \\theta$ and a memory system $\\mathcal { M }$ are thus jointly optimized to maximize the expected reward over a task distribution $\\mathcal { D }$ : ",
+        "bbox": [
+            114,
+            488,
+            882,
+            534
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "img_path": "images/5bd44f3dc90f0237eaaf02d1bba69acdb9f7f2804aa59d2674a6caef77bdfabf.jpg",
+        "text": "$$\n\\operatorname* { m a x } _ { \\theta , \\mathcal { M } } \\mathbb { E } _ { { x } \\sim \\mathcal { D } , \\tau \\sim \\pi _ { \\theta , \\mathcal { M } } } \\left[ R ( \\tau ) \\right] ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            406,
+            545,
+            591,
+            569
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "during which $\\mathcal { M }$ is to produce a memory representation, $m$ , which conditions the agent’s policy. The action at any timestep $t$ is thus sampled as $a _ { t } \\sim \\pi _ { \\theta } ( \\cdot \\mid s _ { t } , m _ { t } )$ , where $m _ { t }$ is the inserted memory at that step. Crucially, the nature and timing of memory generation, which we denote as the function $f _ { \\mathcal { M } }$ , vary across different paradigms. We express the generation of the memory $m _ { t }$ as: ",
+        "bbox": [
+            114,
+            580,
+            883,
+            640
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "img_path": "images/1b9d8e827f06294e5e258f5d281652665ea237b4e861793c68582d5e999604b8.jpg",
+        "text": "$$\n\\begin{array} { r } { m _ { t } = f _ { \\mathcal { M } } ( s _ { t } , \\mathcal { H } , m _ { < t } ) , } \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            421,
+            652,
+            576,
+            669
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "which accommodates diverse memory invocation granularities. For task-level memory (e.g., Expel (Zhao et al., 2024) and G-Memory (Zhang et al., 2025a)), $f _ { \\mathcal { M } }$ is invoked only at $t = 0$ , and $m _ { t } = m _ { 0 }$ for all subsequent steps. For step-level memory (e.g., AgentKB (Tang et al., 2025)), $f _ { \\mathcal { M } }$ is invoked at every step $t$ to update the memory. In parametric memory, the influence of $\\mathcal { H }$ is compiled into $\\theta$ , rendering memory generation implicit in the model parameters. Our work, which introduces dynamic latent memory, focuses on designing a more fine-grained $f _ { \\mathcal { M } }$ that decides for itself the optimal moments to regenerate $m _ { t }$ at the token level during the agent’s reasoning process. ",
+        "bbox": [
+            114,
+            680,
+            883,
+            786
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "4 Methodology ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            803,
+            284,
+            821
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "4.1 MemGen: Interleaving Memory and Reasoning ",
+        "text_level": 1,
+        "bbox": [
+            114,
+            830,
+            539,
+            847
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Just as a person is the sum of their past experiences (McAdams, 2001), memory critically shapes an agent’s actions (Xiong et al., 2025). Existing agent memory systems, however, often lack the flexibility of human cognition. In the human brain, reasoning and memory form a seamless continuum: active reasoning in the frontoparietal control network and memory retrieval in the hippocampus and prefrontal cortices operate interweavingly, generating a “continuous flow of thoughts” (Su et al., 2025a). By contrast, many agent memory paradigms retrieve information once at task onset and append it coarsely to the query. MemGen is designed precisely to bridge this gap. ",
+        "bbox": [
+            116,
+            848,
+            882,
+            909
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "discarded",
+        "text": "4 ",
+        "bbox": [
+            493,
+            935,
+            504,
+            946
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            114,
+            90,
+            882,
+            137
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "As shown in Figure 2, the reasoning process in an agent equipped with MemGen unfolds autoregressively, driven by a frozen core LLM, the reasoner $\\pi \\theta$ . For a given state $s _ { t }$ , $\\pi \\theta$ generates the action $\\boldsymbol a _ { t } = ( \\mathbf z _ { t , 1 } , \\dots , \\mathbf z _ { t , L _ { t } } )$ MemGen continuously monitors the token-by-token generation process and performs on-demand memory insertion. At each token-generation step $j$ , a memory trigger $\\tau _ { \\mathrm { t r i g g e r } }$ monitors the reasoner’s internal cognitive state to determine if a moment of reflection, i.e., a memory invocation, is necessary. Specifically, as the reasoner generates the token sequence $\\mathbf { z } _ { t , < j }$ , it produces a corresponding sequence of hidden state vectors, $\\mathbf { H } _ { t , < j } = ( \\mathbf { h } _ { t , 1 } , \\dots , \\mathbf { h } _ { t , j - 1 } )$ , where each $\\mathbf { h } _ { t , k } \\in \\mathbb { R } ^ { d _ { \\mathrm { m o d e l } } }$ . The trigger takes the current hidden states $\\mathbf { H } _ { t , < j }$ as a representation of the reasoner’s current metacognitive state and computes an invocation probability: ",
+        "bbox": [
+            114,
+            143,
+            883,
+            265
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "img_path": "images/eb523374fa1b4e94ea790d9501e7762f82525008db6434b2ef3bb7c9f7adb725.jpg",
+        "text": "$$\np _ { j } = \\sigma \\left( \\mathcal T _ { \\mathrm { t r i g g e r } } ( \\mathbf h _ { t , 1 } , \\dots , \\mathbf h _ { t , j - 1 } ) \\right) ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            379,
+            273,
+            617,
+            291
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "from which a binary decision, $d _ { j } \\sim \\mathrm { B e r n o u l l i } ( p _ { j } ) \\in \\{ \\mathrm { I N V O K E } , \\mathrm { S K I P } \\}$ , is sampled. If the decision is to [SKIP], $\\pi \\theta$ proceeds with its standard autoregressive generation, i.e., $\\mathbf { z } _ { t , j } \\sim \\pi _ { \\boldsymbol \\theta } \\big ( \\cdot \\mid s _ { t } , \\mathbf { z } _ { t , < j } \\big )$ . However, if the decision is to INVOKE, the reasoning process is momentarily paused. This summons the second core component of our framework: the memory weaver $\\mathcal { W } _ { \\mathrm { w e a v e r } }$ , which takes the same cognitive state $\\mathbf { H } _ { t , < j }$ as a stimulus to perform a generative act of recollection. It synthesizes a bespoke, machine-native latent memory, formalized as $\\mathbf { M } _ { t } \\in \\mathbb { R } ^ { K \\times d _ { \\mathrm { m o d e l } } }$ with fixed length $K$ : ",
+        "bbox": [
+            114,
+            297,
+            883,
+            390
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "img_path": "images/27321dea9048be2090dfaa8102ed7750088210b938ec49302a735dbc868351e0.jpg",
+        "text": "$$\n\\mathbf { M } _ { t } : = [ \\mathbf { m } _ { t , 1 } , \\mathbf { m } _ { t , 2 } , \\cdots , \\mathbf { m } _ { t , K } ] = { \\mathcal { W } } _ { \\mathrm { w e a v e r } } ( \\mathbf { H } _ { t , < j } ) ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            326,
+            398,
+            669,
+            416
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "where the memory is generated not merely from the parametric knowledge encoded within $\\mathcal { W } _ { \\mathrm { w e a v e r } }$ but may also incorporate cues retrieved from external memory databases (detailed implementation is elaborated in Section 4.3). Crucially, $\\mathbf { M } _ { t }$ is not a verbatim restatement of prior content but a selective reconstruction, filtered and integrated through $\\mathcal { W } _ { \\mathrm { w e a v e r } }$ , akin to the hippocampus consolidating fragments of recollection into human memory (Spens and Burgess, 2024). Once formed, the latent memory is woven seamlessly into the reasoner’s ongoing dynamics: its hidden states are prepended to $\\mathbf { H } _ { t , < j }$ , upon which the reasoner resumes generation conditioned on this enriched context, ",
+        "bbox": [
+            114,
+            424,
+            883,
+            531
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "img_path": "images/09ac9e85eae87d968434370f319569c577f94c1f85d291cd0b3487cdcf7c8ce6.jpg",
+        "text": "$$\n\\mathbf { z } _ { t , j } \\sim \\pi _ { \\boldsymbol \\theta } \\big ( \\cdot \\mid s _ { t } , \\mathbf { z } _ { t , < j } , \\mathbf { M } _ { t } \\big ) .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            405,
+            540,
+            591,
+            556
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "This iterative cycle of generation, monitoring, invocation, weaving, and reintegration elevates reasoning from a linear unfolding to a recursive dialogue with memory, all without altering the frozen reasoner $\\pi \\theta$ , and thereby preserving its general capabilities. In the following sections, we detail the implementations of the memory trigger (▷ Section 4.2) and the memory weaver (▷ Section 4.3). ",
+        "bbox": [
+            114,
+            565,
+            882,
+            626
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "4.2 Memory Trigger: Learning to Invocate Memory ",
+        "text_level": 1,
+        "bbox": [
+            114,
+            637,
+            542,
+            655
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "In this section, we describe the concrete instantiation and training recipe of the memory trigger $\\tau _ { \\mathrm { t r i g g e r } }$ Recall from Section 4.1 that $\\tau _ { \\mathrm { t r i g e r } }$ serves as a metacognitive monitor, observing the evolving reasoning state of the frozen reasoner $\\pi \\theta$ and producing a binary decision $d _ { j } \\in \\{ \\mathrm { I N V O K E , S K I P } \\} ( 0  \\mathbf { S K I P } , 1  \\mathrm { I N V O K E } )$ ) that determines whether the memory weaver should be invoked at token $j$ . ",
+        "bbox": [
+            114,
+            659,
+            883,
+            718
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Instantiation. We instantiate $\\tau _ { \\mathrm { t r i g g e r } }$ as a lightweight LoRA adapter attached to the reasoner $\\pi _ { \\theta }$ . At the decoding step $j$ of the timestep $t$ , it receives the sequence of all hidden states, $\\mathbf { H } _ { t , < j } \\in \\mathbb { R } ^ { ( j - 1 ) \\times d _ { \\mathrm { m o d e l } } }$ conditioned on this context, $\\tau _ { \\mathrm { t r i g g e r } }$ outputs the action probability $P ( d _ { j } = \\mathrm { I N V O K E } ) \\in [ 0 , 1 ]$ . To avoid excessive computational overhead, we adopt a sentence-granularity activation strategy, inspired by recent studies on LLM interpretability (Anthropic, 2025; Chen et al., 2024a), which find that interventions between sentences can more effectively guide LLMs’ reasoning path. Specifically, we define a delimiter token set $\\mathcal { D }$ (e.g., commas, periods) and let the trigger act only when the current token falls in $\\mathcal { D }$ . The invocation decision is computed as: ",
+        "bbox": [
+            114,
+            724,
+            883,
+            845
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "img_path": "images/a9b72aaa5faa2be519c6dfe4a052fcf9d827dd3e373bb6d0b0be57e7cb6a78ba.jpg",
+        "text": "$$\n\\begin{array} { r } { d _ { j } = \\mathrm { B e r n o u l l i } ( p _ { j } ) , p _ { j } = \\left\\{ \\begin{array} { l l } { 0 } & { \\mathrm { i f ~ } z _ { j } \\notin \\mathcal { D } , } \\\\ { \\mathcal { T } _ { \\mathrm { t r i g g e r } } ( \\mathbf { H } _ { t , < j } ) } & { \\mathrm { i f ~ } z _ { j } \\in \\mathcal { D } , } \\end{array} \\right. } \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            308,
+            844,
+            687,
+            886
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "which ensures that $\\tau _ { \\mathrm { t r i g g e r } }$ is invoked only at semantically significant boundaries, preserving decoding efficiency.   \nWe validate that MemGen does not incur excessive inference delay in Section D.3.3. ",
+        "bbox": [
+            120,
+            888,
+            885,
+            920
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "discarded",
+        "text": "5 ",
+        "bbox": [
+            493,
+            935,
+            504,
+            946
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Training Recipe. The memory trigger is trained via reinforcement learning, motivated by the need to balance two competing desiderata: ensuring that critical latent memories are invoked to improve task performance, while avoiding unnecessary or spurious invocations that could disrupt reasoning or incur computational overhead. Given a batch of seen tasks $\\mathcal { H } = \\{ ( x _ { i } , \\tau _ { i } ) \\} _ { i = 1 } ^ { N }$ , the frozen reasoner $\\pi _ { \\theta }$ generates candidate trajectories while the memory weaver $\\mathcal { W } _ { \\mathrm { w e a v e r } }$ remains fixed. At each activated step, the trigger selects an action $\\tilde { d } _ { j } \\in \\{ \\mathrm { I N V O K E } , \\mathrm { S K I P } \\}$ and receives a reward $r ( \\tau _ { i } )$ reflecting the quality of the resulting trajectory with respect to the task objective. To encourage sparse yet strategically critical memory invocation, we introduce a reward-adaptive penalty, which discourages unnecessary activations while preserving essential ones, into the objective: ",
+        "bbox": [
+            114,
+            90,
+            883,
+            226
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "img_path": "images/3bb5129b658c36b2776a4b3ad835e3d08706136ffdb380146ba8acb5e37d5898.jpg",
+        "text": "$$\n\\operatorname* { m a x } _ { \\phi } \\mathbb { E } _ { \\tau _ { i } \\sim \\pi _ { \\theta } , \\tilde { \\mathbf { d } } \\sim \\mathcal { T } _ { \\mathrm { t r i g g e r } } ^ { \\phi } } \\Big [ R ( \\tau _ { i } ) - \\lambda \\sum _ { i , j } \\operatorname* { m a x } ( 0 , \\tilde { d } _ { i , j } - \\bar { p } ) \\Big ] ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            323,
+            224,
+            674,
+            257
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "where $p$ is computed as the mean activation probability across high-reward trajectories, i.e., those with reward exceeding the batch median: ",
+        "bbox": [
+            114,
+            258,
+            883,
+            290
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "img_path": "images/debf66803f825290777b39bbe7006bbcbe56b825d80014bf2012c61d9a2b51ef.jpg",
+        "text": "$$\n\\bar { p } = \\frac { 1 } { \\left| \\mathcal { H } _ { \\mathrm { h i g h } } \\right| } \\sum _ { i \\in \\mathcal { H } _ { \\mathrm { h i g h } } } \\frac { 1 } { \\left| \\tau _ { i } \\right| } \\sum _ { j } \\tilde { d } _ { i , j } , \\ \\mathcal { H } _ { \\mathrm { h i g h } } = \\{ i : R ( \\tau _ { i } ) \\ge \\mathrm { m e d i a n } _ { k } ( R ( \\tau _ { k } ) ) \\} ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            264,
+            299,
+            733,
+            333
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "where ensures that $\\tau _ { \\mathrm { t r i g g e r } }$ learns to invoke memory selectively at key decision points, maximizing task reward while maintaining computational efficiency. ",
+        "bbox": [
+            122,
+            340,
+            882,
+            372
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "4.3 Memory Weaver: Synthesizing and Inserting Latent Memory ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            382,
+            653,
+            400
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "In this section, we elaborate on the weaver $\\mathcal { W } _ { \\mathrm { w e a v e r } }$ , the memory carrier within the MemGen framework. When the agent assimilates new experiences, this information is exclusively internalized into the parameters of $\\mathcal { W } _ { \\mathrm { w e a v e r } }$ , leaving the core reasoner $\\pi _ { \\theta }$ entirely unmodified. At junctures where the reasoner requires experiential support, a context-dependent hook activates the weaver to synthesize and externalize pertinent knowledge as a usable memory. To be more specific, recall from Equation (5) that after the $\\tau _ { \\mathrm { t r i g g e r } }$ signals the need for memory at step $j$ , $\\mathcal { W } _ { \\mathrm { w e a v e r } }$ accepts $\\mathbf { H } _ { t , < j }$ (as the hook) and generates a latent token sequence $\\mathbf { M } _ { t }$ (as the memory) for $\\pi \\theta$ . ",
+        "bbox": [
+            114,
+            404,
+            883,
+            511
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Instantiation. We instantiate $\\mathcal { W } _ { \\mathrm { w e a v e r } }$ using anthoer LoRA adapter attached to $\\pi \\theta$ . Formally, given the incoming hook $\\mathbf { H } _ { t , < j } \\in \\mathbb { R } ^ { ( j - 1 ) \\times d _ { \\mathrm { m o d e l } } }$ , the weaver outputs a latent memory matrix: $\\mathbf { M } _ { t } = \\mathcal { W } _ { \\mathrm { w e a v e r } } ^ { \\theta ^ { \\prime } } ( \\mathbf { H } _ { t , < j } ) \\in$ $\\mathbb { R } ^ { K \\times d _ { \\mathrm { m o d e l } } }$ , where $K$ denotes the fixed length of the latent memory sequence and $\\theta ^ { \\prime }$ are the trainable LoRA parameters. The synthesized $\\mathbf { M } _ { t }$ is then prepended to the current hidden states of $\\pi \\theta$ to guide subsequent token generation, as described in Equation (6). ",
+        "bbox": [
+            114,
+            516,
+            883,
+            593
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Training Recipe. The training of $\\mathcal { W } _ { \\mathrm { w e a v e r } }$ proceeds over a batch of past trajectories $\\mathcal { H } = \\{ ( x _ { i } , \\tau _ { i } ) \\} _ { i = 1 } ^ { N }$ . Distinct from conventional agent tuning, which directly integrates experiential data into the parameters of $\\pi \\theta$ (Chen et al., 2025; Yin et al., 2024), MemGen internalizes experiential knowledge solely into $\\mathcal { W } _ { \\mathrm { w e a v e r } }$ which ensures that $\\pi \\theta$ ’s general capabilities remain intact. ",
+        "bbox": [
+            114,
+            599,
+            883,
+            660
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Crucially, this separation makes MemGen agnostic to optimization strategies and compatible with diverse LLM backbones. Whether employing supervised fine-tuning (SFT) or RL-based objectives such as GRPO or DAPO, the weaver can be updated under a unified goal: optimizing the generation process of latent memory so as to maximize downstream reward. Formally, let $\\Pi _ { \\theta } ^ { \\mathcal { W } _ { \\theta ^ { \\prime } } , \\mathcal { I } } \\left( \\cdot \\mid x \\right)$ denote the process of rolling out a trajectory for a task $x$ by $\\pi \\theta$ in conjunction with weaver $\\mathcal { W } _ { \\theta ^ { \\prime } }$ and trigger $\\tau$ . Given a reward functional $R$ , the objective updates only $\\theta ^ { \\prime }$ by maximizing the expected reward: ",
+        "bbox": [
+            114,
+            667,
+            883,
+            761
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "img_path": "images/89b13c61d28d798ef3816d76d71a3cb28a36aecd1c197a256c354fa2229bb37e.jpg",
+        "text": "$$\n\\operatorname* { m a x } _ { \\theta _ { \\mathrm { l o r a } } } \\ { \\mathbb { E } } _ { ( x _ { i } , \\tau _ { i } ) \\sim \\mathcal { H } } \\ { \\mathbb { E } } _ { \\tau \\sim \\Pi _ { \\theta } ^ { \\mathcal { W } _ { \\theta ^ { \\prime } } , \\tau } ( \\cdot | x _ { i } ) } \\big [ R ( x _ { i } , \\tau ) \\big ] ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            359,
+            768,
+            635,
+            791
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "where the gradients from $R$ are propagated solely to $\\theta ^ { \\prime }$ , thereby equipping the weaver to supply precisely the memories that improve end-to-end performance without altering $\\pi \\theta$ . Equation (10) enables $\\mathcal { W } _ { \\mathrm { w e a v e r } }$ to absorb diverse experiential signals and externalize them as dynamic, context-sensitive latent memories, independent of the architectural or training paradigm of the base reasoner. ",
+        "bbox": [
+            114,
+            800,
+            882,
+            861
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Integration with Retrieval-based Memory. Although the memory generation above primarily draws on the weaver’s parametric knowledge, it can be combined with external memory sources. When triggered, any retrieval-based system (e.g., MemoryBank, ExpeL) can provide textual memory, which is merged with the hook $\\mathbf { H } _ { t , < j }$ and fed into $\\mathcal { W }$ to produce latent memory. This allows $\\mathcal { W }$ to integrate internal knowledge and external information, supplying the reasoner with richer memory support. Implementation details and results are placed in Appendix E. ",
+        "bbox": [
+            116,
+            866,
+            882,
+            911
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "discarded",
+        "text": "6 ",
+        "bbox": [
+            493,
+            935,
+            504,
+            946
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            116,
+            90,
+            883,
+            136
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "5 Experiments ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            155,
+            279,
+            172
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "In this section, we conduct extensive experiments to answer the following research questions: ",
+        "bbox": [
+            114,
+            178,
+            781,
+            194
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "• (RQ1) Can MemGen surpass both parametric and retrieval-based memory? • (RQ2) Is the memory learnt by MemGen generalizable across task domains? And why? • (RQ3) Can MemGen facilitate continual learning and mitigate catastrophic forgetting? • (RQ4) Does MemGen implicitly evolve human-like memory hierachy? ",
+        "bbox": [
+            112,
+            198,
+            756,
+            279
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "5.1 Experimental Setup ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            287,
+            323,
+            304
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Evaluation and Benchmarks. Our evaluation covers nine datasets from five domains, including $\\bullet$ web search: TriviaQA (Joshi et al., 2017) and PopQA (Mallen et al., 2023); ❷ embodied action: ALFWorld (Shridhar et al., 2021); $\\pmb { \\Theta }$ math reasoning: AQuA (Ling et al., 2017), GSM8K (Cobbe et al., 2021), and MATH (Hendrycks et al., 2021); ❹ scientific reasoning: GPQA (Rein et al., 2023); and $\\pmb { \\ 6 }$ coding: KodCode (Xu et al., 2025d) and BigCodeBench (Jain et al., 2024). ",
+        "bbox": [
+            116,
+            309,
+            885,
+            383
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Baselines. We compare MemGen against twelve baselines, categorized into four groups: (I) Prompt-based methods: Vanilla model, CoT (Wei et al., 2023); (II) Parametric memory, where experiential knowledge directly modifies model parameters via: SFT, GRPO (DeepSeek-AI et al., 2025), REINFORCE (Williams, 1992), REINFORCE $^ { + + }$ (Hu et al., 2025a), Agent-FLAN (Chen et al., 2024b); (III) Retrieval-based memory, where processing tasks sequentially and storing the experiences in an external database, represented by MemoryBank (Zhong et al., 2023), ExpeL (Zhao et al., 2024), Agent Workflow Memory (AWM) (Wang et al., 2024c); and (IV) Latent computation, where leveraging latent tokens as carriers of experiential knowledge, including SoftCoT (Xu et al., 2025c) and Co-processor (Liu et al., 2024). ",
+        "bbox": [
+            114,
+            391,
+            883,
+            512
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Implementation Details. We select LLM backbones of varying sizes, including Qwen-2.5-1.5B (Yang et al., 2024a), HuggingFace’s SmolLM3-3B (HuggingFace, 2025), and Qwen3-8B (Yang et al., 2025). The length of each latent memory sequence $K$ is set among $\\{ 2 , 4 , 8 \\}$ . MemGen does not rely on a specific optimization algorithm, so we implement two variants: MemGen SFT and MemGen GRPO, in which the weaver is updated using SFT and GRPO signals. Details on these variants are provided in Appendix B. More training setup and parameter configurations are listed in Appendix C. ",
+        "bbox": [
+            114,
+            520,
+            883,
+            611
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "5.2 Main Restuls ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            622,
+            267,
+            638
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "[For RQ1] MemGen provides high-performing memory across domains. As shown in Tables 1 and 3, existing baselines exhibit clear limitations in cross-domain adaptivity. Retrieval-based memories (e.g., ExpeL, MemoryBank, AWM) occasionally surpass parazmetric tuning in embodied action; for instance, AWM reaches $3 6 . 1 8 \\%$ on ALFWorld with SmolLM3-3B, exceeding SFT by $3 . 1 5 \\%$ . Yet their effectiveness deteriorates on reasoning-intensive tasks: ExpeL achieves only $8 . 1 2 \\%$ on GPQA+Qwen2.5-1.5B, and even underperforms the vanilla model by $6 . 9 \\%$ on TriviaQA, underscoring its heavy reliance on backbone capacity. Parametric finetuning methods display the opposite tendency: they excel in structured domains such as code generation, where REINFORCE $^ { + + }$ reaches $6 3 . 3 3 \\%$ on KodCode with $\\mathtt { Q w e n 2 . 5 - 1 . 5 B }$ , but remain weak in knowledge-intensive reasoning, with GPQA below $1 4 \\%$ . In contrast, MemGen consistently advances performance across all domains. For example, on ALFWorld+SmolLM3-3B, MemGen SFT and MemGen GRPO attain $5 0 . 6 0 \\%$ and $6 3 . 6 0 \\%$ , improving over vanilla by $3 1 . 6 4 \\%$ and $4 4 . 6 4 \\%$ , respectively. Similar gains appear with the larger $_ { \\mathrm { Q w e n 3 - 8 B } }$ , where MemGen GRPO achieves $+ 2 7 . 0 6 \\%$ on KodCode and $+ 2 8 . 1 7 \\%$ on PopQA, surpassing GRPO by up to $3 . 4 \\%$ . Overall, the dynamic memory insertion of MemGen delivers substantial improvements across diverse task domains. ",
+        "bbox": [
+            114,
+            645,
+            883,
+            854
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "[For RQ2] MemGen Exhibits Strong Cross-Domain Generalization. To evaluate whether the memory learned by MemGen can transfer across tasks, we train MemGen on one dataset and test it on several others. We include two out-of-domain datasets, ScienceWorld (Wang et al., 2022) and FEVER (Thorne et al., 2018), to further probe this. As shown in Figures 3, 9 and 10, baselines such as SFT and MemoryBank achieve gains within their training domains (e.g., on ALFWorld, SFT $+ 1 4 . 1 \\%$ and MemoryBank $+ 5 . 4 \\%$ compared with vanilla), yet fail to generalize, with performance dropping sharply on FEVER by $1 6 . 2 \\%$ . In contrast, MemGen not only attains substantial in-domain improvements $2 4 . 5 5 \\%  5 8 . 1 6 \\%$ on KodCode, Figure 10), but also exhibits effective transfer: when trained on KodCode, performance on MATH rises from $3 6 . 6 \\%  5 4 . 2 \\%$ . Having empirically validated MemGen’s generalizability, we take a further step to investigate the mechanism that underlies this capability. ",
+        "bbox": [
+            117,
+            862,
+            883,
+            907
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            493,
+            935,
+            503,
+            946
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "table",
+        "img_path": "images/b2d4fb6a40b481523cb836a6fe507f99aa6cb132f08fc7af1d03e1a3e8968e9d.jpg",
+        "table_caption": [
+            "Table 1 Results on SmolLM3-3B and Qwen3-8B. All values represent the performance metric for each task (e.g., accuracy $\\%$ ). We highlight the best and second best results. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Backbone</td><td>Method</td><td>ALFWorld</td><td>TrivialQA</td><td>PopQA</td><td>KodCode</td><td>BigCodeBench</td><td>GPQA</td><td>GSM8K</td><td>MATH</td></tr><tr><td rowspan=\"10\">SmolLM3-3B</td><td>Vanilla CoT</td><td>18.96</td><td>10.47</td><td>8.23</td><td>37.05</td><td>35.96</td><td>9.35</td><td>47.63</td><td>16.22</td></tr><tr><td></td><td>17.60</td><td>12.88</td><td>9.95</td><td>38.45</td><td>39.42</td><td>20.70</td><td>58.91</td><td>56.33</td></tr><tr><td>SFT</td><td>32.36</td><td>55.25</td><td>37.22</td><td>59.25</td><td>40.79</td><td>19.70</td><td>63.48</td><td>45.65</td></tr><tr><td>GRPO</td><td>55.35</td><td>65.88</td><td>45.16</td><td>68.48</td><td>72.44</td><td>22.73</td><td>80.03</td><td>61.23</td></tr><tr><td>REINFORCE</td><td>53.13</td><td>63.20</td><td>46.81</td><td>65.53</td><td>67.14</td><td>23.44</td><td>82.03</td><td>58.75</td></tr><tr><td>REINFORCE++</td><td>53.95</td><td>63.20</td><td>44.10</td><td>65.90</td><td>68.80</td><td>22.73</td><td>81.50</td><td>59.89</td></tr><tr><td>Agent-FLAN</td><td>34.00</td><td>56.70</td><td>39.50</td><td>56.80</td><td>37.20</td><td>17.80</td><td>59.60</td><td>36.84</td></tr><tr><td>ExpeL</td><td>36.18</td><td>46.20</td><td>28.16</td><td>51.14</td><td>40.22</td><td>15.15</td><td>56.23</td><td>38.11</td></tr><tr><td>MemoryBank</td><td>32.80</td><td>43.30</td><td>25.81</td><td>44.50</td><td>31.80</td><td>10.20</td><td>58.30</td><td>43.53</td></tr><tr><td>AWM</td><td>40.50</td><td>49.80</td><td>29.60</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr><td>SoftCoT</td><td>35.03</td><td>50.38</td><td>34.90</td><td>59.20</td><td>39.10</td><td></td><td>17.22 56.34</td><td>44.62</td></tr><tr><td>Co-processor</td><td>38.36</td><td>53.28</td><td>38.96</td><td>56.25</td><td>45.40</td><td>20.10</td><td>57.60</td><td>38.81</td></tr><tr><td>MemGen SFT</td><td>50.60</td><td>68.13</td><td>42.34</td><td>62.65</td><td>42.99</td><td>26.75</td><td>70.42</td><td>57.44</td></tr><tr><td>MemGen GRPO Vanilla</td><td>63.60</td><td>79.30</td><td>58.60</td><td>72.85</td><td>74.24</td><td>25.20</td><td>83.47</td><td>63.65</td></tr><tr><td>CoT SFT</td><td>58.93</td><td>52.18 53.80</td><td>34.13 33.20</td><td>49.10 51.25</td><td>33.33 35.59</td><td>38.18 35.15</td><td>89.48 87.67</td><td>79.82 78.24</td></tr><tr><td rowspan=\"10\">Qwen3-8B</td><td></td><td>57.10</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td>83.59</td><td>74.55</td><td>51.12</td><td>64.75</td><td>41.33</td><td>40.33</td><td>90.76</td><td>81.35</td></tr><tr><td>GRPO</td><td>85.60</td><td>76.15</td><td>58.90</td><td>73.35</td><td>70.24</td><td>39.54</td><td>92.30</td><td>83.54</td></tr><tr><td>REINFORCE</td><td>82.10</td><td>75.22</td><td>57.96</td><td>72.11</td><td>70.20</td><td>37.12</td><td>91.25</td><td>83.27</td></tr><tr><td>REINFORCE++</td><td>84.80</td><td>75.90</td><td>58.30</td><td>72.90</td><td>71.88</td><td>37.68</td><td>91.90</td><td>85.24</td></tr><tr><td>Agent-FLAN</td><td>80.32</td><td>70.32</td><td>50.08</td><td>62.99</td><td>43.40</td><td>39.50</td><td>87.60</td><td>80.05</td></tr><tr><td>ExpeL</td><td>78.97</td><td>65.54</td><td>40.33</td><td>57.20</td><td>34.23</td><td>35.15</td><td>86.20</td><td>77.40</td></tr><tr><td>MemoryBank</td><td>70.41</td><td>60.56</td><td>41.60</td><td>56.39</td><td>40.61</td><td>35.66</td><td>90.35</td><td>80.35</td></tr><tr><td>AWM</td><td>80.33</td><td>69.30</td><td>43.69</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr><td>SoftCoT</td><td>75.60</td><td>59.42</td><td>39.42</td><td>63.28</td><td>38.27</td><td>39.60</td><td>86.30</td><td>76.23</td></tr><tr><td>Co-processor</td><td>73.28</td><td>61.42</td><td>45.55</td><td>64.90</td><td>42.19</td><td>39.15</td><td>76.23</td><td>79.20</td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>MemGen SFT MemGen GRPO</td><td>85.82 90.60</td><td>77.22 80.65</td><td>54.65 62.30</td><td>66.15 76.16</td><td>40.35 75.56</td><td>43.23 40.24</td><td>91.25 93.20</td><td>83.30 88.24</td></tr></table>",
+        "bbox": [
+            112,
+            123,
+            880,
+            525
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "image",
+        "img_path": "images/f19cfb7088de428f0384592ce1a482aae2e53222cf1c2476474ffcddc80be6b5.jpg",
+        "image_caption": [
+            "Figure 3 The generalization study of MemGen. We train MemGen SFT on one dataset (ALFWorld or TriviaQA) and evaluate it on four datasets (TriviaQA, ALFWorld, ScienceWorld, and FEVER). "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            117,
+            532,
+            879,
+            676
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            114,
+            715,
+            883,
+            821
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "[For RQ2] The Memory Trigger Intelligently Determines When to Activate Memory Insertion, Mitigating Domain Conflict. After training MemGen on GSM8K, we evaluate 150 samples each from GSM8K, KodCode, and GPQA, visualizing the frequency with which the memory trigger invoked the memory weaver at each relative position in the model output. We observe that the invocation frequency varies across domains and correlates directly with performance in Figure 9: GSM8K exhibits the largest improvement $( + 1 9 . 6 4 \\% )$ and maximal invocations, GPQA achieves moderate gains $( + 6 . 0 6 \\% )$ with medium invocations, and KodCode shows the smallest improvement $( + 3 . 1 \\% )$ with the fewest invocations. This indicates that MemGen autonomously assesses, based on task-specific context, when memory insertion will be beneficial, invoking the weaver less frequently in unfamiliar domains. ",
+        "bbox": [
+            116,
+            833,
+            882,
+            909
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "discarded",
+        "text": "8 ",
+        "bbox": [
+            493,
+            936,
+            503,
+            946
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "image",
+        "img_path": "images/2ae402513ea6e5dc9d9615d0b4600eee291227f674045ce9a353250f7536aac8.jpg",
+        "image_caption": [
+            "Figure 5 (Left) $\\mathrm { t - S N E }$ visualization of latent memories generated by MemGen $+ Q \\mathrm { w e n } 3 - 8 \\mathrm { B }$ across datasets; (Middle and Right) Latent memory visualization within the TriviaQA and GSM8K datasets, clustered using $K$ -means. The text at each cluster center represents the common pattern shared by many memory sequences in the cluster, such as Cluster 0 in GSM8K, where many sequences end with “_check”. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            117,
+            89,
+            882,
+            284
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            114,
+            367,
+            883,
+            428
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "[For RQ3] MemGen Effectively Mitigates Catastrophic Forgetting. In Table 4, we sequentially train on four datasets and evaluate on all benchmarks after each stage, where MemGen exhibits stronger knowledge retention ability compared to baseline methods. For example, unlike SFT which primarily improves performance on the most recent task $( 5 4 . 1 0 \\%$ on KodCode but only $2 . 5 3 \\%$ on GPQA), MemGen demonstrates more balanced cross-task generalization, attaining $3 8 . 4 3 \\%$ on AQuA and $2 1 . 7 2 \\%$ on GPQA after GSM8K training. Finally, it mitigates forgetting on earlier tasks, preserving $4 0 . 3 4 \\%$ on AQuA following KodCode training compared to $2 7 . 1 4 \\%$ for ExpeL and $2 8 . 6 1 \\%$ for SFT, indicating a more stable continual learning ability. More analysis is placed in Section D.1. ",
+        "bbox": [
+            116,
+            433,
+            549,
+            643
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "image",
+        "img_path": "images/93a3d11f77243e55d38ef9e564d389b15a8622d1d370960a21861e7d8b0626f1.jpg",
+        "image_caption": [
+            "Figure 4 Memory invocation frequency across benchmarks at inference (trained on MemGen SFT+Qwen3-8B $^ +$ GSM8K). "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            576,
+            439,
+            877,
+            593
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "5.3 Framework Analysis ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            659,
+            328,
+            674
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Having established the expressive capabilities of MemGen, we further investigate its underlying mechanisms: what do the learned latent memories look like? Do they have specialized functions? ",
+        "bbox": [
+            120,
+            680,
+            883,
+            710
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "[For RQ4] The Latent Memory Is Machine-Native and Human-Unreadable. We first visualized the latent memory sequences learned by MemGen across different datasets using t-SNE in Figures 5 and 11. As shown in Figure 5 (Left), sequences from distinct domains form separate distributions, with related domains clustering closely (e.g., KodCode and BigCodeBench, GSM8K and MATH). Examining latent memories within the same dataset, we observed pronounced clustering patterns (as shown in Figure 5 (Middle and Right)). To explore potential commonalities within these clusters, we forcibly decoded the latent tokens. Although the decoded sequences are not human-readable, they exhibit intriguing regularities: many tokens within a cluster share structural conventions. For example, Cluster 0 in TriviaQA frequently follows the pattern “ [...]SOC”, whereas Cluster 3 in GSM8K often adopts the format “ [...]_pick”. A large corpus of latent memory tokens is provided in Appendix F. Despite these sequences being machine-native and human-unreadable, we further investigate whether their underlying semantics can be interpreted. ",
+        "bbox": [
+            116,
+            714,
+            882,
+            881
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "discarded",
+        "text": "9 ",
+        "bbox": [
+            493,
+            935,
+            504,
+            946
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "image",
+        "img_path": "images/f51207d6a3bc45baf38e256e5cca24bc6d67ac4df26c8b1ef021d3744c456927.jpg",
+        "image_caption": [
+            "Figure 6 (Left) Parameter sensitivity analysis on the latent memory length $K$ ; (Right) Effects of selectively removing latent memory clusters on different agent failure modes on the TriviaQA dataset. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            122,
+            88,
+            879,
+            282
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "[For RQ4] MemGen Implicitly Learns a Human-like Memory Hierarchy. To uncover the functional roles of different latent memory clusters, we conducted a post-hoc intervention study. Following the taxonomy from (Song et al., 2025), we study eight distinct types of agent failure, including planning errors, tool response/parsing failures, answer formatting mistakes, etc, providing a structured framework to assess how memory influences performance. During evaluation, we selectively removed latent tokens close to a specific cluster while keeping others intact, measuring the resulting changes in these failure modes. Details on (1) the visualization process, (2) failure mode annotation, and (3) token filtration are in Appendix G. As shown in Figure 6 (Right), distinct memory clusters exhibit varying influence on failure modes and can be mapped to different memory functions: ",
+        "bbox": [
+            114,
+            325,
+            882,
+            463
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "• Planning Memory supports high-level task planning and strategic reasoning. Removal of Cluster 2 substantially increases planning and compositional reasoning failures, indicating that this cluster is crucial for guiding the LLM agent’s decision-making and sequencing of reasoning steps.   \n• Procedural Memory captures task-specific operational knowledge, such as tool usage and formatting ability. Cluster 3 corresponds to this role, as its removal leads to a marked increase in tool response errors, parsing failures, and answer formatting mistakes.   \n• Working Memory manages the retention and effective use of prior context to maintain reasoning consistency. Clusters 1 and 4 contribute to this function: for instance, removing Cluster 1’s memory tokens results in more frequent task misunderstandings and think-act inconsistency. ",
+        "bbox": [
+            112,
+            464,
+            887,
+            612
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Nevertheless, these memory clusters are not entirely independent: for example, removing Cluster 1 also negatively affects planning ability, indicating that these memory faculties interact and jointly enable the LLM to leverage past experience effectively. This analysis reveals that MemGen spontaneously organizes latent memory into a structured, human-like hierarchy. ",
+        "bbox": [
+            114,
+            613,
+            882,
+            674
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Ablation Study $\\&$ Sensitivity Analysis. We conduct a sensitivity analysis on the length of the latent memory sequence $K$ , as shown in Figure 6 (Left). It can be observed that as the latent token length increases from $2  3 2$ , MemGen ’s performance correspondingly improves, likely reflecting the expanded memory capacity. We then perform an ablation study on the memory trigger module in Table 5, demonstrating the necessity of a dedicatedly trained trigger for effective memory invocation. Furthermore, we analyze different training paradigms of the memory weaver in Table 6. Additional results and discussions are in Section D.3. ",
+        "bbox": [
+            114,
+            679,
+            882,
+            770
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Efficiency Analysis. To confirm that the memory insertion process of MemGen does not introduce significant inference overhead, we show in Section D.3.3 that, while achieving up to $5 7 . 6 6 \\%$ performance improvement over vanilla LLMs, the per-query inference delay remains consistently below the baseline, ranging from $2 4 \\%$ to $9 4 \\%$ of the vanilla LLM latency. This clearly demonstrates that MemGen delivers substantial performance gains without compromising efficiency. ",
+        "bbox": [
+            114,
+            776,
+            882,
+            853
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "discarded",
+        "text": "10 ",
+        "bbox": [
+            490,
+            935,
+            508,
+            946
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "6 Conclusion ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            90,
+            261,
+            109
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "In this work, we introduced MemGen, a dynamic and generative memory framework designed for LLM Agents. By interleaving reasoning with memory synthesis through a reinforcement-learned memory trigger and a generative memory weaver, MemGen transcends the limitations of parametric and retrieval-based paradigms. Extensive experiments showcase substantial performance gains, robust cross-domain generalization, strong continual learning ability, and MemGen’s explicitly modeled memory hierarchy (i.e., planning, procedural, and working memory). These results suggest a promising path toward self-evolving LLM agents capable of fluid and reconstructive intelligence. ",
+        "bbox": [
+            116,
+            113,
+            883,
+            219
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "References ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            242,
+            230,
+            261
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Anthropic. On the Biology of a Large Language Model. https://transformer-circuits.pub/2025/attribution-graphs/ biology.html, 2025. [Accessed 24-08-2025].   \nTianle Cai, Yuhong Li, Zhengyang Geng, Hongwu Peng, Jason D. Lee, Deming Chen, and Tri Dao. Medusa: Simple llm inference acceleration framework with multiple decoding heads, 2024. https://arxiv.org/abs/2401.10774.   \nBaian Chen, Chang Shu, Ehsan Shareghi, Nigel Collier, Karthik Narasimhan, and Shunyu Yao. Fireact: Toward language agent fine-tuning, 2023. https://arxiv.org/abs/2310.05915.   \nGuoxuan Chen, Han Shi, Jiawei Li, Yihang Gao, Xiaozhe Ren, Yimeng Chen, Xin Jiang, Zhenguo Li, Weiyang Liu, and Chao Huang. Sepllm: Accelerate large language models by compressing one segment into one separator. arXiv preprint arXiv:2412.12094, 2024a.   \nZehui Chen, Kuikun Liu, Qiuchen Wang, Wenwei Zhang, Jiangning Liu, Dahua Lin, Kai Chen, and Feng Zhao. Agent-flan: Designing data and methods of effective agent tuning for large language models, 2024b. https: //arxiv.org/abs/2403.12881.   \nZhixun Chen, Ming Li, Yuxuan Huang, Yali Du, Meng Fang, and Tianyi Zhou. Atlas: Agent tuning via learning critical steps, 2025. https://arxiv.org/abs/2503.02197.   \nPrateek Chhikara, Dev Khant, Saket Aryan, Taranjeet Singh, and Deshraj Yadav. Mem0: Building production-ready ai agents with scalable long-term memory, 2025. https://arxiv.org/abs/2504.19413.   \nKarl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen, Heewoo Jun, Lukasz Kaiser, Matthias Plappert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano, et al. Training verifiers to solve math word problems. arXiv preprint arXiv:2110.14168, 2021.   \nDeepSeek-AI, Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Ruoyu Zhang, Runxin Xu, Qihao Zhu, Shirong Ma, Peiyi Wang, Xiao Bi, Xiaokang Zhang, Xingkai Yu, Yu Wu, Z. F. Wu, Zhibin Gou, Zhihong Shao, Zhuoshu Li, Ziyi Gao, Aixin Liu, Bing Xue, Bingxuan Wang, Bochao Wu, Bei Feng, Chengda Lu, Chenggang Zhao, Chengqi Deng, Chenyu Zhang, Chong Ruan, Damai Dai, Deli Chen, Dongjie Ji, Erhang Li, Fangyun Lin, Fucong Dai, Fuli Luo, Guangbo Hao, Guanting Chen, Guowei Li, H. Zhang, Han Bao, Hanwei Xu, Haocheng Wang, Honghui Ding, Huajian Xin, Huazuo Gao, Hui Qu, Hui Li, Jianzhong Guo, Jiashi Li, Jiawei Wang, Jingchang Chen, Jingyang Yuan, Junjie Qiu, Junlong Li, J. L. Cai, Jiaqi Ni, Jian Liang, Jin Chen, Kai Dong, Kai Hu, Kaige Gao, Kang Guan, Kexin Huang, Kuai Yu, Lean Wang, Lecong Zhang, Liang Zhao, Litong Wang, Liyue Zhang, Lei Xu, Leyi Xia, Mingchuan Zhang, Minghua Zhang, Minghui Tang, Meng Li, Miaojun Wang, Mingming Li, Ning Tian, Panpan Huang, Peng Zhang, Qiancheng Wang, Qinyu Chen, Qiushi Du, Ruiqi Ge, Ruisong Zhang, Ruizhe Pan, Runji Wang, R. J. Chen, R. L. Jin, Ruyi Chen, Shanghao Lu, Shangyan Zhou, Shanhuang Chen, Shengfeng Ye, Shiyu Wang, Shuiping Yu, Shunfeng Zhou, Shuting Pan, S. S. Li, Shuang Zhou, Shaoqing Wu, Shengfeng Ye, Tao Yun, Tian Pei, Tianyu Sun, T. Wang, Wangding Zeng, Wanjia Zhao, Wen Liu, Wenfeng Liang, Wenjun Gao, Wenqin Yu, Wentao Zhang, W. L. Xiao, Wei An, Xiaodong Liu, Xiaohan Wang, Xiaokang Chen, Xiaotao Nie, Xin Cheng, Xin Liu, Xin Xie, Xingchao Liu, Xinyu Yang, Xinyuan Li, Xuecheng Su, Xuheng Lin, X. Q. Li, Xiangyue Jin, Xiaojin Shen, Xiaosha Chen, Xiaowen Sun, Xiaoxiang Wang, Xinnan Song, Xinyi Zhou, Xianzu Wang, Xinxia Shan, Y. K. Li, Y. Q. Wang, Y. X. Wei, Yang Zhang, Yanhong Xu, Yao Li, Yao Zhao, Yaofeng Sun, Yaohui Wang, Yi Yu, Yichao Zhang, Yifan Shi, Yiliang Xiong, Ying He, Yishi Piao, Yisong Wang, Yixuan Tan, Yiyang Ma, Yiyuan Liu, Yongqiang Guo, Yuan Ou, Yuduan Wang, Yue Gong, Yuheng Zou, Yujia He, Yunfan Xiong, Yuxiang Luo, Yuxiang You, Yuxuan Liu, Yuyang Zhou, Y. X. Zhu, Yanhong Xu, Yanping Huang, Yaohui Li, Yi Zheng, Yuchen Zhu, Yunxian Ma, Ying Tang, Yukun Zha, Yuting Yan, Z. Z. Ren, Zehui Ren, Zhangli Sha, Zhe Fu, Zhean Xu, Zhenda Xie, Zhengyan Zhang, Zhewen Hao, Zhicheng Ma, Zhigang Yan, Zhiyu Wu, Zihui Gu, Zijia Zhu, Zijun Liu, Zilin Li, ",
+        "bbox": [
+            111,
+            275,
+            888,
+            904
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            490,
+            935,
+            506,
+            946
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Ziwei Xie, Ziyang Song, Zizheng Pan, Zhen Huang, Zhipeng Xu, Zhongyu Zhang, and Zhen Zhang. Deepseek-r1: Incentivizing reasoning capability in llms via reinforcement learning, 2025. https://arxiv.org/abs/2501.12948. ",
+        "bbox": [
+            127,
+            92,
+            880,
+            121
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Shihan Dou, Enyu Zhou, Yan Liu, Songyang Gao, Jun Zhao, Wei Shen, Yuhao Zhou, Zhiheng Xi, Xiao Wang, Xiaoran Fan, Shiliang Pu, Jiang Zhu, Rui Zheng, Tao Gui, Qi Zhang, and Xuanjing Huang. Loramoe: Alleviate world knowledge forgetting in large language models via moe-style plugin, 2024. https://arxiv.org/abs/2312.09979. ",
+        "bbox": [
+            119,
+            126,
+            875,
+            170
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Runnan Fang, Yuan Liang, Xiaobin Wang, Jialong Wu, Shuofei Qiao, Pengjun Xie, Fei Huang, Huajun Chen, and Ningyu Zhang. Memp: Exploring agent procedural memory. arXiv preprint arXiv:2508.06433, 2025. ",
+        "bbox": [
+            116,
+            175,
+            877,
+            205
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Dayuan Fu, Keqing He, Yejie Wang, Wentao Hong, Zhuoma Gongque, Weihao Zeng, Wei Wang, Jingang Wang, Xunliang Cai, and Weiran Xu. Agentrefine: Enhancing agent generalization through refinement tuning, 2025. https://arxiv.org/abs/2501.01702. ",
+        "bbox": [
+            117,
+            210,
+            879,
+            252
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Yichao Fu, Peter Bailis, Ion Stoica, and Hao Zhang. Break the sequential dependency of llm inference using lookahead decoding, 2024. https://arxiv.org/abs/2402.02057. ",
+        "bbox": [
+            112,
+            260,
+            877,
+            289
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Huanang Gao, Jiayi Geng, Wenyue Hua, Mengkang Hu, Xinzhe Juan, Hongzhang Liu, Shilong Liu, Jiahao Qiu, Xuan Qi, Yiran Wu, Hongru Wang, Han Xiao, Yuhang Zhou, Shaokun Zhang, Jiayi Zhang, Jinyu Xiang, Yixiong Fang, Qiwen Zhao, Dongrui Liu, Qihan Ren, Cheng Qian, Zhenhailong Wang, Minda Hu, Huazheng Wang, Qingyun Wu, Heng Ji, and Mengdi Wang. A survey of self-evolving agents: On path to artificial super intelligence, 2025. https://arxiv.org/abs/2507.21046. ",
+        "bbox": [
+            116,
+            295,
+            883,
+            364
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "In Gim, Guojun Chen, Seung-seob Lee, Nikhil Sarda, Anurag Khandelwal, and Lin Zhong. Prompt cache: Modular attention reuse for low-latency inference. Proceedings of Machine Learning and Systems, 6:325–338, 2024. ",
+        "bbox": [
+            111,
+            372,
+            877,
+            401
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Raghavv Goel, Sudhanshu Agrawal, Mukul Gagrani, Junyoung Park, Yifan Zao, He Zhang, Tian Liu, Yiping Yang, Xin Yuan, Jiuyan Lu, Chris Lott, and Mingu Lee. Vocabtrim: Vocabulary pruning for efficient speculative decoding in llms, 2025. https://arxiv.org/abs/2506.22694. ",
+        "bbox": [
+            114,
+            406,
+            877,
+            449
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Shibo Hao, Sainbayar Sukhbaatar, DiJia Su, Xian Li, Zhiting Hu, Jason Weston, and Yuandong Tian. Training large language models to reason in a continuous latent space, 2024. https://arxiv.org/abs/2412.06769. ",
+        "bbox": [
+            116,
+            455,
+            880,
+            486
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Dan Hendrycks, Collin Burns, Saurav Kadavath, Akul Arora, Steven Basart, Eric Tang, Dawn Song, and Jacob Steinhardt. Measuring mathematical problem solving with the math dataset, 2021. https://arxiv.org/abs/2103. 03874. ",
+        "bbox": [
+            114,
+            491,
+            882,
+            534
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Hongkang Yang Hongkang Yang, Zehao Lin Zehao Lin, Wenjin Wang Wenjin Wang, Hao Wu Hao Wu, Zhiyu Li Zhiyu Li, Bo Tang Bo Tang, Wenqiang Wei Wenqiang Wei, Jinbo Wang Jinbo Wang, Zeyun Tang Zeyun Tang, Shichao Song Shichao Song, Chenyang Xi Chenyang Xi, Yu Yu Yu Yu, Kai Chen Kai Chen, Feiyu Xiong Feiyu Xiong, Linpeng Tang Linpeng Tang, and Weinan E Weinan E. Memory $^ 3$ : Language modeling with explicit memory. Journal of Machine Learning, 3(3):300–346, January 2024. ISSN 2790-203X. doi: 10.4208/jml.240708. http://dx.doi.org/10.4208/jml.240708. ",
+        "bbox": [
+            116,
+            540,
+            883,
+            625
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Jian Hu, Jason Klein Liu, Haotian Xu, and Wei Shen. Reinforce++: An efficient rlhf algorithm with robustness to both prompt and reward models, 2025a. https://arxiv.org/abs/2501.03262. ",
+        "bbox": [
+            117,
+            631,
+            880,
+            660
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Zhiyuan Hu, Yibo Wang, Hanze Dong, Yuhui Xu, Amrita Saha, Caiming Xiong, Bryan Hooi, and Junnan Li. Beyond’aha!’: Toward systematic meta-abilities alignment in large reasoning models. arXiv preprint arXiv:2505.10554, 2025b. ",
+        "bbox": [
+            114,
+            666,
+            882,
+            708
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "HuggingFace. SmolLM3: smol, multilingual, long-context reasoner — huggingface.co. https://huggingface.co/blog/ smollm3, 2025. [Accessed 23-09-2025]. ",
+        "bbox": [
+            112,
+            715,
+            877,
+            744
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Naman Jain, King Han, Alex Gu, Wen-Ding Li, Fanjia Yan, Tianjun Zhang, Sida Wang, Armando Solar-Lezama, Koushik Sen, and Ion Stoica. Livecodebench: Holistic and contamination free evaluation of large language models for code, 2024. https://arxiv.org/abs/2403.07974. ",
+        "bbox": [
+            114,
+            751,
+            879,
+            792
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Chao Jin, Zili Zhang, Xuanlin Jiang, Fangyue Liu, Xin Liu, Xuanzhe Liu, and Xin Jin. Ragcache: Efficient knowledge caching for retrieval-augmented generation. arXiv preprint arXiv:2404.12457, 2024. ",
+        "bbox": [
+            111,
+            799,
+            880,
+            829
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Mandar Joshi, Eunsol Choi, Daniel Weld, and Luke Zettlemoyer. TriviaQA: A large scale distantly supervised challenge dataset for reading comprehension. In Regina Barzilay and Min-Yen Kan, editors, Proceedings of the 55th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), pages 1601– 1611, Vancouver, Canada, July 2017. Association for Computational Linguistics. doi: 10.18653/v1/P17-1147. https://aclanthology.org/P17-1147/. ",
+        "bbox": [
+            114,
+            835,
+            885,
+            905
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "discarded",
+        "text": "12 ",
+        "bbox": [
+            490,
+            935,
+            508,
+            946
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Hengli Li, Chenxi Li, Tong Wu, Xuekai Zhu, Yuxuan Wang, Zhaoxin Yu, Eric Hanchen Jiang, Song-Chun Zhu, Zixia Jia, Ying Nian Wu, and Zilong Zheng. Seek in the dark: Reasoning via test-time instance-level policy gradient in latent space, 2025a. https://arxiv.org/abs/2505.13308.   \nYuhui Li, Fangyun Wei, Chao Zhang, and Hongyang Zhang. Eagle: Speculative sampling requires rethinking feature uncertainty, 2025b. https://arxiv.org/abs/2401.15077.   \nWang Ling, Dani Yogatama, Chris Dyer, and Phil Blunsom. Program induction by rationale generation: Learning to solve and explain algebraic word problems. arXiv preprint arXiv:1705.04146, 2017.   \nLuyang Liu, Jonas Pfeiffer, Jiaxing Wu, Jun Xie, and Arthur Szlam. Deliberation in latent space via differentiable cache augmentation. arXiv preprint arXiv:2412.17747, 2024.   \nHanjun Luo, Shenyu Dai, Chiming Ni, Xinfeng Li, Guibin Zhang, Kun Wang, Tongliang Liu, and Hanan Salam. Agentauditor: Human-level safety and security evaluation for llm agents, 2025a. https://arxiv.org/abs/2506.00641.   \nMichael Luo, Naman Jain, Jaskirat Singh, Sijun Tan, Ameen Patel, Qingyang Wu, Alpay Ariyak, Colin Cai, Shang Zhu Tarun Venkat, Ben Athiwaratkun, Manan Roongta, Ce Zhang, Li Erran Li, Raluca Ada Popa, Koushik Sen, and Ion Stoica. Deepswe: Training a state-of-the-art coding agent from scratch by scaling rl. https://pretty-radio-b75.notion.site/ DeepSWE-Training-a-Fully-Open-sourced-State-of-the-Art-Coding-Agent-by-Scaling-RL-22281902c1468193aabb 2025b. Notion Blog.   \nLaurens van der Maaten and Geoffrey Hinton. Visualizing data using t-sne. Journal of machine learning research, 9 (Nov):2579–2605, 2008.   \nAlex Mallen, Akari Asai, Victor Zhong, Rajarshi Das, Daniel Khashabi, and Hannaneh Hajishirzi. When not to trust language models: Investigating effectiveness of parametric and non-parametric memories, 2023. https: //arxiv.org/abs/2212.10511.   \nDan P McAdams. The psychology of life stories. Review of general psychology, 5(2):100–122, 2001.   \nCharles Packer, Sarah Wooders, Kevin Lin, Vivian Fang, Shishir G. Patil, Ion Stoica, and Joseph E. Gonzalez. Memgpt: Towards llms as operating systems, 2024. https://arxiv.org/abs/2310.08560.   \nDmitrii Pantiukhin, Boris Shapkin, Ivan Kuznetsov, Antonia Anna Jost, and Nikolay Koldunov. Accelerating earth science discovery via multi-agent llm systems, 2025. https://arxiv.org/abs/2503.05854.   \nCheng Qian, Emre Can Acikgoz, Qi He, Hongru Wang, Xiusi Chen, Dilek Hakkani-Tür, Gokhan Tur, and Heng Ji. Toolrl: Reward is all tool learning needs, 2025. https://arxiv.org/abs/2504.13958.   \nJiahao Qiu, Xinzhe Juan, Yimin Wang, Ling Yang, Xuan Qi, Tongcheng Zhang, Jiacheng Guo, Yifu Lu, Zixin Yao, Hongru Wang, Shilong Liu, Xun Jiang, Liu Leqi, and Mengdi Wang. Agentdistill: Training-free agent distillation with generalizable mcp boxes, 2025a. https://arxiv.org/abs/2506.14728.   \nJiahao Qiu, Xuan Qi, Tongcheng Zhang, Xinzhe Juan, Jiacheng Guo, Yifu Lu, Yimin Wang, Zixin Yao, Qihan Ren, Xun Jiang, Xing Zhou, Dongrui Liu, Ling Yang, Yue Wu, Kaixuan Huang, Shilong Liu, Hongru Wang, and Mengdi Wang. Alita: Generalist agent enabling scalable agentic reasoning with minimal predefinition and maximal self-evolution, 2025b. https://arxiv.org/abs/2505.20286.   \nDavid Rein, Betty Li Hou, Asa Cooper Stickland, Jackson Petty, Richard Yuanzhe Pang, Julien Dirani, Julian Michael, and Samuel R. Bowman. Gpqa: A graduate-level google-proof q&a benchmark, 2023. https://arxiv.org/abs/2311. 12022.   \nShuo Ren, Pu Jian, Zhenjiang Ren, Chunlin Leng, Can Xie, and Jiajun Zhang. Towards scientific intelligence: A survey of llm-based scientific agents, 2025. https://arxiv.org/abs/2503.24047.   \nZhenyi Shen, Hanqi Yan, Linhai Zhang, Zhanghao Hu, Yali Du, and Yulan He. Codi: Compressing chain-of-thought into continuous space via self-distillation, 2025. https://arxiv.org/abs/2502.21074.   \nMohit Shridhar, Xingdi Yuan, Marc-Alexandre Côté, Yonatan Bisk, Adam Trischler, and Matthew Hausknecht. Alfworld: Aligning text and embodied environments for interactive learning, 2021. https://arxiv.org/abs/2010. 03768.   \nJoykirat Singh, Raghav Magazine, Yash Pandya, and Akshay Nambi. Agentic reasoning and tool integration for llms via reinforcement learning, 2025. https://arxiv.org/abs/2505.01441.   \nPeiyang Song, Pengrui Han, and Noah Goodman. A survey on large language model reasoning failures. In 2nd AI for Math Workshop @ ICML 2025, 2025. https://openreview.net/forum?id $\\underline { { \\underline { { \\mathbf { \\Pi } } } } }$ hsgMn4KBFG.   \nEleanor Spens and Neil Burgess. A generative model of memory construction and consolidation. Nature human behaviour, 8(3):526–543, 2024.   \nHaowen Su, Xian Li, Savannah Born, Christopher J Honey, Janice Chen, and Hongmi Lee. Neural dynamics of spontaneous memory recall and future thinking in the continuous flow of thoughts. Nature communications, 16(1): 6433, 2025a.   \nWeihang Su, Yichen Tang, Qingyao Ai, Junxi Yan, Changyue Wang, Hongning Wang, Ziyi Ye, Yujia Zhou, and Yiqun Liu. Parametric retrieval augmented generation, 2025b. https://arxiv.org/abs/2501.15915.   \nYuchang Sun, Yanxi Chen, Yaliang Li, and Bolin Ding. Enhancing latent computation in transformers with latent tokens, 2025. https://arxiv.org/abs/2505.12629.   \nJihoon Tack, Jaehyung Kim, Eric Mitchell, Jinwoo Shin, Yee Whye Teh, and Jonathan Richard Schwarz. Online adaptation of language models with a memory of amortized contexts, 2024. https://arxiv.org/abs/2403.04317.   \nWenhui Tan, Jiaze Li, Jianzhong Ju, Zhenbo Luo, Jian Luan, and Ruihua Song. Think silently, think fast: Dynamic latent compression of llm reasoning chains, 2025. https://arxiv.org/abs/2505.16552.   \nXiangru Tang, Tianrui Qin, Tianhao Peng, Ziyang Zhou, Daniel Shao, Tingting Du, Xinming Wei, Peng Xia, Fang Wu, He Zhu, Ge Zhang, Jiaheng Liu, Xingyao Wang, Sirui Hong, Chenglin Wu, Hao Cheng, Chi Wang, and Wangchunshu Zhou. Agent kb: Leveraging cross-domain experience for agentic problem solving, 2025. https://arxiv.org/abs/2507.06229.   \nJames Thorne, Andreas Vlachos, Christos Christodoulopoulos, and Arpit Mittal. Fever: a large-scale dataset for fact extraction and verification. arXiv preprint arXiv:1803.05355, 2018.   \nPeng Wang, Zexi Li, Ningyu Zhang, Ziwen Xu, Yunzhi Yao, Yong Jiang, Pengjun Xie, Fei Huang, and Huajun Chen. Wise: Rethinking the knowledge memory for lifelong model editing of large language models, 2024a. https://arxiv.org/abs/2405.14768.   \nRuoyao Wang, Peter Jansen, Marc-Alexandre Côté, and Prithviraj Ammanabrolu. Scienceworld: Is your agent smarter than a 5th grader?, 2022. https://arxiv.org/abs/2203.07540.   \nYu Wang, Yifan Gao, Xiusi Chen, Haoming Jiang, Shiyang Li, Jingfeng Yang, Qingyu Yin, Zheng Li, Xian Li, Bing Yin, et al. Memoryllm: Towards self-updatable large language models. arXiv preprint arXiv:2402.04624, 2024b.   \nYu Wang, Dmitry Krotov, Yuanzhe Hu, Yifan Gao, Wangchunshu Zhou, Julian McAuley, Dan Gutfreund, Rogerio Feris, and Zexue He. M+: Extending memoryllm with scalable long-term memory, 2025a. https://arxiv.org/abs/ 2502.00592.   \nZhenhailong Wang, Haiyang Xu, Junyang Wang, Xi Zhang, Ming Yan, Ji Zhang, Fei Huang, and Heng Ji. Mobileagent-e: Self-evolving mobile assistant for complex tasks, 2025b. https://arxiv.org/abs/2501.11733.   \nZora Zhiruo Wang, Jiayuan Mao, Daniel Fried, and Graham Neubig. Agent workflow memory, 2024c. https: //arxiv.org/abs/2409.07429.   \nJason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Brian Ichter, Fei Xia, Ed Chi, Quoc Le, and Denny Zhou. Chain-of-thought prompting elicits reasoning in large language models, 2023. https://arxiv.org/abs/2201.11903.   \nYifan Wei, Xiaoyan Yu, Yixuan Weng, Tengfei Pan, Angsheng Li, and Li Du. Autotir: Autonomous tools integrated reasoning via reinforcement learning, 2025. https://arxiv.org/abs/2507.21836.   \nRonald J Williams. Simple statistical gradient-following algorithms for connectionist reinforcement learning. Machine learning, 8:229–256, 1992.   \nMingyuan Wu, Jingcheng Yang, Jize Jiang, Meitang Li, Kaizhuo Yan, Hanchao Yu, Minjia Zhang, Chengxiang Zhai, and Klara Nahrstedt. Vtool-r1: Vlms learn to think with images via reinforcement learning on multimodal tool use, 2025a. https://arxiv.org/abs/2505.19255.   \nYaxiong Wu, Sheng Liang, Chen Zhang, Yichao Wang, Yongyue Zhang, Huifeng Guo, Ruiming Tang, and Yong Liu. From human memory to ai memory: A survey on memory mechanisms in the era of llms, 2025b. https: //arxiv.org/abs/2504.15965.   \nZidi Xiong, Yuping Lin, Wenya Xie, Pengfei He, Jiliang Tang, Himabindu Lakkaraju, and Zhen Xiang. How memory management impacts llm agents: An empirical study of experience-following behavior, 2025. https: //arxiv.org/abs/2505.16067.   \nWujiang Xu, Kai Mei, Hang Gao, Juntao Tan, Zujie Liang, and Yongfeng Zhang. A-mem: Agentic memory for llm agents, 2025a. https://arxiv.org/abs/2502.12110.   \nYige Xu, Xu Guo, Zhiwei Zeng, and Chunyan Miao. Softcot: Soft chain-of-thought for efficient reasoning with llms, 2025b. https://arxiv.org/abs/2502.12134.   \nYige Xu, Xu Guo, Zhiwei Zeng, and Chunyan Miao. Softcot++: Test-time scaling with soft chain-of-thought reasoning, 2025c. https://arxiv.org/abs/2505.11484.   \nZhangchen Xu, Yang Liu, Yueqin Yin, Mingyuan Zhou, and Radha Poovendran. Kodcode: A diverse, challenging, and verifiable synthetic dataset for coding, 2025d. https://arxiv.org/abs/2503.02951.   \nZifan Xu, Haozhu Wang, Dmitriy Bespalov, Xuan Wang, Peter Stone, and Yanjun Qi. Latent skill discovery for chain-of-thought reasoning. arXiv preprint arXiv:2312.04684, 2023.   \nAn Yang, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng, Bowen Yu, Chengyuan Li, Dayiheng Liu, Fei Huang, Haoran Wei, et al. Qwen2. 5 technical report. arXiv preprint arXiv:2412.15115, 2024a.   \nAn Yang, Anfeng Li, Baosong Yang, Beichen Zhang, Binyuan Hui, and Bo Zheng et al. Qwen3 technical report, 2025. https://arxiv.org/abs/2505.09388.   \nJohn Yang, Carlos E. Jimenez, Alexander Wettig, Kilian Lieret, Shunyu Yao, Karthik Narasimhan, and Ofir Press. Sweagent: Agent-computer interfaces enable automated software engineering, 2024b. https://arxiv.org/abs/2405.15793.   \nWeiran Yao, Shelby Heinecke, Juan Carlos Niebles, Zhiwei Liu, Yihao Feng, Le Xue, Rithesh Murthy, Zeyuan Chen, Jianguo Zhang, Devansh Arpit, Ran Xu, Phil Mui, Huan Wang, Caiming Xiong, and Silvio Savarese. Retroformer: Retrospective large language agents with policy gradient optimization, 2024. https://arxiv.org/abs/2308.02151.   \nDa Yin, Faeze Brahman, Abhilasha Ravichander, Khyathi Chandu, Kai-Wei Chang, Yejin Choi, and Bill Yuchen Lin. Agent lumos: Unified and modular training for open-source language agents, 2024. https://arxiv.org/abs/2311. 05657.   \nHongli Yu, Tinghong Chen, Jiangtao Feng, Jiangjie Chen, Weinan Dai, Qiying Yu, Ya-Qin Zhang, Wei-Ying Ma, Jingjing Liu, Mingxuan Wang, and Hao Zhou. Memagent: Reshaping long-context llm with multi-conv rl-based memory agent, 2025. https://arxiv.org/abs/2507.02259.   \nAohan Zeng, Mingdao Liu, Rui Lu, Bowen Wang, Xiao Liu, Yuxiao Dong, and Jie Tang. Agenttuning: Enabling generalized agent abilities for llms, 2023. https://arxiv.org/abs/2310.12823.   \nGuibin Zhang, Muxin Fu, Guancheng Wan, Miao Yu, Kun Wang, and Shuicheng Yan. G-memory: Tracing hierarchical memory for multi-agent systems, 2025a. https://arxiv.org/abs/2506.07398.   \nJianguo Zhang, Tian Lan, Rithesh Murthy, Zhiwei Liu, Weiran Yao, Ming Zhu, Juntao Tan, Thai Hoang, Zuxin Liu, Liangwei Yang, Yihao Feng, Shirley Kokane, Tulika Awalgaonkar, Juan Carlos Niebles, Silvio Savarese, Shelby Heinecke, Huan Wang, and Caiming Xiong. Agentohana: Design unified data and training pipeline for effective agent learning, 2024a. https://arxiv.org/abs/2402.15506.   \nYang Zhang, Wenxin Xu, Xiaoyan Zhao, Wenjie Wang, Fuli Feng, Xiangnan He, and Tat-Seng Chua. Reinforced latent reasoning for llm-based recommendation, 2025b. https://arxiv.org/abs/2505.19092.   \nZeyu Zhang, Xiaohe Bo, Chen Ma, Rui Li, Xu Chen, Quanyu Dai, Jieming Zhu, Zhenhua Dong, and Ji-Rong Wen. A survey on the memory mechanism of large language model based agents, 2024b. https://arxiv.org/abs/2404.13501.   \nAndrew Zhao, Daniel Huang, Quentin Xu, Matthieu Lin, Yong-Jin Liu, and Gao Huang. Expel: Llm agents are experiential learners, 2024. https://arxiv.org/abs/2308.10144.   \nBoyuan Zheng, Michael Y. Fatemi, Xiaolong Jin, Zora Zhiruo Wang, Apurva Gandhi, Yueqi Song, Yu Gu, Jayanth Srinivasa, Gaowen Liu, Graham Neubig, and Yu Su. Skillweaver: Web agents can self-improve by discovering and honing skills, 2025. https://arxiv.org/abs/2504.07079.   \nWanjun Zhong, Lianghong Guo, Qiqi Gao, He Ye, and Yanlin Wang. Memorybank: Enhancing large language models with long-term memory, 2023. https://arxiv.org/abs/2305.10250. ",
+        "bbox": [
+            111,
+            74,
+            890,
+            895
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "discarded",
+        "text": "13 ",
+        "bbox": [
+            490,
+            935,
+            508,
+            946
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            111,
+            60,
+            888,
+            893
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "discarded",
+        "text": "14 ",
+        "bbox": [
+            490,
+            935,
+            508,
+            948
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            111,
+            64,
+            888,
+            890
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "discarded",
+        "text": "15 ",
+        "bbox": [
+            490,
+            935,
+            508,
+            948
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "Zijian Zhou, Ao Qu, Zhaoxuan Wu, Sunghwan Kim, Alok Prakash, Daniela Rus, Jinhua Zhao, Bryan Kian Hsiang Low, and Paul Pu Liang. Mem1: Learning to synergize memory and reasoning for efficient long-horizon agents, 2025. https://arxiv.org/abs/2506.15841. Rui-Jie Zhu, Tianhao Peng, Tianhao Cheng, Xingwei Qu, Jinfa Huang, Dawei Zhu, Hao Wang, Kaiwen Xue, Xuanliang Zhang, Yong Shan, et al. A survey on latent reasoning. arXiv preprint arXiv:2507.06203, 2025. ",
+        "bbox": [
+            112,
+            92,
+            885,
+            169
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "discarded",
+        "text": "16 ",
+        "bbox": [
+            490,
+            935,
+            508,
+            946
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "Appendix ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            85,
+            251,
+            112
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "A Additional Related Works ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            131,
+            401,
+            151
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "LLM Decoding & RL. Two additional topics that relate to our work are LLM decoding and reinforcement learning (RL). From the decoding perspective, MemGen dynamically generates and inserts latent tokens, which shares similarity with speculative decoding where a drafter model receives the current decoding context and produces subsequent drafted tokens (Cai et al., 2024; Fu et al., 2024; Li et al., 2025b; Goel et al., 2025). . However, these methods primarily aim to accelerate LLM inference, whereas MemGen focuses on leveraging latent states as effective carriers of memory. From the RL perspective, MemGen employs rule-based RL to train the memory trigger, which is closely related to reinforcement learning with variable reward (RLVR), including GRPO from DeepSeek-R1 (DeepSeek-AI et al., 2025) and its various derivatives (Qian et al., 2025; Wu et al., 2025a; Wei et al., 2025; Fu et al., 2025). While there exist efforts combining RL with agent memory, to our knowledge, most do not address self-improving memory; for example, MemAgent (Yu et al., 2025) and MEM1 (Zhou et al., 2025) focus on handling long-context inputs rather than evolving memory mechanisms. ",
+        "bbox": [
+            114,
+            165,
+            883,
+            332
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "B Optimization Algorithm on Memory Weaver ",
+        "text_level": 1,
+        "bbox": [
+            114,
+            353,
+            578,
+            373
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "In this section, we provide a detailed exposition of the optimization algorithms for training the memory weaver, $\\mathcal { W } _ { \\mathrm { w e a v e r } }$ , as mentioned in Section 4.3. The core principle, as established in Equation (10), is to update only the weaver’s parameters, denoted as $\\theta ^ { \\prime }$ , while keeping the reasoner $\\pi _ { \\theta }$ frozen. This modularity allows MemGen to be compatible with various optimization paradigms. We detail the specific implementations for Supervised Fine-Tuning (SFT) and a reinforcement learning approach, Group Relative Policy Optimization (GRPO). ",
+        "bbox": [
+            114,
+            386,
+            882,
+            478
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "B.1 Combining MemGen with SFT ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            496,
+            403,
+            513
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "The objective of Supervised Fine-Tuning is to train the memory weaver to generate latent memories that guide the frozen reasoner $\\pi \\theta$ to replicate the behavior observed in a dataset of high-quality demonstration trajectories. We leverage the provided history of past experiences, $\\mathcal { H } = \\{ ( x _ { i } , \\tau _ { i } ^ { * } ) \\} _ { i = 1 } ^ { N }$ , where each $\\tau _ { i } ^ { * }$ is treated as an expert demonstration. ",
+        "bbox": [
+            116,
+            520,
+            882,
+            582
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "Each expert trajectory $\\tau _ { i } ^ { * }$ consists of a sequence of states and actions, $\\tau _ { i } ^ { * } = ( s _ { i , 0 } , a _ { i , 0 } ^ { * } , s _ { i , 1 } , a _ { i , 1 } ^ { * } , \\ldots )$ . Each expert action $a _ { i , t } ^ { * }$ is a sequence of tokens, $a _ { i , t } ^ { * } = ( \\mathbf { z } _ { i , t , 1 } ^ { * } , \\mathbf { z } _ { i , t , 2 } ^ { * } , \\ldots , \\mathbf { z } _ { i , t , L _ { t } } ^ { * } )$ . The goal is to maximize the conditional log-likelihood of generating these expert token sequences. ",
+        "bbox": [
+            116,
+            588,
+            882,
+            635
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "During the training of the weaver, both the reasoner $\\pi \\theta$ and the memory trigger $\\tau$ are held fixed. At each token generation step $j$ where the trigger activates, the weaver $\\mathcal { W } _ { \\theta ^ { \\prime } }$ takes the reasoner’s hidden states $\\mathbf { H } _ { i , t , < j }$ as input and produces a latent memory $\\mathbf { M } _ { i , t }$ . The reasoner then generates the next token conditioned on this memory. The SFT objective is to adjust the weaver’s parameters $\\theta ^ { \\prime }$ to maximize the probability of the ground-truth token $\\mathbf { z } _ { i , t , j } ^ { * }$ . ",
+        "bbox": [
+            114,
+            641,
+            882,
+            719
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "Formally, the optimization problem is to minimize the negative log-likelihood of the expert trajectories, averaged over the dataset $\\mathcal { H }$ . The loss function for the weaver’s parameters $\\theta ^ { \\prime }$ is defined as: ",
+        "bbox": [
+            112,
+            723,
+            882,
+            755
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "equation",
+        "img_path": "images/93fe2493c2d3a41bf1e66eb291abbe0b2aafefa520ce4edf403f9e91caa93c9d.jpg",
+        "text": "$$\n\\mathcal { L } _ { \\mathrm { S F T } } ( \\theta ^ { \\prime } ) = - \\mathbb { E } _ { ( x _ { i } , \\tau _ { i } ^ { * } ) \\sim \\mathcal { H } } \\left[ \\sum _ { \\ell = 0 } ^ { T _ { i } - 1 } \\sum _ { j = 1 } ^ { L _ { t } } \\log \\pi _ { \\theta } ( \\mathbf { z } _ { i , t , j } ^ { * } \\mid s _ { i , t } , \\mathbf { z } _ { i , t , < j } ^ { * } , \\mathbf { M } _ { i , t , j } ) \\right] ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            258,
+            765,
+            740,
+            814
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "where the latent memory $\\mathbf { M } _ { i , t , j }$ is synthesized by the weaver at that specific step: ",
+        "bbox": [
+            112,
+            823,
+            700,
+            839
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "equation",
+        "img_path": "images/c2cdc4ec8f69b632136f86d7f2d5366570421a894a58660ba0253e5fd155bebd.jpg",
+        "text": "$$\n\\begin{array} { r } { \\mathbf { M } _ { i , t , j } = \\mathcal { W } _ { \\theta ^ { \\prime } } ( \\mathbf { H } _ { i , t , < j } ) . } \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            419,
+            851,
+            580,
+            867
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "Note that the generation of $\\mathbf { M } _ { i , t , j }$ only occurs if the fixed trigger $\\tau$ determines an invocation is needed at step $j$ . In steps where no memory is invoked, the conditioning term $\\mathbf { M } _ { i , t , j }$ is omitted. The gradients are computed ",
+        "bbox": [
+            116,
+            878,
+            885,
+            910
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "discarded",
+        "text": "17 ",
+        "bbox": [
+            490,
+            935,
+            508,
+            946
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "exclusively with respect to the weaver’s parameters $\\theta ^ { \\prime }$ and used to update them via gradient descent: ",
+        "bbox": [
+            112,
+            90,
+            838,
+            107
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "equation",
+        "img_path": "images/ed51beae41d3b21513d060c37e55bac4723b7131ffdb72801aba6cc1926d829e.jpg",
+        "text": "$$\n\\theta ^ { \\prime }  \\theta ^ { \\prime } - \\eta \\nabla _ { \\theta ^ { \\prime } } \\mathcal { L } _ { \\mathrm { S F T } } ( \\theta ^ { \\prime } ) ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            413,
+            114,
+            584,
+            131
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "where $\\eta$ is the learning rate. Through this process, the memory weaver learns to synthesize latent memories that effectively steer the frozen reasoner’s generative process to align with the training data’s behavior, thereby internalizing the knowledge from the demonstration data without corrupting the general capabilities of the core LLM. ",
+        "bbox": [
+            116,
+            140,
+            883,
+            200
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "B.2 Combing MemGen wirh GRPO ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            218,
+            411,
+            236
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "The memory weaver can also be trained using a reinforcement learning objective. We specifically adapt the GRPO algorithm. The training process begins by sampling a batch of tasks from the experience history $\\mathcal { H }$ . For each task $x _ { i }$ , we use the policy $\\Pi _ { \\theta } ^ { \\mathcal { W } _ { \\theta ^ { \\prime } } , \\mathcal { I } }$ (composed of the frozen reasoner $\\pi \\theta$ and the current memory weaver $\\mathcal { W } _ { \\theta ^ { \\prime } }$ ) to generate a group of $K$ distinct trajectories, denoted as $\\mathcal { G } _ { i } = \\left\\{ \\tau _ { i , 1 } , \\tau _ { i , 2 } , \\ldots , \\tau _ { i , K } \\right\\}$ . Each trajectory is generated by the agent’s interaction with the environment and results in a final reward $R ( \\tau _ { i , k } )$ , evaluated by the reward function. Going forward, GRPO computes a group-relative baseline by averaging the rewards of all trajectories within the group $\\beta _ { i }$ : ",
+        "bbox": [
+            114,
+            242,
+            883,
+            349
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "equation",
+        "img_path": "images/6997623d992e1294ef8734bcab1d9d74fa049ec59bcb09363afbab5cae796df8.jpg",
+        "text": "$$\n\\bar { R } ( \\mathcal { G } _ { i } ) = \\frac { 1 } { K } \\sum _ { k = 1 } ^ { K } R ( \\tau _ { i , k } ) .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            416,
+            348,
+            581,
+            391
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "The advantage for a specific trajectory $\\tau _ { i , k }$ is then its reward relative to this baseline: ",
+        "bbox": [
+            112,
+            393,
+            728,
+            410
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "equation",
+        "img_path": "images/91eced59a9e0f73f8087d23656f9a1292a3bc38f66a38f95c692635b78f287e3.jpg",
+        "text": "$$\nA ( \\tau _ { i , k } ) = R ( \\tau _ { i , k } ) - \\bar { R } ( \\mathcal { G } _ { i } ) .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            406,
+            417,
+            593,
+            435
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "This formulation allows the weaver to learn by differentiating between better and worse outcomes within a set of its own generations, promoting policies that produce trajectories with above-average rewards. The final objective function, maximized with respect to the weaver’s parameters $\\theta ^ { \\prime }$ , is: ",
+        "bbox": [
+            114,
+            443,
+            883,
+            488
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "equation",
+        "img_path": "images/fdb64050ef7e31cd77468c2e2027c0d27fa2a1bce26508d04bec9c37ab2f6206.jpg",
+        "text": "$$\n\\begin{array} { r } { \\nu ( \\theta ^ { \\prime } ) = \\mathbb { E } _ { \\boldsymbol { x } _ { i } \\sim \\mathcal { H } , \\mathcal { G } _ { i } \\sim \\Pi _ { \\theta } ^ { W _ { \\theta ^ { \\prime } } , T } } \\left[ \\frac { 1 } { K } \\displaystyle \\sum _ { k = 1 } ^ { K } A ( \\tau _ { i , k } ) \\log \\Pi _ { \\theta } ^ { \\mathcal { W } _ { \\theta ^ { \\prime } } , T } ( \\tau _ { i , k } \\mid \\boldsymbol { x } _ { i } ) - \\beta \\mathrm { K L } \\left( \\Pi _ { \\theta } ^ { \\mathcal { W } _ { \\theta ^ { \\prime } } , T } ( \\cdot \\mid \\boldsymbol { x } _ { i } ) \\parallel \\Pi _ { \\mathrm { r e f } } ( \\cdot \\mid \\boldsymbol { x } _ { i } ) \\right) \\right] , } \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            181,
+            496,
+            838,
+            534
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "where $\\scriptstyle \\mathrm { { 1 l _ { r e f } } }$ is a fixed reference policy and $\\beta$ is a coefficient controlling the strength of the KL regularization. The gradients are computed only for the weaver’s parameters $\\theta ^ { \\prime }$ , thus refining its ability to synthesize impactful latent memories while preserving the integrity of the core reasoner. ",
+        "bbox": [
+            116,
+            537,
+            885,
+            584
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "C Experimental Details ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            606,
+            359,
+            626
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "C.1 Training Dataset Setup ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            641,
+            349,
+            659
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "Training Datasets. We employ the official training splits of all evaluated datasets, with the sole exception of PopQA. These datasets provide the supervisory signals necessary to train both the memory weaver and the memory trigger. PopQA does not include a dedicated training set; therefore, for this benchmark, we rely on the model trained on TriviaQA, selected for its conceptual proximity, and conduct evaluation directly on PopQA to assess cross-dataset generalization. ",
+        "bbox": [
+            114,
+            665,
+            882,
+            742
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "Training the Memory Weaver. We begin by training the memory weaver independently, in the absence of a memory trigger. To expose the weaver to varied invocation contexts, we explore two insertion strategies for latent memory tokens: inserting at every punctuation boundary, or sampling a subset of these boundaries at random. This staged setup allows the weaver to learn how to synthesize latent memory from local reasoning states before any explicit decision mechanism is introduced. ",
+        "bbox": [
+            114,
+            757,
+            882,
+            835
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "Training the Memory Trigger. Once the memory weaver is trained and fixed, we subsequently train the memory trigger. The trigger learns to detect when memory should be invoked, conditioned on the agent’s evolving cognitive state. During this phase, the trigger operates atop the frozen weaver, ensuring that its decision policy is aligned with a stable memory synthesis process. ",
+        "bbox": [
+            116,
+            851,
+            882,
+            912
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "discarded",
+        "text": "18 ",
+        "bbox": [
+            490,
+            935,
+            508,
+            946
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "C.2 Parameter Configurations ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            90,
+            375,
+            107
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "table",
+        "img_path": "images/5f77b8b68ab985fdfe53eb3fe0f2ee5f82cb2e84db09ea4cdea7cc76fa14199d.jpg",
+        "table_caption": [
+            "Table 2 Hyperparameters used in the training of MemGen. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Settings</td><td>Hyperparameters</td></tr><tr><td>Training (SFT)</td><td>train batch size = 4 learning_rate = 1e-5 epochs = 2 warmup_ratio = 0.1 optim = adamw torch schedular = cosine rollout batch size = 8</td></tr><tr><td>Training (GRPO)</td><td>train batch size = 8 epochs = 2 beta = 0.0 num_iterations = 1 learning_rate = 1e-5 warmup_ratio = 0.1 optim = adamw torch schedular = cosine</td></tr><tr><td>LoRA</td><td>r = 16 lora_alpha = 32 target_modules = [q_proj, v_proj] lora _dropout = 0.1 bias = none task_type = CAUSAL_LM</td></tr><tr><td>Optimization</td><td>adam_offload flash attn deepspeed_enable _sleep</td></tr></table>",
+        "bbox": [
+            292,
+            148,
+            705,
+            563
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "text",
+        "text": "D Extra Results ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            592,
+            285,
+            611
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "text",
+        "text": "D.1 Continual Learning Result ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            626,
+            370,
+            643
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "text",
+        "text": "The results in Table 4 indicate three main findings. First, MemGen exhibits stronger knowledge retention and forward transfer than SFT and ExpeL. For example, when trained on GPQA, MemGen reaches $4 7 . 9 6 \\%$ on GSM8K and $2 8 . 8 0 \\%$ on KodCode, surpassing SFT at $4 5 . 7 4 \\%$ and $1 8 . 5 0 \\%$ by margins of $+ 2 . 2 2 \\%$ and $+ 1 0 . 3 0 \\%$ , respectively. Similarly, when trained on KodCode, MemGen maintains $4 0 . 3 4 \\%$ on AQuA and $2 0 . 0 9 \\%$ on GPQA, whereas SFT yields $2 8 . 6 1 \\%$ and $2 . 5 3 \\%$ . Second, MemGen demonstrates more balanced cross-task generalization. Unlike SFT, which primarily improves performance on the most recent task (e.g., $5 4 . 1 0 \\%$ on KodCode but only $2 . 5 3 \\%$ on GPQA), MemGen achieves competitive results across tasks. After training on GSM8K, it attains $3 8 . 4 3 \\%$ on AQuA and $2 1 . 7 2 \\%$ on GPQA, both higher than SFT and ExpeL, suggesting that latent memory captures task-invariant reasoning. Third, MemGen effectively mitigates forgetting on earlier tasks. After sequential training on KodCode, it preserves $4 0 . 3 4 \\%$ on AQuA compared to $2 7 . 1 4 \\%$ of ExpeL and $2 8 . 6 1 \\%$ of SFT, showing stronger robustness to catastrophic forgetting. These findings suggest that MemGen provides a more stable and transferable mechanism for continual learning. ",
+        "bbox": [
+            114,
+            650,
+            883,
+            832
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "text",
+        "text": "D.2 Trigger Frequency Visualization ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            851,
+            418,
+            868
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "text",
+        "text": "More visualizations of the trigger frequency are displayed in Figures 7 and 8, where we paired Qwen2.5-1.5B or SmolLM3-3B with the GSM8K dataset and tested on subsets of GSM8K, KodCode, and GPQA (each ",
+        "bbox": [
+            116,
+            876,
+            879,
+            905
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "discarded",
+        "text": "19 ",
+        "bbox": [
+            490,
+            935,
+            508,
+            946
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "table",
+        "img_path": "images/a19910f300aa9e3928d014b944829b781006aeb10018a5a0ad3653e4ee07d3a8.jpg",
+        "table_caption": [
+            "Table 3 Results on Qwen2.5-1.5B. All values represent the performance metric for each task (e.g., accuracy $\\%$ ). We highlight the best and second best results. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Vanilla</td><td>Method</td><td>ALFWorld</td><td>TrivialQA 32.10</td><td>PopQA</td><td>KodCode</td><td>BigCodeBench</td><td>GPQA</td><td>GSM8K</td><td>MATH</td></tr><tr><td colspan=\"16\"></td></tr><tr><td rowspan=\"6\">L 2</td><td>CoT</td><td>22.54 18.30</td><td>28.67</td><td>16.08 18.39</td><td>24.55 32.32</td><td>40.35 38.59</td><td>11.62 15.67</td><td>39.51 56.79</td><td>36.63 45.22</td></tr><tr><td>SFT</td><td>36.57</td><td>63.84</td><td>39.20</td><td>55.83</td><td>37.72</td><td>11.11</td><td>54.83</td><td>38.84</td></tr><tr><td>GRPO</td><td>43.55</td><td>68.21</td><td>43.15</td><td>62.11</td><td>70.34</td><td>15.65</td><td>68.10</td><td>47.42</td></tr><tr><td>REINFORCE</td><td>43.25</td><td>66.50</td><td>41.87</td><td>60.20</td><td>67.80</td><td>12.50</td><td>67.40</td><td>46.89</td></tr><tr><td>REINFORCE++</td><td>43.66</td><td>66.90</td><td>44.69</td><td>63.33</td><td>69.50</td><td>13.80</td><td>69.04</td><td>47.33</td></tr><tr><td>Agent-FLAN</td><td>35.80</td><td>64.28</td><td>38.90</td><td>56.21</td><td>43.83</td><td>9.35</td><td>53.02</td><td>29.82</td></tr><tr><td rowspan=\"6\">AWM</td><td>ExpeL</td><td>28.96</td><td>25.20</td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>MemoryBank</td><td>27.89</td><td>38.14</td><td>20.20 22.78</td><td>31.15 37.93</td><td>39.78 35.87</td><td>8.12</td><td>45.12</td><td>38.12</td></tr><tr><td></td><td>30.42</td><td>55.69</td><td>32.54</td><td>-</td><td></td><td>13.87</td><td>47.88</td><td>30.47</td></tr><tr><td></td><td></td><td></td><td></td><td></td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr><td>SoftCoT Co-processor</td><td>33.07 35.66</td><td>62.22 64.78</td><td>38.78 40.12</td><td>55.13 56.65</td><td>36.10 38.10</td><td>9.31 12.12</td><td>54.50 57.12</td><td>38.55</td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>37.40</td></tr><tr><td></td><td>MemGen SFT</td><td>40.30</td><td>65.02</td><td>41.28</td><td>58.16</td><td>42.47</td><td>18.28</td><td>58.15</td><td>47.12</td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td>72.81</td><td>18.18</td><td>73.39</td><td>53.36</td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td>MemGen GRPO</td><td>54.27</td><td>73.42</td><td>49.28</td><td>65.43</td><td></td><td></td><td></td><td></td></tr></table>",
+        "bbox": [
+            112,
+            122,
+            882,
+            383
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "subset having the same number of samples). We then tallied the frequency of memory trigger INVOKE judgments at each relative percentile position in the LLM output. ",
+        "bbox": [
+            112,
+            409,
+            877,
+            439
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "image",
+        "img_path": "images/3169f885e5fec8f783562b988378fb8ac5df4cce4c66d5aa166bf25de85bdaca.jpg",
+        "image_caption": [
+            "Figure 7 Memory invocation frequency across benchmarks at inference (trained on MemGen SFT $^ +$ Qwen2.5-1.5B +GSM8K). "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            269,
+            454,
+            725,
+            626
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "image",
+        "img_path": "images/c0ec64ab4f6c5516d7928d4a4b96e9c794a9211cc8779691d5d4db9e195df8ba.jpg",
+        "image_caption": [
+            "Figure 8 Memory invocation frequency across benchmarks at inference (trained on MemGen SFT $^ +$ SmolLM3-3B +GSM8K). "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            269,
+            690,
+            725,
+            864
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            490,
+            935,
+            508,
+            946
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "image",
+        "img_path": "images/22ef291c4ffd8d3bcf11d4b87285eb007cbd456916a864f424a073949cc6effe.jpg",
+        "image_caption": [
+            "Figure 9 The generalization study of MemGen. We train MemGen SFT on GSM8K and evaluate it on all four datasets. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            271,
+            84,
+            725,
+            257
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "image",
+        "img_path": "images/fe4723fb9e3d5c660d5fd80d76980f12daaeae99a38205f859a7d1b2fb0ad7a7.jpg",
+        "image_caption": [
+            "Figure 10 The generalization study of MemGen. We train MemGen SFT on KodCode and evaluate it on all four datasets. ",
+            "Table 4 Continual learning results of Qwen2.5-1.5B-Instruct across four reasoning and programming datasets (AQuA, GPQA, GSM8K, KodCode). The model is sequentially trained on each dataset $\\mathrm { \\Delta A Q u A }  \\mathrm { G P Q A }  \\mathrm { G S M 8 K }$ $ \\mathrm { K o d C o d e } )$ , and after each training stage, evaluation is conducted on all four benchmarks. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            271,
+            295,
+            727,
+            467
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "table",
+        "img_path": "images/1118d23283febb2ad463072b905686b7b22010b8dbd9fc74837642c0fd222135.jpg",
+        "table_caption": [],
+        "table_footnote": [],
+        "table_body": "<table><tr><td rowspan=\"2\">Trained On</td><td>Method</td><td>AQuA</td><td>GPQA</td><td>GSM8K</td><td>KodCode</td></tr><tr><td>Vanilla</td><td>41.34</td><td>11.62</td><td>39.51</td><td>24.55</td></tr><tr><td rowspan=\"3\">AQuA</td><td>SFT</td><td>42.52</td><td>16.67</td><td>42.10</td><td>18.20</td></tr><tr><td>ExpeL</td><td>41.73</td><td>12.67</td><td>40.16</td><td>16.30</td></tr><tr><td>MemGen SFT</td><td>43.31</td><td>19.70</td><td>39.80</td><td>19.55</td></tr><tr><td rowspan=\"3\">GPQA</td><td>SFT</td><td>38.55</td><td>17.17</td><td>45.74</td><td>18.50</td></tr><tr><td>ExpeL</td><td>37.24</td><td>14.35</td><td>42.67</td><td>15.20</td></tr><tr><td>MemGen SFT</td><td>39.85</td><td>20.72</td><td>47.96</td><td>28.80</td></tr><tr><td rowspan=\"3\">GSM8K</td><td>SFT</td><td>33.46</td><td>13.13</td><td>52.31</td><td>19.45</td></tr><tr><td>ExpeL</td><td>34.89</td><td>12.42</td><td>48.78</td><td>13.65</td></tr><tr><td>MemGen SFT</td><td>38.43</td><td>21.72</td><td>55.67</td><td>19.75</td></tr><tr><td rowspan=\"3\">KodCode</td><td>SFT</td><td>28.61</td><td>2.53</td><td>24.14</td><td>54.10</td></tr><tr><td>ExpeL</td><td>27.14</td><td>6.23</td><td>31.44</td><td>48.35</td></tr><tr><td>MemGen SFT</td><td>40.34</td><td>20.09</td><td>53.72</td><td>52.95</td></tr></table>",
+        "bbox": [
+            243,
+            563,
+            754,
+            856
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            490,
+            935,
+            506,
+            946
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "D.3 Framework Analysis ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            89,
+            328,
+            106
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "D.3.1 Ablation Study ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            116,
+            267,
+            131
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "To assess the effectiveness of the proposed memory trigger, we conduct an ablation study comparing different memory invocation strategies, as summarized in Table 5. Specifically, Random denotes a naïve baseline where latent memory tokens are inserted at arbitrary token positions with a fixed probability $p$ . All delimiters activated represents a sentence-level strategy that invokes the memory weaver at every delimiter position without any selection mechanism. Finally, MemGen’s dedicated Trigger corresponds to our standard approach, where the memory weaver is activated by the trained trigger $\\tau _ { \\mathrm { t r i g g e r } }$ . The results reveal several key observations. First, sentence-level intervention already improves performance compared to random invocation. For instance, activating the weaver at all delimiters yields $1 7 . 3 4 \\%$ , $5 6 . 2 0 \\%$ , and $6 4 . 1 5 \\%$ on GPQA, Kodcode, and TriviaQA, respectively, consistently outperforming all random baselines (e.g., $p = 0 . 5$ achieves only $1 6 . 6 6 \\%$ , $5 2 . 9 5 \\%$ , and $5 7 . 2 8 \\%$ ). This highlights the importance of aligning memory injection with semantic boundaries rather than distributing it across the sequence. More importantly, our trained trigger achieves the best overall performance, reaching $1 8 . 2 8 \\%$ , $5 8 . 1 6 \\%$ , and $6 5 . 0 2 \\%$ on the three benchmarks. This demonstrates that selective activation, i.e., deciding when and where to weave in memory, provides the most effective support for reasoning, as it balances memory utility and interference more precisely than coarse-grained alternatives. ",
+        "bbox": [
+            114,
+            138,
+            883,
+            351
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "table",
+        "img_path": "images/af465f2040fc9eeb81557fad38e1b742b80db7ca3fd133728011490e9478be40.jpg",
+        "table_caption": [
+            "Table 5 Ablation study of different memory invocation strategies. Random denotes a naïve baseline where latent memory tokens are inserted at arbitrary token positions with a fixed probability $p$ . All delimiters activated represents a sentence-level strategy that invokes the memory weaver at every delimiter position without any selection mechanism. Finally, MemGen’s dedicated Trigger corresponds to our standard approach, where the memory weaver is activated by the trained trigger $\\tau _ { \\mathrm { t r i g g e r } }$ . "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Memory Invocation Strategy</td><td>GPQA</td><td>Kodcode</td><td>TriviaQA</td></tr><tr><td>Random (p = 0.2)</td><td>15.66</td><td>54.55</td><td>63.55</td></tr><tr><td>Random (p = 0.5)</td><td>16.66</td><td>52.95</td><td>57.28</td></tr><tr><td>Random (p = 0.8)</td><td>12.63</td><td>53.60</td><td>62.22</td></tr><tr><td>All delimiters activated</td><td>17.34</td><td>56.20</td><td>64.15</td></tr><tr><td>MemGen&#x27;s dedicated Trigger</td><td>18.28</td><td>58.16</td><td>65.02</td></tr></table>",
+        "bbox": [
+            264,
+            444,
+            732,
+            560
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "D.3.2 Analysis of Memory Weaver ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            584,
+            356,
+            599
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "We further investigate how the parameterization of the memory weaver influences downstream performance. As shown in Table 6, increasing the number of trainable parameters by adopting a full-parameter SFT setup surely enhances the weaver’s memory and learning capacity, leading to higher task performance across benchmarks. Nevertheless, the LoRA-based instantiation already achieves competitive results while retaining high parameter efficiency, demonstrating that even lightweight adaptations can endow the weaver with sufficient capacity to generate effective latent memories. ",
+        "bbox": [
+            114,
+            607,
+            883,
+            698
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "table",
+        "img_path": "images/b34adca2e60d484906dfbfb87e0cd933cba74774817df4c4037c9af7c178e0db.jpg",
+        "table_caption": [
+            "Table 6 Ablation study of the latent weaver. We instantiate MemGen SFT’s memory weaver with two strategies: LoRA and full-parameter SFT. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Base LLM: Qwen2.5-1.5B-Instruct</td><td>GPQA</td><td>Kodcode</td><td>TriviaQA</td></tr><tr><td>LoRA (r = 16, α = 32)</td><td>18.28</td><td>58.16</td><td>65.02</td></tr><tr><td>Full SFT</td><td>21.21</td><td>60.00</td><td>67.10</td></tr></table>",
+        "bbox": [
+            251,
+            750,
+            745,
+            820
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "D.3.3 Efficiency Analysis ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            843,
+            297,
+            858
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "Table 7 reports average inference time and task performance across three benchmarks. Both SFT and MemGen drastically reduce per-task inference time compared with vanilla models due to fewer tokens required to reach correct answers. For instance, on KodCode with Qwen2.5-1.5B, MemGen SFT completes tasks in 2.94 s, a ",
+        "bbox": [
+            116,
+            867,
+            882,
+            911
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "discarded",
+        "text": "22 ",
+        "bbox": [
+            490,
+            935,
+            508,
+            946
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "$7 5 . 4 \\%$ reduction from 11.96 s for vanilla, while improving accuracy by $3 3 . 6 1 \\%$ . On ALFWorld+Qwen3-8B, MemGen SFT adds only $1 . 6 \\%$ more time compared with SFT (20.08 s vs 19.76 s) but increases accuracy from $8 3 . 5 9 \\%$ to $8 5 . 8 2 \\%$ . These results confirm that MemGen efficiently enhances reasoning performance without incurring significant inference delays. ",
+        "bbox": [
+            114,
+            90,
+            883,
+            151
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "table",
+        "img_path": "images/d1f993006548379783ef6900d746fe2e0f19836069a19a845997cfa762e6f43c.jpg",
+        "table_caption": [
+            "Table 7 Average per-task inference time (seconds) and task performance (accuracy $\\%$ ) across three benchmarks. Performance improvement $( \\% )$ of MemGen SFT over vanilla LLM is also reported. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td rowspan=\"2\">Model &amp; Method</td><td colspan=\"2\">KodCode</td><td colspan=\"2\">ALFWorld</td><td colspan=\"2\">TriviaQA</td></tr><tr><td>Time (s)</td><td>Acc (%)</td><td>Time (s)</td><td>Acc (%)</td><td>Time (s)</td><td>Acc (%)</td></tr><tr><td colspan=\"7\">Qwen2.5-1.5B</td></tr><tr><td>Vanilla</td><td>11.96</td><td>24.55</td><td>21.17</td><td>22.54</td><td>2.18</td><td>32.10</td></tr><tr><td>SFT</td><td>2.01</td><td>55.83</td><td>10.79</td><td>36.57</td><td>1.98</td><td>63.84</td></tr><tr><td>MemGen SFT</td><td>2.94</td><td>58.16</td><td>12.94</td><td>40.30</td><td>2.05</td><td>65.02</td></tr><tr><td>Improvement over Vanilla</td><td>-</td><td>+33.61</td><td>-</td><td>+17.76</td><td>-</td><td>+32.92</td></tr><tr><td colspan=\"7\">SmolLM-3B</td></tr><tr><td>Vanilla</td><td>13.12</td><td>37.05</td><td>34.82</td><td>18.96</td><td>4.26</td><td>10.47</td></tr><tr><td>SFT</td><td>3.04</td><td>59.25</td><td>12.88</td><td>32.36</td><td>3.05</td><td>55.25</td></tr><tr><td>MemGen SFT</td><td>3.48</td><td>62.65</td><td>14.69</td><td>50.60</td><td>3.16</td><td>68.13</td></tr><tr><td>Improvement over Vanilla</td><td>-</td><td>+25.60</td><td>-</td><td>+31.64</td><td>-</td><td>+57.66</td></tr><tr><td colspan=\"7\">Qwen3-8B</td></tr><tr><td>Vanilla</td><td>16.99</td><td>49.10</td><td>55.42</td><td>58.93</td><td>8.70</td><td>52.18</td></tr><tr><td>SFT</td><td>7.24</td><td>64.75</td><td>19.76</td><td>83.59</td><td>5.98</td><td>74.55</td></tr><tr><td>MemGen SFT</td><td>7.56</td><td>66.15</td><td>20.08</td><td>85.82</td><td>6.25</td><td>77.22</td></tr><tr><td>Improvement over Vanilla</td><td>-</td><td>+17.05</td><td>-</td><td>+26.89</td><td>-</td><td>+25.04</td></tr></table>",
+        "bbox": [
+            178,
+            202,
+            821,
+            491
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "E Integration with Retrieval-based Memory ",
+        "text_level": 1,
+        "bbox": [
+            114,
+            518,
+            558,
+            539
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "E.1 Formalizing the Integration Process ",
+        "text_level": 1,
+        "bbox": [
+            114,
+            554,
+            452,
+            570
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "While the primary mechanism of MemGen leverages the parametric knowledge encapsulated within the memory weaver $\\mathcal { W } _ { \\mathrm { w e a v e r } }$ , the framework is designed to be extensible, allowing for seamless integration with external, retrieval-based memory systems. This hybrid approach enables the weaver to synthesize latent memories that are informed by both its internalized experiences and a vast corpus of external information, thereby providing a richer and more comprehensive context to the reasoner $\\pi \\theta$ . Let $\\mathcal { M } _ { \\mathrm { e x t } }$ denote an external memory database, and let $\\mathcal { R } ( \\cdot )$ be a retrieval function that, given a natural language query, returns a set of relevant textual memory snippets. When the memory trigger $\\tau _ { \\mathrm { t r i g e r } }$ determines an invocation is necessary at the token-generation step $j$ (i.e., $d _ { j } = \\mathrm { I N V O K E } )$ , the natural language text generated thus far serves as the query for the external memory system. This query, denoted as $q _ { t , j }$ , is produced by decoding the sequence of tokens generated up to that point: ",
+        "bbox": [
+            114,
+            573,
+            883,
+            723
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "equation",
+        "img_path": "images/d71fdaf6d04c4e5984ca0c808a4c501992928271948389b5ff62a47c0df89dfd.jpg",
+        "text": "$$\nq _ { t , j } = \\operatorname { D e c o d e } ( \\mathbf { z } _ { t , < j } ) .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            424,
+            723,
+            575,
+            739
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "The retrieval process is then formalized as: ",
+        "bbox": [
+            117,
+            743,
+            423,
+            758
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "equation",
+        "img_path": "images/bc7917964aef1e363a04419521b2ae5a4052aeb35a4367ce6ecb29e0ea1f6d6a.jpg",
+        "text": "$$\n\\mathcal { C } _ { t } = \\mathcal { R } ( q _ { t , j } ; \\mathcal { M } _ { \\mathrm { e x t } } ) ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            429,
+            767,
+            566,
+            784
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "where $\\mathcal { C } _ { t } = \\{ c _ { 1 } , c _ { 2 } , . . . , c _ { P } \\}$ is a set of $P$ retrieved textual snippets. These snippets are subsequently encoded into a sequence of embeddings, $\\mathbf { E } _ { t } \\in \\mathbb { R } ^ { L _ { c } \\times d _ { \\mathrm { m o d e l } } }$ , where $L _ { c }$ is the total length of the encoded text. This allows the weaver to process the retrieved information in its native latent space. ",
+        "bbox": [
+            116,
+            790,
+            883,
+            835
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "This retrieved information is subsequently merged with the reasoner’s internal cognitive state $\\mathbf { H } _ { t , < j }$ . The combined context is then fed into the memory weaver $\\mathcal { W } _ { \\mathrm { w e a v e r } }$ to produce the final latent memory. The invocation of the weaver, as described in Equation (5), is thus modified to: ",
+        "bbox": [
+            116,
+            843,
+            882,
+            888
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "equation",
+        "img_path": "images/9fcf1ce8955e070505dfcb738c56222a2fd0daafc9ae20242e687b3f67b27e4f.jpg",
+        "text": "$$\n\\mathbf { M } _ { t } = \\mathcal { W } _ { \\mathrm { w e a v e r } } \\big ( \\big [ \\mathbf { H } _ { t , < j } ; \\mathbf { E } _ { t } \\big ] \\big ) ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            401,
+            896,
+            596,
+            912
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            490,
+            935,
+            508,
+            946
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "where $[ \\cdot ; \\cdot ]$ denotes the concatenation of the hidden state sequences. This integrated process allows $\\mathcal { W } _ { \\mathrm { w e a v e r } }$ to reconstruct both internal parametric knowledge and externally retrieved information into a compact, potent latent memory $\\mathbf { M } _ { t }$ for the reasoner. ",
+        "bbox": [
+            116,
+            90,
+            883,
+            136
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "E.2 Experimental Results ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            154,
+            338,
+            170
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "As shown in Table 8, even when MemGen’s own parametric memory is disabled (which means that merely the retrieved textual snippets are fed into $\\mathcal { W } _ { \\mathrm { w e a v e r } }$ ), MemGen significantly enhances the retrieval baseline, boosting performance on ALFWorld from $3 6 . 1 8 \\%$ to $4 5 . 6 0 \\%$ and on PopQA from $2 8 . 1 6 \\%$ to $3 9 . 5 0 \\%$ . This demonstrates that MemGen serves as a powerful synthesizer, not merely appending but actively reconstructing externally retrieved information into a more potent, task-relevant latent memory, thereby underscoring the necessity of a generative memory mechanism. Most notably, when the weaver’s internal parametric memory is enabled alongside external retrieval, performance is dramatically amplified, achieving scores of $7 5 . 9 0 \\%$ on ALFWorld and $7 6 . 4 0 \\%$ on TriviaQA. This highlights the powerful synergy achieved when the memory weaver is empowered to dynamically integrate its own internalized experiences with external textual knowledge. ",
+        "bbox": [
+            114,
+            172,
+            883,
+            308
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "table",
+        "img_path": "images/780a5cf3639924ea80fee06ff223a1985d516273f02755c141e9d8080f14ccd2.jpg",
+        "table_caption": [
+            "Table 8 Performance results when integrating MemGen with a retrieval-based memory baseline, ExpeL. The backbone LLM is set as SmolLM3-3B. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Method</td><td>ALFWorld</td><td>TriviaQA</td><td>PopQA</td></tr><tr><td>Vanilla LLM</td><td>18.96</td><td>10.47</td><td>8.23</td></tr><tr><td>ExpeL</td><td>36.18</td><td>46.20</td><td>28.16</td></tr><tr><td>MemGen + ExpeL (w/o parametric memory)</td><td>45.60</td><td>53.20</td><td>39.50</td></tr><tr><td>MemGen + ExpeL (w/ parametric memory)</td><td>75.90</td><td>76.40</td><td>60.23</td></tr></table>",
+        "bbox": [
+            228,
+            352,
+            769,
+            438
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "F Latent Memory Token Demonstration ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            465,
+            522,
+            484
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "Cases from TriviaQA ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            502,
+            294,
+            516
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "Case 1 ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            534,
+            171,
+            542
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "system prompt ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            545,
+            214,
+            553
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "Answer the given question. You must conduct reasoning inside <think> and $< / \\mathrm { t h i n k } >$ first every time you get new information. After reasoning, if you find you lack some knowledge, you can call a search engine by <search> query </search> and it will return the top searched results between <information> and $<$ </information>. You can search as many times as your want. If you find no further external knowledge needed, you can directly provide the answer inside $<$ answer $>$ and $< ,$ /answer>, without detailed illustrations. For example, $<$ <answer $>$ Beijing $<$ /answer>. ",
+        "bbox": [
+            142,
+            554,
+            857,
+            604
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "user prompt ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            614,
+            200,
+            625
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "Which Lloyd Webber musical premiered in the US on 10th December 1993? ",
+        "bbox": [
+            140,
+            623,
+            542,
+            635
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "assistant output   \n[UPPORT...’,eniable certif] $<$ think> I need to find out which Lloyd Webber musical premiered in the US on 10th December 1993. </think>   \n[essengeryyyyMMddELCOME certif]<search $>$ Lloyd Webber musical premiered in the US on 10th December 1993 $<$ </search> ",
+        "bbox": [
+            140,
+            647,
+            805,
+            685
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "user prompt ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            695,
+            200,
+            704
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "<observation $>$ Doc 1(Title: \"Andrew Lloyd Webber\") opened at the Adelphi Theatre in London on 12 July 1993, and ran for 1,529 performances ... </observation> ",
+        "bbox": [
+            137,
+            704,
+            841,
+            724
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "assistant output ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            736,
+            220,
+            744
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "[essengeryyyyMMddELCOME certif]<think> The search results indicate that \"Sunset Boulevard\" is the Lloyd Webber musical that premiered in the US on 10th December 1993. $< .$ /think>   \n[UPPORT...’,eniable certif]<answe $>$ Sunset Boulevard $<$ </answer> ",
+        "bbox": [
+            137,
+            744,
+            826,
+            775
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "Case 2 ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            786,
+            173,
+            795
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "system prompt ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            796,
+            215,
+            805
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "Answer the given question. You must conduct reasoning inside <think> and $< / \\mathrm { t h i n k } >$ first every time you get new information. After reasoning, if you find you lack some knowledge, you can call a search engine by <search> query </search> and it will return the top searched results between <information $>$ and $<$ </information>. You can search as many times as your want. If you find no further external knowledge needed, you can directly provide the answer inside $<$ answer $>$ and </answer>, without detailed illustrations. For example, <answer> Beijing $< /$ answer>. ",
+        "bbox": [
+            142,
+            806,
+            856,
+            856
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "user prompt ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            867,
+            200,
+            876
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "Who had a 70s No 1 hit with Kiss You All Over? ",
+        "bbox": [
+            142,
+            876,
+            400,
+            886
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            490,
+            936,
+            508,
+            946
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "assistant output ",
+        "bbox": [
+            140,
+            102,
+            220,
+            111
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "[UPPORT...’,eniable certif]<think $>$ I need to search who had a 70s No 1 hit with the song \"Kiss You All Over.\" </think> [essengeryyyyMMddELCOME certif]<search> who had a 70s No 1 hit with Kiss You All Over? </search> ",
+        "bbox": [
+            135,
+            111,
+            776,
+            131
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "user prompt ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            142,
+            200,
+            150
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "<observation $>$ Doc 1(Title: \"Kiss You All Over\") Exile’s only big hit in the pop rock market (they would later have great success on the country music charts)... </observation> ",
+        "bbox": [
+            137,
+            151,
+            852,
+            171
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "assistant output ",
+        "bbox": [
+            140,
+            181,
+            220,
+            190
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "[essengerUPPORT’options certif]<think $>$ The song \"Kiss You All Over\" was a 70s No 1 hit with the band Exile. </think> [UPPORT...’,eniable certif]<answe $>$ Exile $<$ </answer> ",
+        "bbox": [
+            138,
+            190,
+            781,
+            212
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "Case 3 ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            223,
+            173,
+            231
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "system prompt ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            233,
+            215,
+            241
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "Answer the given question. You must conduct reasoning inside <think> and $< / \\mathrm { t h i n k } >$ first every time you get new information. After reasoning, if you find you lack some knowledge, you can call a search engine by <search> query $<$ </search> and it will return the top searched results between <information $>$ and $< .$ /information>. You can search as many times as your want. If you find no further external knowledge needed, you can directly provide the answer inside $<$ answer $>$ and $<$ </answer>, without detailed illustrations. For example, <answer $>$ Beijing $< /$ /answer>. ",
+        "bbox": [
+            142,
+            242,
+            856,
+            291
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "user prompt ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            303,
+            200,
+            313
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "What was the name of Michael Jackson’s autobiography written in 1988? ",
+        "bbox": [
+            140,
+            313,
+            529,
+            323
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "assistant output   \n[UPPORTUPPORTeniable certif] $<$ think> I need to search for the name of Michael Jackson’s autobiography written in 1988. </think>   \n[UPPORT...’,eniable certif]<search $>$ Michael Jackson autobiography 1988 $<$ </search> ",
+        "bbox": [
+            138,
+            333,
+            843,
+            363
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "user prompt ",
+        "bbox": [
+            140,
+            373,
+            200,
+            382
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "<observation $>$ Doc 1(Title: \"Michael Jackson\") of 4.4 million people. In 1988, Jackson released his only autobiography, \"\"Moonwalk \"\", which took four years to complete and sold 200,000 copies... </observation> ",
+        "bbox": [
+            135,
+            382,
+            846,
+            404
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "assistant output ",
+        "bbox": [
+            140,
+            414,
+            220,
+            422
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "[cmsUPPORT’options Certif] $<$ <think> The name of Michael Jackson’s autobiography written in 1988 is \"Moonwalk\". </think> [UPPORTUPPORTeniable certif] $<$ <answer $>$ Moonwalk $<$ </answer> ",
+        "bbox": [
+            142,
+            421,
+            803,
+            443
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "Case 4 ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            454,
+            173,
+            462
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "system prompt ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            464,
+            214,
+            473
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "Answer the given question. You must conduct reasoning inside <think> and $< / \\mathrm { t h i n k } >$ first every time you get new information. After reasoning, if you find you lack some knowledge, you can call a search engine by <search> query </search> and it will return the top searched results between <information $>$ and $<$ </information>. You can search as many times as your want. If you find no further external knowledge needed, you can directly provide the answer inside $<$ answer> and $< ,$ /answer>, without detailed illustrations. For example, <answer $>$ Beijing $<$ /answer>. ",
+        "bbox": [
+            140,
+            473,
+            856,
+            523
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "user prompt ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            535,
+            200,
+            542
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "Which volcano in Tanzania is the highest mountain in Africa? ",
+        "bbox": [
+            143,
+            544,
+            467,
+            554
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "assistant output ",
+        "bbox": [
+            140,
+            564,
+            220,
+            573
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "[UPPORT...’,eniable certif]<think> I need to search for the highest mountain in Africa, which is located in Tanzania. </think> [UPPORTUPPORTeniable certif] $<$ search $>$ highest mountain in Africa in Tanzania </search> ",
+        "bbox": [
+            138,
+            570,
+            805,
+            594
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "user prompt ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            604,
+            200,
+            613
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "<observation> Doc 1(Title: \"Mount Kilimanjaro\") Mount Kilimanjaro Mount Kilimanjaro or just Kilimanjaro (), with its three volcanic cones, \"\"Kibo\"\", \"\"Mawenzi\"\", and \"\"Shira\"\", is a dormant volcano in Tanzania... </observation $>$ ",
+        "bbox": [
+            145,
+            614,
+            813,
+            635
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "assistant output ",
+        "bbox": [
+            140,
+            645,
+            220,
+            654
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "[essengeryyyyMMddeniable certif] $<$ <think> The highest mountain in Africa located in Tanzania is Mount Kilimanjaro. </think> [UPPORT...’,eniable certif]<answe $>$ Mount Kilimanjaro $< /$ answer> ",
+        "bbox": [
+            137,
+            654,
+            808,
+            675
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            490,
+            936,
+            508,
+            946
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "discarded",
+        "text": "Cases from KodCode ",
+        "bbox": [
+            120,
+            702,
+            883,
+            719
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            138,
+            814,
+            589,
+            895
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            142,
+            753,
+            841,
+            795
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "",
+        "text_level": 1,
+        "bbox": [
+            140,
+            734,
+            171,
+            743
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "",
+        "text_level": 1,
+        "bbox": [
+            140,
+            744,
+            215,
+            753
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "",
+        "text_level": 1,
+        "bbox": [
+            140,
+            804,
+            227,
+            814
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "Case 2 ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            112,
+            173,
+            119
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "text",
+        "text": "MODEL INPUT: ",
+        "bbox": [
+            140,
+            121,
+            215,
+            130
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "text",
+        "text": "Write an efficient and correct Python function to solve the following problem.Question: Write a python function to find the first maximum and the second maximum number in an array. If the array has less than two unique elements, return ‘None‘ for the missing values. ",
+        "bbox": [
+            145,
+            131,
+            844,
+            161
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "text",
+        "text": "MODEL OUTPUT: ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            171,
+            227,
+            180
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "text",
+        "text": "[keyword-kindërgetAs-slide]def find_first_max_second_max(arr): \" I \" ",
+        "bbox": [
+            145,
+            181,
+            482,
+            198
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "text",
+        "text": "[.keywordetical] Returns the first and second maximum numbers in the array. If the array has less than two unique elements,[.keyword_pick] returns None for the missing values.   \n[.keyword_pick] \"\"\" if $\\mathtt { l e n } ( \\mathtt { a r r } ) < 2$ :   \n[.keyword_pick] return None,[.keyword_pick] None ",
+        "bbox": [
+            135,
+            202,
+            691,
+            252
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "text",
+        "text": "[.keywordetical] unique_elements $=$ set(arr) [.keyword_pick] if len(unique_elements) $< 2$ : [.keywordetical] return None,[.keyword_pick] None [.keywordetical] first_max $=$ max(unique_elements) second_max $=$ max(unique_elements, default $=$ None) ",
+        "bbox": [
+            140,
+            261,
+            398,
+            291
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            138,
+            301,
+            450,
+            323
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "text",
+        "text": "return first_max, second_max $<$ |im_end|> ",
+        "bbox": [
+            161,
+            332,
+            393,
+            342
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "text",
+        "text": "Case 3 ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            353,
+            173,
+            361
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "text",
+        "text": "MODEL INPUT: ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            363,
+            215,
+            372
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "text",
+        "text": "Write an efficient and correct Python function to solve the following problem.Question: Given a list of integers, write a function that returns the length of the longest contiguous subarray where all elements have the same value. The function should also return the value of the elements in this subarray. Consider the output to be a tuple where the first element is the length of the longest subarray and the second element is the value of the elements in the subarray. ",
+        "bbox": [
+            140,
+            372,
+            851,
+            412
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "text",
+        "text": "For example, consider the following list as input, numbers $=$ [1, 2, 2, 3, 3, 3, 2, 2, 2, 2, 1, 1] ",
+        "bbox": [
+            138,
+            422,
+            400,
+            444
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "text",
+        "text": "Expected Output: (4, 2) ",
+        "bbox": [
+            140,
+            453,
+            269,
+            463
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "text",
+        "text": "MODEL OUTPUT: ",
+        "bbox": [
+            140,
+            473,
+            227,
+            482
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "text",
+        "text": "[kindgetAs?-kindërgetAs-slide]def longest_subarray_with_same_value(numbers): ",
+        "bbox": [
+            147,
+            483,
+            562,
+            493
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "text",
+        "text": "[.keyword_pick] Returns the length of the longest contiguous subarray where all elements [.keyword_pick] The function also returns the value of the elements in this subarray. [LTR_pick] \"\"\"   \n[LTRetical] if not numbers:   \n[.keyword_pick] return (0, None) ",
+        "bbox": [
+            140,
+            503,
+            606,
+            554
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "text",
+        "text": "max_length $= 1$ [.keyword_pick] current_length $= 1$ max_value $=$ numbers[0] current_value $=$ numbers[0] ",
+        "bbox": [
+            138,
+            564,
+            325,
+            604
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "text",
+        "text": "[.keyword_pick] for i in range(1,[LTR_pick] len(numbers)):   \n[LTR_pick] if numbers[i] $= =$ current_value: current_length $+ = 1$ else: if current_length $>$ max_length:   \n[LTR_pick] max_length $=$ current_length max_value $=$ current_value current_length $= 1$ current_value $=$ numbers[i] if current_length $>$ max_length: max_length $=$ current_length max_value $=$ current_value ",
+        "bbox": [
+            137,
+            613,
+            436,
+            756
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "text",
+        "text": "return (max_length, max_value) $<$ <|im_end|> [ even. s. even even ... even] Billy’s first 3 customers buy $3 * 1 = < < 3 * 1 = 3 > > 3$ DVDs. [-gallery.]His next 2 customers buy $2 * 2 = < < 2 * 2 { = } 4 > > 4$ DVDs. [-routing.]Billy sells $3 + 4 = < < 3 + 4 = 7 > > 7$ DVDs on Tuesday.\\boxed{7} $<$ |im_end|> ",
+        "bbox": [
+            161,
+            755,
+            406,
+            765
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            490,
+            935,
+            508,
+            946
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "discarded",
+        "text": "Cases from GSM8K ",
+        "bbox": [
+            122,
+            791,
+            879,
+            809
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            140,
+            885,
+            227,
+            895
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            138,
+            844,
+            830,
+            875
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "text",
+        "text": "",
+        "text_level": 1,
+        "bbox": [
+            140,
+            834,
+            217,
+            843
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "text",
+        "text": "",
+        "text_level": 1,
+        "bbox": [
+            140,
+            825,
+            171,
+            833
+        ],
+        "page_idx": 25
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            138,
+            101,
+            596,
+            131
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "Case 2 ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            142,
+            173,
+            150
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "MODEL INPUT:   \nSolve the math problem with proper reasoning, and make sure to put the FINAL ANSWER inside \\boxed{}.   \nQuestion: Henry made two stops during his 60-mile bike trip. He first stopped after 20 miles. His second stop was 15 miles before the end of the trip. How many miles did he travel between his first and second stops? ",
+        "bbox": [
+            137,
+            150,
+            852,
+            191
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "MODEL OUTPUT: ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            202,
+            227,
+            210
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "[..... a even even even... even ]Henry traveled $6 0 { - } 1 5 { = } { < } { < } 6 0 { - } 1 5 { = } 4 5 { > } { > } 4 5$ miles before his second stop.   \n[-android.]He traveled 20 miles before his first stop,[ecies.] so he traveled $4 5 { - } 2 0 { = } { < } { < } 4 5 { - } 2 0 { = } 2 5 { > } { > } 2 5$ miles between his first and second stops.\\boxed{25} $<$ |im_end|>   \n[ even.]The final answer is $\\mathtt { 2 5 < }$ <|im_end|> ",
+        "bbox": [
+            140,
+            212,
+            846,
+            252
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "Case 3 ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            262,
+            173,
+            270
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "MODEL INPUT: ",
+        "bbox": [
+            140,
+            272,
+            217,
+            281
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "Solve the math problem with proper reasoning, and make sure to put the FINAL ANSWER inside \\boxed{}.Question: A basket contains 25 oranges among which 1 is bad, $20 \\%$ are unripe, 2 are sour and the rest are good. How many oranges are good? ",
+        "bbox": [
+            142,
+            281,
+            823,
+            303
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "MODEL OUTPUT: ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            313,
+            227,
+            321
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "[. even.. pre. even even even... even ]The number of unripe oranges is $2 0 / 1 0 0 * 2 5 = < < 2 0 / 1 0 0 * 2 5 = 5 > > 5$ [-animate.]The number of sour oranges is 2   \n[-login.]The number of bad oranges is 1   \n[-login.]The number of good oranges is $2 5 \\textrm { - 5 - 2 - } 1 = < < 2 5 \\ – 5 \\ – 2 \\mathrm { - } 1 = 1 7 > > 1 7 \\setminus$ boxed{17} $<$ <|im_end|> ",
+        "bbox": [
+            137,
+            321,
+            676,
+            363
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "Cases from GSM8K Cluster ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            392,
+            339,
+            405
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "Cluster 1 ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            422,
+            184,
+            431
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "Solve the math problem with proper reasoning, and make sure to put the FINAL ANSWER inside \\boxed{}.Question: Josh decides to try flipping a house. He buys a house for $\\$ 80,000$ and then puts in $\\$ 50,000$ in repairs. This increased the value of the house by $1 5 0 \\%$ . How much profit did he make? ",
+        "bbox": [
+            137,
+            431,
+            856,
+            462
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "[..... pre. even even even... even ]The house was worth $\\$ 80$ ",
+        "bbox": [
+            140,
+            463,
+            429,
+            472
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "Solve the math problem with proper reasoning, and make sure to put the FINAL ANSWER inside \\boxed{}.Question: James decides to run 3 sprints 3 times a week. He runs 60 meters each sprint. How many total meters does he run a week? [..... out. even even even.. even even ]He runs $3 * 6 0 = < < 3 * 6 0 = 1 8 0 > > 1 8 0$ meters a day ",
+        "bbox": [
+            135,
+            482,
+            848,
+            512
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "Solve the math problem with proper reasoning, and make sure to put the FINAL ANSWER inside \\boxed{}.Question: Kylar went to the store to buy glasses for his new apartment. One glass costs $\\$ 5$ , but every second glass costs only $60 \\%$ of the price. Kylar wants to buy 16 glasses. How much does he need to pay for them?   \n[.... pre... even... even ]The first 16 glasses cost $1 6 * 5 = \\ S < < 1 6 * 5 = 8 0 > > 8 0$ ",
+        "bbox": [
+            138,
+            522,
+            849,
+            563
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "Solve the math problem with proper reasoning, and make sure to put the FINAL ANSWER inside \\boxed{}.Question: Toulouse has twice as many sheep as Charleston. Charleston has 4 times as many sheep as Seattle. How many sheep do Toulouse, Charleston, and Seattle have together if Seattle has 20 sheep? ",
+        "bbox": [
+            142,
+            571,
+            857,
+            603
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "even even. s. even even even.. even even ]Charleston has $4 * 2 0 = < < 4 * 2 0 = 8 0 > > 8 0$ sheep. ",
+        "bbox": [
+            147,
+            603,
+            601,
+            613
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "Solve the math problem with proper reasoning, and make sure to put the FINAL ANSWER inside \\boxed{}.Question: John drives for 3 hours at a speed of $6 0 ~ \\mathrm { { m p h } }$ and then turns around because he realizes he forgot something very important at home. He tries to get home in 4 hours but spends the first 2 hours in standstill traffic. He spends the next half-hour driving at a speed of 30 mph, before being able to drive the remaining time of the 4 hours going at $8 0 ~ \\mathrm { { m p h } }$ . How far is he from home at the end of those 4 hours? ",
+        "bbox": [
+            140,
+            622,
+            856,
+            672
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "[...... even even even... even ]He drives $6 0 { * } 3 = < < 6 0 { * } 3 = 1 8 0 > > 1 8 0$ miles in the first 3 hours. ",
+        "bbox": [
+            142,
+            672,
+            614,
+            684
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "Cluster 2 ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            694,
+            184,
+            703
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "Janet’s ducks lay 16 eggs per day,[-animate.] and she eats 3 eggs for breakfast every morning ",
+        "bbox": [
+            140,
+            703,
+            632,
+            714
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "Wendi feeds her 20 chickens 15 cups of feed in the morning,[-animate.] 25 cups in the afternoon ",
+        "bbox": [
+            140,
+            723,
+            643,
+            734
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "She sold half of what was left at the orange house,[-animate.] she had $_ { 1 / 2 }$ left. ",
+        "bbox": [
+            140,
+            743,
+            547,
+            755
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "$\\mathbf { x } = 1 6 2 / 1 8 = < < 1 6 2 / 1 8 = 9 > > 9$ [-animate.]Allen’s age is $1 1 \\mathbf { x } = 1 1 \\mathbf { * } 9 = < < 1 1 \\mathbf { * } 9 = 9 9 > > 9 9$ years old now. ",
+        "bbox": [
+            138,
+            763,
+            521,
+            785
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "He runs 20 miles a day because $6 0 / 3 { = } { < } < 6 0 / 3 { = } 2 0 { > } > 2 0$ [-animate.]He runs 10 miles the other two days because $2 0 / 2 { = } { < } < 2 0 / 2 { = } 1 0 { > } { > } 1 0$ ",
+        "bbox": [
+            138,
+            794,
+            563,
+            815
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "Cluster 3 ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            825,
+            184,
+            833
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "It takes $2 / 2 { = } { < } { < } 2 / 2 { = } 1 { > } { > } 1$ bolt of white fiber.   \n[ecies.]So it takes $2 + 1 = < < 2 + 1 = 3 > > 3$ bolts in total. The total cost of the five cell phones is $\\$ 150\\mathrm { ~ x ~ 5 ~ } =\\ S < < 150 * 5 = 7 5 0 > > 7 5 0$ .   \n[ even.]The interest for each unit is $\\$ 150\\mathrm { ~ x ~ }2/100 = \\ S < < 150 * 2 / 100 = 3 > > 3$ . The second level is $1 6 { * } 2 { = } { < } { < } 1 6 { * } 2 { = } 3 2 { > } { > } 3 2$ square footage.   \n[ even.]The third level is $3 2 * 2 { = } { < } { < } { < } 3 2 * 2 { = } 6 4 { > } { > } 6 4$ square footage. $20 \\%$ of 20 students is $2 0 \\mathrm { ~ x ~ } 2 0 / 1 0 0 = < < 2 0 * 2 0 / 1 0 0 = 4 > > 4$ students.   \n[ecies.]The remaining students are $2 0 \\textrm { - } 4 = < < 2 0 { - } 4 { = } 1 6 { > } { > } 1 6$ students. ",
+        "bbox": [
+            138,
+            834,
+            423,
+            854
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            138,
+            864,
+            539,
+            885
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "discarded",
+        "text": "27 ",
+        "bbox": [
+            490,
+            935,
+            508,
+            946
+        ],
+        "page_idx": 26
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            138,
+            101,
+            483,
+            121
+        ],
+        "page_idx": 27
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            138,
+            130,
+            517,
+            151
+        ],
+        "page_idx": 27
+    },
+    {
+        "type": "text",
+        "text": "If Artie rounds the price of petunias to the nearest dollar,[-animateecies] he will sell them for $\\$ 2$ each. ",
+        "bbox": [
+            137,
+            161,
+            679,
+            172
+        ],
+        "page_idx": 27
+    },
+    {
+        "type": "text",
+        "text": "Cluster 4 ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            181,
+            186,
+            190
+        ],
+        "page_idx": 27
+    },
+    {
+        "type": "text",
+        "text": "The groomer offers a $30 \\%$ discount,[-loginecies] so the cost of the grooming is 100 - $^ { \\cdot } 1 0 0 ^ { \\circ } \\ast 0$ .[ecies.] $\\left| 3 0 \\right. = \\ S { < } { < } 1 0 0 { - } 3 0 { = } 7 0 { > } { > } 7 0$ ",
+        "bbox": [
+            137,
+            190,
+            812,
+            202
+        ],
+        "page_idx": 27
+    },
+    {
+        "type": "text",
+        "text": "f Dana skips at 3 miles per hour,[-login.] then she runs at $3 * 4 = < < 3 * 4 = 1 2 > > 1 2$ miles per hour. ",
+        "bbox": [
+            148,
+            210,
+            674,
+            222
+        ],
+        "page_idx": 27
+    },
+    {
+        "type": "text",
+        "text": "There were $1 4 0 * 2 = < < 1 4 0 * 2 = 2 8 0 > > 2 8 0$ emeralds in the chest.   \n[-login.]There were $1 7 5 + 1 4 0 + 2 8 0 = < < 1 7 5 + 1 4 0 + 2 8 0 = 5 9 5 > > 5 9 5$ gems in the chest. ",
+        "bbox": [
+            138,
+            231,
+            606,
+            252
+        ],
+        "page_idx": 27
+    },
+    {
+        "type": "text",
+        "text": "There are $3 0 + 6 0 = < < 3 0 + 6 0 = 9 0 > > 9 0$ students at Dr.[-loginecies.] Wertz’s school. ",
+        "bbox": [
+            140,
+            261,
+            581,
+            272
+        ],
+        "page_idx": 27
+    },
+    {
+        "type": "text",
+        "text": "Cecilia will feed her puppy 1 cup of dog food every day for 180 days,[-login.] so she will use 180 cups of dog food in the first 180 days. ",
+        "bbox": [
+            137,
+            281,
+            848,
+            294
+        ],
+        "page_idx": 27
+    },
+    {
+        "type": "image",
+        "img_path": "images/6c71a22f0fe5ecd63ffc524191699f1a9eda967b4e4ea0ecd5313995395d0036.jpg",
+        "image_caption": [
+            "Figure 11 ( $U p )$ t-SNE visualization of latent memories generated by MemGen $^ +$ SmolLM3-3B across datasets; (Down) Latent memory visualization within the TriviaQA and GSM8K datasets, clustered using $K$ -means. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            204,
+            324,
+            792,
+            777
+        ],
+        "page_idx": 27
+    },
+    {
+        "type": "discarded",
+        "text": "28 ",
+        "bbox": [
+            490,
+            935,
+            508,
+            946
+        ],
+        "page_idx": 27
+    },
+    {
+        "type": "text",
+        "text": "G Memory Functional Study ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            90,
+            406,
+            111
+        ],
+        "page_idx": 28
+    },
+    {
+        "type": "text",
+        "text": "G.1 Visualization Process ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            126,
+            336,
+            142
+        ],
+        "page_idx": 28
+    },
+    {
+        "type": "text",
+        "text": "This section details the methodology employed to visualize the geometric structure of the latent memory (as shown in Figures 5 and 11) and to identify semantically distinct clusters within it. The process involves two primary stages: obtaining a fixed-dimensional representation for each memory sequence and applying dimensionality reduction and clustering algorithms. ",
+        "bbox": [
+            114,
+            150,
+            882,
+            210
+        ],
+        "page_idx": 28
+    },
+    {
+        "type": "text",
+        "text": "Sequence Representation. Let $\\mathcal { D } _ { \\mathrm { m e m } } = \\{ \\mathbf { M } _ { 1 } , \\mathbf { M } _ { 2 } , \\dots , \\mathbf { M } _ { Q } \\}$ be a corpus of $Q$ latent memory sequences collected from MemGen’s inference, where each sequence $\\mathbf { M } _ { i } = ( \\mathbf { m } _ { i , 1 } , \\dots , \\mathbf { m } _ { i , K } ) \\in \\mathbb { R } ^ { K \\times d _ { \\mathrm { { m o d e l } } } }$ consists of $K$ token embeddings of dimension $d _ { \\mathrm { m o d e l } }$ . To obtain a single, holistic vector representation for each sequence, we compute its mean embedding $\\bar { \\bf m } _ { i } \\in \\mathbb { R } ^ { d _ { \\mathrm { m o d e l } } }$ : ",
+        "bbox": [
+            114,
+            227,
+            883,
+            287
+        ],
+        "page_idx": 28
+    },
+    {
+        "type": "equation",
+        "img_path": "images/e824903cbfc984e781773a31cdcd633919c1a6cc906cdcf78f88b722dd126c73.jpg",
+        "text": "$$\n\\bar { \\mathbf { m } } _ { i } = \\frac { 1 } { K } \\sum _ { l = 1 } ^ { K } \\mathbf { m } _ { i , l } .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            436,
+            295,
+            562,
+            337
+        ],
+        "page_idx": 28
+    },
+    {
+        "type": "text",
+        "text": "This procedure yields a set of high-dimensional representations $\\bar { \\mathcal { M } } = \\{ \\bar { \\mathbf { m } } _ { 1 } , \\bar { \\mathbf { m } } _ { 2 } , . . . , \\bar { \\mathbf { m } } _ { Q } \\}$ , which serves as the input for the subsequent analysis. ",
+        "bbox": [
+            114,
+            343,
+            885,
+            375
+        ],
+        "page_idx": 28
+    },
+    {
+        "type": "text",
+        "text": "For visualization, we employed t-SNE (Maaten and Hinton, 2008) to project the high-dimensional set $\\bar { \\mathcal { M } }$ into a two-dimensional space. Formally, this mapping can be expressed as $\\mathbf { y } _ { i } \\in \\mathbb { R } ^ { 2 } = f _ { \\mathrm { t - S N E } } ( \\bar { \\mathbf { m } } _ { i } )$ . These 2D data points are then utilized for the scatter plot. ",
+        "bbox": [
+            114,
+            381,
+            883,
+            426
+        ],
+        "page_idx": 28
+    },
+    {
+        "type": "text",
+        "text": "To quantitatively identify distinct functional groups, we applied the K-means algorithm directly to the high-dimensional mean embeddings in $\\bar { \\mathcal { M } }$ . This procedure partitions the memory representations into a predefined number of $N$ discrete clusters, $\\mathcal { C } = \\{ C _ { 1 } , C _ { 2 } , \\ldots , C _ { N } \\}$ (we set $N = 4$ ). ",
+        "bbox": [
+            116,
+            433,
+            882,
+            481
+        ],
+        "page_idx": 28
+    },
+    {
+        "type": "text",
+        "text": "G.2 Failure Taxonomy Definitions ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            496,
+            401,
+            513
+        ],
+        "page_idx": 28
+    },
+    {
+        "type": "text",
+        "text": "To systematically analyze the functional impact of different memory clusters, we adopt and refine the failure taxonomy proposed by Song et al. (2025). Below, we provide precise definitions of each failure category in the context of LLM-based agent behavior, which guide our annotation and evaluation process: ",
+        "bbox": [
+            116,
+            521,
+            882,
+            568
+        ],
+        "page_idx": 28
+    },
+    {
+        "type": "text",
+        "text": "• Planning Failure. This category refers to errors in high-level task decomposition and strategic decisionmaking. The agent either formulates subgoals that do not align with the original objective, fails to plan intermediate steps necessary for task completion, or misorders the reasoning sequence, leading to suboptimal or incomplete solutions. ",
+        "bbox": [
+            116,
+            574,
+            882,
+            635
+        ],
+        "page_idx": 28
+    },
+    {
+        "type": "text",
+        "text": "• Compositional Reasoning. This type of failure occurs when the agent struggles to integrate multiple pieces of information or reasoning steps into a coherent solution. ",
+        "bbox": [
+            116,
+            645,
+            877,
+            675
+        ],
+        "page_idx": 28
+    },
+    {
+        "type": "text",
+        "text": "• Tool Parsing Error. This failure occurs when the agent’s generated output cannot be parsed into a valid tool call. Typical patterns include malformed function signatures, missing required arguments, or unrequired arguments in the invocation, which prevent the external tool from being executed as intended. ",
+        "bbox": [
+            116,
+            684,
+            883,
+            731
+        ],
+        "page_idx": 28
+    },
+    {
+        "type": "text",
+        "text": "• Tool Response Error. This category refers to errors that arise after a tool has been successfully invoked. Either the tool itself returns incorrect or incomplete information, or the agent misuses or misinterprets the returned content. ",
+        "bbox": [
+            116,
+            741,
+            883,
+            786
+        ],
+        "page_idx": 28
+    },
+    {
+        "type": "text",
+        "text": "• Answer Formatting Failure. This category includes errors in the final presentation or structuring of the output, despite the reasoning process being largely correct. Examples include incorrect output format (e.g., unable to include the answers with in \\boxed), violation of task-specific response templates, or missing required components in the final answer. ",
+        "bbox": [
+            116,
+            795,
+            883,
+            856
+        ],
+        "page_idx": 28
+    },
+    {
+        "type": "text",
+        "text": "Demand Misunderstanding. This failure indicates that the agent has misinterpreted the user’s intent or the task specification. It may solve a different problem from the one posed, ignore key constraints, or pursue irrelevant objectives due to misunderstanding the instruction semantics. ",
+        "bbox": [
+            117,
+            866,
+            883,
+            911
+        ],
+        "page_idx": 28
+    },
+    {
+        "type": "discarded",
+        "text": "29 ",
+        "bbox": [
+            490,
+            935,
+            508,
+            946
+        ],
+        "page_idx": 28
+    },
+    {
+        "type": "text",
+        "text": "• Think-Act Inconsistency. This type refers to a mismatch between the agent’s internal reasoning and its subsequent action in ReAct mode. The agent may articulate a correct reasoning chain but execute a contradictory action or produce a final answer inconsistent with its prior deliberation. ",
+        "bbox": [
+            116,
+            90,
+            883,
+            136
+        ],
+        "page_idx": 29
+    },
+    {
+        "type": "text",
+        "text": "• False Belief captures cases where the agent maintains and reasons with inaccurate assumptions about the external environment, user state, or task context. ",
+        "bbox": [
+            116,
+            146,
+            877,
+            176
+        ],
+        "page_idx": 29
+    },
+    {
+        "type": "text",
+        "text": "G.3 Annotating Failure Modes and Filtering Latent Memory ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            194,
+            612,
+            212
+        ],
+        "page_idx": 29
+    },
+    {
+        "type": "text",
+        "text": "Annotation of Failure Modes. We manually annotated agent failures on the TriviaQA dataset based on the eight failure modes discussed above. Each trajectory generated by the agent was evaluated by human annotators who assigned only one failure label if the agent’s behavior deviated from a successful path. Trajectories exhibiting failures that did not fall into these predefined categories were excluded from this specific analysis. ",
+        "bbox": [
+            116,
+            219,
+            882,
+            295
+        ],
+        "page_idx": 29
+    },
+    {
+        "type": "text",
+        "text": "Inference-time Filtering of Latent Memory Clusters. The core of our intervention study involved selectively removing the influence of a specific latent memory cluster during the agent’s reasoning process. Our methodology is designed to be consistent with the clustering process itself, which operates on sequence-level representations. ",
+        "bbox": [
+            114,
+            311,
+            882,
+            373
+        ],
+        "page_idx": 29
+    },
+    {
+        "type": "text",
+        "text": "Let $\\mathcal { C } = \\{ C _ { 1 } , C _ { 2 } , \\ldots , C _ { N } \\}$ be the set of $N$ latent memory clusters. These clusters were derived by applying $K$ - means to a collection of historical memory representations, where each representation is the mean embedding of an entire latent memory sequence. For each cluster $C _ { i } \\in \\mathcal { C }$ , we compute its centroid $\\mu _ { i } \\in \\mathbb { R } ^ { d _ { \\mathrm { m o d e l } } }$ by averaging these historical sequence representations within the cluster. ",
+        "bbox": [
+            114,
+            380,
+            883,
+            441
+        ],
+        "page_idx": 29
+    },
+    {
+        "type": "text",
+        "text": "During inference, when the memory weaver synthesizes a new latent memory sequence $\\mathbf { M } _ { t } = ( \\mathbf { m } _ { t , 1 } , \\ldots , \\mathbf { m } _ { t , K } ) \\in$ $\\mathbb { R } ^ { K \\times d _ { \\mathrm { m o d e l } } }$ , we first compute its single-vector representation, $\\mathbf { m } _ { \\mathrm { n e w } }$ , by averaging its token embeddings: ",
+        "bbox": [
+            114,
+            449,
+            883,
+            479
+        ],
+        "page_idx": 29
+    },
+    {
+        "type": "equation",
+        "img_path": "images/46a3fb6416f52f5b39c7ef40707f290d1cad18df66eed50b2af72f14d5968251.jpg",
+        "text": "$$\n\\bar { \\bf m } _ { \\mathrm { n e w } } = \\frac { 1 } { K } \\sum _ { l = 1 } ^ { K } { \\bf m } _ { t , l } .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            428,
+            491,
+            571,
+            532
+        ],
+        "page_idx": 29
+    },
+    {
+        "type": "text",
+        "text": "To determine the semantic affiliation of this new sequence, we compare its mean embedding $\\mathbf { m } _ { \\mathrm { n e w } }$ against a comprehensive reference set ${ \\mathcal { E } } _ { \\mathrm { c o m p } } = \\mathbf { E } _ { \\mathrm { v o c a b } } \\cup \\{ \\mu _ { 1 } , \\dots , \\mu _ { N } \\}$ , where $\\mathbf { E } _ { \\mathrm { v o c a b } } \\in \\mathbb { R } ^ { V \\times d _ { \\mathrm { m o d e l } } }$ is the LLM’s vocabulary embedding matrix. We then identify the set of top- $k$ nearest neighbors to $\\bar { \\bf m } _ { \\mathrm { n e w } }$ based on cosine similarity, denoted as $S _ { k } ( \\bar { \\mathbf { m } } _ { \\mathrm { n e w } } )$ . In our experiments, we set $k = 1 0$ . ",
+        "bbox": [
+            114,
+            541,
+            883,
+            603
+        ],
+        "page_idx": 29
+    },
+    {
+        "type": "text",
+        "text": "To ablate the influence of a target cluster $C _ { j }$ , the entire latent memory sequence $\\mathbf { M } _ { t }$ is filtered (i.e., discarded   \nand not prepended to the reasoner’s context) if the centroid of that cluster, , is present within this top- $k$ $\\mu _ { j }$   \nset. Formally, $\\mathbf { M } _ { t }$ is filtered if: ",
+        "bbox": [
+            114,
+            609,
+            883,
+            655
+        ],
+        "page_idx": 29
+    },
+    {
+        "type": "equation",
+        "img_path": "images/336512eb4c324bffcaff793ed31ff7e5f6085b4010b10f39beab5ed9b335dc4b.jpg",
+        "text": "$$\n\\mu _ { j } \\in S _ { k } \\big ( \\bar { \\mathbf { m } } _ { \\mathrm { n e w } } \\big ) .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            442,
+            655,
+            555,
+            671
+        ],
+        "page_idx": 29
+    },
+    {
+        "type": "text",
+        "text": "This sequence-level filtering allows us to precisely ablate the contribution of a specific learned memory function and observe its impact on agent behavior. ",
+        "bbox": [
+            112,
+            678,
+            887,
+            708
+        ],
+        "page_idx": 29
+    },
+    {
+        "type": "discarded",
+        "text": "30 ",
+        "bbox": [
+            490,
+            935,
+            508,
+            946
+        ],
+        "page_idx": 29
+    }
+]
