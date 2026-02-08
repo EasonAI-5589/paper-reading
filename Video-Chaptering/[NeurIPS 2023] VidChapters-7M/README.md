@@ -1,103 +1,42 @@
 # VidChapters-7M: Video Chapters at Scale
 
-> **会议**: NeurIPS 2023  
-> **作者**: Antoine Yang, Arsha Nagrani, Ivan Laptev, Josef Sivic, Cordelia Schmid  
-> **机构**: Inria Paris, VGG Oxford, Czech Technical University  
-> **链接**: https://antoyang.github.io/vidchapters.html  
-> **阅读状态**: ✅ 深度阅读完成
+**作者**: Antoine Yang, Arsha Nagrani, Ivan Laptev, Josef Sivic, Cordelia Schmid  
+**会议**: NeurIPS 2023 (Datasets and Benchmarks Track)  
+**机构**: Inria Paris, University of Oxford, Czech Technical University  
+**链接**: [项目主页](https://antoyang.github.io/vidchapters.html) | [arXiv](https://arxiv.org/abs/2309.13952)
 
----
+## 一句话总结
 
-## 📖 一句话总结
+提出 VidChapters-7M——一个包含 817K 视频和 7M 用户标注章节的大规模数据集，定义了三个视频章节化任务，并证明了其作为视频-语言预训练资源的巨大价值（在 YouCook2 上 CIDEr 提升 +18.9）。
 
-VidChapters-7M 是首个大规模视频章节数据集 (817K 视频, 7M 章节)，通过爬取 YouTube 用户标注的章节构建，定义了三个任务（生成、给边界生成、定位），并证明了在 dense captioning 任务上的迁移学习价值。
+## 核心贡献
 
----
+1. **大规模数据集**: 从 YouTube 自动爬取 817K 视频的 7M 用户章节标注，零额外标注成本
+2. **三个任务定义**: Chapter Generation、Chapter Generation (GT Boundaries)、Chapter Grounding
+3. **全面 Benchmark**: 评测了 zero-shot baseline 和 SOTA 模型（PDVC, Vid2Seq）
+4. **预训练价值**: 在 VidChapters-7M 上预训练后，大幅提升 dense video captioning SOTA
+5. **Scaling 特性**: 下游性能随预训练数据量增长持续提升
 
-## 🎯 核心贡献
+## 📖 批读导航
 
-| 贡献 | 详情 |
-|------|------|
-| 📊 **数据集** | 817K videos, 7M chapters, 自动爬取无需人工标注 |
-| 🎯 **三个任务** | Chapter Generation / GT-Boundary Title / Grounding |
-| 📈 **SOTA 结果** | SODA=11.4 (best), Speech > Visual 2x |
-| 🚀 **迁移学习** | YouCook2 +14 CIDEr, ViTT +6 CIDEr |
+| Section | 内容 |
+|---------|------|
+| [00 - Abstract](sections/00-abstract.md) | 摘要 + Figure 1（数据集示例） |
+| [01 - Introduction](sections/01-introduction.md) | 动机 + 贡献 + Figure 2（任务定义）+ Table 1（数据集对比） |
+| [02 - Related Work](sections/02-related-work.md) | 大规模视觉-语言数据集 + 相关视频任务 |
+| [03 - Dataset](sections/03-dataset.md) | 数据收集、处理、分析 + Figure 3（统计）+ Table 2（质量评估） |
+| [04 - Experiments](sections/04-experiments.md) | 三个任务实验 + 迁移学习 + Tables 3-8 |
+| [05 - Conclusion](sections/05-conclusion.md) | 总结 + 局限性 + 社会影响 |
 
----
-
-## 📁 阅读笔记
-
-| Section | 文件 | 状态 |
-|---------|------|------|
-| Abstract | [00-abstract.md](sections/00-abstract.md) | ✅ |
-| 1. Introduction | [01-introduction.md](sections/01-introduction.md) | ✅ |
-| 2. Related Work | [02-related-work.md](sections/02-related-work.md) | ✅ |
-| 3. VidChapters-7M | [03-dataset.md](sections/03-dataset.md) | ✅ |
-| 4. Experiments | [04-experiments.md](sections/04-experiments.md) | ✅ |
-| 5. Conclusion | [05-conclusion.md](sections/05-conclusion.md) | ✅ |
-
----
-
-## 💡 关键洞察
-
-### 为什么这篇论文重要？
-
-1. **填补数据空白**: 之前没有大规模视频章节数据集
-2. **任务定义清晰**: 区分于 Dense Captioning，更符合用户导航需求
-3. **可扩展方法**: 利用用户标注，无需人工成本
-4. **强迁移能力**: 预训练后显著提升下游任务
-
-### 核心发现
-
-```
-Speech > Visual 2x
-├── 75% 章节需要理解语音内容
-├── 仅 3% 章节纯视觉
-└── 最佳: Speech + Visual 融合
-
-ASR ≠ Chapters
-├── ASR: 269.8 句/视频, 3.9秒/句
-├── Chapter: 8.3 章/视频, 142秒/章
-└── 差距 32x → 需要学习"总结"能力
-```
-
-### 任务难度排序
-
-```
-Chapter Generation (Full) > Chapter Grounding > Chapter Title (GT boundary)
-     SODA=11.4                 R@5s=15.5          CIDEr=120.5
-```
-
----
-
-## 📊 关键数据
+## 关键数字
 
 | 指标 | 数值 |
 |------|------|
-| 视频数 | 817K |
-| 章节数 | 7M |
-| 平均视频时长 | 23分钟 |
-| 平均章节数 | 8.3/视频 |
-| 平均章节时长 | 142秒 |
-| 章节标题词数 | 5.4词 |
-| 内容相关率 | 83% |
-| 语音覆盖率 | 97.3% |
-
----
-
-## 🔗 相关论文
-
-- **Chapter-Llama (CVPR 2025)**: LLM-based video chaptering
-- **SODA (ECCV 2020)**: Story-oriented evaluation metric
-- **Vid2Seq (CVPR 2023)**: Dense video captioning model
-- **HowTo100M (ICCV 2019)**: Narrated video pretraining dataset
-
----
-
-## 📝 对 Apple 面试的启示
-
-1. VidChapters-7M 是 **THE benchmark** for video chaptering
-2. **语音模态非常重要** → 需要 ASR 集成
-3. **评估指标**: SODA > CIDEr (考虑时间对齐)
-4. **数据获取**: 用户标注是可扩展的解决方案
-5. **任务差异**: Chapter ≠ Dense Caption (连续、无间隙、短标题)
+| 总视频数 | 817K |
+| 总章节数 | 7M |
+| 平均视频时长 | 23 min |
+| 平均章节数/视频 | 8.3 |
+| 含 ASR 比例 | 97.3% |
+| YouCook2 CIDEr SOTA | 67.2 (+18.9) |
+| ViTT CIDEr SOTA | 50.0 (+6.5) |
+| 最佳 Chapter Gen SODA_c | 11.4 |
