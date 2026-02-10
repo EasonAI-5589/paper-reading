@@ -64,6 +64,7 @@ Agent 记忆机制
 | [MemGen](./Agent-Memory/%5BICLR%202026%5D%20MemGen/) | ICLR 2026 | 生成式隐式记忆，推理-记忆交织，超 ExpeL/AWM 38% |
 | [Mem-T](./Agent-Memory/%5BArxiv%202601.23014%5D%20Mem-T/) | arXiv 2601.23014 | 层次化记忆数据库 + 密集化奖励训练 Memory Agent |
 | [Memory Survey](./Agent-Memory/%5BArxiv%202512.13564%5D%20Memory%20in%20the%20Age%20of%20AI%20Agents/) | arXiv 2512.13564 | **综述** - Forms×Functions×Dynamics 三维分类框架, 400+文献 |
+| [MedFrameQA](./Agent-Memory/%5BICLR%202026%20Rejected%5D%20MedFrameQA/) | ICLR 2026 Rejected | **Benchmark** - 多帧医学 VQA, 2851 QA, MLLM 跨图推理 < 55% |
 
 ---
 
@@ -107,10 +108,11 @@ paper-reading/
 │   ├── [CoRL 2025] pi0.5/
 │   └── [ICLR 2026] Pi0.6-RECAP/
 │
-├── Agent-Memory/                    # Agent 记忆机制 (3 篇)
+├── Agent-Memory/                    # Agent 记忆机制 (4 篇)
 │   ├── [Arxiv 2512.13564] Memory in the Age of AI Agents/
 │   ├── [ICLR 2026] MemGen/
-│   └── [Arxiv 2601.23014] Mem-T/
+│   ├── [Arxiv 2601.23014] Mem-T/
+│   └── [ICLR 2026 Rejected] MedFrameQA/
 │
 ├── RLHF/                           # 强化学习人类反馈 (1 篇)
 │   └── [ICML 2025] MM-RLHF/
@@ -154,4 +156,4 @@ paper-reading/
 
 ---
 
-*由 3号机 协助整理 📚 | 更新: 2026-02-08 | 共 23 篇论文*
+*由 3号机 协助整理 📚 | 更新: 2026-02-10 | 共 24 篇论文*
