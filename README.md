@@ -63,6 +63,7 @@ Agent 记忆机制
 | [Survey: Memory in the Age of AI Agents](./Agent-Memory/%5BArxiv%202512.13564%5D%20Memory%20in%20the%20Age%20of%20AI%20Agents/) | arXiv 2512.13564 | **综述** - Forms×Functions×Dynamics 三维分类框架, 400+文献 |
 | [MemGen](./Agent-Memory/%5BICLR%202026%5D%20MemGen/) | ICLR 2026 | 生成式隐式记忆，推理-记忆交织，超 ExpeL/AWM 38% |
 | [Mem-T](./Agent-Memory/%5BArxiv%202601.23014%5D%20Mem-T/) | arXiv 2601.23014 | 层次化记忆数据库 + 密集化奖励训练 Memory Agent |
+| [VisMem](./Agent-Memory/%5BArxiv%202511.11007%5D%20VisMem/) | arXiv 2511.11007 | 短期(视觉)+长期(语义) latent vision memory，特殊 token 按需调用，两阶段 GRPO，+11% |
 
 ---
 
@@ -119,7 +120,8 @@ paper-reading/
 ├── Agent-Memory/                    # Agent 记忆机制 (3 篇)
 │   ├── [Arxiv 2512.13564] Memory in the Age of AI Agents/
 │   ├── [ICLR 2026] MemGen/
-│   └── [Arxiv 2601.23014] Mem-T/
+│   ├── [Arxiv 2601.23014] Mem-T/
+│   └── [Arxiv 2511.11007] VisMem/
 │
 ├── [ICLR 2026 Rejected] MedFrameQA/ # Medical AI (未分组, 3 篇)
 ├── [ICLR 2026] Context-Clues/
@@ -167,4 +169,4 @@ paper-reading/
 
 ---
 
-*由 3号机 协助整理 📚 | 更新: 2026-02-11 | 共 24 篇论文*
+*由 3号机 协助整理 📚 | 更新: 2026-02-11 | 共 25 篇论文*
