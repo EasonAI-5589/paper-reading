@@ -64,6 +64,7 @@ Agent 记忆机制
 | [MemGen](./Agent-Memory/%5BICLR%202026%5D%20MemGen/) | ICLR 2026 | 生成式隐式记忆，推理-记忆交织，超 ExpeL/AWM 38% |
 | [Mem-T](./Agent-Memory/%5BArxiv%202601.23014%5D%20Mem-T/) | arXiv 2601.23014 | 层次化记忆数据库 + 密集化奖励训练 Memory Agent |
 | [Memory Survey](./Agent-Memory/%5BArxiv%202512.13564%5D%20Memory%20in%20the%20Age%20of%20AI%20Agents/) | arXiv 2512.13564 | **综述** - Forms×Functions×Dynamics 三维分类框架, 400+文献 |
+| [Context Clues](./Agent-Memory/%5BICLR%202026%5D%20Context-Clues/) | ICLR 2026 | 长上下文 EHR FM, Mamba-16k EHRSHOT 9/14 SOTA, EHR 三属性分析 |
 | [MedFrameQA](./Agent-Memory/%5BICLR%202026%20Rejected%5D%20MedFrameQA/) | ICLR 2026 Rejected | **Benchmark** - 多帧医学 VQA, 2851 QA, MLLM 跨图推理 < 55% |
 
 ---
