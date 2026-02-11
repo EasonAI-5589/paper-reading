@@ -58,11 +58,10 @@
 ## BibTeX
 
 ```bibtex
-@article{black2025pi05,
+@inproceedings{black2025pi05,
   author       = {Physical Intelligence and Kevin Black and Noah Brown and James Darpinian and Karan Dhabalia and others},
   title        = {pi-0.5: a Vision-Language-Action Model with Open-World Generalization},
-  journal      = {CoRR},
-  volume       = {abs/2504.16054},
+  booktitle    = {Conference on Robot Learning ({CoRL})},
   year         = {2025},
   url          = {https://doi.org/10.48550/arXiv.2504.16054},
   eprinttype   = {arXiv},

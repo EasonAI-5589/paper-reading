@@ -44,7 +44,7 @@
 ## BibTeX
 
 ```bibtex
-@article{DBLP:journals/corr/abs-2410-17247,
+@inproceedings{DBLP:journals/corr/abs-2410-17247,
   author       = {Long Xing and
                   Qidong Huang and
                   Xiaoyi Dong and
@@ -58,9 +58,8 @@
                   Dahua Lin},
   title        = {PyramidDrop: Accelerating Your Large Vision-Language Models via Pyramid
                   Visual Redundancy Reduction},
-  journal      = {CoRR},
-  volume       = {abs/2410.17247},
-  year         = {2024},
+  booktitle    = {{IEEE/CVF} Conference on Computer Vision and Pattern Recognition ({CVPR})},
+  year         = {2025},
   url          = {https://doi.org/10.48550/arXiv.2410.17247},
   doi          = {10.48550/ARXIV.2410.17247},
   eprinttype    = {arXiv},

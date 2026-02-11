@@ -53,7 +53,7 @@
 ## BibTeX
 
 ```bibtex
-@article{DBLP:journals/corr/abs-2412-16178,
+@inproceedings{DBLP:journals/corr/abs-2412-16178,
   author       = {Michael Wornow and
                   Suhana Bedi and
                   Miguel Angel Fuentes Hernandez and
@@ -64,9 +64,8 @@
                   Nigam H. Shah},
   title        = {Context Clues: Evaluating Long Context Models for Clinical Prediction
                   Tasks on EHRs},
-  journal      = {CoRR},
-  volume       = {abs/2412.16178},
-  year         = {2024},
+  booktitle    = {International Conference on Learning Representations ({ICLR})},
+  year         = {2026},
   url          = {https://doi.org/10.48550/arXiv.2412.16178},
   doi          = {10.48550/ARXIV.2412.16178},
   eprinttype    = {arXiv},

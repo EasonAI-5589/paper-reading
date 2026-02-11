@@ -61,11 +61,10 @@ Post-training (per task):
 ## BibTeX
 
 ```bibtex
-@article{physicalintelligence2025pistar06,
+@inproceedings{physicalintelligence2025pistar06,
   author       = {{Physical Intelligence}},
   title        = {pi-star-0.6-RECAP: Reasoning and Planning for Robot Manipulation},
-  journal      = {CoRR},
-  year         = {2025},
-  note         = {Physical Intelligence technical report}
+  booktitle    = {International Conference on Learning Representations ({ICLR})},
+  year         = {2026},
 }
 ```

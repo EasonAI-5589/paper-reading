@@ -48,12 +48,11 @@
 ## BibTeX
 
 ```bibtex
-@article{black2024pi0,
+@inproceedings{black2024pi0,
   author       = {Kevin Black and Noah Brown and Danny Driess and Adnan Esmail and Michael Equi and others},
   title        = {pi-0: A Vision-Language-Action Flow Model for General Robot Control},
-  journal      = {CoRR},
-  volume       = {abs/2410.24164},
-  year         = {2024},
+  booktitle    = {Conference on Robot Learning ({CoRL})},
+  year         = {2025},
   url          = {https://doi.org/10.48550/arXiv.2410.24164},
   eprinttype   = {arXiv},
   eprint       = {2410.24164}
