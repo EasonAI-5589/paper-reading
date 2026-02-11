@@ -49,10 +49,41 @@
 ## BibTeX
 
 ```bibtex
-@inproceedings{zhang2025mmrlhf,
-  title={MM-RLHF: The Next Step Forward in Multimodal LLM Alignment},
-  author={Yi-Fan Zhang and Tao Yu and Haochen Tian and Chaoyou Fu and Peiyan Li and Jianshu Zeng and Wulin Xie and Yang Shi and Huanyu Zhang and Junkang Wu and Xue Wang and Yibo Hu and Bin Wen and Fan Yang and Zhang Zhang and Tingting Gao and Di Zhang and Liang Wang and Rong Jin and Tieniu Tan},
-  booktitle={Proceedings of the 42nd International Conference on Machine Learning (ICML)},
-  year={2025}
+@inproceedings{DBLP:conf/icml/0004Y0FLZX0ZW0H25,
+  author       = {Yifan Zhang and
+                  Tao Yu and
+                  Haochen Tian and
+                  Chaoyou Fu and
+                  Peiyan Li and
+                  Jianshu Zeng and
+                  Wulin Xie and
+                  Yang Shi and
+                  Huanyu Zhang and
+                  Junkang Wu and
+                  Xue Wang and
+                  Yibo Hu and
+                  Bin Wen and
+                  Tingting Gao and
+                  Zhang Zhang and
+                  Fan Yang and
+                  Di Zhang and
+                  Liang Wang and
+                  Rong Jin},
+  editor       = {Aarti Singh and
+                  Maryam Fazel and
+                  Daniel Hsu and
+                  Simon Lacoste{-}Julien and
+                  Felix Berkenkamp and
+                  Tegan Maharaj and
+                  Kiri Wagstaff and
+                  Jerry Zhu},
+  title        = {{MM-RLHF:} The Next Step Forward in Multimodal {LLM} Alignment},
+  booktitle    = {Forty-second International Conference on Machine Learning, {ICML}
+                  2025, Vancouver, BC, Canada, July 13-19, 2025},
+  series       = {Proceedings of Machine Learning Research},
+  volume       = {267},
+  publisher    = {{PMLR} / OpenReview.net},
+  year         = {2025},
+  url          = {https://proceedings.mlr.press/v267/zhang25cs.html}
 }
 ```

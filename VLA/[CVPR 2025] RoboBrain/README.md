@@ -42,11 +42,32 @@
 ## BibTeX
 
 ```bibtex
-@inproceedings{ji2025robobrain,
-  title={RoboBrain: A Unified Brain Model for Robotic Manipulation from Abstract to Concrete},
-  author={Ji, Yuheng and Tan, Huajie and Shi, Jiayu and Hao, Xiaoshuai and Zhang, Yuan and Zhang, Hengyuan and Wang, Pengwei and Zhao, Mengdi and Mu, Yao and An, Pengju and Xue, Xinda and Su, Qinghang and Lyu, Huaihai and Zheng, Xiaolong and Liu, Jiaming and Wang, Zhongyuan and Zhang, Shanghang},
-  booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
-  pages={1724--1734},
-  year={2025}
+@inproceedings{DBLP:conf/cvpr/JiTSHZZWZ0AXSL025,
+  author       = {Yuheng Ji and
+                  Huajie Tan and
+                  Jiayu Shi and
+                  Xiaoshuai Hao and
+                  Yuan Zhang and
+                  Hengyuan Zhang and
+                  Pengwei Wang and
+                  Mengdi Zhao and
+                  Yao Mu and
+                  Pengju An and
+                  Xinda Xue and
+                  Qinghang Su and
+                  Huaihai Lyu and
+                  Xiaolong Zheng and
+                  Jiaming Liu and
+                  Zhongyuan Wang and
+                  Shanghang Zhang},
+  title        = {RoboBrain: {A} Unified Brain Model for Robotic Manipulation from Abstract
+                  to Concrete},
+  booktitle    = {{IEEE/CVF} Conference on Computer Vision and Pattern Recognition,
+                  {CVPR} 2025, Nashville, TN, USA, June 11-15, 2025},
+  pages        = {1724--1734},
+  publisher    = {Computer Vision Foundation / {IEEE}},
+  year         = {2025},
+  url          = {https://openaccess.thecvf.com/content/CVPR2025/html/Ji\_RoboBrain\_A\_Unified\_Brain\_Model\_for\_Robotic\_Manipulation\_from\_Abstract\_CVPR\_2025\_paper.html},
+  doi          = {10.1109/CVPR52734.2025.00168}
 }
 ```

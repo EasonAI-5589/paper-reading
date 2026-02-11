@@ -45,12 +45,21 @@ VisionZip 通过选取 vision encoder 中少量高注意力"dominant tokens"并�
 ## BibTeX
 
 ```bibtex
-@InProceedings{Yang_2025_CVPR,
-  author={Yang, Senqiao and Chen, Yukang and Tian, Zhuotao and Wang, Chengyao and Li, Jingyao and Yu, Bei and Jia, Jiaya},
-  title={VisionZip: Longer is Better but Not Necessary in Vision Language Models},
-  booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
-  month={June},
-  year={2025},
-  pages={19792--19802}
+@inproceedings{DBLP:conf/cvpr/YangCTWL0J25,
+  author       = {Senqiao Yang and
+                  Yukang Chen and
+                  Zhuotao Tian and
+                  Chengyao Wang and
+                  Jingyao Li and
+                  Bei Yu and
+                  Jiaya Jia},
+  title        = {VisionZip: Longer is Better but Not Necessary in Vision Language Models},
+  booktitle    = {{IEEE/CVF} Conference on Computer Vision and Pattern Recognition,
+                  {CVPR} 2025, Nashville, TN, USA, June 11-15, 2025},
+  pages        = {19792--19802},
+  publisher    = {Computer Vision Foundation / {IEEE}},
+  year         = {2025},
+  url          = {https://openaccess.thecvf.com/content/CVPR2025/html/Yang\_VisionZip\_Longer\_is\_Better\_but\_Not\_Necessary\_in\_Vision\_Language\_CVPR\_2025\_paper.html},
+  doi          = {10.1109/CVPR52734.2025.01843}
 }
 ```

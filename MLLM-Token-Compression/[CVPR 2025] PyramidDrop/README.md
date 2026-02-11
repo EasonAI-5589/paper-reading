@@ -44,12 +44,26 @@
 ## BibTeX
 
 ```bibtex
-@misc{xing2024pyramiddrop,
-  title={PyramidDrop: Accelerating Your Large Vision-Language Models via Pyramid Visual Redundancy Reduction},
-  author={Long Xing and Qidong Huang and Xiaoyi Dong and Jiajie Lu and Pan Zhang and Yuhang Zang and Yuhang Cao and Conghui He and Jiaqi Wang and Feng Wu and Dahua Lin},
-  year={2024},
-  eprint={2410.17247},
-  archivePrefix={arXiv},
-  primaryClass={cs.CV}
+@article{DBLP:journals/corr/abs-2410-17247,
+  author       = {Long Xing and
+                  Qidong Huang and
+                  Xiaoyi Dong and
+                  Jiajie Lu and
+                  Pan Zhang and
+                  Yuhang Zang and
+                  Yuhang Cao and
+                  Conghui He and
+                  Jiaqi Wang and
+                  Feng Wu and
+                  Dahua Lin},
+  title        = {PyramidDrop: Accelerating Your Large Vision-Language Models via Pyramid
+                  Visual Redundancy Reduction},
+  journal      = {CoRR},
+  volume       = {abs/2410.17247},
+  year         = {2024},
+  url          = {https://doi.org/10.48550/arXiv.2410.17247},
+  doi          = {10.48550/ARXIV.2410.17247},
+  eprinttype    = {arXiv},
+  eprint       = {2410.17247}
 }
 ```

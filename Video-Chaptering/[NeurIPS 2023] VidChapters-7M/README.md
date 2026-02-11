@@ -46,10 +46,23 @@
 ## BibTeX
 
 ```bibtex
-@inproceedings{yang2023vidchapters,
-  title={VidChapters-7M: Video Chapters at Scale},
-  author={Antoine Yang and Arsha Nagrani and Ivan Laptev and Josef Sivic and Cordelia Schmid},
-  booktitle={Advances in Neural Information Processing Systems (NeurIPS)},
-  year={2023}
+@inproceedings{DBLP:conf/nips/YangNLSS23,
+  author       = {Antoine Yang and
+                  Arsha Nagrani and
+                  Ivan Laptev and
+                  Josef Sivic and
+                  Cordelia Schmid},
+  editor       = {Alice Oh and
+                  Tristan Naumann and
+                  Amir Globerson and
+                  Kate Saenko and
+                  Moritz Hardt and
+                  Sergey Levine},
+  title        = {VidChapters-7M: Video Chapters at Scale},
+  booktitle    = {Advances in Neural Information Processing Systems 36: Annual Conference
+                  on Neural Information Processing Systems 2023, NeurIPS 2023, New Orleans,
+                  LA, USA, December 10 - 16, 2023},
+  year         = {2023},
+  url          = {http://papers.nips.cc/paper\_files/paper/2023/hash/9b5c3e00d6ed30aad7adac9e7a664de1-Abstract-Datasets\_and\_Benchmarks.html}
 }
 ```

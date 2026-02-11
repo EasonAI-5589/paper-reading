@@ -54,11 +54,19 @@ Token Pruning as MMDP:
 ## BibTeX
 
 ```bibtex
-@inproceedings{alvar2025divprune,
-  title={DivPrune: Diversity-based Visual Token Pruning for Large Multimodal Models},
-  author={Saeed Ranjbar Alvar and Gursimran Singh and Mohammad Akbari and Yong Zhang},
-  booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
-  pages={9392--9401},
-  year={2025}
+@inproceedings{DBLP:conf/cvpr/AlvarSAZ25,
+  author       = {Saeed Ranjbar Alvar and
+                  Gursimran Singh and
+                  Mohammad Akbari and
+                  Yong Zhang},
+  title        = {DivPrune: Diversity-based Visual Token Pruning for Large Multimodal
+                  Models},
+  booktitle    = {{IEEE/CVF} Conference on Computer Vision and Pattern Recognition,
+                  {CVPR} 2025, Nashville, TN, USA, June 11-15, 2025},
+  pages        = {9392--9401},
+  publisher    = {Computer Vision Foundation / {IEEE}},
+  year         = {2025},
+  url          = {https://openaccess.thecvf.com/content/CVPR2025/html/Alvar\_DivPrune\_Diversity-based\_Visual\_Token\_Pruning\_for\_Large\_Multimodal\_Models\_CVPR\_2025\_paper.html},
+  doi          = {10.1109/CVPR52734.2025.00877}
 }
 ```

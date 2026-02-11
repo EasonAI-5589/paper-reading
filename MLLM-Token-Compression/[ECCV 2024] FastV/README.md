@@ -43,10 +43,30 @@
 ## BibTeX
 
 ```bibtex
-@inproceedings{chen2024image,
-  title={An Image is Worth 1/2 Tokens After Layer 2: Plug-and-Play Inference Acceleration for Large Vision-Language Models},
-  author={Chen, Liang and Zhao, Haozhe and Liu, Tianyu and Bai, Shuai and Lin, Junyang and Zhou, Chang and Chang, Baobao},
-  booktitle={European Conference on Computer Vision (ECCV)},
-  year={2024}
+@inproceedings{DBLP:conf/eccv/ChenZLBLZC24,
+  author       = {Liang Chen and
+                  Haozhe Zhao and
+                  Tianyu Liu and
+                  Shuai Bai and
+                  Junyang Lin and
+                  Chang Zhou and
+                  Baobao Chang},
+  editor       = {Ales Leonardis and
+                  Elisa Ricci and
+                  Stefan Roth and
+                  Olga Russakovsky and
+                  Torsten Sattler and
+                  G{\"{u}}l Varol},
+  title        = {An Image is Worth 1/2 Tokens After Layer 2: Plug-and-Play Inference
+                  Acceleration for Large Vision-Language Models},
+  booktitle    = {Computer Vision - {ECCV} 2024 - 18th European Conference, Milan, Italy,
+                  September 29-October 4, 2024, Proceedings, Part {LXXXI}},
+  series       = {Lecture Notes in Computer Science},
+  volume       = {15139},
+  pages        = {19--35},
+  publisher    = {Springer},
+  year         = {2024},
+  url          = {https://doi.org/10.1007/978-3-031-73004-7\_2},
+  doi          = {10.1007/978-3-031-73004-7\_2}
 }
 ```

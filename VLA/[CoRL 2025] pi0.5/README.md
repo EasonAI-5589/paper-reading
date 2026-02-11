@@ -58,12 +58,14 @@
 ## BibTeX
 
 ```bibtex
-@inproceedings{black2025pi05,
-  title={$\pi_{0.5}$: a Vision-Language-Action Model with Open-World Generalization},
-  author={Kevin Black and Noah Brown and Danny Driess and Adnan Esmail and Michael Equi and Chelsea Finn and Niccolo Fusai and Lachy Groom and Karol Hausman and Brian Ichter and others},
-  booktitle={Proceedings of the 9th Conference on Robot Learning (CoRL)},
-  volume={305},
-  pages={17--40},
-  year={2025}
+@article{black2025pi05,
+  author       = {Physical Intelligence and Kevin Black and Noah Brown and James Darpinian and Karan Dhabalia and others},
+  title        = {pi-0.5: a Vision-Language-Action Model with Open-World Generalization},
+  journal      = {CoRR},
+  volume       = {abs/2504.16054},
+  year         = {2025},
+  url          = {https://doi.org/10.48550/arXiv.2504.16054},
+  eprinttype   = {arXiv},
+  eprint       = {2504.16054}
 }
 ```

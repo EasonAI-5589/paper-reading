@@ -51,10 +51,19 @@
 ## BibTeX
 
 ```bibtex
-@article{yu2025medframeqa,
-  title={MedFrameQA: A Multi-Image Medical VQA Benchmark for Clinical Reasoning},
-  author={Yu, Suhao and Wang, Haojin and Wu, Juncheng and Xie, Cihang and Zhou, Yuyin},
-  journal={arXiv preprint arXiv:2505.16964},
-  year={2025}
+@article{DBLP:journals/corr/abs-2505-16964,
+  author       = {Suhao Yu and
+                  Haojin Wang and
+                  Juncheng Wu and
+                  Cihang Xie and
+                  Yuyin Zhou},
+  title        = {MedFrameQA: {A} Multi-Image Medical {VQA} Benchmark for Clinical Reasoning},
+  journal      = {CoRR},
+  volume       = {abs/2505.16964},
+  year         = {2025},
+  url          = {https://doi.org/10.48550/arXiv.2505.16964},
+  doi          = {10.48550/ARXIV.2505.16964},
+  eprinttype    = {arXiv},
+  eprint       = {2505.16964}
 }
 ```

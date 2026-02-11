@@ -53,11 +53,23 @@
 ## BibTeX
 
 ```bibtex
-@article{wornow2024contextclues,
-  title={Context Clues: Evaluating Long Context Models for Clinical Prediction Tasks on EHRs},
-  author={Wornow, Michael and Bedi, Suhana and Fuentes Hernandez, Miguel Angel and Steinberg, Ethan and Fries, Jason Alan and R{\'e}, Christopher and Koyejo, Sanmi and Shah, Nigam H.},
-  journal={arXiv preprint arXiv:2412.16178},
-  year={2024},
-  note={ICLR 2025}
+@article{DBLP:journals/corr/abs-2412-16178,
+  author       = {Michael Wornow and
+                  Suhana Bedi and
+                  Miguel Angel Fuentes Hernandez and
+                  Ethan Steinberg and
+                  Jason Alan Fries and
+                  Christopher R{\'{e}} and
+                  Sanmi Koyejo and
+                  Nigam H. Shah},
+  title        = {Context Clues: Evaluating Long Context Models for Clinical Prediction
+                  Tasks on EHRs},
+  journal      = {CoRR},
+  volume       = {abs/2412.16178},
+  year         = {2024},
+  url          = {https://doi.org/10.48550/arXiv.2412.16178},
+  doi          = {10.48550/ARXIV.2412.16178},
+  eprinttype    = {arXiv},
+  eprint       = {2412.16178}
 }
 ```

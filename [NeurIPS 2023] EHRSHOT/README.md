@@ -50,11 +50,24 @@ Stanford 发布首个纵向 EHR benchmark（6,739 patients, 41.6M events）+ 临
 ## BibTeX
 
 ```bibtex
-@inproceedings{wornow2023ehrshot,
-  title={EHRSHOT: An EHR Benchmark for Few-Shot Evaluation of Foundation Models},
-  author={Wornow, Michael and Thapa, Rahul and Steinberg, Ethan and Fries, Jason A. and Shah, Nigam H.},
-  booktitle={Advances in Neural Information Processing Systems},
-  volume={36},
-  year={2023}
+@inproceedings{DBLP:conf/nips/WornowTSFS23,
+  author       = {Michael Wornow and
+                  Rahul Thapa and
+                  Ethan Steinberg and
+                  Jason A. Fries and
+                  Nigam Shah},
+  editor       = {Alice Oh and
+                  Tristan Naumann and
+                  Amir Globerson and
+                  Kate Saenko and
+                  Moritz Hardt and
+                  Sergey Levine},
+  title        = {{EHRSHOT:} An {EHR} Benchmark for Few-Shot Evaluation of Foundation
+                  Models},
+  booktitle    = {Advances in Neural Information Processing Systems 36: Annual Conference
+                  on Neural Information Processing Systems 2023, NeurIPS 2023, New Orleans,
+                  LA, USA, December 10 - 16, 2023},
+  year         = {2023},
+  url          = {http://papers.nips.cc/paper\_files/paper/2023/hash/d42db1f74df54cb992b3956eb7f15a6f-Abstract-Datasets\_and\_Benchmarks.html}
 }
 ```

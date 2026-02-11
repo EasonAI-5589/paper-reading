@@ -57,12 +57,25 @@ SODA:      按时间排序 → DP 最优匹配（一对一，保序）→ F-meas
 ## BibTeX
 
 ```bibtex
-@inproceedings{fujita2020soda,
-  title={SODA: Story Oriented Dense Video Captioning Evaluation Framework},
-  author={Fujita, Soichiro and Hirao, Tsutomu and Kamigaito, Hidetaka and Okumura, Manabu and Nagata, Masaaki},
-  booktitle={European Conference on Computer Vision (ECCV)},
-  pages={517--531},
-  year={2020},
-  publisher={Springer}
+@inproceedings{DBLP:conf/eccv/FujitaHKON20,
+  author       = {Soichiro Fujita and
+                  Tsutomu Hirao and
+                  Hidetaka Kamigaito and
+                  Manabu Okumura and
+                  Masaaki Nagata},
+  editor       = {Andrea Vedaldi and
+                  Horst Bischof and
+                  Thomas Brox and
+                  Jan{-}Michael Frahm},
+  title        = {{SODA:} Story Oriented Dense Video Captioning Evaluation Framework},
+  booktitle    = {Computer Vision - {ECCV} 2020 - 16th European Conference, Glasgow,
+                  UK, August 23-28, 2020, Proceedings, Part {VI}},
+  series       = {Lecture Notes in Computer Science},
+  volume       = {12351},
+  pages        = {517--531},
+  publisher    = {Springer},
+  year         = {2020},
+  url          = {https://doi.org/10.1007/978-3-030-58539-6\_31},
+  doi          = {10.1007/978-3-030-58539-6\_31}
 }
 ```

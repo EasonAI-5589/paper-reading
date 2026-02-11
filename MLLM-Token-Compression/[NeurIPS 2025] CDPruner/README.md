@@ -49,10 +49,23 @@ CDPruner 通过**行列式点过程（DPP）** 在指令条件下最大化视觉
 ## BibTeX
 
 ```bibtex
-@inproceedings{zhang2025cdpruner,
-  title={Beyond Attention or Similarity: Maximizing Conditional Diversity for Token Pruning in MLLMs},
-  author={Qizhe Zhang and Mengzhen Liu and Lichen Li and Ming Lu and Yuan Zhang and Junwen Pan and Qi She and Shanghang Zhang},
-  booktitle={Advances in Neural Information Processing Systems (NeurIPS)},
-  year={2025}
+@article{DBLP:journals/corr/abs-2506-10967,
+  author       = {Qizhe Zhang and
+                  Mengzhen Liu and
+                  Lichen Li and
+                  Ming Lu and
+                  Yuan Zhang and
+                  Junwen Pan and
+                  Qi She and
+                  Shanghang Zhang},
+  title        = {Beyond Attention or Similarity: Maximizing Conditional Diversity for
+                  Token Pruning in MLLMs},
+  journal      = {CoRR},
+  volume       = {abs/2506.10967},
+  year         = {2025},
+  url          = {https://doi.org/10.48550/arXiv.2506.10967},
+  doi          = {10.48550/ARXIV.2506.10967},
+  eprinttype    = {arXiv},
+  eprint       = {2506.10967}
 }
 ```

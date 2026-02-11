@@ -64,12 +64,18 @@
 ## BibTeX
 
 ```bibtex
-@InProceedings{Ventura_2025_CVPR,
-  author={Ventura, Lucas and Yang, Antoine and Schmid, Cordelia and Varol, G\"{u}l},
-  title={Chapter-Llama: Efficient Chaptering in Hour-Long Videos with LLMs},
-  booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
-  month={June},
-  year={2025},
-  pages={18947--18958}
+@inproceedings{DBLP:conf/cvpr/VenturaYSV25,
+  author       = {Lucas Ventura and
+                  Antoine Yang and
+                  Cordelia Schmid and
+                  G{\"{u}}l Varol},
+  title        = {Chapter-Llama: Efficient Chaptering in Hour-Long Videos with LLMs},
+  booktitle    = {{IEEE/CVF} Conference on Computer Vision and Pattern Recognition,
+                  {CVPR} 2025, Nashville, TN, USA, June 11-15, 2025},
+  pages        = {18947--18958},
+  publisher    = {Computer Vision Foundation / {IEEE}},
+  year         = {2025},
+  url          = {https://openaccess.thecvf.com/content/CVPR2025/html/Ventura\_Chapter-Llama\_Efficient\_Chaptering\_in\_Hour-Long\_Videos\_with\_LLMs\_CVPR\_2025\_paper.html},
+  doi          = {10.1109/CVPR52734.2025.01765}
 }
 ```

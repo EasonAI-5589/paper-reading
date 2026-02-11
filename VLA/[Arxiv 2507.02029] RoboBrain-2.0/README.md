@@ -44,12 +44,65 @@ RoboBrain 系列的第二代，从 LLaVA 换到 **Qwen2.5-VL** 底座，统一�
 ## BibTeX
 
 ```bibtex
-@misc{cao2025robobrain2,
-  title={RoboBrain 2.0 Technical Report},
-  author={BAAI RoboBrain Team},
-  year={2025},
-  eprint={2507.02029},
-  archivePrefix={arXiv},
-  primaryClass={cs.RO}
+@article{DBLP:journals/corr/abs-2507-02029,
+  author       = {Mingyu Cao and
+                  Huajie Tan and
+                  Yuheng Ji and
+                  Minglan Lin and
+                  Zhiyu Li and
+                  Zhou Cao and
+                  Pengwei Wang and
+                  Enshen Zhou and
+                  Yi Han and
+                  Yingbo Tang and
+                  Xiangqi Xu and
+                  Wei Guo and
+                  Yaoxu Lyu and
+                  Yijie Xu and
+                  Jiayu Shi and
+                  Mengfei Du and
+                  Cheng Chi and
+                  Mengdi Zhao and
+                  Xiaoshuai Hao and
+                  Junkai Zhao and
+                  Xiaojie Zhang and
+                  Shanyu Rong and
+                  Huaihai Lyu and
+                  Zhengliang Cai and
+                  Yankai Fu and
+                  Ning Chen and
+                  Bolun Zhang and
+                  Lingfeng Zhang and
+                  Shuyi Zhang and
+                  Dong Liu and
+                  Xi Feng and
+                  Songjing Wang and
+                  Xiaodan Liu and
+                  Yance Jiao and
+                  Mengsi Lyu and
+                  Zhuo Chen and
+                  Chenrui He and
+                  Yulong Ao and
+                  Xue Sun and
+                  Zheqi He and
+                  Jingshu Zheng and
+                  Xi Yang and
+                  Donghai Shi and
+                  Kunchang Xie and
+                  Bochao Zhang and
+                  Shaokai Nie and
+                  Chunlei Men and
+                  Yonghua Lin and
+                  Zhongyuan Wang and
+                  Tiejun Huang and
+                  Shanghang Zhang},
+  title        = {RoboBrain 2.0 Technical Report},
+  journal      = {CoRR},
+  volume       = {abs/2507.02029},
+  year         = {2025},
+  url          = {https://doi.org/10.48550/arXiv.2507.02029},
+  doi          = {10.48550/ARXIV.2507.02029},
+  eprinttype    = {arXiv},
+  eprint       = {2507.02029}
 }
 ```

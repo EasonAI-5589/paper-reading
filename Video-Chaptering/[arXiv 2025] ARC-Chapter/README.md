@@ -72,12 +72,21 @@
 ## BibTeX
 
 ```bibtex
-@misc{pu2025arcchapter,
-  title={ARC-Chapter: Structuring Hour-Long Videos into Navigable Chapters and Hierarchical Summaries},
-  author={Junfu Pu and Teng Wang and Yixiao Ge and Yuying Ge and Chen Li and Ying Shan},
-  year={2025},
-  eprint={2511.14349},
-  archivePrefix={arXiv},
-  primaryClass={cs.CV}
+@article{DBLP:journals/corr/abs-2511-14349,
+  author       = {Junfu Pu and
+                  Teng Wang and
+                  Yixiao Ge and
+                  Yuying Ge and
+                  Chen Li and
+                  Ying Shan},
+  title        = {ARC-Chapter: Structuring Hour-Long Videos into Navigable Chapters
+                  and Hierarchical Summaries},
+  journal      = {CoRR},
+  volume       = {abs/2511.14349},
+  year         = {2025},
+  url          = {https://doi.org/10.48550/arXiv.2511.14349},
+  doi          = {10.48550/ARXIV.2511.14349},
+  eprinttype    = {arXiv},
+  eprint       = {2511.14349}
 }
 ```
