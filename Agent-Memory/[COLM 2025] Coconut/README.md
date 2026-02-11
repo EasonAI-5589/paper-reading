@@ -54,10 +54,11 @@ Coconut 是 **latent reasoning** 的理论基础：
 ## BibTeX
 
 ```bibtex
-@inproceedings{hao2025coconut,
+@article{hao2024coconut,
   title={Training Large Language Models to Reason in a Continuous Latent Space},
-  author={Hao, Shibo and Gu, Sainbayar and Ma, Haotian and Hong, Joshua Jiahua and Wang, Zhen and Wang, Daisy Zhe and Hu, Zhiting},
-  booktitle={International Conference on Learning Representations (ICLR)},
-  year={2025}
+  author={Hao, Shibo and Sukhbaatar, Sainbayar and Su, DiJia and Li, Xian and Hu, Zhiting and Weston, Jason and Tian, Yuandong},
+  journal={arXiv preprint arXiv:2412.06769},
+  year={2024},
+  note={Accepted to COLM 2025}
 }
 ```
