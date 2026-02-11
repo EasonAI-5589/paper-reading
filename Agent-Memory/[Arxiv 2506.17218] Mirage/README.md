@@ -54,9 +54,19 @@ VLM 推理时通过特殊 token 触发 **latent visual token** 生成——将�
 
 ```bibtex
 @article{yang2025mirage,
-  title={Machine Mental Imagery: Empower Multimodal Reasoning with Latent Visual Tokens},
-  author={Yang, Zeyuan and Yu, Xueyang and Chen, Delin and Shen, Maohao and Gan, Chuang},
-  journal={arXiv preprint arXiv:2506.17218},
-  year={2025}
+  author       = {Zeyuan Yang and
+                  Xueyang Yu and
+                  Delin Chen and
+                  Maohao Shen and
+                  Chuang Gan},
+  title        = {Machine Mental Imagery: Empower Multimodal Reasoning with Latent Visual
+                  Tokens},
+  journal      = {CoRR},
+  volume       = {abs/2506.17218},
+  year         = {2025},
+  url          = {https://doi.org/10.48550/arXiv.2506.17218},
+  doi          = {10.48550/ARXIV.2506.17218},
+  eprinttype   = {arXiv},
+  eprint       = {2506.17218}
 }
 ```

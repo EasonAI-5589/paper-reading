@@ -64,12 +64,26 @@
 ## BibTeX
 
 ```bibtex
-@misc{hu2025memory,
-  title={Memory in the Age of AI Agents},
-  author={Hu, Yuyang and Liu, Shichun and Yue, Yanwei and Zhang, Guibin and Liu, Boyang and Zhu, Fangyi and Lin, Jiahang and Guo, Honglin and Dou, Shihan and Xi, Zhiheng and others},
-  year={2025},
-  eprint={2512.13564},
-  archivePrefix={arXiv},
-  primaryClass={cs.AI}
+@article{hu2025memory,
+  author       = {Yuyang Hu and Shichun Liu and Yanwei Yue and Guibin Zhang and
+                  Boyang Liu and Fangyi Zhu and Jiahang Lin and Honglin Guo and
+                  Shihan Dou and Zhiheng Xi and Senjie Jin and Jiejun Tan and
+                  Yanbin Yin and Jiongnan Liu and Zeyu Zhang and Zhongxiang Sun and
+                  Yutao Zhu and Hao Sun and Boci Peng and Zhenrong Cheng and
+                  Xuanbo Fan and Jiaxin Guo and Xinlei Yu and Zhenhong Zhou and
+                  Zewen Hu and Jiahao Huo and Junhao Wang and Yuwei Niu and
+                  Yu Wang and Zhenfei Yin and Xiaobin Hu and Yue Liao and
+                  Qiankun Li and Kun Wang and Wangchunshu Zhou and Yixin Liu and
+                  Dawei Cheng and Qi Zhang and Tao Gui and Shirui Pan and
+                  Yan Zhang and Philip Torr and Zhicheng Dou and Ji{-}Rong Wen and
+                  Xuanjing Huang and Yu{-}Gang Jiang and Shuicheng Yan},
+  title        = {Memory in the Age of {AI} Agents},
+  journal      = {CoRR},
+  volume       = {abs/2512.13564},
+  year         = {2025},
+  url          = {https://doi.org/10.48550/arXiv.2512.13564},
+  doi          = {10.48550/ARXIV.2512.13564},
+  eprinttype   = {arXiv},
+  eprint       = {2512.13564}
 }
 ```

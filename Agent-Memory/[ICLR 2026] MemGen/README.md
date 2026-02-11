@@ -38,10 +38,15 @@ MemGen 提出动态生成式隐式记忆框架：通过 RL 训练的 Memory Trig
 ## BibTeX
 
 ```bibtex
-@inproceedings{zhang2025memgen,
-  title={MemGen: Weaving Generative Latent Memory for Self-Evolving Agents},
-  author={Guibin Zhang and Muxin Fu and Shuicheng Yan},
-  booktitle={International Conference on Learning Representations (ICLR)},
-  year={2026}
+@inproceedings{zhang2026memgen,
+  author       = {Guibin Zhang and
+                  Muxin Fu and
+                  Shuicheng Yan},
+  title        = {MemGen: Weaving Generative Latent Memory for Self-Evolving Agents},
+  booktitle    = {International Conference on Learning Representations ({ICLR})},
+  year         = {2026},
+  url          = {https://doi.org/10.48550/arXiv.2509.24704},
+  eprinttype   = {arXiv},
+  eprint       = {2509.24704}
 }
 ```

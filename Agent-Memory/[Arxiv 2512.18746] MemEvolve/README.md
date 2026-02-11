@@ -50,12 +50,22 @@
 ## BibTeX
 
 ```bibtex
-@misc{zhang2025memevolve,
-  title={MemEvolve: Meta-Evolution of Agent Memory Systems},
-  author={Zhang, Guibin and Ren, Haotian and Zhan, Chong and Zhou, Zhenhong and Wang, Junhao and Zhu, He and Zhou, Wangchunshu and Yan, Shuicheng},
-  year={2025},
-  eprint={2512.18746},
-  archivePrefix={arXiv},
-  primaryClass={cs.CL}
+@article{zhang2025memevolve,
+  author       = {Guibin Zhang and
+                  Haotian Ren and
+                  Chong Zhan and
+                  Zhenhong Zhou and
+                  Junhao Wang and
+                  He Zhu and
+                  Wangchunshu Zhou and
+                  Shuicheng Yan},
+  title        = {MemEvolve: Meta-Evolution of Agent Memory Systems},
+  journal      = {CoRR},
+  volume       = {abs/2512.18746},
+  year         = {2025},
+  url          = {https://doi.org/10.48550/arXiv.2512.18746},
+  doi          = {10.48550/ARXIV.2512.18746},
+  eprinttype   = {arXiv},
+  eprint       = {2512.18746}
 }
 ```

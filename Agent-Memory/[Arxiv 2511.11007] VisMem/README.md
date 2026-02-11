@@ -59,9 +59,24 @@ VisMem 和 MemGen 是 NUS Shuicheng Yan 组的**姊妹工作**，解决不同维
 
 ```bibtex
 @article{yu2025vismem,
-  title={VisMem: Latent Vision Memory Unlocks Potential of Vision-Language Models},
-  author={Yu, Xinlei and Xu, Chengming and Zhang, Guibin and Chen, Zhangquan and Zhang, Yudong and He, Yongbo and Jiang, Peng-Tao and Zhang, Jiangning and Hu, Xiaobin and Yan, Shuicheng},
-  journal={arXiv preprint arXiv:2511.11007},
-  year={2025}
+  author       = {Xinlei Yu and
+                  Chengming Xu and
+                  Guibin Zhang and
+                  Zhangquan Chen and
+                  Yudong Zhang and
+                  Yongbo He and
+                  Peng{-}Tao Jiang and
+                  Jiangning Zhang and
+                  Xiaobin Hu and
+                  Shuicheng Yan},
+  title        = {VisMem: Latent Vision Memory Unlocks Potential of Vision-Language
+                  Models},
+  journal      = {CoRR},
+  volume       = {abs/2511.11007},
+  year         = {2025},
+  url          = {https://doi.org/10.48550/arXiv.2511.11007},
+  doi          = {10.48550/ARXIV.2511.11007},
+  eprinttype   = {arXiv},
+  eprint       = {2511.11007}
 }
 ```

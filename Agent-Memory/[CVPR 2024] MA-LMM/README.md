@@ -56,9 +56,22 @@
 
 ```bibtex
 @inproceedings{he2024malmm,
-  title={MA-LMM: Memory-Augmented Large Multimodal Model for Long-Term Video Understanding},
-  author={He, Bo and Li, Hengduo and Jang, Young Kyun and Jia, Menglin and Cao, Xuefei and Shah, Ashish and Shrivastava, Abhinav and Lim, Ser-Nam},
-  booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
-  year={2024}
+  author       = {Bo He and
+                  Hengduo Li and
+                  Young Kyun Jang and
+                  Menglin Jia and
+                  Xuefei Cao and
+                  Ashish Shah and
+                  Abhinav Shrivastava and
+                  Ser{-}Nam Lim},
+  title        = {{MA-LMM:} Memory-Augmented Large Multimodal Model for Long-Term Video
+                  Understanding},
+  booktitle    = {{IEEE/CVF} Conference on Computer Vision and Pattern Recognition,
+                  {CVPR} 2024, Seattle, WA, USA, June 16-22, 2024},
+  pages        = {13504--13514},
+  publisher    = {{IEEE}},
+  year         = {2024},
+  url          = {https://doi.org/10.1109/CVPR52733.2024.01282},
+  doi          = {10.1109/CVPR52733.2024.01282}
 }
 ```

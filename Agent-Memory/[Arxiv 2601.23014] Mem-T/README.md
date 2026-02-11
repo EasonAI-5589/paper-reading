@@ -65,9 +65,19 @@ Mem-T 提出层次化记忆架构（Working/Factual/Experiential/Raw）+ MoT-GRP
 
 ```bibtex
 @article{yue2026memt,
-  title={Mem-T: Densifying Rewards for Long-Horizon Memory Agents},
-  author={Yanwei Yue and Guibin Zhang and Boci Peng and Xuanbo Fan and Jiaxin Guo and Qiankun Li and Yan Zhang},
-  journal={arXiv preprint arXiv:2601.23014},
-  year={2026}
+  author       = {Yanwei Yue and
+                  Guibin Zhang and
+                  Boci Peng and
+                  Xuanbo Fan and
+                  Jiaxin Guo and
+                  Qiankun Li and
+                  Yan Zhang},
+  title        = {Mem-T: Densifying Rewards for Long-Horizon Memory Agents},
+  journal      = {CoRR},
+  volume       = {abs/2601.23014},
+  year         = {2026},
+  url          = {https://doi.org/10.48550/arXiv.2601.23014},
+  eprinttype   = {arXiv},
+  eprint       = {2601.23014}
 }
 ```
