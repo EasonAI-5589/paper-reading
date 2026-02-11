@@ -53,7 +53,7 @@ G-Memory 和 MemGen 是同一作者（Guibin Zhang, NUS Shuicheng Yan 组）的�
 ```bibtex
 @inproceedings{zhang2025gmemory,
   title={G-Memory: Tracing Hierarchical Memory for Multi-Agent Systems},
-  author={Zhang, Guibin and Fu, Muxin and others},
+  author={Zhang, Guibin and Fu, Muxin and Wan, Guancheng and Yu, Miao and Wang, Kun and Yan, Shuicheng},
   booktitle={Advances in Neural Information Processing Systems (NeurIPS)},
   year={2025}
 }

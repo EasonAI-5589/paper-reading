@@ -53,7 +53,7 @@
 ```bibtex
 @article{yu2025medframeqa,
   title={MedFrameQA: A Multi-Image Medical VQA Benchmark for Clinical Reasoning},
-  author={Yu, Suhao and Wang, Haojin and Wu, Juncheng and Luo, Luyang and Xie, Cihang and Rajpurkar, Pranav and Zhou, Yuyin},
+  author={Yu, Suhao and Wang, Haojin and Wu, Juncheng and Xie, Cihang and Zhou, Yuyin},
   journal={arXiv preprint arXiv:2505.16964},
   year={2025}
 }

@@ -53,10 +53,11 @@
 ## BibTeX
 
 ```bibtex
-@inproceedings{wornow2025contextclues,
+@article{wornow2024contextclues,
   title={Context Clues: Evaluating Long Context Models for Clinical Prediction Tasks on EHRs},
-  author={Wornow, Michael and Bedi, Suhana and Hernandez, Miguel Angel Fuentes and Steinberg, Ethan and Fries, Jason Alan and R{\'e}, Christopher and Koyejo, Sanmi and Shah, Nigam H.},
-  booktitle={International Conference on Learning Representations (ICLR)},
-  year={2025}
+  author={Wornow, Michael and Bedi, Suhana and Fuentes Hernandez, Miguel Angel and Steinberg, Ethan and Fries, Jason Alan and R{\'e}, Christopher and Koyejo, Sanmi and Shah, Nigam H.},
+  journal={arXiv preprint arXiv:2412.16178},
+  year={2024},
+  note={ICLR 2025}
 }
 ```
