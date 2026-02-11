@@ -125,6 +125,7 @@ paper-reading/
 │   ├── [ICLR 2026] MemGen/
 │   ├── [Arxiv 2601.23014] Mem-T/
 │   ├── [Arxiv 2511.11007] VisMem/
+│   ├── [CVPR 2024] MA-LMM/
 │   └── [Arxiv 2506.17218] Mirage/
 │
 ├── [ICLR 2026 Rejected] MedFrameQA/ # Medical AI (未分组, 3 篇)
