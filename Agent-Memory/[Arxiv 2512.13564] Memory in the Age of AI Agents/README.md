@@ -66,7 +66,7 @@
 ```bibtex
 @misc{hu2025memory,
   title={Memory in the Age of AI Agents},
-  author={Zeyu Zhang and Zhongxiang Sun and Yutao Zhu and Hao Sun and Boci Peng and Zhenrong Cheng and Xuanbo Fan and Jiaxin Guo and Xinlei Yu and Zhenhong Zhou and Zewen Hu and Jiahao Huo and Junhao Wang and Yuwei Niu},
+  author={Hu, Yuyang and Liu, Shichun and Yue, Yanwei and Zhang, Guibin and Liu, Boyang and Zhu, Fangyi and Lin, Jiahang and Guo, Honglin and Dou, Shihan and Xi, Zhiheng and others},
   year={2025},
   eprint={2512.13564},
   archivePrefix={arXiv},
