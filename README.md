@@ -64,6 +64,7 @@ Agent 记忆机制
 | [MemGen](./Agent-Memory/%5BICLR%202026%5D%20MemGen/) | ICLR 2026 | 生成式隐式记忆，推理-记忆交织，超 ExpeL/AWM 38% |
 | [Mem-T](./Agent-Memory/%5BArxiv%202601.23014%5D%20Mem-T/) | arXiv 2601.23014 | 层次化记忆数据库 + 密集化奖励训练 Memory Agent |
 | [VisMem](./Agent-Memory/%5BArxiv%202511.11007%5D%20VisMem/) | arXiv 2511.11007 | 短期(视觉)+长期(语义) latent vision memory，特殊 token 按需调用，两阶段 GRPO，+11% |
+| [Coconut](./Agent-Memory/%5BICLR%202025%5D%20Coconut/) | ICLR 2025 | Chain of Continuous Thought，hidden state 直接反馈做 latent reasoning，涌现 BFS，MemGen 理论基础 |
 | [MA-LMM](./Agent-Memory/%5BCVPR%202024%5D%20MA-LMM/) | CVPR 2024 | Dual memory bank (visual+query) + MBC 压缩，在线逐帧处理，plug-and-play，LVU/Breakfast/COIN SOTA |
 | [Mirage](./Agent-Memory/%5BArxiv%202506.17218%5D%20Mirage/) | arXiv 2506.17218 | Machine Mental Imagery，hidden state 重铸为 latent visual token，两阶段 SFT+RL，VisMem 的 latent baseline |
 
