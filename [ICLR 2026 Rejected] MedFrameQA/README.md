@@ -47,3 +47,14 @@
 - **数据构建 pipeline**：视频→帧→字幕配对→多帧合并→VQA，可借鉴其从视频构建多步推理数据的思路
 - **跨帧推理定义**：时序连贯帧序列中的信息综合，非简单多图拼接
 - **模型失败模式**：忽略中间帧、错误传播——这些也是 Agent 长程记忆面临的挑战
+
+## BibTeX
+
+```bibtex
+@article{yu2025medframeqa,
+  title={MedFrameQA: A Multi-Image Medical VQA Benchmark for Clinical Reasoning},
+  author={Yu, Suhao and Wang, Haojin and Wu, Juncheng and Luo, Luyang and Xie, Cihang and Rajpurkar, Pranav and Zhou, Yuyin},
+  journal={arXiv preprint arXiv:2505.16964},
+  year={2025}
+}
+```

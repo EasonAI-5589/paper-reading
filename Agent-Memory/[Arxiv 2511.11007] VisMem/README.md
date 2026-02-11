@@ -54,3 +54,14 @@ VisMem 和 MemGen 是 NUS Shuicheng Yan 组的**姊妹工作**，解决不同维
 | 挂载 | Vision encoder + Language model (LoRA) | Language model |
 | 训练 | 两阶段 GRPO | 端到端 GRPO |
 | 互补性 | ✓ 理论上可联合使用 | ✓ |
+
+## BibTeX
+
+```bibtex
+@article{yu2025vismem,
+  title={VisMem: Latent Vision Memory Unlocks Potential of Vision-Language Models},
+  author={Yu, Xinlei and Xu, Chengming and Zhang, Guibin and others},
+  journal={arXiv preprint arXiv:2511.11007},
+  year={2025}
+}
+```

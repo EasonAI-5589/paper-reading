@@ -47,3 +47,14 @@ G-Memory 和 MemGen 是同一作者（Guibin Zhang, NUS Shuicheng Yan 组）的�
 - **G-Memory**：token-level 显式记忆，面向**多 Agent** 系统，图结构组织协作轨迹
 - **MemGen**：latent-level 隐式记忆，面向**单 Agent**，生成式记忆嵌入推理过程
 - 共同点：都关注 cross-trial 记忆、都超越了简单 RAG 式检索
+
+## BibTeX
+
+```bibtex
+@inproceedings{zhang2025gmemory,
+  title={G-Memory: Tracing Hierarchical Memory for Multi-Agent Systems},
+  author={Zhang, Guibin and Fu, Muxin and others},
+  booktitle={Advances in Neural Information Processing Systems (NeurIPS)},
+  year={2025}
+}
+```

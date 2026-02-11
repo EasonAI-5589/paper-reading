@@ -46,3 +46,14 @@ Stanford 发布首个纵向 EHR benchmark（6,739 patients, 41.6M events）+ 临
 | 预训练时间 | ~4 days on 1x V100 |
 | 词表大小 | 65,536 codes |
 | Context window | 5,952 events (496 × 12 layers) |
+
+## BibTeX
+
+```bibtex
+@inproceedings{wornow2023ehrshot,
+  title={EHRSHOT: An EHR Benchmark for Few-Shot Evaluation of Foundation Models},
+  author={Wornow, Michael and Thapa, Rahul and Steinberg, Ethan and Fries, Jason Alan and Shah, Nigam H.},
+  booktitle={Advances in Neural Information Processing Systems (NeurIPS)},
+  year={2023}
+}
+```

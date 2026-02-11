@@ -51,3 +51,14 @@
 | MemGen | 生成式隐式记忆 | 推理-记忆交织 | ❌ | LLM |
 | MeMViT | Feature bank | FIFO / learnable pooling | ✅ | MViT |
 | MovieChat | Raw visual features | Token merging (帧级) | ❌ | Video-LLaMA |
+
+## BibTeX
+
+```bibtex
+@inproceedings{he2024malmm,
+  title={MA-LMM: Memory-Augmented Large Multimodal Model for Long-Term Video Understanding},
+  author={He, Bo and Li, Hengduo and Jang, Young Kyun and Jia, Menglin and Cao, Xuefei and Shah, Ashish and Shrivastava, Abhinav and Lim, Ser-Nam},
+  booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  year={2024}
+}
+```

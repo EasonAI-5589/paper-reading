@@ -49,3 +49,14 @@
 - **长上下文 ≈ 完整记忆**：将患者一生的医疗记录塞入上下文窗口，本质上是用上下文长度替代外部记忆
 - **亚二次架构 ≈ 高效记忆压缩**：Mamba 的 SSM 将长序列压缩到固定维度的隐状态中，类似 latent memory
 - **EHR 数据的特殊挑战**：copy-forwarding（冗余记忆）、irregular intervals（不均匀时间跨度）、disease progression（信息衰减）是所有 agent memory 系统都可能遇到的问题
+
+## BibTeX
+
+```bibtex
+@inproceedings{wornow2025contextclues,
+  title={Context Clues: Evaluating Long Context Models for Clinical Prediction Tasks on EHRs},
+  author={Wornow, Michael and Bedi, Suhana and Hernandez, Miguel Angel Fuentes and Steinberg, Ethan and Fries, Jason Alan and R{\'e}, Christopher and Koyejo, Sanmi and Shah, Nigam H.},
+  booktitle={International Conference on Learning Representations (ICLR)},
+  year={2025}
+}
+```

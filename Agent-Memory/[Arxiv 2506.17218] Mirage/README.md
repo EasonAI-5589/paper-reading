@@ -49,3 +49,14 @@ VLM 推理时通过特殊 token 触发 **latent visual token** 生成——将�
 | VSP Spatial Planning 提升 | +11% over Direct SFT |
 | 最优 $k$ 范围 | 2-6 (k=8 下降 13%) |
 | 训练耗时 | Stage 1: 3.5h + Stage 2: 7.2h (1×H100) |
+
+## BibTeX
+
+```bibtex
+@article{yang2025mirage,
+  title={Machine Mental Imagery: Empower Multimodal Reasoning with Latent Visual Tokens},
+  author={Yang, Zeyuan and Yu, Xueyang and Chen, Delin and Shen, Maohao and Gan, Chuang},
+  journal={arXiv preprint arXiv:2506.17218},
+  year={2025}
+}
+```

@@ -46,3 +46,14 @@
 | **MemGen** (同作者) | 生成式隐式记忆，MemEvolve 是更上层的架构搜索 |
 | **AgentKB** | MemEvolve 进化的起点之一 |
 | **ExpeL / AWM / Voyager** | EvolveLab 中的经典基线 |
+
+## BibTeX
+
+```bibtex
+@article{zhang2025memevolve,
+  title={MemEvolve: Meta-Evolution of Agent Memory Systems},
+  author={Zhang, Guibin and others},
+  journal={arXiv preprint arXiv:2512.18746},
+  year={2025}
+}
+```

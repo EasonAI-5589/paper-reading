@@ -50,3 +50,14 @@ Coconut 是 **latent reasoning** 的理论基础：
 - **VisMem**: 进一步扩展到视觉模态，用 latent token 作为短期/长期视觉记忆
 
 共同思路：**不在离散文本空间做中间表示，而是直接在连续向量空间操作**。
+
+## BibTeX
+
+```bibtex
+@inproceedings{hao2025coconut,
+  title={Training Large Language Models to Reason in a Continuous Latent Space},
+  author={Hao, Shibo and Gu, Sainbayar and Ma, Haotian and Hong, Joshua Jiahua and Wang, Zhen and Wang, Daisy Zhe and Hu, Zhiting},
+  booktitle={International Conference on Learning Representations (ICLR)},
+  year={2025}
+}
+```
