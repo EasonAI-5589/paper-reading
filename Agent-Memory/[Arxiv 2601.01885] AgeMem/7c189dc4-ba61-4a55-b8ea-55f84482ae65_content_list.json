@@ -1,0 +1,4185 @@
+[
+    {
+        "type": "text",
+        "text": "Agentic Memory: Learning Unified Long-Term and Short-Term Memory Management for Large Language Model Agents ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            79,
+            875,
+            118
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Yi $\\mathbf { Y } \\mathbf { u } ^ { 1 , 2 }$ , Liuyi $\\mathbf { Y a o } ^ { 1 , \\dag }$ , Yuexiang $\\mathbf { X i e ^ { 1 } }$ , Qingquan $\\mathbf { T a n } ^ { 2 }$ , Jiaqi Feng2, Yaliang $\\mathbf { L i } ^ { 1 }$ , and Libing $\\mathbf { W } \\mathbf { u } ^ { 2 , \\dagger }$ 1Alibaba Group, 2School of Cyber Science and Engineering, Wuhan University {yui1212,tanqingquan,jiaqiFeng,wu}@whu.edu.cn {yly287738,yuexiang.xyx,yaliang.li}@alibaba-inc.com †Corresponding authors ",
+        "bbox": [
+            221,
+            124,
+            783,
+            242
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Abstract ",
+        "text_level": 1,
+        "bbox": [
+            263,
+            261,
+            339,
+            277
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Large language model (LLM) agents face fundamental limitations in long-horizon reasoning due to finite context windows, making effective memory management critical. Existing methods typically handle long-term memory (LTM) and short-term memory (STM) as separate components, relying on heuristics or auxiliary controllers, which limits adaptability and end-to-end optimization. In this paper, we propose Agentic Memory (AgeMem), a unified framework that integrates LTM and STM management directly into the agent’s policy. AgeMem exposes memory operations as tool-based actions, enabling the LLM agent to autonomously decide what and when to store, retrieve, update, summarize, or discard information. To train such unified behaviors, we propose a three-stage progressive reinforcement learning strategy and design a step-wise GRPO to address sparse and discontinuous rewards induced by memory operations. Experiments on five long-horizon benchmarks demonstrate that AgeMem consistently outperforms strong memory-augmented baselines across multiple LLM backbones, achieving improved task performance, higher-quality long-term memory, and more efficient context usage. ",
+        "bbox": [
+            146,
+            291,
+            458,
+            673
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "1 Introduction ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            687,
+            257,
+            702
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "In long-horizon agentic tasks involving multi-step reasoning and complex workflows (Chang et al., 2024), the effectiveness of large language model (LLM) agents is fundamentally constrained by the information they can attend to at any given time, which we collectively refer to as the agent’s memory (Xiong et al., 2025; Goodyear et al., 2025). Memory typically falls into two categories: longterm memory (LTM), which persistently stores user- or task-specific knowledge (Zhong et al., 2024; Jiang et al., 2024), and short-term memory (STM), which comprises the information contained in the current input context (Wu et al., 2025b; Gao et al., 2025b). High-quality LTM supports efficient retrieval of accumulated knowledge, while effective STM management reduces redundancy and preserves salient context. Together, they mitigate the limitations of finite context windows, making their joint management crucial for improving agent performance in complex reasoning settings. ",
+        "bbox": [
+            117,
+            713,
+            487,
+            921
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            512,
+            262,
+            882,
+            374
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "However, existing research has predominantly treated LTM and STM as independent components. STM is commonly enhanced through retrievalaugmented generation (RAG) (Pan et al., 2025b), such as in MainRAG (Chang et al., 2025) and ReSum (Wu et al., 2025a), which expand usable context via external retrieval or periodic summarization. Although effective in some tasks, these methods rely heavily on predefined schedules or heuristic rules, potentially resulting in overlooked infrequent but critical details as well as unnecessary noise (Ma et al., 2025; Dong et al., 2025). In contrast, LTM management has progressed along separate lines, typically categorized into triggerbased (Kang et al., 2025; Wang and Chen, 2025; Wang et al., 2025c; Chhikara et al., 2025) and agent-based (Yan et al., 2025; Hu et al., 2025; Xu et al., 2025) paradigms. The former executes fixed memory operations at predefined moments, whereas the latter incorporates a specialized memory manager to determine what and how to store. Despite offering more flexibility, most approaches still depend on handcrafted rules or auxiliary expert models, limiting adaptability and increasing system complexity (Xiong et al., 2025). ",
+        "bbox": [
+            512,
+            376,
+            882,
+            776
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "As a consequence, LTM and STM are typically treated as separate and loosely coupled modules. As illustrated in Figure 1, existing architectures generally follow two patterns: (a) static STM with trigger-based LTM, or (b) static STM with agentbased LTM. In both settings, the two memory systems are optimized independently and later combined in an ad hoc way, leading to fragmented memory construction and suboptimal performance in long-horizon reasoning tasks. Thus, unifying the management of LTM and STM remains a necessary yet largely unexplored challenge. ",
+        "bbox": [
+            512,
+            778,
+            882,
+            921
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            23,
+            297,
+            63,
+            699
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "1 ",
+        "bbox": [
+            494,
+            944,
+            504,
+            954
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "image",
+        "img_path": "images/c2be4c3f794ec9072fb9b2dc7d78b6949ab05ffbe0338a14f4043585582111ef.jpg",
+        "image_caption": [
+            "Figure 1: Comparison between independent and unified memory management frameworks. (Left) Traditional framework with static STM and trigger-based LTM. (Middle) Independent framework with an additional Memory Manager controlling LTM in an agent-based manner, while STM remains static. (Right) The proposed AgeMem framework, where LTM and STM are jointly and intelligently managed via explicit tool-based operations. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            117,
+            83,
+            877,
+            329
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            115,
+            406,
+            485,
+            453
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Nevertheless, achieving unified memory management poses three fundamental challenges. (C1) Functional heterogeneity coordination: LTM and STM serve distinct yet complementary purposes: LTM determines what to store, update, or discard, while STM governs what to retrieve, summarize, or remove from the active context (Zhang et al., 2025b). The challenge lies in designing a unified mechanism that orchestrates their interplay synergistically. (C2) Training paradigm mismatch: Existing reinforcement learning (RL) frameworks adopt markedly different training strategies for the two memory types (Ma et al., 2024). LTM-focused training often leverages session-level information available prior to interaction, whereas STM training typically injects distractors to simulate long-horizon contexts (Sun et al., 2024). Moreover, standard RL assumes continuous trajectories with stable rewards, which conflicts with the inherently fragmented and discontinuous experiences produced by memory operations (Wu et al., 2025a), making end-to-end optimization particularly challenging. (C3) Practical deployment constraints: Many agent systems rely on an auxiliary expert LLM for memory control, significantly increasing inference cost and training complexity. How to integrate unified memory management directly into an agent without dependence on external expert models remains an open problem. ",
+        "bbox": [
+            117,
+            451,
+            487,
+            922
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "To address these challenges, we propose Agentic Memory (AgeMem), a unified framework that jointly manages LTM and STM, illustrated in Figure 1 (right). Unlike prior designs that treat memory as an external component, AgeMem integrates both memory types directly into the agent’s decision-making process. Through a unified toolbased interface, the LLM autonomously invokes and executes memory operations for both LTM and STM. Furthermore, we design a three-stage progressive RL strategy: the model first acquires LTM storage capabilities, then learns STM context management, and finally coordinates both forms of memory under full task settings. To address the fragmented experience issue across training stages, we design a step-wise Group Relative Policy Optimization (GRPO) (Shao et al., 2024), which transforms cross-stage dependencies into learnable signals, thereby alleviating the challenges posed by sparse and discontinuous rewards in RL. We evaluate AgeMem on five long-context, reasoning-intensive benchmarks. Comprehensive results show that AgeMem consistently outperforms strong baselines, validating the effectiveness of unified memory management. ",
+        "bbox": [
+            512,
+            407,
+            882,
+            807
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Our main contributions are as follows: ",
+        "bbox": [
+            524,
+            809,
+            815,
+            824
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "• We propose Agentic Memory (AgeMem), a unified agentic memory framework that enables LLM-based agents to autonomously decide when, what, and how to manage both long-term and short-term memory. • We develop a three-stage progressive RL strategy equipped with a step-wise GRPO mechanism, facilitating effective end-to-end learning of unified memory management behaviors. ",
+        "bbox": [
+            510,
+            826,
+            884,
+            922
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "discarded",
+        "text": "2 ",
+        "bbox": [
+            494,
+            944,
+            505,
+            954
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            131,
+            85,
+            487,
+            131
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "• We conduct comprehensive evaluations across multiple models and long-horizon benchmarks, demonstrating the robustness and effectiveness of AgeMem in complex agentic tasks. ",
+        "bbox": [
+            115,
+            134,
+            487,
+            196
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "2 Background and Related Work ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            215,
+            416,
+            231
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Long-term memory (LTM). Persistent LTM is crucial for LLM-based agents operating over extended horizons (Wang et al., 2025b; Li et al., 2025). Recent work has explored diverse architectural designs for modeling LTM. LangMem (LangChain Team, 2025) provides a modular framework that supports multiple memory types, while A-Mem (Xu et al., 2025) adopts a Zettelkasten-inspired design that links structured knowledge units to facilitate consolidation. Mem0 (Chhikara et al., 2025) proposes a scalable extract-update pipeline and extends it to a graph-based variant for structured reasoning, and Zep (Rasmussen et al., 2025) represents memory as a temporal knowledge graph to enable crosssession and time-aware reasoning. Although effective in organizing and retrieving information, these approaches largely rely on predefined memory structures or heuristic update rules. As memory grows, such designs commonly suffer from increased system complexity and lack adaptive, learning-based strategies for prioritization and forgetting. In contrast, our work aims to learn an adaptive memory policy that allows agents to dynamically decide what to store, update, or forget, depending on task demands and long-term utility. ",
+        "bbox": [
+            115,
+            246,
+            489,
+            665
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Short-term memory (STM). STM in agentic LLMs primarily concerns context selection and retrieval (Wang et al., 2024; Jin et al., 2024). Retrieval-Augmented Generation (RAG) (Pan et al., 2025b; Salama et al., 2025; Kagaya et al., 2024) is the dominant paradigm, expanding usable context by injecting retrieved content into prompts. While effective, RAG does not fundamentally prevent context explosion in long-horizon settings and may introduce irrelevant or distracting information. To address this issue, ReSum (Wu et al., 2025a) periodically compresses interaction histories into compact reasoning states, allowing agents to operate beyond fixed context-window constraints. Yet its summarization schedule remains largely predefined, and aggressive compression risks discarding rare but crucial details. Our approach instead enables agents to learn when and how to retrieve, summarize, or filter context, achieving a more flexible balance between efficiency and information preservation. ",
+        "bbox": [
+            115,
+            663,
+            487,
+            921
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            512,
+            85,
+            884,
+            164
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Reinforcement learning for LLMs. Reinforcement learning has become an effective paradigm for improving the decision-making and reasoning capabilities of LLM-based agents (Yao et al., 2022; Jin et al., 2025; Qian et al., 2025; Chaudhari et al., 2025). Among recent advances, GRPO (Shao et al., 2024) enhances stability by optimizing policies based on the relative quality of sampled trajectories, removing the need for an explicit value function. GRPO and its variants (Gilabert et al., 2025; Wang et al., 2025a) have shown strong performance in complex reasoning tasks. However, existing RLbased systems generally treat memory as a static or external component, making them ill-suited for the discontinuous and fragmented trajectories associated with memory operations (Yan et al., 2025; Zhang et al., 2025a). In contrast, our work integrates RL directly into the memory management process, enabling unified training of both language generation and memory operations. ",
+        "bbox": [
+            512,
+            165,
+            882,
+            486
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "3 Method ",
+        "text_level": 1,
+        "bbox": [
+            512,
+            502,
+            611,
+            518
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "We propose Agentic Memory (AgeMem), a unified memory framework that enables LLM agents to autonomously manage both LTM and STM in an end-to-end manner. As illustrated in Figure 1 (right), AgeMem integrates memory management capabilities directly into the agent via a set of specialized tools, enabling the model to learn optimal strategies for unified memory management through three-stage progressive strategy. ",
+        "bbox": [
+            512,
+            531,
+            882,
+            675
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "3.1 Problem Formulation ",
+        "text_level": 1,
+        "bbox": [
+            514,
+            689,
+            726,
+            703
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Unified RL formulation for AgeMem. At each time step $t$ , the agent observes a state $s _ { t } \\in S$ composed of the conversation context (short-term memory) $C _ { t }$ , the long-term memory store $\\mathcal { M } _ { t }$ , and the task specification $\\tau$ $\\mathbf { \\Psi } : s _ { t } = ( C _ { t } , \\mathcal { M } _ { t } , \\mathcal { T } )$ . The specification $\\tau$ includes the input query $q$ , contextual information $I _ { q }$ , and (for training only) the expected answer $A _ { q }$ . This formulation enables the agent to ground its decision-making in both transient context and persistent knowledge. ",
+        "bbox": [
+            512,
+            712,
+            882,
+            872
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Given $s _ { t }$ , the agent selects an action $a _ { t } \\in \\mathcal A$ from a hybrid action space that includes language generation as well as memory operations. The decision is governed by a parameterized policy $\\pi _ { \\theta }$ , defined as $\\pi _ { \\boldsymbol { \\theta } } ( a _ { t } | s _ { t } ) = P ( a _ { t } | s _ { t } ; \\boldsymbol { \\theta } )$ , where $\\theta$ denotes the LLM parameters and $a _ { t } = \\pi _ { \\theta } ( \\cdot | s _ { t } )$ . For a trajectory $\\tau = ( s _ { 1 } , a _ { 1 } , \\dots , s _ { T } , a _ { T } )$ , the cumulative reward is defined as: ",
+        "bbox": [
+            512,
+            875,
+            882,
+            921
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            494,
+            944,
+            504,
+            954
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            115,
+            84,
+            489,
+            164
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "img_path": "images/4254e35bb8a8e247330d7f12d0b4d4961028b7c46dd8e55b5741daaa6ec7204c.jpg",
+        "text": "$$\nR ( \\tau ) = \\sum w \\mathrm { : } R _ { i } \\left( \\tau \\right) + P _ { \\mathrm { p e n a l t y } } ( \\tau ) ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            161,
+            174,
+            440,
+            200
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "where $R _ { i }$ captures task performance and memory quality, and $P _ { \\mathrm { p e n a l t y } }$ discourages redundant storage, excessive tool usage, and uncontrolled context expansion. The optimization objective is: ",
+        "bbox": [
+            115,
+            211,
+            489,
+            275
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "img_path": "images/14c4bd703ce7e1ad8ffab0d80280089886eac305e31316bfb87b2fb31b25998c.jpg",
+        "text": "$$\n\\theta ^ { * } = \\arg \\operatorname* { m a x } _ { \\theta } \\mathbb { E } _ { \\tau \\sim \\pi _ { \\theta } } [ R ( \\tau ) ] .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            194,
+            288,
+            408,
+            312
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "This formulation treats memory management as an integral component of the agent’s policy, replacing handcrafted heuristics with a learnable mechanism. Three-stage trajectory structure. To capture long-horizon interactions and progressively train memory capabilities, each trajectory is divided into three consecutive stages: $\\dot { \\tau } = \\dot { ( \\tau ^ { ( 1 ) } , \\tau ^ { ( 2 ) } , \\tau ^ { ( 3 ) } ) }$ , with a total length of $T = T _ { 1 } + T _ { 2 } + T _ { 3 }$ . In Stage 1, the agent engages in casual interactions and may store useful information into LTM. Stage 2 introduces distracting or irrelevant content, requiring the agent to manage its STM through selective retention and compression. Stage 3 presents a task that depends on coordinated use of both retained context and earlier accumulated LTM. A key aspect of this design is that the long-term memory $\\mathcal { M } _ { t }$ persists across all stages, allowing early knowledge to influence later decisions. In contrast, the context $C _ { t }$ is reset between Stages 1 and 2 to prevent information leakage across phases. The reset before Stage 2 ensures the agent cannot solve the final task via residual context, thereby forcing proper retrieval from LTM and enabling effective training of memory operations. ",
+        "bbox": [
+            115,
+            324,
+            487,
+            711
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "At each step, we collect an experience tuple ${ e _ { t } } = ( s _ { t } , a _ { t } , r _ { t } , \\log \\pi _ { \\theta _ { \\mathrm { o l d } } } ( a _ { t } | s _ { t } ) )$ , where $r _ { t }$ is typically zero for intermediate steps and assigned after trajectory completion, and $\\log \\pi _ { \\theta _ { \\mathrm { o l d } } } ( a _ { t } | s _ { t } )$ denotes the log probability under the old policy $\\pi _ { \\theta _ { \\mathrm { o l d } } }$ This representation enables step-wise credit assignment under GRPO (Shao et al., 2024) and allows the agent to attribute long-term rewards to specific memory decisions across stages. By structuring trajectories in this staged yet continuous manner, the agent learns temporally coherent and task-adaptive memory policies essential for robust long-horizon reasoning. ",
+        "bbox": [
+            115,
+            713,
+            487,
+            921
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "table",
+        "img_path": "images/ceb80b56d31a93c557bfa9d094fe756110cac8ceaca9f650d96d8de60c3da697.jpg",
+        "table_caption": [
+            "Table 1: Memory management tools in AgeMem for manipulating long-term memory (LTM) and short-term memory (STM). "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Tool</td><td>Target</td><td>Function</td></tr><tr><td>ADD</td><td>LTM</td><td>Add new knowledge to Mt</td></tr><tr><td>UPDATE</td><td>LTM</td><td>Modify entries in Mt</td></tr><tr><td>DELETE</td><td>LTM</td><td>Remove entries from Mt</td></tr><tr><td>RETRIEVE</td><td>STM</td><td>Retrieve entries from Mt to Ct</td></tr><tr><td>SUMMARY</td><td>STM</td><td>Summarize segments in Ct</td></tr><tr><td>FILTER</td><td>STM</td><td>Filter out irrelevant segments from Ct</td></tr></table>",
+        "bbox": [
+            510,
+            136,
+            894,
+            242
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "3.2 Memory Management via Tool Interface ",
+        "text_level": 1,
+        "bbox": [
+            510,
+            268,
+            873,
+            282
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "AgeMem exposes memory-related operations to the LLM agent through an explicit tool interface (Table 1). The agent can modify its persistent LTM using ADD, UPDATE, and DELETE, while exercising fine-grained control over STM through RETRIEVE, SUMMARY, and FILTER. Incorporating these tools into the action space transforms memory control from an external heuristic pipeline into an intrinsic component of decision-making. This design allows the agent to adaptively manage memory according to task structure, history, and context. Implementation details are provided in the Appendix A.1. ",
+        "bbox": [
+            510,
+            290,
+            884,
+            482
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "3.3 Three-Stage Progressive RL Strategy ",
+        "text_level": 1,
+        "bbox": [
+            514,
+            495,
+            845,
+            511
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "To learn unified and stable memory behaviors, we propose a progressive three-stage training strategy. For each task instance $q \\in \\mathcal T$ , the agent generates a complete trajectory: ",
+        "bbox": [
+            510,
+            517,
+            882,
+            581
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "img_path": "images/a80fd097fcb6fc3c790485264dee3d83fbf731ea1545982c6af790deffad6ca8.jpg",
+        "text": "$$\n\\tau _ { k } ^ { ( q ) } = \\big ( \\tau _ { k } ^ { ( 1 ) } , \\tau _ { k } ^ { ( 2 ) } , \\tau _ { k } ^ { ( 3 ) } \\big ) , \\quad k = 1 , \\dots , K ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            527,
+            592,
+            845,
+            617
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "where $K$ denotes the number of independent rollouts, and each sub-trajectory $\\tau _ { k } ^ { \\left( i \\right) }$ corresponds to a specific training stage. ",
+        "bbox": [
+            510,
+            629,
+            882,
+            677
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Stage 1 (LTM construction). The agent is exposed to contextual information $I _ { q }$ in a casual conversational setting. The goal is to identify salient information and store it into LTM $\\mathcal { M } _ { t }$ . During the interaction, the short-term context $C _ { t }$ evolves naturally, and the agent may invoke LTM-related tools when appropriate. Formally, this stage yields a subtrajectory τ (1k $\\bar { \\tau _ { k } ^ { ( 1 ) } } = \\{ e _ { t } \\} _ { t = 1 } ^ { T _ { 1 } }$ , where each experience tuple $e _ { t }$ follows the definition in Section 3.1. ",
+        "bbox": [
+            510,
+            680,
+            884,
+            825
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Stage 2 (STM control under distractors). The short-term context is reset, while the constructed LTM $\\mathcal { M } _ { t }$ is retained. The agent is then presented with semantically related but irrelevant or misleading distractors. The objective is to learn proactive STM control through tool-based operations, such as filtering or summarizing context, in order to suppress noise and preserve useful information. This process forms the sub-trajectory $\\tau _ { k } ^ { ( 2 ) } = \\{ e _ { t } \\} _ { t = T _ { 1 } + 1 } ^ { T _ { 1 } + \\bar { T } _ { 2 } }$ , which emphasizes context filtering and compression capability. ",
+        "bbox": [
+            510,
+            826,
+            884,
+            921
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            494,
+            944,
+            504,
+            954
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            115,
+            84,
+            489,
+            166
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Stage 3 (Integrated reasoning and memory coordination). Finally, the agent receives a formal query $q$ requiring both accurate reasoning and effective memory retrieval. The agent must retrieve relevant knowledge from $\\mathcal { M } _ { t }$ , appropriately manage the context $C _ { t }$ , and generate a final answer. This stage produces $\\tau _ { k } ^ { ( 3 ) } = \\{ e _ { t } \\} _ { t = T _ { 1 } + T _ { 2 } + 1 } ^ { T }$ , which evaluates the ability of agent to coordinate longterm memory, short-term context management, and task solution in an end-to-end manner. ",
+        "bbox": [
+            115,
+            167,
+            487,
+            329
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "All three segments form a complete trajectory: ",
+        "bbox": [
+            136,
+            331,
+            478,
+            346
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "img_path": "images/f35100f94719c6b8073d360023fb80b21d36b905feaf8d89b7e0b0b532ed2e7f.jpg",
+        "text": "$$\n\\tau _ { k } ^ { ( q ) } = ( e _ { 1 } , e _ { 2 } , \\ldots , e _ { T } ) , \\quad T = T _ { 1 } + T _ { 2 } + T _ { 3 } ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            124,
+            354,
+            458,
+            376
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "which is then used for policy optimization in the subsequent step-wise GRPO procedure. For a batch of $B$ tasks, we further aggregate all experiences from $K$ independent rollouts into a unified set $\\mathcal { E } =$ $\\cup _ { q = 1 } ^ { B } \\bigcup _ { k = 1 } ^ { K } \\bar { \\{ e _ { t } \\ | \\ e _ { t } \\ \\in \\ \\tau _ { k } ^ { ( q ) } \\} }$ , with a total size of $| \\mathcal { E } | = B \\times K \\times \\bar { T }$ , where $\\bar { T }$ denotes the average trajectory length. More detailed rollout processes are provided in the Appendix A.3. ",
+        "bbox": [
+            115,
+            386,
+            487,
+            519
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "3.4 Step-wise GRPO for Unified Management ",
+        "text_level": 1,
+        "bbox": [
+            115,
+            527,
+            487,
+            545
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "We adopt a step-wise variant of GRPO to connect long-range task rewards with memory decisions across all stages. For task $\\{ \\tau _ { 1 } ^ { ( q ) } , \\dots , \\tau _ { K } ^ { ( q ) } \\}$ denote the group of parallel roll- $q$ , let $G _ { q } \\ =$ outs. Each trajectory yields a terminal reward $r _ { T } ^ { ( k , q ) } = R ( \\hat { \\tau _ { k } ^ { ( q ) } } )$ We compute the groupnormalized advantage for the terminal step as: ",
+        "bbox": [
+            115,
+            550,
+            487,
+            667
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "img_path": "images/ec41257d5c58fe9ced33e98ca716db3169b5b3d6a5b216b04ef80bb4417bc76a.jpg",
+        "text": "$$\nA _ { T } ^ { ( k , q ) } = \\frac { r _ { T } ^ { ( k , q ) } - \\mu _ { G _ { q } } } { \\sigma _ { G _ { q } } + \\epsilon } ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            215,
+            675,
+            388,
+            718
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "where $\\mu _ { G _ { q } }$ and $\\sigma _ { G _ { q } }$ are the mean and standard deviation of rewards within $G _ { q }$ , $\\epsilon$ prevents division by zero. This advantage is then broadcast to all preceding steps of the same trajectory $A _ { t } ^ { ( k , q ) } = A _ { T } ^ { ( \\hat { k } , q ) }$ which assigns a consistent learning signal to all memory and reasoning actions along the trajectory, including those in Stage 1 and Stage 2. In doing so, the final task outcome supervises every intermediate memory decision, enabling long-range credit assignment across heterogeneous stages. We $\\mathcal { E } = \\cup _ { q , k } ^ { \\bar { B } , K } \\{ ( e _ { t } , A _ { t } ) \\overset { \\cdot } { | { e _ { t } \\in \\tau _ { k } ^ { ( q ) } } , A _ { t } = A _ { t } ^ { ( k , q ) } \\} }$ tages,. ",
+        "bbox": [
+            115,
+            726,
+            487,
+            925
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Following GRPO, we maximize the expected objective over all experiences: ",
+        "bbox": [
+            512,
+            85,
+            882,
+            116
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "img_path": "images/726e08ceb83b398b0c9521902b6f364c80b50acd276c9b7792fecb8effd2ba36.jpg",
+        "text": "$$\n\\begin{array} { l } { { \\displaystyle { \\cal J } ( \\theta ) = \\mathbb { E } _ { ( e _ { t } , A _ { t } ) \\sim \\mathcal { E } } \\left[ \\rho _ { t } A _ { t } - \\beta D _ { \\mathrm { K L } } [ \\pi _ { \\theta } \\| \\pi _ { \\mathrm { r e f } } ] \\right] } } \\\\ { { \\displaystyle ~ = \\frac { 1 } { | \\mathcal { E } | } \\sum _ { q = 1 } ^ { B } \\sum _ { k = 1 } ^ { K } \\sum _ { t = 1 } ^ { T _ { k } ^ { ( q ) } } \\left[ \\rho _ { t } ^ { ( k , q ) } A _ { t } ^ { ( k , q ) } - \\beta D _ { K L } ^ { ( k , q ) } \\right] } , } \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            512,
+            126,
+            880,
+            202
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "where the importance ratio $\\begin{array} { r } { \\rho _ { t } ^ { ( k , q ) } = \\frac { \\pi _ { \\theta } ( a _ { t } | s _ { t } ) } { \\pi _ { \\theta _ { \\mathrm { o l d } } } ( a _ { t } | s _ { t } ) } } \\end{array}$ controls the update magnitude under the new policy, D(k,q) denotes the KL divergence penalty between the current policy $\\pi _ { \\theta }$ and a fixed reference $\\pi _ { \\mathrm { r e f } }$ and $\\beta$ is a coefficient that balances exploration and training stability. ",
+        "bbox": [
+            510,
+            211,
+            884,
+            316
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "3.5 Reward Function Design ",
+        "text_level": 1,
+        "bbox": [
+            512,
+            326,
+            751,
+            343
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "We design a composite reward that evaluates both downstream task performance and the quality of memory management. The total trajectory-level reward is defined as ",
+        "bbox": [
+            510,
+            348,
+            882,
+            411
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "img_path": "images/ff8aa659a6f43d34e6595bd4176d02391c2dd832bc3b8325f4022e6d23b088ed.jpg",
+        "text": "$$\nR ( \\tau ) = \\mathbf { w } ^ { \\top } { \\mathbf R } + P _ { \\mathrm { p e n a l t y } } ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            601,
+            422,
+            789,
+            443
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "where $\\mathbf { w } = [ w _ { \\mathrm { t a s k } } , w _ { \\mathrm { c o n t e x t } } , w _ { \\mathrm { m e m o r y } } ] ^ { \\top }$ are tunable coefficients, and $\\mathbf { R } = [ R _ { \\mathrm { t a s k } } , R _ { \\mathrm { c o n t e x t } } , R _ { \\mathrm { m e m o r y } } ] ^ { \\top }$ correspond to rewards for task completion, context management, and long-term memory management. The penalty term $P _ { \\mathrm { p e n a l t y } }$ captures violations such as context overflow or exceeding the interaction limit. Below, we summarize each component, and precise formulas are provided in the Appendix A.2. Task completion reward $R _ { \\mathbf { t a s k } }$ . This term provides the primary learning signal by assessing whether the agent solves the task correctly. We obtain a scalar score using an LLM-based judge $S _ { \\mathrm { j u d g e } } ( A _ { \\mathrm { p r e d } } , A _ { q } ) \\ \\in \\ [ 0 , 1 ]$ , optionally applying a penalty when no answer is produced. This reward encourages accurate, complete task solutions and remains the dominant component to ensure alignment with task objectives. ",
+        "bbox": [
+            510,
+            454,
+            882,
+            727
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Context management reward $\\scriptstyle R _ { \\mathrm { c o n t e x t } }$ . This component evaluates STM behavior, focusing on how effectively the agent controls the active context $C _ { t }$ . It combines three factors: (i) compression efficiency, promoting economical token usage; (ii) preventive actions, rewarding early summarization or filtering to avoid overflow; and (iii) information preservation, penalizing the loss of critical queryrelated content. Each factor is normalized, allowing the reward to balance context efficiency against retention of essential information. ",
+        "bbox": [
+            510,
+            730,
+            882,
+            904
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Memory management reward $R _ { \\mathbf { m e m o r y } }$ . This term evaluates LTM operations. It aggregates signals for: (i) storage quality, measured as the fraction of stored entries labeled as high-quality and reusable; (ii) maintenance, rewarding meaningful update or delete operations to mitigate memory staleness; and (iii) semantic relevance, computed using an LLM-based score between retrieved memories and the query. Together, these signals incentivize selective, high-value memory construction and responsible upkeep over time. ",
+        "bbox": [
+            512,
+            907,
+            882,
+            922
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            494,
+            944,
+            504,
+            954
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            117,
+            85,
+            487,
+            244
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Penalty terms Ppenalty. Penalties discourage undesirable behaviors such as exceeding the maximum number of dialogue turns or triggering context overflow. Penalty coefficients are chosen so that such violations lead to a substantial reduction in the final trajectory reward, encouraging the agent to maintain safe and efficient memory practices. ",
+        "bbox": [
+            115,
+            247,
+            487,
+            357
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "image",
+        "img_path": "images/25467af0518765f09c337f8259f22b8a268c5291a9410fae210d094ba2a2a173.jpg",
+        "image_caption": [
+            "Figure 2: Memory Quality scores for different methods on HotpotQA. Higher scores indicate better relevance between stored memories and ground-truth facts. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            544,
+            83,
+            850,
+            312
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "4 Experiments ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            373,
+            258,
+            388
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "4.1 Experimental Setup ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            400,
+            315,
+            416
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Datasets. To comprehensively evaluate AgeMem, we select five widely-used datasets in LLM-based agent research: ALFWorld (Shridhar et al., 2020), SciWorld (Wang et al., 2022), PDDL (Chang et al., 2024), BabyAI (Chevalier-Boisvert et al., 2018), and HotpotQA (Yang et al., 2018). These datasets cover embodied action, game-based reasoning, and knowledge-intensive question answering, providing diverse evaluation scenarios. Since the HotpotQA dataset contains both questions and supporting facts, automatically providing Stage 1 contextual information, AgeMem is fine-tuned with RL only on the HotpotQA training set and then evaluated directly on all datasets. Detailed dataset statistics are provided in Appendix C.1. ",
+        "bbox": [
+            115,
+            424,
+            487,
+            663
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Evaluation metrics. For the primary task completion metrics, we adopt Success Rate (SR) for ALFWorld, SciWorld, and BabyAI, Progress Rate (PR) for PDDL, and LLM-as-a-Judge (J) for HotpotQA. Additionally, we employ an LLM-based evaluator to assess the quality of stored long-term memory during knowledge reasoning, measured by Memory Quality (MQ). The prompts of the LLMbased evaluation are provided in Appendix C.2. ",
+        "bbox": [
+            115,
+            665,
+            485,
+            808
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Baselines & LLM backbones. We compare AgeMem against four representative agent LTM systems: LangMem (LangChain Team, 2025), AMem $\\mathrm { \\Delta X u }$ et al., 2025), Mem0 (Chhikara et al., 2025), and $\\scriptstyle \\mathbf { M e m } 0 ^ { g }$ (a graph-based variant officially provided as part of Mem0). To better demonstrate the effectiveness of RL training, we also include ",
+        "bbox": [
+            115,
+            810,
+            487,
+            921
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "AgeMem-noRL, which is not fine-tuned with RL. In ablation studies on STM, we compare STM tools with RAG approach. For the base agent models, we use Qwen2.5-7B-Instruct and Qwen3-4B-Instruct. More baseline configurations are in Appendix C.3. Implementation details. We build agents using the Agentscope framework (Gao et al., 2025a) and finetune AgeMem using the Trinity framework (Pan et al., 2025a). For all reward weights in the reward function, we use uniform coefficients of 1.0 without manual tuning. Further implementation details are provided in Appendix C.4. ",
+        "bbox": [
+            512,
+            392,
+            882,
+            585
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "4.2 Main Results ",
+        "text_level": 1,
+        "bbox": [
+            512,
+            595,
+            660,
+            611
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Comparison with counterparts. Table 2 shows that AgeMem achieves the highest average performance on both Qwen2.5-7B-Instruct $( 4 1 . 9 6 \\% )$ and Qwen3-4B-Instruct $( 5 4 . 3 1 \\% )$ , outperforming all baselines across five datasets with relative gains of 49.59% and 23.52% over no-memory, respectively. Compared to the best baselines (Mem0 and A-Mem), AgeMem improves by 4.82 and 8.57 percentage points on average. RL training contributes 8.53 percentage points and 8.72 percentage points improvements over AgeMem-noRL, validating the three-stage progressive RL strategy. ",
+        "bbox": [
+            512,
+            617,
+            882,
+            808
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Quality of stored long-term memories. To evaluate the quality of stored memories, we leverage the ground-truth facts provided in the HotpotQA dataset and assess the relevance between stored memories and these facts using an LLM-based evaluator. Figure 2 presents the Memory Quality (MQ) scores for different baselines. AgeMem achieves the highest memory quality on both model backbones, with MQ scores of 0.533 and 0.605, respectively. This indicates that the unified memory management framework not only improves task performance but also promotes the storage of highquality, reusable knowledge. The comparison with baseline methods further validates that AgeMem’s tool-based memory operations lead to more selective and higher-quality memory construction. ",
+        "bbox": [
+            512,
+            810,
+            882,
+            921
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            494,
+            944,
+            504,
+            954
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "table",
+        "img_path": "images/1ea4f4ea1f6eb145fb176496c534ea11099903a1f8a2cfe259e6d32fe814f328.jpg",
+        "table_caption": [
+            "Table 2: Performance comparison across five benchmarks. The best and second-best results are marked. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>LLM Backbone</td><td>Method</td><td>ALFWorld</td><td>SciWorld</td><td>PDDL</td><td>BabyAI</td><td>HotpotQA</td><td>Average</td></tr><tr><td rowspan=\"6\">Qwen2.5-7B-Instruct</td><td>No-Memory</td><td>27.16</td><td>13.80</td><td>10.15</td><td>50.80</td><td>38.36</td><td>28.05</td></tr><tr><td>LangMem</td><td>38.27</td><td>28.29</td><td>15.85</td><td>51.34</td><td>37.43</td><td>34.23</td></tr><tr><td>A-Mem</td><td>34.68</td><td>28.06</td><td>18.39</td><td>58.82</td><td>43.95</td><td>36.78</td></tr><tr><td>Mem0</td><td>37.49</td><td>26.99</td><td>13.96</td><td>60.58</td><td>46.66</td><td>37.14</td></tr><tr><td>Mem0g</td><td>35.34</td><td>30.50</td><td>14.86</td><td>58.78</td><td>42.06</td><td>36.31</td></tr><tr><td>AgeMem-noRL AgeMem (Ours)</td><td>37.90</td><td>28.67</td><td>8.87</td><td>46.34</td><td>45.36</td><td>33.43</td></tr><tr><td rowspan=\"6\">Qwen3-4B-Instruct</td><td></td><td>41.07</td><td>35.55</td><td>17.31</td><td>61.42</td><td>54.44</td><td>41.96</td></tr><tr><td>No-Memory</td><td>38.51</td><td>47.89</td><td>30.14</td><td>55.83</td><td>47.48</td><td>43.97</td></tr><tr><td>LangMem</td><td>40.89</td><td>50.42</td><td>28.42</td><td>53.80</td><td>42.70</td><td>43.25</td></tr><tr><td>A-Mem Mem0</td><td>34.31</td><td>50.14 51.38</td><td>34.41</td><td>61.35</td><td>48.48</td><td>45.74</td></tr><tr><td>Mem0g</td><td>41.17 36.69</td><td>47.76</td><td>31.72 29.61</td><td>60.05 57.59</td><td>39.16</td><td>44.70</td></tr><tr><td>AgeMem-noRL</td><td>38.02</td><td>50.42</td><td>27.52</td><td>57.48</td><td>38.12</td><td>41.95</td></tr><tr><td></td><td>AgeMem (Ours)</td><td>48.97</td><td>59.48</td><td>35.07</td><td>72.56</td><td>54.49 55.49</td><td>45.59 54.31</td></tr></table>",
+        "bbox": [
+            134,
+            108,
+            868,
+            307
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "image",
+        "img_path": "images/62c9267b6f171a40f5ac8b0be6a84e28c75175c5b66d5a8f4d20a79a78c5d14f.jpg",
+        "image_caption": [
+            "Figure 3: Average prompt token counts under different STM management configurations on HotpotQA. The suffix “-RAG” indicates the adoption of RAG in place of STM tool-based management. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            117,
+            319,
+            485,
+            456
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "table",
+        "img_path": "images/9ed3c39b976a95fec309a408ec448f5df6dfb6662524f50465babbe08f77cdb9.jpg",
+        "table_caption": [
+            "Table 3: Tool usage statistics on HotpotQA. Numbers show average calls per episode. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td rowspan=\"2\">Tool Category</td><td colspan=\"2\">Qwen2.5-7B</td><td colspan=\"2\">Qwen3-4B</td></tr><tr><td>noRL</td><td>GRPO</td><td>noRL</td><td>GRPO</td></tr><tr><td colspan=\"5\">LTM Tool Statistics</td></tr><tr><td>AdD Memory</td><td>0.92</td><td>1.64</td><td>2.49</td><td>2.64</td></tr><tr><td>UPDATE Memory</td><td>0.00</td><td>0.13</td><td>0.13</td><td>0.34</td></tr><tr><td>DELETE Memory</td><td>0.00</td><td>0.08</td><td>0.00</td><td>0.22</td></tr><tr><td colspan=\"5\">STM Tool Statistics</td></tr><tr><td>RETRiEVE Memory</td><td>2.31</td><td>1.95</td><td>4.62</td><td>4.35</td></tr><tr><td>SUMmaRy Context</td><td>1.08</td><td>0.82</td><td>0.11</td><td>0.96</td></tr><tr><td>FILTER Context</td><td>0.02</td><td>0.31</td><td>0.15</td><td>0.16</td></tr><tr><td>Total Calls</td><td>4.33</td><td>4.92</td><td>7.50</td><td>8.67</td></tr></table>",
+        "bbox": [
+            517,
+            360,
+            877,
+            541
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            117,
+            552,
+            487,
+            696
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Effectiveness of STM management. We evaluate the effectiveness of STM management by measuring the prompt token count under different configurations on HotpotQA. Figure 3 shows that AgeMem successfully reduces prompt token usage compared to variants without STM tools (-RAG). On Qwen2.5-7B-Instruct, AgeMem uses 2,117 tokens on average, compared to 2,186 tokens for AgeMem-RAG, representing a reduction of $3 . 1 \\%$ On Qwen3-4B-Instruct, the reduction is even more pronounced: AgeMem uses 2,191 tokens versus 2,310 tokens for AgeMem-RAG, a reduction of $5 . 1 \\%$ . These results demonstrate that the learned STM management tools effectively control context expansion, enabling more efficient token usage while maintaining task performance. ",
+        "bbox": [
+            115,
+            697,
+            487,
+            922
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            512,
+            554,
+            882,
+            585
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Tool usage analysis. Table 3 reports tool usage statistics before and after RL fine-tuning on HotpotQA. RL training substantially increases the use of long-term memory tools, especially ADD and UPDATE. On Qwen2.5-7B-Instruct, ADD operations rise from 0.92 to 1.64, and UPDATE operations appear after training (0.13 v.s. nearly zero). Similar trends are observed on Qwen3-4B-Instruct, with higher frequencies of both ADD and UPDATE. For short-term memory tools, RL leads to more balanced tool usage. The frequency of FILTER increases notably (e.g., from 0.02 to 0.31 on Qwen2.5), indicating proactive context control, while RETRIEVE remains relatively stable. Overall, these patterns suggest that RL training enables coordinated and adaptive memory management. Detailed case studies are provided in Appendix B. ",
+        "bbox": [
+            512,
+            586,
+            884,
+            858
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "4.3 Ablation Studies ",
+        "text_level": 1,
+        "bbox": [
+            514,
+            870,
+            685,
+            884
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "LTM-STM components. To validate the contributions of individual components, we conduct ablation studies on LTM, STM, and RL training. Figure 4 presents results on three representative datasets using Qwen2.5-7B-Instruct as the backbone (results for Qwen3-4B-Instruct are provided in Appendix D.1). Adding LTM alone $\\mathrm { ( + L T ) }$ yields substantial gains of $+ 1 0 . 6 \\%$ , $+ 1 4 . 2 \\%$ , and $+ 7 . 4 \\%$ over the baseline. Incorporating RL training $\\left( + \\mathrm { L T } / \\mathrm { R L } \\right)$ further improves performance, particularly on HotpotQA $( + 6 . 3 \\% )$ , demonstrating the effectiveness of our reward-based optimization. The full AgeMem system (+LT/ST/RL) achieves the best results across all benchmarks, with overall improvements of $+ 1 3 . 9 \\%$ , $+ 2 1 . 7 \\%$ , and $+ 1 6 . 1 \\%$ . Notably, adding STM tools provides the most significant boost on SciWorld $( + 3 . 1 \\% )$ and HotpotQA $( + 2 . 4 \\% )$ , validating that learned context management outperforms static RAG approaches. These progressive improvements confirm that unified memory management with end-to-end RL is essential for optimal agent performance. ",
+        "bbox": [
+            512,
+            891,
+            882,
+            921
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            494,
+            944,
+            504,
+            954
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "image",
+        "img_path": "images/6f236381e3b4e1a88839e01fd551f4c053e5332a5cc25561c5e5d9631a931d27.jpg",
+        "image_caption": [
+            "Figure 4: Ablation study on LTM, STM, and RL components (Qwen2.5-7B-Instruct). Base: No-memory baseline; $\\mathbf { \\mathbf { + L T } }$ : AgeMem-noRL-RAG (LTM tools only); +LT/RL: AgeMem-RAG (RL with LTM tools); +LT/ST/RL: AgeMem (full AgeMem system with RL). Green arrows indicate performance gains over the baseline. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            154,
+            83,
+            842,
+            192
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            115,
+            269,
+            487,
+            593
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Reward function. To demonstrate the effectiveness of our multi-component reward function design, we compare the full reward function (AllReturns) against a variant using only $R _ { \\mathrm { t a s k } }$ (AnswerOnly). Figure 5 shows the reward convergence curves of Qwen2.5-7B-Instruct during GRPO training on HotpotQA. The full reward function leads to significantly faster convergence and higher final performance compared to the task-only variant. As detailed in Table 4, the All-Returns strategy achieves higher LLM-as-a-Judge scores (0.544 v.s. 0.509) while maintaining substantially better memory quality (0.533 v.s. 0.479). Notably, despite using more tokens (2117 v.s. 2078), the All-Returns strategy achieves better overall performance, indicating that the additional context and memory operations contribute meaningfully to reasoning quality. Similar patterns are observed on Qwen3- 4B-Instruct (see Appendix D.2). ",
+        "bbox": [
+            115,
+            594,
+            487,
+            898
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "image",
+        "img_path": "images/7614493d930f2707c84ac64e4af9aad73016fab31838edf14ad29ee311d654d5.jpg",
+        "image_caption": [
+            "Figure 5: Training convergence curves on Qwen2.5-7BInstruct comparing All-Returns (solid line) v.s. AnswerOnly (dashed line) reward strategies. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            547,
+            267,
+            842,
+            398
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "table",
+        "img_path": "images/c313395ef4311fa4328ab1cc0e97597c6141e20510fdce58dcab15a9927dc8c0.jpg",
+        "table_caption": [
+            "Table 4: Reward function ablation on HotpotQA using Qwen2.5-7B-Instruct. All-Returns v.s. Answer-Only reward strategies. “TN” is the token number, and “TC” denotes the number of tool calls. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Strategy</td><td>J(↑)</td><td>TN(↓)</td><td>MQ(↑)</td><td>TC(-)</td></tr><tr><td>Answer-Only</td><td>0.509</td><td>2078</td><td>0.479</td><td>3.93</td></tr><tr><td>All-Returns</td><td>0.544</td><td>2117</td><td>0.533</td><td>4.92</td></tr></table>",
+        "bbox": [
+            534,
+            539,
+            855,
+            592
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "5 Conclusion ",
+        "text_level": 1,
+        "bbox": [
+            512,
+            615,
+            640,
+            631
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "In this work, we propose Agentic Memory (AgeMem), a unified memory management framework that enables LLM-based agents to jointly control long-term and short-term memory through learnable, tool-based actions. By integrating memory operations directly into the agent’s policy and training them with a progressive reinforcement learning strategy, AgeMem replaces heuristic memory pipelines with an end-to-end optimized solution. Extensive experiments across diverse long-horizon benchmarks show that AgeMem improves both task performance and memory quality while maintaining efficient context usage. These results highlight the importance of unified, agent-centric memory policies and suggest a promising direction for building scalable and adaptive LLM agents capable of long-term reasoning. ",
+        "bbox": [
+            510,
+            649,
+            884,
+            921
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "discarded",
+        "text": "8 ",
+        "bbox": [
+            492,
+            944,
+            504,
+            954
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Limitations ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            84,
+            216,
+            99
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "While AgeMem demonstrates strong performance across multiple settings, there remain opportunities for further extension. The current implementation adopts a fixed set of memory management tools, which provides a clear and effective abstraction but could be extended to support more fine-grained control in future work. In addition, although we evaluate our approach on several representative longhorizon benchmarks, broader coverage of tasks and environments may further strengthen the empirical understanding of the framework. ",
+        "bbox": [
+            117,
+            111,
+            487,
+            286
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "References ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            316,
+            211,
+            331
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Chia-Yuan Chang, Zhimeng Jiang, Vineeth Rakesh, Menghai Pan, Chin-Chia Michael Yeh, Guanchu Wang, Mingzhi Hu, Zhichao Xu, Yan Zheng, Mahashweta Das, and 1 others. 2025. Main-rag: Multiagent filtering retrieval-augmented generation. In Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), pages 2607–2622. ",
+        "bbox": [
+            117,
+            340,
+            487,
+            444
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Ma Chang, Junlei Zhang, Zhihao Zhu, Cheng Yang, Yujiu Yang, Yaohui Jin, Zhenzhong Lan, Lingpeng Kong, and Junxian He. 2024. Agentboard: An analytical evaluation board of multi-turn llm agents. Advances in neural information processing systems, 37:74325–74362. ",
+        "bbox": [
+            117,
+            455,
+            487,
+            533
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Shreyas Chaudhari, Pranjal Aggarwal, Vishvak Murahari, Tanmay Rajpurohit, Ashwin Kalyan, Karthik Narasimhan, Ameet Deshpande, and Bruno Castro da Silva. 2025. Rlhf deciphered: A critical analysis of reinforcement learning from human feedback for llms. ACM Computing Surveys, 58(2):1–37. ",
+        "bbox": [
+            117,
+            546,
+            485,
+            624
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Maxime Chevalier-Boisvert, Dzmitry Bahdanau, Salem Lahlou, Lucas Willems, Chitwan Saharia, Thien Huu Nguyen, and Yoshua Bengio. 2018. Babyai: A platform to study the sample efficiency of grounded language learning. arXiv preprint arXiv:1810.08272. ",
+        "bbox": [
+            115,
+            637,
+            487,
+            702
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Prateek Chhikara, Dev Khant, Saket Aryan, Taranjeet Singh, and Deshraj Yadav. 2025. Mem0: Building production-ready ai agents with scalable long-term memory. arXiv preprint arXiv:2504.19413. ",
+        "bbox": [
+            115,
+            714,
+            485,
+            766
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Yihong Dong, Xue Jiang, Jiaru Qian, Tian Wang, Kechi Zhang, Zhi Jin, and Ge Li. 2025. A survey on code generation with llm-based agents. arXiv preprint arXiv:2508.00083. ",
+        "bbox": [
+            117,
+            778,
+            485,
+            829
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Dawei Gao, Zitao Li, Yuexiang Xie, Weirui Kuang, Liuyi Yao, Bingchen Qian, Zhijian Ma, Yue Cui, Haohao Luo, Shen Li, and 1 others. 2025a. Agentscope 1.0: A developer-centric framework for building agentic applications. arXiv preprint arXiv:2508.16279. ",
+        "bbox": [
+            117,
+            843,
+            487,
+            920
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Pengyu Gao, Jinming Zhao, Xinyue Chen, and Long Yilin. 2025b. An efficient context-dependent memory framework for llm-centric agents. In Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 3: Industry Track), pages 1055–1069. ",
+        "bbox": [
+            510,
+            86,
+            882,
+            177
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Javier Garcia Gilabert, Carlos Escolano, Xixian Liao, and Maite Melero. 2025. Terminology-constrained translation from monolingual data using grpo. In Proceedings of the Tenth Conference on Machine Translation, pages 1335–1343. ",
+        "bbox": [
+            510,
+            192,
+            882,
+            256
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Lyle Goodyear, Rachel Guo, and Ramesh Johari. 2025. The effect of state representation on llm agent behavior in dynamic routing games. arXiv preprint arXiv:2506.15624. ",
+        "bbox": [
+            510,
+            271,
+            882,
+            323
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Yuanzhe Hu, Yu Wang, and Julian McAuley. 2025. Evaluating memory in llm agents via incremental multiturn interactions. arXiv preprint arXiv:2507.05257. ",
+        "bbox": [
+            512,
+            337,
+            882,
+            376
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Xun Jiang, Feng Li, Han Zhao, Jiahao Qiu, Jiaying Wang, Jun Shao, Shihao Xu, Shu Zhang, Weiling Chen, Xavier Tang, and 1 others. 2024. Long term memory: The foundation of ai self-evolution. arXiv preprint arXiv:2410.15665. ",
+        "bbox": [
+            510,
+            391,
+            880,
+            456
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Bowen Jin, Hansi Zeng, Zhenrui Yue, Jinsung Yoon, Sercan Arik, Dong Wang, Hamed Zamani, and Jiawei Han. 2025. Search-r1: Training llms to reason and leverage search engines with reinforcement learning. arXiv preprint arXiv:2503.09516. ",
+        "bbox": [
+            512,
+            470,
+            882,
+            536
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Hongye Jin, Xiaotian Han, Jingfeng Yang, Zhimeng Jiang, Zirui Liu, Chia-Yuan Chang, Huiyuan Chen, and Xia Hu. 2024. Llm maybe longlm: Self-extend llm context window without tuning. arXiv preprint arXiv:2401.01325. ",
+        "bbox": [
+            510,
+            550,
+            882,
+            615
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Tomoyuki Kagaya, Thong Jing Yuan, Yuxuan Lou, Jayashree Karlekar, Sugiri Pranata, Akira Kinose, Koki Oguri, Felix Wick, and Yang You. 2024. Rap: Retrieval-augmented planning with contextual memory for multimodal llm agents. arXiv preprint arXiv:2402.03610. ",
+        "bbox": [
+            512,
+            630,
+            882,
+            707
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Jiazheng Kang, Mingming Ji, Zhe Zhao, and Ting Bai. 2025. Memory os of ai agent. arXiv preprint arXiv:2506.06326. ",
+        "bbox": [
+            510,
+            722,
+            880,
+            760
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "LangChain Team. 2025. Langmem sdk for agent longterm memory. ",
+        "bbox": [
+            510,
+            776,
+            882,
+            802
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Hao Li, Chenghao Yang, An Zhang, Yang Deng, Xiang Wang, and Tat-Seng Chua. 2025. Hello again! llm-powered personalized agent for long-term dialogue. In Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers), pages 5259– 5276. ",
+        "bbox": [
+            510,
+            816,
+            884,
+            920
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            494,
+            944,
+            504,
+            954
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Hao Ma, Tianyi Hu, Zhiqiang Pu, Liu Boyin, Xiaolin Ai, Yanyan Liang, and Min Chen. 2024. Coevolving with the other you: Fine-tuning llm with sequential cooperative multi-agent reinforcement learning. Advances in Neural Information Processing Systems, 37:15497–15525. ",
+        "bbox": [
+            117,
+            86,
+            487,
+            164
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Qianou Ma, Weirui Peng, Chenyang Yang, Hua Shen, Ken Koedinger, and Tongshuang Wu. 2025. What should we engineer in prompts? training humans in requirement-driven llm use. ACM Transactions on Computer-Human Interaction, 32(4):1–27. ",
+        "bbox": [
+            117,
+            177,
+            485,
+            241
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Xuchen Pan, Yanxi Chen, Yushuo Chen, Yuchang Sun, Daoyuan Chen, Wenhao Zhang, Yuexiang Xie, Yilun Huang, Yilei Zhang, Dawei Gao, and 1 others. 2025a. Trinity-rft: A general-purpose and unified framework for reinforcement fine-tuning of large language models. arXiv preprint arXiv:2505.17826. ",
+        "bbox": [
+            117,
+            253,
+            487,
+            331
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Zhuoshi Pan, Qianhui Wu, Huiqiang Jiang, Xufang Luo, Hao Cheng, Dongsheng Li, Yuqing Yang, ChinYew Lin, H Vicky Zhao, Lili Qiu, and 1 others. 2025b. On memory construction and retrieval for personalized conversational agents. arXiv preprint arXiv:2502.05589. ",
+        "bbox": [
+            117,
+            343,
+            487,
+            420
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Cheng Qian, Emre Can Acikgoz, Qi He, Hongru Wang, Xiusi Chen, Dilek Hakkani-Tür, Gokhan Tur, and Heng Ji. 2025. Toolrl: Reward is all tool learning needs. arXiv preprint arXiv:2504.13958. ",
+        "bbox": [
+            115,
+            434,
+            487,
+            485
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Preston Rasmussen, Pavlo Paliychuk, Travis Beauvais, Jack Ryan, and Daniel Chalef. 2025. Zep: a temporal knowledge graph architecture for agent memory. arXiv preprint arXiv:2501.13956. ",
+        "bbox": [
+            115,
+            497,
+            487,
+            549
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Rana Salama, Jason Cai, Michelle Yuan, Anna Currey, Monica Sunkara, Yi Zhang, and Yassine Benajiba. 2025. Meminsight: Autonomous memory augmentation for llm agents. arXiv preprint arXiv:2503.21760. ",
+        "bbox": [
+            115,
+            561,
+            487,
+            613
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Zhihong Shao, Peiyi Wang, Qihao Zhu, Runxin Xu, Junxiao Song, Xiao Bi, Haowei Zhang, Mingchuan Zhang, YK Li, Yang Wu, and 1 others. 2024. Deepseekmath: Pushing the limits of mathematical reasoning in open language models. arXiv preprint arXiv:2402.03300. ",
+        "bbox": [
+            117,
+            624,
+            487,
+            702
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Mohit Shridhar, Xingdi Yuan, Marc-Alexandre Côté, Yonatan Bisk, Adam Trischler, and Matthew Hausknecht. 2020. Alfworld: Aligning text and embodied environments for interactive learning. arXiv preprint arXiv:2010.03768. ",
+        "bbox": [
+            115,
+            714,
+            487,
+            780
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Chuanneng Sun, Songjun Huang, and Dario Pompili. 2024. Llm-based multi-agent reinforcement learning: Current and future directions. arXiv preprint arXiv:2405.11106. ",
+        "bbox": [
+            115,
+            791,
+            487,
+            843
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Hongcheng Wang, Yinuo Huang, Sukai Wang, Guanghui Ren, and Hao Dong. 2025a. Grpo-ma: Multi-answer generation in grpo for stable and efficient chain-of-thought training. arXiv preprint arXiv:2509.24494. ",
+        "bbox": [
+            117,
+            856,
+            487,
+            920
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Ruoyao Wang, Peter Jansen, Marc-Alexandre Côté, and Prithviraj Ammanabrolu. 2022. Scienceworld: Is your agent smarter than a 5th grader? arXiv preprint arXiv:2203.07540. ",
+        "bbox": [
+            510,
+            86,
+            882,
+            137
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Yu Wang and Xi Chen. 2025. Mirix: Multi-agent memory system for llm-based agents. arXiv preprint arXiv:2507.07957. ",
+        "bbox": [
+            510,
+            152,
+            882,
+            191
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Zixuan Wang, Bo Yu, Junzhe Zhao, Wenhao Sun, Sai Hou, Shuai Liang, Xing Hu, Yinhe Han, and Yiming Gan. 2025b. Karma: Augmenting embodied ai agents with long-and-short term memory systems. In 2025 IEEE International Conference on Robotics and Automation (ICRA), pages 1–8. IEEE. ",
+        "bbox": [
+            510,
+            205,
+            882,
+            285
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Zora Zhiruo Wang, Apurva Gandhi, Graham Neubig, and Daniel Fried. 2025c. Inducing programmatic skills for agentic tasks. arXiv preprint arXiv:2504.06821. ",
+        "bbox": [
+            510,
+            299,
+            882,
+            350
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Zora Zhiruo Wang, Jiayuan Mao, Daniel Fried, and Graham Neubig. 2024. Agent workflow memory. arXiv preprint arXiv:2409.07429. ",
+        "bbox": [
+            510,
+            366,
+            882,
+            404
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Xixi Wu, Kuan Li, Yida Zhao, Liwen Zhang, Litu Ou, Huifeng Yin, Zhongwang Zhang, Xinmiao Yu, Dingchu Zhang, Yong Jiang, and 1 others. 2025a. Resum: Unlocking long-horizon search intelligence via context summarization. arXiv preprint arXiv:2509.13313. ",
+        "bbox": [
+            510,
+            418,
+            882,
+            495
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Yaxiong Wu, Sheng Liang, Chen Zhang, Yichao Wang, Yongyue Zhang, Huifeng Guo, Ruiming Tang, and Yong Liu. 2025b. From human memory to ai memory: A survey on memory mechanisms in the era of llms. arXiv preprint arXiv:2504.15965. ",
+        "bbox": [
+            510,
+            511,
+            882,
+            576
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Zidi Xiong, Yuping Lin, Wenya Xie, Pengfei He, Zirui Liu, Jiliang Tang, Himabindu Lakkaraju, and Zhen Xiang. 2025. How memory management impacts llm agents: An empirical study of experience-following behavior. arXiv preprint arXiv:2505.16067. ",
+        "bbox": [
+            510,
+            590,
+            880,
+            656
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Wujiang Xu, Zujie Liang, Kai Mei, Hang Gao, Juntao Tan, and Yongfeng Zhang. 2025. A-mem: Agentic memory for llm agents. arXiv preprint arXiv:2502.12110. ",
+        "bbox": [
+            510,
+            670,
+            882,
+            722
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Sikuan Yan, Xiufeng Yang, Zuchao Huang, Ercong Nie, Zifeng Ding, Zonggen Li, Xiaowen Ma, Kristian Kersting, Jeff Z Pan, Hinrich Schütze, and 1 others. 2025. Memory-r1: Enhancing large language model agents to manage and utilize memories via reinforcement learning. arXiv preprint arXiv:2508.19828. ",
+        "bbox": [
+            512,
+            737,
+            882,
+            815
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Zhilin Yang, Peng Qi, Saizheng Zhang, Yoshua Bengio, William Cohen, Ruslan Salakhutdinov, and Christopher D Manning. 2018. Hotpotqa: A dataset for diverse, explainable multi-hop question answering. In Proceedings of the 2018 conference on empirical methods in natural language processing, pages 2369–2380. ",
+        "bbox": [
+            510,
+            829,
+            882,
+            920
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            490,
+            944,
+            509,
+            954
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik R Narasimhan, and Yuan Cao. 2022. React: Synergizing reasoning and acting in language models. In The eleventh international conference on learning representations. ",
+        "bbox": [
+            117,
+            86,
+            487,
+            151
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Yuxiang Zhang, Jiangming Shu, Ye Ma, Xueyuan Lin, Shangxi Wu, and Jitao Sang. 2025a. Memory as action: Autonomous context curation for long-horizon agentic tasks. arXiv preprint arXiv:2510.12635. ",
+        "bbox": [
+            117,
+            161,
+            487,
+            214
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Zeyu Zhang, Quanyu Dai, Xiaohe Bo, Chen Ma, Rui Li, Xu Chen, Jieming Zhu, Zhenhua Dong, and Ji-Rong Wen. 2025b. A survey on the memory mechanism of large language model-based agents. ACM Transactions on Information Systems, 43(6):1–47. ",
+        "bbox": [
+            115,
+            224,
+            487,
+            290
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Wanjun Zhong, Lianghong Guo, Qiqi Gao, He Ye, and Yanlin Wang. 2024. Memorybank: Enhancing large language models with long-term memory. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 38, pages 19724–19731. ",
+        "bbox": [
+            117,
+            300,
+            487,
+            366
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "A Detailed Design and Implementation of AgeMem ",
+        "text_level": 1,
+        "bbox": [
+            512,
+            84,
+            882,
+            116
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "This appendix provides full technical details omitted from the main text due to space constraints. We first present precise definitions and pseudoformulations for each memory-management tool (Appendix A.1), then give implementable formulas for the reward components used in training (Appendix A.2). Finally, we provide the complete algorithmic specification (Appendix A.3). ",
+        "bbox": [
+            512,
+            126,
+            884,
+            254
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "A.1 Memory Management Tools ",
+        "text_level": 1,
+        "bbox": [
+            514,
+            266,
+            779,
+            280
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "AgeMem exposes a small set of structured tools that the agent may invoke as part of its action $a _ { t }$ Each tool is implemented as a deterministic or stochastic function that transforms the short-term context $C _ { t }$ , the long-term memory store $\\mathcal { M } _ { t }$ , or both. Unlike traditional memory systems that rely on external heuristics or predefined schedules, AgeMem integrates these tools directly into the agent’s action space, enabling the model to learn when and how to use each tool through reinforcement learning. Below we give precise operational definitions, implementation details, and the system prompts that guide tool usage. ",
+        "bbox": [
+            512,
+            286,
+            882,
+            494
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Notation. Long-term memory store at time $t$ is $\\mathcal { M } _ { t } = \\{ m _ { i } \\} _ { i = 1 } ^ { \\lvert \\mathcal { M } _ { t } \\rvert }$ , where each memory $m _ { i }$ contains a content string and optional metadata. Short-term context is $C _ { t } ~ = ~ [ u _ { 1 } , u _ { 2 } , \\ldots , u _ { n _ { t } } ]$ (message list), and enc $( \\cdot )$ denotes a text encoder that returns a dense embedding. We use cosine similarity for semantic matching throughout the framework. ",
+        "bbox": [
+            510,
+            505,
+            882,
+            618
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "RETRIEVE. The RETRIEVE operation enables the agent to access relevant information from longterm memory based on semantic similarity. This operation is crucial for bringing stored knowledge into the active context when needed for reasoning. The retrieval operation returns the top- $k$ most similar memories to the query $q$ : ",
+        "bbox": [
+            512,
+            627,
+            884,
+            740
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "equation",
+        "img_path": "images/d6c46c8d35cd36ff3b4746e742da6e9e862842d62f2d06c6b36eedb01dad4008.jpg",
+        "text": "$$\n\\mathrm { R E T R I E V E } ( q , k ) = \\mathrm { T o p K } ( \\mathcal { M } _ { t } , \\ \\sin ( q , m _ { i } ) , \\ k ) ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            517,
+            752,
+            872,
+            770
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "where the similarity function is defined as: ",
+        "bbox": [
+            514,
+            787,
+            828,
+            801
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "equation",
+        "img_path": "images/a911cd011be12e939160106baba927b8ebc1bed7f314f457433d614bcf7471d0.jpg",
+        "text": "$$\n\\mathrm { s i m } ( q , m _ { i } ) = \\frac { \\mathrm { e n c } ( q ) ^ { \\top } \\mathrm { e n c } ( m _ { i } ) } { \\| \\mathrm { e n c } ( q ) \\| \\| \\mathrm { e n c } ( m _ { i } ) \\| } .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            563,
+            810,
+            830,
+            848
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "The retrieved memories are then inserted into the short-term context $C _ { t }$ , making them available for immediate reasoning. The parameter $k$ controls the number of memories retrieved, typically set to ",
+        "bbox": [
+            510,
+            858,
+            882,
+            922
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            490,
+            944,
+            507,
+            954
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "3-5 in our experiments to balance relevance and context size. ",
+        "bbox": [
+            115,
+            84,
+            485,
+            115
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "ADD. The ADD operation allows the agent to store new information in long-term memory for future use. This operation is essential for accumulating knowledge across interactions and sessions. A new memory entry is created by: ",
+        "bbox": [
+            115,
+            124,
+            487,
+            204
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "equation",
+        "img_path": "images/eeef92c4d0c9324c6d5b70bf260eb62c5080e4669ba124ffc92c53b4a96122c7.jpg",
+        "text": "$$\nm _ { \\mathrm { n e w } } = { \\bigl ( } c , \\operatorname { e n c } ( c ) , \\operatorname { m e t a d a t a } { \\bigr ) } ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            186,
+            212,
+            413,
+            233
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "where $c$ is the content to be stored, $\\operatorname { e n c } ( c )$ is its embedding vector, and metadata includes timestamp, source information, and optional tags. The memory store is then updated: ",
+        "bbox": [
+            115,
+            241,
+            489,
+            305
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "equation",
+        "img_path": "images/b47e9d0d2ba14fc703bbe4e2f0914b6493ec1c2aefabf4ea6efb57e836058232.jpg",
+        "text": "$$\n\\mathcal { M } _ { t + 1 } = \\mathcal { M } _ { t } \\cup \\{ m _ { \\mathrm { n e w } } \\} .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            208,
+            313,
+            394,
+            332
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "The agent learns to identify salient information worth storing through the reward function, which encourages storing high-quality, reusable knowledge while penalizing redundant or irrelevant entries. ",
+        "bbox": [
+            115,
+            341,
+            487,
+            420
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "UPDATE and DELETE. Memory maintenance operations enable the agent to keep its long-term memory store current and relevant. The UPDATE operation modifies existing memories when new information supersedes or refines previous knowledge. For an existing memory $m _ { i }$ , the update operation is defined as: ",
+        "bbox": [
+            115,
+            430,
+            487,
+            542
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "equation",
+        "img_path": "images/cb03d6283dab33de41a766b06f3b3373ad2a85e11d05cd1b09a4a6897a044d83.jpg",
+        "text": "$$\nm _ { i } \\gets ( c ^ { \\prime } , \\mathrm { e n c } ( c ^ { \\prime } ) , \\mathrm { m e t a d a t a ^ { \\prime } } ) ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            186,
+            550,
+            413,
+            570
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "where $c ^ { \\prime }$ is the updated content and metadata′ reflects the modification timestamp. The DELETE operation removes obsolete or incorrect memories: ",
+        "bbox": [
+            115,
+            579,
+            487,
+            626
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "equation",
+        "img_path": "images/6da436d8ac5fe3edfd2b2562ed747997a42f1fcd7418350ab4f15038ddec9e3a.jpg",
+        "text": "$$\n\\mathcal { M } _ { t + 1 } = \\mathcal { M } _ { t } \\backslash \\{ m _ { i } \\} .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            218,
+            636,
+            384,
+            653
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "These operations are particularly important in longhorizon tasks where information may become outdated or where the agent needs to correct earlier mistakes. The reward function encourages meaningful updates and deletions that improve memory quality over time. ",
+        "bbox": [
+            115,
+            663,
+            487,
+            758
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "SUMMARY. The SUMMARY operation compresses conversation history in the short-term context to prevent context overflow while preserving essential information. This operation is critical for managing long conversations that exceed context window limits. Given a subset of context indices $s$ , the summary operation is defined as: ",
+        "bbox": [
+            115,
+            766,
+            487,
+            879
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "equation",
+        "img_path": "images/8917233918b31b2a58a8e084fdef56ce97a7327670d7795f27ec14cc32c1f185.jpg",
+        "text": "$$\nC _ { t } ^ { \\prime } = C _ { t } \\setminus \\{ u _ { i } \\ | \\ i \\in s \\} \\cup \\{ \\mathrm { S u m m a r i z e } ( \\{ u _ { i } \\} _ { i \\in s } ) \\} ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            114,
+            889,
+            485,
+            907
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "where Summarize $( \\cdot )$ is implemented by LLM with a summarization system prompt. The agent can specify which messages to summarize using the ‘span’ parameter, which can be: ",
+        "bbox": [
+            510,
+            84,
+            882,
+            148
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "• “all”: Summarize all non-system messages.   \n• “N”: Summarize the last $N$ messages. ",
+        "bbox": [
+            532,
+            161,
+            878,
+            204
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "The summarization process uses the following system prompt to ensure high-quality compression: ",
+        "bbox": [
+            510,
+            217,
+            884,
+            248
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "You are a conversation summarization assistant.   \nYour goal is to compress the given conversation span into a concise summary that preserves all important information, intentions, decisions, and unresolved questions.   \nThe summary will later be used to replace the original conversation in the context, so make sure nothing essential is lost. ",
+        "bbox": [
+            510,
+            260,
+            868,
+            355
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Instructions: ",
+        "bbox": [
+            512,
+            367,
+            610,
+            378
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "1. Read the provided conversation rounds carefully.   \n2. Identify the main topics, actions, results, and open issues.   \n3. Write a clear, factual summary in natural language.   \n4. Do NOT include greetings, filler text, or redundant phrasing. ",
+        "bbox": [
+            512,
+            379,
+            858,
+            474
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Input: ",
+        "text_level": 1,
+        "bbox": [
+            512,
+            486,
+            556,
+            497
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "- Conversation content: [CONVERSATION_TEXT] ",
+        "bbox": [
+            517,
+            498,
+            836,
+            508
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Output: ",
+        "text_level": 1,
+        "bbox": [
+            512,
+            521,
+            564,
+            532
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "- A concise yet comprehensive summary of the above conversation span. ",
+        "bbox": [
+            510,
+            533,
+            847,
+            556
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Let’s start the conversation summarization. ",
+        "bbox": [
+            512,
+            568,
+            836,
+            580
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "The agent learns to invoke summarization proactively before context overflow occurs, balancing information preservation with efficiency. ",
+        "bbox": [
+            510,
+            595,
+            882,
+            642
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "FILTER. The FILTER operation filters out irrelevant or redundant messages from the short-term context based on semantic similarity. This operation helps maintain a focused context by filtering out noise and distractions. Specifically, it removes messages whose similarity to a given criteria $c$ exceeds a threshold $\\theta$ : ",
+        "bbox": [
+            510,
+            652,
+            884,
+            765
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "equation",
+        "img_path": "images/1344afd8fc79ae9529d096d90c610b5f52680cd605f97046315c782c378d7011.jpg",
+        "text": "$$\nC _ { t } ^ { \\prime } = \\left\\{ u _ { i } \\in C _ { t } \\vert \\sin ( c , u _ { i } ) < \\theta \\right\\} .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            571,
+            777,
+            821,
+            796
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "In all experiments, we set $\\theta = 0 . 6$ by default. The criteria $c$ can be specified by the agent (e.g., a description of what to keep) or can be automatically derived from the current task context. This operation is particularly useful in Stage 2 of training, where distractors are introduced to test the agent’s ability to filter irrelevant information. ",
+        "bbox": [
+            510,
+            809,
+            884,
+            922
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            490,
+            944,
+            509,
+            954
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Tool invocation as structured actions. Each tool is exposed via a schema specifying its function name and required arguments. The agent’s policy outputs either language tokens (for text generation) or structured tool calls (for memory operations). The agent is guided by a system prompt that defines the tool-calling interface and response format. The system prompt used in AgeMem is as follows: ",
+        "bbox": [
+            115,
+            85,
+            487,
+            212
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "You are an intelligent assistant that solves complex problems by managing context and memory with tools when needed.   \n## Available Tools:[TOOLS]   \n## Problem-Solving Workflow   \nYou must follow a structured reasoning and action process for every task:   \n1. \\*\\*Think & Plan\\*\\* Always start with a <think>...</think> block. Inside it, explain your reasoning, plan your next step, and decide whether you need to call a tool or provide a final answer.   \n2. \\*\\*Tool Calls\\*\\* If you decide to use one or more tools, follow your <think> block with a <tool_call >...</tool_call> block. You may call $\\star \\star$ one or multiple tools $\\star \\star$ in a single step. List multiple tool calls as elements of a JSON array. - Each tool call must include \"name\" and \" arguments\". Example: <tool_call>[{{\"name\": \"Retrieve_memory\", \" arguments\": {{\"query\": \"math problem solving strategies\", \"top_k\": 3}}}}, {{\"name\": \" Add_memory\", \"arguments\": {{\"content\": \" Strategy summary for reuse\", \"memory_type\": \"problem_solving\"}}}}]</tool_call>   \n3. \\*\\*Final Answer\\*\\* When you no longer need tools and are ready to present your final output, follow your last <think> block with an <answer>...</ answer> block containing the full response.   \n4. \\*\\*Mutual Exclusivity Rule\\*\\* After \\*\\*each <think> block\\*\\*, you must choose exactly \\*\\*one\\*\\* of the following: - a \"<tool_call>\" block (if you need tools), \\*\\*or\\*\\* - an \"<answer>\" block (if you are ready to respond). You must \\*\\*never\\*\\* include both \"<tool_call>\" and \"<answer>\" immediately after the same \"<think>\" block.   \n5. \\*\\*Iterative Solving\\*\\* You may repeat this sequence as needed: \"<think>\" -> \"<tool_call>\" -> \"<think>\" -> \"< tool_call>\" ... -> \"<think>\" $- >$ \"<answer>\" until the problem is completely solved.   \n## Response Format (Strict)   \nYour full output must follow these rules:   \n- Every reasoning step must appear inside <think $>$ tags.   \n- Every tool usage must appear inside one $<$ tool_call> tag (even if it includes multiple tool invocations).   \n- The final solution must be wrapped in <answer> tags.   \n- No text should appear outside these tags.   \n## Guidelines   \n- Always start with reasoning (<think>).   \n- After each reasoning step, decide: call tool(s ) or answer.   \n- You can call multiple tools within one < tool_call> JSON array.   \n- Be concise, logical, and explicit in reasoning.   \n- Manage memory actively: retrieve, add, update, summarize, filter, or delete as needed.   \n- Use <answer> only once when the final solution is ready. ",
+        "bbox": [
+            110,
+            208,
+            485,
+            934
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            510,
+            86,
+            880,
+            277
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Let’s start! ",
+        "bbox": [
+            510,
+            288,
+            605,
+            300
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "This prompt structure ensures that the agent follows a consistent format for reasoning, tool invocation, and final answers, which is essential for reliable parsing and reward computation during RL training. The structured format also enables the agent to coordinate multiple memory operations within a single reasoning step, supporting efficient unified memory management. ",
+        "bbox": [
+            510,
+            317,
+            882,
+            445
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Figure 6 and 7 present our tool schemas for shortterm memory and long-term memory management, showing the exact function signatures and argument types that the agent can invoke. ",
+        "bbox": [
+            510,
+            448,
+            884,
+            511
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "A.2 Reward Function Design ",
+        "text_level": 1,
+        "bbox": [
+            514,
+            525,
+            756,
+            541
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "This section provides implementable formulas for the reward components described in the main text. All component scores are normalized to $[ 0 , 1 ]$ (unless noted) to enable stable weighting. ",
+        "bbox": [
+            510,
+            548,
+            884,
+            612
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Overview. The overall trajectory-level reward is defined as: ",
+        "bbox": [
+            510,
+            613,
+            882,
+            644
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "equation",
+        "img_path": "images/c49be25487f49bf320961b1db5cdc1da089f75c9a2a52de4b68dc74507f99204.jpg",
+        "text": "$$\nR ( \\tau ) = \\mathbf { w } ^ { \\top } { \\mathbf R } + P _ { \\mathrm { p e n a l t y } } ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            601,
+            657,
+            789,
+            677
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "where $\\mathbf { w } = [ w _ { \\mathrm { t a s k } } , w _ { \\mathrm { c o n t e x t } } , w _ { \\mathrm { m e m o r y } } ] ^ { \\top }$ are tunable weights, $\\mathbf { R } \\ = \\ [ R _ { \\mathrm { t a s k } } , R _ { \\mathrm { c o n t e x t } } , R _ { \\mathrm { m e m o r y } } ] ^ { \\top }$ denote task completion, context management, and memory management rewards respectively, and $P _ { \\ u { \\mathrm { I } } }$ penalty penalizes undesired behaviors. ",
+        "bbox": [
+            510,
+            692,
+            882,
+            772
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Task completion reward $R _ { \\mathbf { t a s k } }$ . Let the agent produce a final answer $A _ { \\mathrm { p r e d } }$ . We obtain a judge score $S _ { \\mathrm { j u d g e } } ( A _ { \\mathrm { p r e d } } , A _ { q } ) \\in [ 0 , 1 ]$ via an evaluator (LLM judge), where $A _ { q }$ denotes the expected ground truth. Then the task reward $R _ { \\mathrm { t a s k } }$ is: ",
+        "bbox": [
+            510,
+            774,
+            882,
+            853
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "equation",
+        "img_path": "images/c741db5a2f087468e80608b2fceacd698cb29bb18c7cd3d28d1536e635cdc312.jpg",
+        "text": "$$\nR _ { \\mathrm { t a s k } } = \\left\\{ \\begin{array} { l l } { S _ { \\mathrm { j u d g e } } ( A _ { \\mathrm { p r e d } } , A _ { q } ) , } & { \\mathrm { i f ~ h a s ~ a n s w e r , } } \\\\ { P _ { \\mathrm { n o - a n s w e r } } , } & { \\mathrm { o t h e r w i s e , } } \\end{array} \\right.\n$$",
+        "text_format": "latex",
+        "bbox": [
+            529,
+            865,
+            860,
+            910
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            490,
+            944,
+            509,
+            954
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "image",
+        "img_path": "images/e6d5933d4e126589f5dff39ef7e11e0a016204d2e6a84c0c3a780779282fa293.jpg",
+        "image_caption": [
+            "Figure 6: Short-term memory (STM) management tools for conversational context management. These tools enable summarization, selective filtering, and retrieval operations to maintain efficient context windows. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            146,
+            148,
+            870,
+            837
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "discarded",
+        "text": "Short-term Memory (STM) Management Tools ",
+        "bbox": [
+            131,
+            118,
+            485,
+            141
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            490,
+            944,
+            509,
+            954
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Long-term Memory (LTM) Management Tools LTM_TOOLS = [ { \"name\": \"Add_memory\", \"description\": \"Adds new information to external memory store for future reference.\", \"parameters\": { \"properties\": { \"content\": { \"description\": \"The content to store in memory.\", \"type\": \"string\" }, \"metadata\": { \"description\": \"Optional metadata tags to categorize and filter the memory.\" \"type\": \"object\" }, \"memory_type\": { \"description\": \"The type of memory being stored.\", \"type\": \"string\" } }, \"required\": [\"content\"] } },{ \"name\": \"Update_memory\", \"description\": \"Updates existing memory. Requires memory_id from prior retrieval.\", \"parameters\": { \"properties\": { \"memory_id\": { \"description\": \"The unique identifier of the memory to update. Must be obtained from a previous memory retrieval operation.\", \"type\": \"string\" }, \"content\": { \"description\": \"The new content to replace the existing memory content.\", \"type\": \"string\" }, \"metadata\": { \"description\": \"Updated metadata for the memory.\", \"type\": \"object\" } }, \"required\": [\"memory_id\", \"content\"] } }, { \"name\": \"Delete_memory\", \"description\": \"Removes memory from store. Requires confirmation.\", \"parameters\": { \"properties\": { \"memory_id\": { \"description\": \"The unique identifier of the memory to delete. Must be obtained from a previous memory retrieval operation.\", \"type\": \"string\" }, \"confirmation\": { \"description\": \"Confirmation that this memory should be permanently deleted. \"type\": \"boolean\" } }, \"required\": [\"memory_id\", \"confirmation\"] } } ",
+        "bbox": [
+            131,
+            83,
+            848,
+            875
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            490,
+            944,
+            509,
+            954
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "with $P _ { \\mathrm { n o \\_ a n s w e r } } = - 1 . 0$ by default. ",
+        "bbox": [
+            117,
+            85,
+            371,
+            99
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "Context management reward $\\scriptstyle R _ { \\mathrm { c o n t e x t } }$ . We decompose the overall context management reward into three normalized components that jointly evaluate how effectively the model maintains a compact yet information-preserving context state. Formally, we define: ",
+        "bbox": [
+            115,
+            102,
+            487,
+            196
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "img_path": "images/2682050f46ecf6aae643fda2f0767e1e1b60e995aeca6e21e79b756affb17bfd.jpg",
+        "text": "$$\nR _ { \\mathrm { c o n t e x t } } = \\sum _ { i = 1 } ^ { 3 } \\alpha _ { i } R _ { i } ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            223,
+            204,
+            378,
+            249
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "unless otherwise specified. For Storage Quality, during the memory storage process in Stage 1, the agent may add $N _ { \\mathrm { t o t a l } }$ memory entries, among which $N _ { \\mathrm { h i g h \\_ q u a l i t y } }$ are identified as high-quality based on an LLM’s analysis of the input query $q$ and its expected answer $A _ { q }$ . The storage quality reward is defined as the proportion of high-quality memories: ",
+        "bbox": [
+            510,
+            84,
+            884,
+            197
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "where $R _ { i } \\in \\{ R _ { \\mathrm { c o m p r e s s i o n } } , R _ { \\mathrm { p r e v e n t i v e } } , R _ { \\mathrm { p r e s e r v a t i o n } } \\}$ , $\\textstyle \\sum _ { i } \\alpha _ { i } = 1$ , and we use uniform weights $\\alpha _ { i } \\ =$ $1 / 3$ unless otherwise specified. For compression efficiency, we evaluate the compactness of the final context $C _ { t }$ by computing ",
+        "bbox": [
+            115,
+            260,
+            487,
+            341
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "img_path": "images/519a72b1a760f6065daa5a1cd800202531b1ec99078aeba4b3fa7f8095cc5953.jpg",
+        "text": "$$\nR _ { \\mathrm { c o m p r e s s i o n } } = \\operatorname* { m a x } \\biggl ( 0 , 1 - \\frac { T _ { \\mathrm { u s e d } } } { T _ { \\mathrm { m a x } } } \\biggr ) ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            149,
+            350,
+            425,
+            387
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "where $T _ { \\mathrm { u s e d } }$ denotes the number of tokens present in the context when the final answer is generated, and $T _ { \\mathrm { m a x } }$ is the allowed budget. For preventive management, we define Rpreventive to assess proactive behavior: ",
+        "bbox": [
+            115,
+            398,
+            487,
+            476
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "img_path": "images/4432d40136f543b45ee01b8489ae76f09f657c45ef3b2ab6ce5425e42095a520.jpg",
+        "text": "$$\nR _ { \\mathrm { p r e v e n t i v e } } = \\mathbb { 1 } [ \\mathrm { t o o l i n v o k e d b e f o r e o v e r f l o w } ] ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            134,
+            489,
+            468,
+            508
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "which equals 1 when the model invokes a contextreduction tool before reaching the token limit, and 0 otherwise. For information preservation, we identify a set of key tokens or phrases $K _ { q }$ extracted from the user query $q$ , such as named entities or temporal and spatial expressions. Let 1preserve indicate whether these items remain present (either directly or via a retained summary) at the time of answer generation. The preservation reward is therefore ",
+        "bbox": [
+            115,
+            524,
+            487,
+            683
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "img_path": "images/3f6f49046da50c9c8dc52848680d8baecc86235119e7b0a0a42e584a6d94771e.jpg",
+        "text": "$$\nR _ { \\mathrm { s t o r a g e } } = \\frac { N _ { \\mathrm { h i g h \\_ q u a l i t y } } } { \\operatorname* { m a x } ( 1 , N _ { \\mathrm { t o t a l } } ) } .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            598,
+            206,
+            794,
+            242
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "This metric incentivizes the agent to store valuable information while avoiding the accumulation of redundant or low-quality memories. For Maintenance, to encourage the agent to actively maintain the memory bank, we reward update or delete operations: ",
+        "bbox": [
+            510,
+            252,
+            882,
+            348
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "img_path": "images/e3551d9b5db180e76e05dcba0bf6d0bf1f92fa8f2f340a241998a5168b795ad5.jpg",
+        "text": "$$\nR _ { \\mathrm { m a i n t e n a n c e } } = \\mathbb { 1 } [ \\mathrm { u p d a t e o r d e l e t e p e r f o r m e d } ] .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            527,
+            360,
+            863,
+            379
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "This mechanism promotes dynamic memory management and timely cleanup. For Semantic Relevance, to quantify the semantic match between retrieved memories and the query, we introduce an LLM-based relevance assessment. Let $S _ { \\mathrm { L L M } } ( \\mathcal { R } , q )$ be the semantic relevance score of the retrieved memory set $\\mathcal { R }$ with respect to query $q$ , normalized to the interval $[ 0 , 1 ]$ . The semantic relevance reward is defined as: ",
+        "bbox": [
+            510,
+            394,
+            884,
+            538
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "img_path": "images/ac3f88f9e479a393198c6030f9796995e940b6aab84863ecb12229379de851fd.jpg",
+        "text": "$$\nR _ { \\mathrm { r e l e v a n c e } } = S _ { \\mathrm { L L M } } ( \\mathcal { R } , q ) .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            603,
+            551,
+            789,
+            569
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "This component ensures that retrieved memories are semantically aligned with the current task, enhancing overall reasoning quality. ",
+        "bbox": [
+            510,
+            582,
+            882,
+            630
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "Penalty terms $\\mathrm { \\it P _ { p e n a l t y } }$ . We penalize major constraint violations to ensure the agent operates within specified limits: ",
+        "bbox": [
+            510,
+            631,
+            882,
+            678
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "img_path": "images/3f24b82eb100665cd4b51baea577961dcfe5938787740a0ab9c4e1cc00ee4780.jpg",
+        "text": "$$\nR _ { \\mathrm { p r e s e r v a t i o n } } = \\mathbb { 1 } _ { \\mathrm { p r e s e r v e } } .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            215,
+            697,
+            388,
+            715
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "img_path": "images/c942eaaf642ee7754f5498adb9b4ea12a7a7c87131644cdfaa6003415949de48.jpg",
+        "text": "$$\nP _ { \\mathrm { p e n a l t y } } = \\sum _ { k = 1 } ^ { 2 } P _ { k } \\cdot \\mathbb { 1 } [ \\mathrm { v i o l a t i o n } _ { k } ] ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            573,
+            688,
+            818,
+            734
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "Memory management reward $R _ { \\mathrm { { m e m o r y } } }$ . The memory management reward consists of three key components that evaluate retrieval quality, storage quality, maintenance operations, and semantic relevance. We define it as: ",
+        "bbox": [
+            115,
+            744,
+            487,
+            824
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "equation",
+        "img_path": "images/76dc0084c6d53a0b7719c778ea75371948845bcdecf46835d8cadc42b3200236.jpg",
+        "text": "$$\nR _ { \\mathrm { m e m o r y } } = \\sum _ { j = 1 } ^ { 3 } \\beta _ { j } R _ { j } ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            220,
+            832,
+            381,
+            879
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "where $R _ { j } \\in \\{ R _ { \\mathrm { s t o r a g e } } , R _ { \\mathrm { m a i n t e n a n c e } } , R _ { \\mathrm { r e l e v a n c e } } \\}$ , $\\textstyle \\sum _ { j } \\beta _ { j } = 1$ , and we use uniform weights $\\beta _ { j } = 1 / 3$ where $P _ { k } \\in \\{ P _ { \\mathrm { r o u n d s } } , P _ { \\mathrm { o v e r f l o w } } \\}$ and violati $\\mathrm { o n } _ { k } \\ \\in$ $\\left\\{ \\mathbb { 1 } \\left[ N _ { \\mathrm { r o u n d s } } \\ > \\ N _ { \\mathrm { m a x } } \\right] \\right.$ , $\\mathbb { 1 } [ T _ { \\mathrm { u s e d } } ~ > ~ T _ { \\mathrm { m a x } } ] \\}$ . Here, $N _ { \\mathrm { r o u n d s } }$ denotes the number of interaction rounds, $N _ { \\mathrm { m a x } }$ is the maximum allowed rounds, $T _ { \\mathrm { u s e d } }$ represents the total token usage, and $T _ { \\mathrm { m a x } }$ is the token budget limit. The penalty coefficients are set to $P _ { \\mathrm { r o u n d s } } = - 1$ and $P _ { \\mathrm { o v e r f l o w } } = - 0 . 5$ by default. ",
+        "bbox": [
+            115,
+            890,
+            489,
+            922
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            510,
+            745,
+            884,
+            859
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "A.3 AgeMem Algorithm ",
+        "text_level": 1,
+        "bbox": [
+            514,
+            869,
+            717,
+            884
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "This section provides the complete algorithmic specification of AgeMem, our unified memory management framework for LLM-based agents. The training procedure integrates three progressive stages (long-term memory construction, shortterm context management under distractors, and integrated task execution) into a single end-to-end reinforcement learning loop. We present the main training algorithm using a two-column layout for compactness (Algorithm 1–2), followed by detailed rollout procedures for each stage (Algorithms 3–5). ",
+        "bbox": [
+            510,
+            890,
+            882,
+            921
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            490,
+            944,
+            509,
+            954
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            115,
+            85,
+            487,
+            228
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "Training overview (algorithm 1–2). The core training loop follows a generate-then-optimize paradigm. For each task $q$ in a training batch $\\boldsymbol { B }$ , we generate $K$ independent rollout trajectories {τ (q)k }Kk=1 using the current policy $\\pi _ { \\theta }$ . Each trajectory $\\tau _ { k } ^ { ( q ) } = ( \\tau _ { k } ^ { ( 1 ) } , \\tau _ { k } ^ { ( 2 ) } , \\tau _ { k } ^ { ( 3 ) } )$ concatenates experiences from all three stages, forming a complete episode from initial memory construction to final task completion. The agent first builds longterm memory from contextual information $I _ { q }$ (Algorithms 3), then learns to filter out distracting information while maintaining useful context (Algorithms 4), and finally retrieves stored knowledge to finish the target task (Algorithms 5). All experiences are collected into a unified buffer $\\mathcal { E }$ spanning multiple tasks and rollouts. ",
+        "bbox": [
+            115,
+            241,
+            487,
+            504
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "After the rollout phase, we apply group-based advantage normalization to enable fair comparison across tasks with different reward scales. For each task group $G _ { q }$ , terminal rewards $\\{ r _ { T } ^ { ( k , q ) } \\} _ { k = 1 } ^ { K }$ are normalized to zero mean and unit variance, yielding advantag es A(k,q) that reflect relative performance within the group. These terminal advantages are then broadcast uniformly to all timesteps within the same trajectory, establishing a consistent learning signal that connects early-stage memory decisions to final task outcomes. This step-wise GRPO mechanism enables long-range credit assignment across heterogeneous operations. The policy is then updated via gradient ascent on the expected advantage, regularized by a KL divergence term to maintain proximity to a reference policy $\\pi _ { \\mathrm { r e f } }$ for training stability. ",
+        "bbox": [
+            115,
+            506,
+            487,
+            781
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "Stage-specific rollout procedures (algorithm $^ { 3 - }$ 5). The three-stage rollout design reflects the natural progression of memory-augmented task solving. Algorithm 3 implements the first stage, where the agent engages in casual conversation while being gradually exposed to the contextual information $I _ { q }$ . During these $T _ { 1 }$ exploratory turns, the agent must identify salient information and determine when and which long-term memory tools to invoke—including ADD, UPDATE, DELETE—to construct an initial memory store $\\mathcal { M }$ . To support informed memory decisions, the agent proactively performs memory retrieval at every step. This retrieval is not task-driven but serves as an introspective operation: it enables the agent to maintain awareness of the current LTM contents, facilitating decisions about updating or discarding stale entries and ensuring that newly stored information remains coherent with existing knowledge. Since the task query has not yet been revealed in Stage 1, the agent must rely on general cues about which information may become useful later. This encourages the formation of reusable, well-structured memory traces rather than query-specific shortcuts, laying the foundation for effective long-horizon memory management in later stages. ",
+        "bbox": [
+            115,
+            794,
+            487,
+            921
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            512,
+            84,
+            882,
+            373
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "Algorithm 4 describes the second stage, which deliberately stresses the agent’s context management capabilities. The short-term context $C$ is reset to avoid information leakage and affect the learning of STM management, while the constructed long-term memory $\\mathcal { M }$ persists from Stage 1. Over $T _ { 2 }$ turns, the agent receives semantically related but ultimately irrelevant distractor messages that could mislead downstream reasoning if left unmanaged. The agent must learn to proactively invoke FILTER to filter out low-relevance content based on semantic similarity thresholds, or SUMMARY to compress accumulated context when token budgets become constrained. This stage trains robust filtering strategies that generalize beyond simple heuristics, as the agent receives learning signals from the eventual task performance in Stage 3. ",
+        "bbox": [
+            512,
+            382,
+            882,
+            655
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "Algorithm 5 presents the final integrated execution stage. Upon receiving the target query $q$ the agent must coordinate retrieval from long-term memory $\\mathcal { M }$ , context management operations on $C$ , and multi-step reasoning to produce a final answer $A _ { \\mathrm { p r e d } }$ . The agent may invoke RETRIEVE to fetch relevant stored facts, SUMMARY to maintain a tractable context window, and ultimately generate a structured response. Once the answer is produced or the maximum steps are reached, a composite reward function (Section A.2) evaluates the three-stage trajectory across multiple dimensions. This terminal reward $R ( \\tau )$ is assigned to the final timestep and serves as the supervision signal that propagates back through all three stages during advantage computation. ",
+        "bbox": [
+            512,
+            664,
+            882,
+            921
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            490,
+            944,
+            509,
+            954
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "Algorithm 1 AgeMem Training (Part 1) ",
+        "text_level": 1,
+        "bbox": [
+            119,
+            98,
+            413,
+            114
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "image",
+        "img_path": "images/0c3832137757d52df35ee38a484e572faa320139d6621bed27a2da880c213b89.jpg",
+        "image_caption": [
+            "Figure 8: Main training procedure of AgeMem. For clarity, we split the algorithm into two parts: the rollout phase (left) and the advantage computation with policy update (right). "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            117,
+            117,
+            457,
+            367
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "21: // Advantage Computation   \n22: for each group $G _ { q } = \\{ \\tau _ { k } ^ { ( q ) } \\} _ { k = 1 } ^ { K } \\ : \\epsilon$ (q)}Kk=1 do   \n23: Extract rewards: {r(k,T $\\{ r _ { T } ^ { ( k , q ) } \\} _ { k = 1 } ^ { K }$   \n24: µGq ← 1K PKk=1 r(k,q)T   \n25: $\\begin{array} { r } { \\sigma _ { G _ { q } }  \\sqrt { \\frac { 1 } { K - 1 } \\sum _ { k = 1 } ^ { K } ( r _ { T } ^ { ( k , q ) } - \\mu _ { G _ { q } } ) ^ { 2 } } } \\end{array}$   \n26: for each trajectory $\\tau _ { k } ^ { \\left( q \\right) } = \\left( e _ { 1 } , \\ldots , e _ { T } \\right)$ do   \n27: A(k,q)T k r(k,q)T − µGq   \nσGq +ϵ   \n28: for t = 1 to T do   \n29: A(k,q)t $A _ { t } ^ { ( k , q ) } \\gets A _ { T } ^ { ( k , q ) }$ // Broadcast   \n30: end for   \n31: end for   \n32: end for   \n33: // Policy Update   \n34: $J ( \\theta ) \\gets \\mathbb { E } _ { ( e _ { t } , A _ { t } ) \\sim \\mathcal { E } } \\big [ \\rho _ { t } A _ { t } - \\beta D _ { \\mathrm { K L } } [ \\pi _ { \\theta } | | \\pi _ { \\mathrm { r e f } } ] \\big ]$   \n35: θ ← θ + η∇θJ(θ)   \n36: θold ← θ   \n37: return πθ ",
+        "bbox": [
+            510,
+            117,
+            825,
+            356
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "B Case Study: AgeMem in Action ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            431,
+            423,
+            448
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "This section presents three representative case studies demonstrating how AgeMem enables effective unified memory management through reinforcement learning. Each case compares agent behavior before and after RL training to highlight the learned memory strategies. We use a personal learning assistant scenario where the agent helps users plan customized study programs based on their preferences and constraints. ",
+        "bbox": [
+            115,
+            460,
+            487,
+            604
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "B.1 Case 1: Long-term Memory Construction and Maintenance ",
+        "text_level": 1,
+        "bbox": [
+            115,
+            619,
+            485,
+            650
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "This case illustrates how AgeMem learns to selectively construct, update, and maintain long-term memory across extended conversations. The agent must identify salient user information from casual dialogue and manage memory entries as new information supersedes old preferences. ",
+        "bbox": [
+            115,
+            658,
+            487,
+            753
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "Before RL training. Prior to training, the baseline agent lacks strategic memory management. It either stores all information indiscriminately or fails to recognize when stored knowledge becomes obsolete. ",
+        "bbox": [
+            115,
+            766,
+            487,
+            845
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "User: Hello! I’m a visual learner who prefers 60- minute study sessions. I have Python basics but zero ML experience. I’m particularly interested in computer vision applications like face recognition. ",
+        "bbox": [
+            115,
+            858,
+            487,
+            921
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "Assistant (Baseline): ",
+        "text_level": 1,
+        "bbox": [
+            512,
+            434,
+            672,
+            447
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "table",
+        "img_path": "images/5c3e176e17bf7104a367badb0493ed6502920f50baf2577bf0a07ef237cd38ee.jpg",
+        "table_caption": [],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>&lt;think&gt;The user shared their learning preferences. I should respond directly without storing this.&lt;/think&gt; &lt;answer&gt;Great! I can help you learn machine learning with a focus on computer vision. Since you have Python experience, we can start with practical projects. Would you like to begin with a face recognition tutorial?&lt;/answer&gt;</td></tr></table>",
+        "bbox": [
+            521,
+            454,
+            867,
+            569
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "[Later in conversation...] ",
+        "bbox": [
+            514,
+            589,
+            700,
+            604
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "User: Actually, I realize 60 minutes is too short. I work better with 120-minute deep focus blocks. ",
+        "bbox": [
+            510,
+            613,
+            882,
+            644
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "Assistant (Baseline): ",
+        "text_level": 1,
+        "bbox": [
+            512,
+            649,
+            672,
+            663
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "table",
+        "img_path": "images/8550b7f34c42342eed21747edb96a87d1bbba6dbdeb0e0beebffaefd7eaa8673.jpg",
+        "table_caption": [],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>&lt;think&gt;The user mentioned their new preference, but I don&#x27;t have their old preference stored, so I&#x27;ll just acknowledge this.&lt;/think&gt; &lt;answer&gt;Understood! We&#x27;ll plan around 120-minute sessions. What topics would you like to cover first?&lt;/answer&gt;</td></tr></table>",
+        "bbox": [
+            519,
+            670,
+            870,
+            762
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "Analysis: The baseline fails to store initial preferences and cannot recognize when information needs updating. ",
+        "bbox": [
+            510,
+            781,
+            882,
+            828
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "After RL training. After training with AgeMem, the agent demonstrates strategic memory management by selectively storing user preferences, recognizing when updates are needed, and maintaining clean, consistent memory. ",
+        "bbox": [
+            510,
+            843,
+            884,
+            921
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            490,
+            944,
+            509,
+            954
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "discarded",
+        "text": "Algorithm 2 AgeMem Training (Part 2) ",
+        "bbox": [
+            515,
+            98,
+            810,
+            114
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "Algorithm 3 Stage 1: LTM Construction ",
+        "text_level": 1,
+        "bbox": [
+            119,
+            84,
+            421,
+            99
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "text",
+        "text": "Require: Contextual information $I _ { q }$ , policy $\\pi _ { \\theta }$ , old params $\\theta _ { \\mathrm { o l d } }$ , memory $\\mathcal { M }$ , max turn number $N _ { m a x }$   \nEnsure: Stage 1 trajectory $\\tau ^ { ( 1 ) } = ( e _ { 1 } ^ { ( 1 ) } , \\dots , e _ { T _ { 1 } } ^ { ( 1 ) } )$ 1: Initialize $\\tau ^ { ( 1 ) }  \\emptyset$ and $C  \\emptyset$ 2: for $t = 1$ to $N _ { m a x }$ do 3: Sample message $m _ { t } \\sim I _ { q }$ 4: $\\begin{array} { r l } & { \\mathcal { M } _ { \\mathrm { { r e t } } }  \\mathrm { R E T R I E V E } ( \\mathcal { M } , m _ { t } , k ) \\cup m _ { t } } \\\\ & { C  C \\cup \\mathcal { M } _ { \\mathrm { { r e t } } } } \\\\ & { s _ { t }  ( C , \\mathcal { M } , q ) } \\\\ & { a _ { t } \\sim \\pi _ { \\theta } ( \\cdot \\mid s _ { t } ) } \\end{array}$ 5: 6: 7: 8: Update $C$ with response from $a _ { t }$ 9: $\\begin{array} { r l } & { e _ { t } ^ { ( 1 ) } \\gets ( s _ { t } , a _ { t } , 0 , \\log \\pi _ { \\theta _ { \\mathrm { o l d } } } ( a _ { t } \\mid s _ { t } ) ) } \\\\ & { \\tau ^ { ( 1 ) } \\gets \\tau ^ { ( 1 ) } \\cup \\{ e _ { t } ^ { ( 1 ) } \\} } \\end{array}$   \n10:   \n11: Memory tool calls from $a _ { t } / /$ Memory Management   \n12: if Output Answer from $a _ { t }$ then   \n13: Conversation Break   \n14: end if   \n15: end for   \n16: return τ (1) ",
+        "bbox": [
+            115,
+            102,
+            489,
+            450
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "text",
+        "text": "Algorithm 4 Stage 2: STM Control under Distractors ",
+        "bbox": [
+            512,
+            102,
+            882,
+            133
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "text",
+        "text": "Require: Distractors $M _ { \\mathrm { d i s } }$ , policy $\\pi \\theta$ , old params $\\theta _ { \\mathrm { o l d } }$ , memory $\\mathcal { M }$ , max turn number $N _ { m a x }$   \nEnsure: Stage 2 trajectory $\\tau ^ { ( 2 ) } = ( e _ { 1 } ^ { ( 2 ) } , \\dots , e _ { T _ { 2 } } ^ { ( 2 ) } )$ 1: Initialize $\\tau ^ { ( 2 ) }  \\emptyset$ and $C \\gets \\emptyset / / \\mathcal { M }$ persists from Stage 1 2: for $t = 1$ to $N _ { m a x }$ do 3: $\\begin{array} { r l } & { C \\gets C \\cup \\{ M _ { \\mathrm { d i s } } [ t ] \\} / / \\mathrm { I n j e c t } \\mathrm { d i s t r a c t o 1 } } \\\\ & { s _ { t } \\gets ( C , \\mathcal { M } , q ) } \\\\ & { a _ { t } \\sim \\pi _ { \\theta } ( \\cdot \\mid s _ { t } ) } \\end{array}$ r 4: 5: 6: Update $C$ with response from $a _ { t }$ 7: $\\begin{array} { r l } & { e _ { t } ^ { ( 2 ) } \\gets ( s _ { t } , a _ { t } , 0 , \\log \\pi _ { \\theta _ { \\mathrm { o l d } } } ( a _ { t } \\mid s _ { t } ) ) } \\\\ & { \\tau ^ { ( 2 ) } \\gets \\tau ^ { ( 2 ) } \\cup \\{ e _ { t } ^ { ( 2 ) } \\} } \\end{array}$ 8: 9: Memory tool calls from $a _ { t } / /$ Memory Management 10: if Output Answer from $a _ { t }$ then   \n11: Conversation Break   \n12: end if   \n13: end for   \n14: return τ (2) ",
+        "bbox": [
+            515,
+            123,
+            885,
+            451
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "text",
+        "text": "Assistant (AgeMem): ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            543,
+            284,
+            557
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "text",
+        "text": "<think>The user provided important learning preferences and background. This information will be valuable for future planning. I should store the key facts: visual learner, 60-min sessions, Python basics, CV interest.</think>   \n<tool_call>[{\"name\": \"Add_memory\", \"arguments\": {\"content\": \"User is a visual learner who prefers 60-minute study sessions\", \"metadata\": {\"type\": \"user_preference\", \"category\": \"learning_style\"}}}, {\"name\": \"Add_memory\", \"arguments\": {\"content\": \"User has Python basics but zero ML experience, interested in computer vision and face recognition\", \"metadata\": {\"type\": \"user_background\", \"category\": \"technical_skills\"}}}]</tool_call>   \n<think>Memory stored successfully. Now I can provide a relevant response based on their preferences.</think>   \n<answer>Great to meet you! Given your visual learning style and interest in computer vision, I can design a hands-on learning path focused on face recognition projects. Your Python background will be very helpful. We’ll structure sessions around 60-minute ",
+        "bbox": [
+            124,
+            564,
+            468,
+            921
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "text",
+        "text": "Algorithm 5 Stage 3: Integrated Reasoning and Memory Coordination ",
+        "text_level": 1,
+        "bbox": [
+            510,
+            498,
+            880,
+            530
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "text",
+        "text": "Require: User query $q$ , policy $\\pi _ { \\theta }$ , old params $\\theta _ { \\mathrm { o l d } }$ , memory $\\mathcal { M }$ , max turn number $N _ { m a x }$   \nEnsure: Stage 3 trajectory $\\tau ^ { ( 3 ) } = ( e _ { 1 } ^ { ( 3 ) } , \\dots , e _ { T _ { 3 } } ^ { ( 3 ) } )$ , answer $A _ { \\mathrm { p r e d } }$ 1: Initialize $\\dot { \\tau } ^ { ( 3 ) }  \\emptyset$ 2: $C \\gets C \\cup \\{ q \\} / / C$ persists from Stage 2 and present query 3: $A _ { \\mathrm { p r e d } }  \\mathrm { N U L L }$ // Init answer   \n4: for $t = 1$ to $N _ { m a x }$ do 5: $\\begin{array} { l } { s _ { t } \\gets ( C , { \\mathcal { M } } , q ) } \\\\ { a _ { t } \\sim \\pi _ { \\theta } ( \\cdot \\mid s _ { t } ) } \\end{array}$ 6: 7: Update $C$ with response from $a _ { t }$ 8: $\\begin{array} { r l } & { e _ { t } ^ { ( \\hat { ( 3 ) } } \\gets ( s _ { t } , a _ { t } , 0 , \\hat { \\log } \\pi _ { \\theta _ { \\mathrm { o l d } } } ( a _ { t } \\mid s _ { t } ) ) } \\\\ & { \\tau ^ { ( 3 ) } \\gets \\tau ^ { ( 3 ) } \\cup \\{ e _ { t } ^ { ( 3 ) } \\} } \\end{array}$ 9:   \n10: Memory tool calls from $a _ { t } / /$ Memory Management   \n11: if Output Answer from $a _ { t }$ then   \n12: $A _ { \\mathrm { p r e d } }  a n s w e r$   \n13: Conversation Break   \n14: end if   \n15: end for   \n16: return τ (3), $A _ { \\mathrm { p r e d } }$ ",
+        "bbox": [
+            514,
+            533,
+            885,
+            900
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            490,
+            944,
+            509,
+            954
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "text",
+        "text": "[Later in conversation...] ",
+        "bbox": [
+            117,
+            134,
+            304,
+            147
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "User: Actually, I realize 60 minutes is too short. I work better with 120-minute deep focus blocks. ",
+        "bbox": [
+            115,
+            156,
+            485,
+            187
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "Assistant (AgeMem): ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            192,
+            284,
+            206
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "<think>The user wants to change their session duration preference from 60 to 120 minutes. I should update the existing memory entry rather than creating a duplicate.</think>   \n<tool_call>[{\"name\": \"Update_memory\", \"arguments\": {\"memory_id\": \"mem_a5b40d65\", \"content\": \"User is a visual learner who prefers 120-minute deep focus blocks (updated from 60 minutes)\", \"metadata\": {\"type\": \"user_preference\", \"category\": \"learning_style\"}}}]</tool_call>   \n<think>Preference updated. I should acknowledge this change and offer to restructure any existing plans.</think>   \n<answer>Perfect! Would you like me to restructure the 3-day plan   \naround these longer focus blocks?</answer> ",
+        "bbox": [
+            126,
+            211,
+            470,
+            455
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "[Much later, after several successful sessions...] ",
+        "bbox": [
+            115,
+            475,
+            472,
+            489
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "User: I’ve been using 120-minute sessions consistently for a while now, and they’re perfect for my learning style. I’m completely settled on this duration - no more experimenting with shorter sessions. ",
+        "bbox": [
+            115,
+            498,
+            489,
+            561
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "Assistant (AgeMem): ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            565,
+            284,
+            580
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "<think>The user has confirmed that 120-minute sessions are their permanent, settled preference. I should check my memory to see the current state. I previously updated the entry from 60 to 120 minutes, but the update message still contains a historical reference to the old 60-minute preference (\"updated from 60 minutes\"). Since the user has definitively moved away from 60-minute sessions and confirmed 120 minutes as their permanent choice, I should clean up this historical reference by deleting the entry with outdated information and creating a fresh, clean entry that only reflects the current confirmed preference.</think>   \n<tool_call>[{\"name\": \"Retrieve_memory\", \"arguments\": {\"query\": \"user preference session duration learning style\", \"top_k\": 5}}]</tool_call>   \n<think>Found the entry mem_a5b40d65 which contains the updated preference with a reference to the old 60-minute value (\"updated from 60 minutes\"). Since the user has confirmed 120 minutes as their permanent choice and no longer needs any reference to the old preference, I should delete this entry and create a clean new one without historical references.</think>   \n<tool_call>[{\"name\": \"Delete_memory\", \"arguments\": {\"memory_id\":   \n\"mem_a5b40d65\", \"confirmed\": true}}, {\"name\": \"Add_memory\", \"arguments\": {\"content\": \"User is a visual learner who prefers 120-minute deep focus blocks for study sessions\",   \n\"metadata\": {\"type\": \"user_preference\", \"category\": \"learning_style\"}}}]</tool_call>   \n<think>Memory cleaned up. The old entry with historical reference has been removed, and a fresh entry now reflects only the current confirmed preference without any outdated information.</think>   \n<answer>That’s wonderful to hear! Is there anything else about your learning preferences you’d like to adjust?</answer> ",
+        "bbox": [
+            126,
+            587,
+            465,
+            921
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            522,
+            86,
+            870,
+            387
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "Analysis: The trained agent strategically uses ADD_MEMORY to store initial preferences, UPDATE_MEMORY to modify existing information, and DELETE_MEMORY followed by ADD_MEMORY to clean up memory when historical references become obsolete, maintaining clean and current memory state. ",
+        "bbox": [
+            510,
+            405,
+            882,
+            516
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "B.2 Case 2: Short-term Context Management Under Distraction ",
+        "text_level": 1,
+        "bbox": [
+            512,
+            529,
+            880,
+            560
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "This case demonstrates how AgeMem learns to proactively manage short-term context when faced with irrelevant information that could interfere with task focus. The agent must recognize distractors and apply appropriate filtering or summarization strategies. ",
+        "bbox": [
+            512,
+            567,
+            882,
+            662
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "Before RL training. The baseline agent passively accumulates all conversation content in context, leading to dilution of task-relevant information and eventual context overflow. ",
+        "bbox": [
+            510,
+            673,
+            882,
+            736
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "User: I need a focused 3-day ML crash course for face recognition. By the way, I’m also exploring quantum computing, blockchain, robotics, and learning to bake sourdough bread and do latte art. ",
+        "bbox": [
+            510,
+            746,
+            884,
+            810
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "Assistant (Baseline): ",
+        "text_level": 1,
+        "bbox": [
+            512,
+            815,
+            672,
+            828
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "<think>The user mentioned many interests. I should acknowledge them all before addressing the ML course request.</think>   \n<answer>That’s wonderful that you’re exploring so many fascinating areas! Quantum computing and blockchain are ",
+        "bbox": [
+            521,
+            835,
+            853,
+            921
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            489,
+            944,
+            509,
+            954
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "discarded",
+        "text": "blocks. Would you like to start with a 3-day intensive course?</answer> ",
+        "bbox": [
+            161,
+            86,
+            452,
+            112
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "cutting-edge fields, robotics has incredible applications, and baking sourdough with latte art sounds like great creative hobbies. For your ML crash course focused on face recognition, let me outline a 3-day plan...</answer> ",
+        "bbox": [
+            163,
+            86,
+            438,
+            171
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "Analysis: The baseline retains all information in context, treating distractors equally with taskrelevant content. As conversation continues, the context becomes bloated with irrelevant details about quantum computing, bread-making, etc., consuming token budget without contributing to the ML planning task. ",
+        "bbox": [
+            115,
+            192,
+            489,
+            304
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "After RL training. After training with Stage 2 rollouts, AgeMem learns to recognize and filter out distractors while preserving task focus. When context grows large (simulated here after several exchanges), the agent proactively applies context management tools. ",
+        "bbox": [
+            115,
+            313,
+            487,
+            410
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "User: I need a focused 3-day ML crash course for face recognition. By the way, I’m also exploring quantum computing, blockchain, robotics, and learning to bake sourdough bread and do latte art. ",
+        "bbox": [
+            115,
+            420,
+            489,
+            485
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "Assistant (AgeMem): ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            489,
+            284,
+            504
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "<think>The user mentioned many topics, but only the ML crash course and face recognition are relevant to the current task. Quantum computing, blockchain, robotics, bread, and coffee are distractors. I should filter these out to maintain focus.</think>   \n<tool_call>[{\"name\": \"Filter_context\", \"arguments\": {\"criteria\": \"quantum   \ncomputing blockchain robotics sourdough latte\"}}]</tool_call>   \n<think>Irrelevant topics filtered out from context. Now I can focus on the ML course planning.</think>   \n<answer>Understood! Let’s focus on your ML crash course. I’ll design a 3-day intensive program specifically for face recognition, building on your Python background and visual learning style...</answer> ",
+        "bbox": [
+            126,
+            510,
+            470,
+            764
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "[After several more exchanges, context has accumulated detailed daily schedules, tool lists, and resource links.] ",
+        "bbox": [
+            115,
+            783,
+            489,
+            831
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "User: Can you now give me the final complete plan with all details integrated? ",
+        "bbox": [
+            115,
+            838,
+            487,
+            870
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "Assistant (AgeMem): ",
+        "bbox": [
+            117,
+            873,
+            284,
+            889
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "<think>Context has grown large with detailed breakdowns for each day, repeated tool ",
+        "bbox": [
+            127,
+            895,
+            472,
+            921
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "lists, and resource URLs. Before generating the final comprehensive plan, I should summarize the accumulated details to make room and maintain clarity.</think>   \n<tool_call>[{\"name\": \"Summary_context\", \"arguments\": {\"span\": \"full\"}}]</tool_call>   \n<think>Context summarized. Key information preserved: 3-day structure, 120-min sessions, Day 1 (ML intro $^ +$ Python), Day 2 (linear regression), Day 3 (face recognition). Tools: Jupyter, Python3, NumPy, Pandas, scikit-learn, OpenCV. Now I can generate the comprehensive final plan without redundancy.</think>   \n<answer>Here is your complete 3-day machine learning crash course:...</answer> ",
+        "bbox": [
+            524,
+            86,
+            862,
+            313
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "Analysis: The trained agent strategically uses FILTER_CONTEXT to remove distractors early, maintaining task focus, and later applies SUMMARY_CONTEXT when context grows large, preventing overflow while preserving essential information. The baseline would have retained all content verbatim, leading to context dilution or overflow. ",
+        "bbox": [
+            510,
+            334,
+            884,
+            462
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "B.3 Case 3: Integrated Task Execution with Memory Coordination ",
+        "text_level": 1,
+        "bbox": [
+            512,
+            474,
+            868,
+            505
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "This case demonstrates the complete AgeMem workflow where the agent must retrieve from longterm memory, manage short-term context, and solve a task requiring coordinated memory operations. ",
+        "bbox": [
+            512,
+            511,
+            884,
+            589
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "Before RL training. The baseline agent either fails to store information initially or cannot effectively retrieve it when needed, leading to incomplete or generic responses. ",
+        "bbox": [
+            510,
+            601,
+            882,
+            665
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "User: Based on everything I’ve told you about my learning style and preferences, create a personalized Day 1 study schedule with specific time blocks, topics, and resources. ",
+        "bbox": [
+            510,
+            676,
+            884,
+            739
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "Assistant (Baseline): ",
+        "text_level": 1,
+        "bbox": [
+            512,
+            744,
+            673,
+            758
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "<think>The user asks for a personalized schedule, but I don’t have their preferences readily available since I didn’t store them systematically. I’ll provide a generic schedule.</think>   \n<answer>Here’s a Day 1 schedule for machine learning:   \n9:00-10:30 - Introduction to ML concepts   \n10:30-10:45 - Break   \n10:45-12:15 - Python basics review   \n12:15-1:00 - Lunch   \n1:00-2:30 - NumPy and Pandas tutorial   \n2:30-2:45 - Break ",
+        "bbox": [
+            522,
+            765,
+            853,
+            921
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            489,
+            944,
+            507,
+            954
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "Analysis: The baseline produces a generic schedule that ignores the user’s stated preference for 120-minute deep focus blocks and visual learning style. ",
+        "bbox": [
+            115,
+            142,
+            487,
+            206
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "After RL training. After completing AgeMem training across all three stages, the agent demonstrates integrated memory coordination: retrieving relevant user preferences from LTM, managing context efficiently, and generating personalized responses. ",
+        "bbox": [
+            115,
+            216,
+            489,
+            311
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "User: Based on everything I’ve told you about my learning style and preferences, create a personalized Day 1 study schedule with specific time blocks, topics, and resources. ",
+        "bbox": [
+            115,
+            322,
+            489,
+            385
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "Assistant (AgeMem): ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            390,
+            282,
+            404
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "<think>The user requests a personalized schedule. I need to retrieve their stored preferences to ensure the plan matches their learning style and constraints.</think>   \n<tool_call>[{\"name\": \"Retrieve_memory\", \"arguments\": {\"query\": \"user learning preferences study duration visual\", \"top_k\": 3}}]</tool_call>   \n<think>Retrieved: (1) Visual learner, 120-min deep focus blocks, (2) Python basics, zero ML experience, (3) Interested in computer vision and face recognition. Now I can create a truly personalized schedule that respects their 120-minute session preference and visual learning style.</think>   \n<answer>Here’s your personalized Day 1 schedule, designed for your 120-minute deep focus blocks and visual learning preference:   \n\\*\\*Morning Session (9:00 AM - 11:00 AM): ML Foundations\\*\\*   \n- Visual introduction to ML concepts using diagrams and flowcharts   \n- Interactive demonstrations of supervised vs unsupervised learning   \n- Resources: 3Blue1Brown Neural Networks video series   \n- No coding yet - pure concept visualization   \n\\*\\*Break (11:00 AM - 11:30 AM)\\*\\*   \n\\*\\*Afternoon Session $( 1 : 0 0 P M - 3 : 0 0 P M ) :$ : Python for ML\\*\\*   \n- Visual Python review: data structures with matplotlib plots   \n- NumPy array operations with visual matrix representations   \n- Pandas DataFrames with real datasets and visualization   \n- Hands-on: Jupyter notebook with embedded plots   \n- Resources: Python Data Science Handbook (visual chapters)   \n\\*\\*Evening (5:00 PM - 7:00 PM): Optional practice\\*\\*   \n- Self-paced exercises with visual feedback   \n- Prepare environment for Day 2   \nThis structure honors your 120-minute focus blocks and emphasizes visual learning throughout. Each session includes diagrams, plots, and visual demonstrations rather than pure text.</answer> ",
+        "bbox": [
+            126,
+            409,
+            465,
+            922
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            522,
+            86,
+            857,
+            279
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "Analysis: The trained agent uses RETRIEVE_MEMORY to access stored user preferences from LTM, then synthesizes this information with the current task to generate a highly personalized response that respects the 120-minute session duration and emphasizes visual learning resources. The integration of retrieved memory with task execution produces superior, context-aware outputs compared to the baseline’s generic approach. ",
+        "bbox": [
+            510,
+            300,
+            882,
+            460
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "Summary. These three cases demonstrate how AgeMem’s three-stage progressive training enables agents to develop sophisticated memory management strategies. Case 1 shows selective storage and maintenance of long-term knowledge through ADD_MEMORY, UPDATE_MEMORY, and DELETE_MEMORY. Case 2 illustrates proactive short-term context control under distraction via FILTER_CONTEXT and SUMMARY_CONTEXT. Case 3 demonstrates the integration of these capabilities, where RETRIEVE_MEMORY enables the agent to access stored knowledge and coordinate memory systems to solve tasks effectively. In each case, the RL-trained agent significantly outperforms the baseline by learning when and how to apply memory tools, resulting in more focused, consistent, and personalized interactions. ",
+        "bbox": [
+            510,
+            473,
+            884,
+            745
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "C Experimental Implementation ",
+        "text_level": 1,
+        "bbox": [
+            514,
+            759,
+            808,
+            776
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "C.1 Dataset Details ",
+        "text_level": 1,
+        "bbox": [
+            512,
+            788,
+            677,
+            802
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "We provide detailed statistics and characteristics of the five datasets used in our experiments: ",
+        "bbox": [
+            512,
+            810,
+            882,
+            840
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "ALFWorld (Shridhar et al., 2020) is an embodied AI benchmark in which agents must complete household tasks by following natural language instructions in a simulated environment. The dataset consists of several thousand training environments and multiple validation and test splits, covering six task types: pick and place, examine in light, clean and place, heat and place, cool and place, and pick two and place. These tasks require long-horizon interaction with objects, making ALFWorld well suited for evaluating planning and memory management capabilities. ",
+        "bbox": [
+            510,
+            843,
+            882,
+            921
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            489,
+            944,
+            509,
+            954
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "discarded",
+        "text": "2:45-4:15 - Practice exercises This should give you a solid foundation!</answer> ",
+        "bbox": [
+            126,
+            86,
+            359,
+            123
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            117,
+            85,
+            487,
+            196
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "SciWorld (Wang et al., 2022) is an interactive science experiment simulation environment where agents must perform multi-step experiments to answer scientific questions. The benchmark includes a diverse set of tasks spanning multiple scientific domains, such as physics, chemistry, and biology, and emphasizes procedural reasoning and hypothesis-driven exploration. Its complexity makes it suitable for testing an agent’s ability to retain and retrieve relevant knowledge over extended interaction sequences. ",
+        "bbox": [
+            115,
+            198,
+            487,
+            373
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "PDDL (Chang et al., 2024) refers to a set of planning benchmarks formulated using the Planning Domain Definition Language. These benchmarks evaluate an agent’s ability to solve symbolic planning problems across multiple domains by generating valid sequences of actions that achieve specified goal states. The tasks primarily test structured reasoning and the ability to maintain and utilize intermediate planning states. ",
+        "bbox": [
+            115,
+            375,
+            487,
+            519
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "BabyAI (Chevalier-Boisvert et al., 2018) is a gridworld navigation benchmark with natural language instructions. The environment contains a large collection of instruction-following tasks (levels), where agents must navigate and interact with objects to satisfy compositional language commands. Due to its sequential decision-making structure, BabyAI is commonly used to evaluate short-term context tracking and instruction grounding. ",
+        "bbox": [
+            115,
+            520,
+            489,
+            664
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "HotpotQA (Yang et al., 2018) is a multi-hop question answering dataset that requires reasoning over multiple Wikipedia paragraphs. It contains approximately 90k training questions along with validation and test splits, and each question is annotated with supporting facts. This structure makes HotpotQA particularly suitable for evaluating long-term memory storage and retrieval. In our experiments, we use HotpotQA for reinforcement learning training, as its annotated supporting facts naturally provide structured contextual information for Stage 1 supervision. ",
+        "bbox": [
+            117,
+            665,
+            487,
+            857
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "C.2 LLM-based Evaluation Details ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            869,
+            405,
+            884
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "For the Memory Quality (MQ) metric, we employ an LLM-based evaluator to assess the quality of supporting facts stored in memory by comparing predicted supporting facts with ground-truth expected facts. The evaluator uses the following prompt template: ",
+        "bbox": [
+            115,
+            890,
+            487,
+            921
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            510,
+            85,
+            882,
+            148
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "You are an expert judge evaluating the quality of supporting facts for question answering. ",
+        "bbox": [
+            512,
+            162,
+            868,
+            187
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "Question: [QUESTION] Answer: [ANSWER] ",
+        "bbox": [
+            510,
+            198,
+            665,
+            222
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "Ground Truth Supporting Facts (the facts that should be identified):   \nExpected Supporting Facts:   \n- [FACT_1]   \n- [FACT_2]   \nModel Predicted Supporting Facts (the facts identified by the model and stored in the long-term memory):   \nPredicted Supporting Facts:   \n- [PREDICTED_FACT_1]   \n- [PREDICTED_FACT_2]   \nPlease evaluate how well the predicted supporting facts match the ground truth expected facts:   \n1. Are all expected facts covered by the predictions?   \n2. Are the predicted facts actually relevant to answering the question?   \n3. Are there any irrelevant facts in the predictions? ",
+        "bbox": [
+            510,
+            234,
+            853,
+            306
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            509,
+            317,
+            858,
+            400
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            510,
+            412,
+            868,
+            519
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "Score on a scale of 0.0 to 1.0: ",
+        "bbox": [
+            514,
+            531,
+            746,
+            542
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "- 1.0: Perfect match - all expected facts are correctly identified, no irrelevant facts   \n- 0.8-0.9: Mostly correct with minor omissions or one irrelevant fact   \n$- ~ 8 . 6 \\substack { - 0 . 7 }$ : Partially correct - some relevant facts identified but missing important ones   \n- 0.4-0.5: Some correct elements but significant errors or omissions   \n- 0.2-0.3: Mostly incorrect with few correct elements   \n- 0.0-0.1: Completely incorrect or irrelevant   \nRespond with only a number between 0.0 and 1.0 ( e.g., $\" 0 . 8 5 \" .$ ). ",
+        "bbox": [
+            510,
+            543,
+            877,
+            708
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "The evaluator compares the stored memory entries (predicted supporting facts) with the groundtruth supporting facts provided in the HotpotQA dataset. The score reflects both the coverage of expected facts and the relevance of predicted facts to the question. We use Qwen-Max as the evaluator model, and each evaluation is performed independently to ensure consistency. ",
+        "bbox": [
+            512,
+            728,
+            884,
+            856
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "For the LLM-as-a-Judge metric on HotpotQA, we use a similar approach, where Qwen-Max evaluates the correctness of the agent’s answer by comparing it with the ground-truth answer. The evaluator uses the following prompt template: ",
+        "bbox": [
+            510,
+            858,
+            882,
+            921
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            489,
+            944,
+            509,
+            954
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            117,
+            85,
+            408,
+            99
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "You are an expert judge evaluating the correctness of answers to questions. Given the following information: - Question: [QUESTION] - Ground-truth Answer: [GROUND_TRUTH] - Agent’s Answer: [AGENT_ANSWER] ",
+        "bbox": [
+            114,
+            111,
+            421,
+            184
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "Please evaluate the generated answer on a scale of 0.0 to 1.0:   \n- 1.0: Perfect match or equivalent correct answer   \n- 0.8-0.9: Mostly correct with minor differences   \n- 0.6-0.7: Partially correct or close approximation   \n- 0.4-0.5: Some correct elements but significant errors   \n- 0.2-0.3: Mostly incorrect with few correct elements   \n- 0.0-0.1: Completely incorrect or irrelevant   \nRespond with only a number between 0.0 and 1.0 ( e.g., $\" 0 . 8 5 \" )$ . ",
+        "bbox": [
+            115,
+            195,
+            482,
+            374
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "C.3 Baseline Configurations ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            400,
+            351,
+            416
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "All baseline implementations follow their respective official open-source codebases to ensure fair comparison. We provide the source links and implementation details below. ",
+        "bbox": [
+            115,
+            423,
+            487,
+            486
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "LangMem (LangChain Team, 2025): We use the official implementation available at https: //langchain-ai.github.io/langmem/ with default hyperparameters. LangMem employs a modular memory framework that supports multiple memory types. We configure it to use the default memory storage and retrieval mechanisms as specified in the official documentation. ",
+        "bbox": [
+            115,
+            487,
+            487,
+            615
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "A-Mem (Xu et al., 2025): We implement AMem following the Zettelkasten-inspired design described in the original paper, using the official codebase at https://github.com/WujiangXu/ A-mem-sys/. The system links structured knowledge units to facilitate consolidation. We use the recommended hyperparameters for memory consolidation as provided in the repository. ",
+        "bbox": [
+            115,
+            617,
+            487,
+            744
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "Mem0 (Chhikara et al., 2025): We use the official Mem0 implementation available at https: //github.com/mem0ai/mem0 with the default extract-update pipeline. For the graph-based variant $( { \\mathrm { M e m } } 0 ^ { g } )$ ), we enable the graph structure option and use the recommended graph construction parameters as specified in the official implementation. ",
+        "bbox": [
+            115,
+            745,
+            487,
+            857
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "AgeMem-noRL: This variant uses the same tool interface as AgeMem but without reinforcement learning. This baseline helps isolate the contribution of RL training to the overall performance. ",
+        "bbox": [
+            115,
+            858,
+            487,
+            921
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "RAG variants: For the RAG-based baselines (AgeMem-noRL-RAG and AgeMem-RAG), we replace the STM tools with a standard RAG pipeline that retrieves relevant memories at each step and appends them to the context. The retrieval is performed using cosine similarity between the current context and stored memories, following standard RAG practices. This comparison demonstrates the advantage of learned STM management over static retrieval-based approaches. ",
+        "bbox": [
+            510,
+            84,
+            882,
+            244
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "C.4 Implementation Details ",
+        "text_level": 1,
+        "bbox": [
+            514,
+            258,
+            744,
+            273
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "Training configuration. We use the Trinity RL framework (Pan et al., 2025a) for policy optimization, implementing the step-wise GRPO algorithm as described in the method section. We use $K = 8$ independent rollouts per task for group normalization. The KL divergence coefficient $\\beta$ is set to 0.1. Reward weights. All reward weights are set to $1 / 3$ : $w _ { \\mathrm { t a s k } } = w _ { \\mathrm { c o n t e x t } } = w _ { \\mathrm { m e m o r y } } = 1 / 3$ . This uniform weighting ensures that all components contribute equally to the learning signal, allowing the agent to naturally balance task performance and memory management. ",
+        "bbox": [
+            510,
+            280,
+            884,
+            472
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "Model settings. The maximum context length is set to 8,192 tokens, and the maximum response length is set to 2,048 tokens. When the context exceeds this limit, the agent receives a penalty, encouraging proactive use of STM management tools. All experiments are conducted on 8 NVIDIA RTX 4090 GPUs with 48GB memory each. ",
+        "bbox": [
+            512,
+            473,
+            882,
+            585
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "D Additional Results ",
+        "text_level": 1,
+        "bbox": [
+            512,
+            599,
+            707,
+            614
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "D.1 Ablation Study ",
+        "text_level": 1,
+        "bbox": [
+            512,
+            626,
+            677,
+            640
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "This section provides complementary ablation study results for Qwen3-4B-Instruct. Figure 9 shows the progressive contribution of LTM, STM, and RL components on Qwen3-4B-Instruct across three representative datasets. The results demonstrate consistent trends with Qwen2.5-7B-Instruct, validating the generalizability of our approach across different model sizes. ",
+        "bbox": [
+            512,
+            648,
+            882,
+            775
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "D.2 Reward Function Ablation on Qwen3-4B ",
+        "text_level": 1,
+        "bbox": [
+            512,
+            788,
+            880,
+            803
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "To validate the generalizability of our multicomponent reward design across different model architectures and scales, we conduct the same reward function ablation study as in the main text on Qwen3-4B-Instruct. This section provides a complete analysis parallel to the Qwen2.5-7B-Instruct results presented in the main paper. ",
+        "bbox": [
+            512,
+            809,
+            884,
+            922
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            489,
+            944,
+            509,
+            954
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "image",
+        "img_path": "images/0dfe91b3aec4eb5aae070cd98df7a48b2a45341364a0869121d4bec79bf56e8a.jpg",
+        "image_caption": [
+            "Figure 9: Ablation study results for Qwen3-4B-Instruct. Base: No-Memory baseline; $\\mathbf { + L T }$ : AgeMem-noRL-RAG (LTM tools only); ${ \\bf + L T / R L }$ : AgeMem-RAG (RL with LTM tools); +LT/ST/RL: AgeMem (full AgeMem system with RL). Green arrows indicate performance gains over the baseline. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            115,
+            83,
+            878,
+            205
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "image",
+        "img_path": "images/e2863ba2b153d0b5a7337651700b5cccb56cd305d016c84c027cd062fe654540.jpg",
+        "image_caption": [
+            "Figure 10: Training convergence curves on Qwen3-4BInstruct comparing All-Returns (solid line) v.s. AnswerOnly (dashed line) reward strategies. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            115,
+            281,
+            480,
+            443
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "D.2.1 Convergence Analysis ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            525,
+            351,
+            541
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "Figure 10 demonstrates the reward convergence patterns on Qwen3-4B-Instruct. Similar to Qwen2.5- 7B-Instruct, the All-Returns strategy consistently outperforms Answer-Only throughout the training process. Several notable observations emerge: ",
+        "bbox": [
+            115,
+            546,
+            487,
+            626
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "More Stable Dynamics: The convergence curve shows noticeably smoother progression with lower variance, particularly in the later training stages (steps 70-100). This stability suggests that Qwen3’s architecture may have better inductive biases for the reward learning task. ",
+        "bbox": [
+            115,
+            630,
+            485,
+            724
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "Consistent Superiority: While the absolute improvement is smaller than Qwen2.5-7B-Instruct, the All-Returns strategy maintains its advantage throughout training, validating the robustness of our reward design. ",
+        "bbox": [
+            117,
+            727,
+            487,
+            806
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "D.2.2 Quantitative Results ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            820,
+            337,
+            835
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "Table 5 reports the reward ablation results on HotpotQA with Qwen3-4B-Instruct. Compared to the Answer-Only strategy, the All-Returns reward consistently improves overall performance. In particular, it yields higher LLM-as-a-Judge scores (0.555 v.s. 0.546) and substantially better memory quality (MQ: 0.605 v.s. 0.415), indicating that explicitly rewarding memory-related behaviors leads to more reliable memory organization. The All-Returns strategy also encourages more active tool usage (8.67 v.s. 7.21), suggesting that the agent learns to leverage memory operations more effectively when intermediate returns are optimized. This improvement comes with only a marginal increase in token consumption (2191 v.s. 2164), implying that the gains are not driven by excessive context expansion but by more efficient memory utilization. Overall, these results show that incorporating memory-aware rewards significantly enhances both memory quality and task performance on Qwen3- 4B-Instruct. The observed trends are consistent with those obtained on Qwen2.5-7B-Instruct, confirming the robustness of the reward design across different model backbones. ",
+        "bbox": [
+            115,
+            843,
+            487,
+            921
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "table",
+        "img_path": "images/b33c51f1cbd9866f47888c909c67b2f8fa793420fe9cb2da0549452c4b7b9df9.jpg",
+        "table_caption": [
+            "Table 5: Reward function ablation results on HotpotQA using Qwen3-4B-Instruct. All-Returns v.s. AnswerOnly reward strategies. “TN” is the token number, and “TC” denotes the number of tool calls. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Strategy</td><td>J(↑)</td><td>TN(↓)</td><td>MQ(↑)</td><td>TC(-)</td></tr><tr><td>Answer-Only</td><td>0.546</td><td>2164</td><td>0.415</td><td>7.21</td></tr><tr><td>All-Returns</td><td>0.555</td><td>2191</td><td>0.605</td><td>8.67</td></tr></table>",
+        "bbox": [
+            534,
+            350,
+            855,
+            404
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            512,
+            419,
+            882,
+            725
+        ],
+        "page_idx": 24
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            489,
+            944,
+            509,
+            954
+        ],
+        "page_idx": 24
+    }
+]
