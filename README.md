@@ -67,6 +67,7 @@ Agent 记忆机制
 | [Coconut](./Agent-Memory/%5BICLR%202025%5D%20Coconut/) | ICLR 2025 | Chain of Continuous Thought，hidden state 直接反馈做 latent reasoning，涌现 BFS，MemGen 理论基础 |
 | [MA-LMM](./Agent-Memory/%5BCVPR%202024%5D%20MA-LMM/) | CVPR 2024 | Dual memory bank (visual+query) + MBC 压缩，在线逐帧处理，plug-and-play，LVU/Breakfast/COIN SOTA |
 | [Mirage](./Agent-Memory/%5BArxiv%202506.17218%5D%20Mirage/) | arXiv 2506.17218 | Machine Mental Imagery，hidden state 重铸为 latent visual token，两阶段 SFT+RL，VisMem 的 latent baseline |
+| [MemSkill](./Agent-Memory/%5BArxiv%202602.02474%5D%20MemSkill/) | arXiv 2602.02474 | Memory 操作→可学习可进化 skill，Controller(RL)+Executor+Designer 闭环，4 benchmark SOTA |
 
 ---
 
@@ -126,7 +127,8 @@ paper-reading/
 │   ├── [Arxiv 2601.23014] Mem-T/
 │   ├── [Arxiv 2511.11007] VisMem/
 │   ├── [CVPR 2024] MA-LMM/
-│   └── [Arxiv 2506.17218] Mirage/
+│   ├── [Arxiv 2506.17218] Mirage/
+│   └── [Arxiv 2602.02474] MemSkill/
 │
 ├── [ICLR 2026 Rejected] MedFrameQA/ # Medical AI (未分组, 3 篇)
 ├── [ICLR 2026] Context-Clues/
@@ -174,4 +176,4 @@ paper-reading/
 
 ---
 
-*由 3号机 协助整理 📚 | 更新: 2026-02-11 | 共 26 篇论文*
+*由 3号机 协助整理 📚 | 更新: 2026-02-13 | 共 27 篇论文*
