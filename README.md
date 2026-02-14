@@ -23,6 +23,7 @@ Eason 的文献阅读仓库，按课题组织。每篇论文都有「批读格�
 | [CDPruner](./MLLM-Token-Compression/%5BNeurIPS%202025%5D%20CDPruner/) | NeurIPS 2025 | DPP 条件多样性剪枝 |
 | [SCOPE](./MLLM-Token-Compression/%5BNeurIPS%202025%5D%20SCOPE/) | NeurIPS 2025 | Saliency + Coverage 联合优化 |
 | [VScan](./MLLM-Token-Compression/%5BArxiv%202505.22654%5D%20VScan/) | TMLR 2026 | 两阶段 Global+Local Scan + Middle Layer Pruning |
+| [VisionTrim](./MLLM-Token-Compression/%5BArxiv%202601.22674%5D%20VisionTrim/) | arXiv 2601.22674 | Training-free, DVTS (global-local 选) + TGVC (text-guided 补), 两阶段统一压缩 |
 
 📖 [方法对比总结](./MLLM-Token-Compression/methods-list.md)
 
@@ -106,6 +107,7 @@ paper-reading/
 │   ├── [Arxiv 2403.12178] SwiftVLM/
 │   ├── [NeurIPS 2025] CDPruner/
 │   ├── [NeurIPS 2025] SCOPE/
+│   ├── [Arxiv 2601.22674] VisionTrim/
 │   └── methods-list.md
 │
 ├── Video-Chaptering/                # 视频章节生成 (4 篇)
@@ -179,4 +181,4 @@ paper-reading/
 
 ---
 
-*由 3号机 协助整理 📚 | 更新: 2026-02-13 | 共 28 篇论文*
+*由 3号机 协助整理 📚 | 更新: 2026-02-14 | 共 29 篇论文*
