@@ -71,6 +71,7 @@ Agent 记忆机制
 | [Mirage](./Agent-Memory/%5BArxiv%202506.17218%5D%20Mirage/) | arXiv 2506.17218 | Machine Mental Imagery，hidden state 重铸为 latent visual token，两阶段 SFT+RL，VisMem 的 latent baseline |
 | [MemSkill](./Agent-Memory/%5BArxiv%202602.02474%5D%20MemSkill/) | arXiv 2602.02474 | Memory 操作→可学习可进化 skill，Controller(RL)+Executor+Designer 闭环，4 benchmark SOTA |
 | [AgeMem](./Agent-Memory/%5BArxiv%202601.01885%5D%20AgeMem/) | arXiv 2601.01885 | 统一 LTM+STM 为 tool action，三阶段渐进 RL + step-wise GRPO，5 benchmark SOTA |
+| [LatentMem](./Agent-Memory/%5BArxiv%202602.03036%5D%20LatentMem/) | arXiv 2602.03036 | 可学习多智能体 latent memory，Memory Composer + LMPO，角色感知+token高效，6 benchmark × 4 MAS SOTA |
 
 ---
 
