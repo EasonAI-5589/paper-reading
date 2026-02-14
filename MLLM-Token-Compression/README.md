@@ -38,6 +38,7 @@ MLLM-Token-Compression/
 | 003 | PyramidDrop | Method | 📋 待读 | - |
 | 004 | VisionZip | Method | 📋 待读 | - |
 | 005 | DART | Method | 📋 待读 | - |
+| 006 | VScan: Rethinking Visual Token Reduction | Method | ✅ 已读 | [📝](./%5BArxiv%202505.22654%5D%20VScan/) |
 
 ## 📈 阅读进度
 

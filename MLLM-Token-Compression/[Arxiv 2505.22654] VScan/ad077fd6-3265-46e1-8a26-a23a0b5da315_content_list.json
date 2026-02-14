@@ -1,0 +1,2899 @@
+[
+    {
+        "type": "text",
+        "text": "VScan: Rethinking Visual Token Reduction for Efficient Large Vision-Language Models ",
+        "text_level": 1,
+        "bbox": [
+            114,
+            97,
+            880,
+            151
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Ce Zhang1,\\* Kaixin Ma2 Tianqing Fang2 Wenhao Yu2 Hongming Zhang2   \nZhisong Zhang2 Haitao Mi2 Dong Yu2 ",
+        "bbox": [
+            114,
+            183,
+            794,
+            215
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "1Carnegie Mellon University 2Tencent AI Lab \\*Work done during an internship at Tencent AI Lab. Contact: cezhang@cs.cmu.edu. ",
+        "bbox": [
+            116,
+            220,
+            727,
+            257
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Reviewed on OpenReview: https://openreview.net/forum?id=KZYhyilFnt ",
+        "bbox": [
+            114,
+            272,
+            704,
+            287
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Abstract ",
+        "text_level": 1,
+        "bbox": [
+            460,
+            304,
+            537,
+            321
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Recent Large Vision-Language Models (LVLMs) have advanced multi-modal understanding by incorporating finer-grained visual perception and encoding. However, such methods incur significant computational costs due to longer visual token sequences, posing challenges for realtime deployment. To mitigate this, prior studies have explored pruning unimportant visual tokens either at the output layer of the visual encoder or at the early layers of the language model. In this work, we revisit these design choices and reassess their effectiveness through comprehensive empirical studies of how visual tokens are processed throughout the visual encoding and language decoding stages. Guided by these insights, we propose VScan, a twostage visual token reduction framework that addresses token redundancy by: (1) integrating complementary global and local scans with token merging during visual encoding, and (2) introducing pruning at intermediate layers of the language model. Extensive experimental results across four LVLMs validate the effectiveness of VScan in accelerating inference and demonstrate its superior performance over current state-of-the-arts on sixteen benchmarks. Notably, when applied to LLaVA-NeXT-7B, VScan achieves a $2 . 9 1 \\times$ speedup in prefilling and a $1 0 \\times$ reduction in FLOPs, while retaining $9 5 . 4 \\%$ of the original performance. Code is available at https://github.com/Tencent/SelfEvolvingAgent/tree/main/VScan. ",
+        "bbox": [
+            173,
+            337,
+            825,
+            579
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "1 Introduction ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            611,
+            259,
+            628
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Large Vision-Language Models (LVLMs) have emerged as a transformative advancement in multi-modal learning, achieving remarkable proficiency across a broad range of vision-language tasks [38, 34, 33, 56]. Recent advances in LVLMs [40, 32, 28, 5, 36, 45, 44] further enhance their capacity to process high-resolution images and multi-image/video inputs, enabling fine-grained perception in tasks such as video question answering [19, 61, 54], multi-image understanding [21, 29], and referential grounding [30, 46]. However, processing such rich visual inputs necessitates a substantial increase in the number of visual tokens, which often far exceeds the number of text tokens [36, 32]. For instance, LLaVA-NeXT [40] encodes up to 2,880 visual tokens for high-resolution images, while Qwen-2.5-VL [5] can process up to 16,384 tokens for multi-image or video inputs— orders of magnitude higher than typical text-only sequences. This leads to significantly longer input sequences and, due to the quadratic complexity of self-attention [58], incurs substantial computational and memory overhead, thereby limiting the scalability and real-time deployment of LVLMs in practical applications [12, 64]. ",
+        "bbox": [
+            114,
+            643,
+            883,
+            810
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Recognizing that not all visual tokens contribute meaningfully to the final LVLM response, recent works [12, 62, 70] have proposed visual token reduction techniques aimed at improving computational efficiency by pruning visually redundant or textually irrelevant tokens. These methods generally fall into two categories: (1) Textagnostic pruning approaches [64, 59, 60] (Figure 1(a)), which prune visually redundant tokens based on their significance and uniqueness during the visual encoding stage, typically leveraging self-attention or [CLS] attention from the output layer of the visual encoder; and (2) Text-aware pruning approaches [71, 62, 65] (Figure 1(b)), which selectively remove tokens with low relevance to the text query during the early layers of language decoding stage to preserve task-specific information while reducing computation. While these approaches have shown promising results, their performance is often constrained by their single-stage design and the lack of a systematic understanding of how visual tokens are processed and utilized throughout the entire LVLM pipeline. ",
+        "bbox": [
+            116,
+            818,
+            883,
+            924
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "Published in Transactions on Machine Learning Research (01/2026) ",
+        "bbox": [
+            116,
+            34,
+            601,
+            46
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "1 ",
+        "bbox": [
+            493,
+            948,
+            503,
+            959
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            22,
+            279,
+            60,
+            719
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "image",
+        "img_path": "images/c2ad5197ff17819a4cadb384653124a45f31d60e696478f4eafeff9db2fd3028.jpg",
+        "image_caption": [
+            "Figure 1: Comparison of our VScan with representative text-agnostic approaches (e.g., VisionZip [64]) and text-aware approaches (e.g., FastV [12]). In this work, we introduce VScan, a two-stage, training-free visual token reduction framework that can be seamlessly applied to various opensourced LVLM architectures, delivering significant acceleration in inference with minimal performance loss. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            116,
+            99,
+            882,
+            386
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            116,
+            470,
+            883,
+            516
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "In this work, we conduct an in-depth empirical analysis to reassess the effectiveness of these two prevailing pruning paradigms and distill insights that guide the design of more effective visual token reduction methods. Our study reveals two key observations: (1) In the visual encoding stage, the visual encoder attends to locally significant tokens in the shallow layers, focusing on fine-grained local details, while at deeper layers, it gradually shift its focus to a highly condensed set of tokens that encapsulate broader global context; (2) In the LLM decoding stage, early layers exhibit strong positional bias toward visual tokens appearing later in the sequence, neglecting their semantic relevance; as the layers deepen, cross-modal interactions begin to emerge, and output token probabilities typically converge in the mid-to-late layers where visual information is more effectively integrated into the language stream. ",
+        "bbox": [
+            114,
+            523,
+            882,
+            660
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Building on these insights, we introduce VScan, a two-stage, training-free visual token reduction framework that enhances the efficiency of LVLMs by progressively pruning uninformative tokens during both visual encoding and language decoding stages, as shown in Figure 1(c). In the visual encoding stage, VScan employs a complementary global-local scan strategy to retain semantically important and spatially diverse tokens, followed by token merging to preserve comprehensive visual information. In the LLM decoding stage, VScan introduces middle layer pruning to further eliminate visual tokens with low relevance to the text query, while maintaining essential cross-modal interactions to minimize disruption to final task performance. Notably, VScan can be seamlessly integrated into diverse open-sourced LVLM architectures and is fully compatible with FlashAttention [18, 17], making it both practical and broadly applicable to real-world applications. ",
+        "bbox": [
+            114,
+            667,
+            882,
+            804
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "We comprehensively evaluate the effectiveness of VScan on LLaVA-1.5 [39], LLaVA-NeXT [40], Qwen2.5-VL [5], and Video-LLaVA [36] across sixteen image and video understanding benchmarks. Extensive experimental results demonstrate VScan’s generalizable effectiveness across diverse LVLM architectures and LLM scales, highlighting its advantageous performance-efficiency trade-off. Specifically, VScan achieves a 1.77 $\\times$ speedup on LLaVA-1.5-7B and a 2.91 $\\times$ speedup on LLaVA-NeXT-7B during prefilling, while retaining $9 6 . 7 \\%$ and $9 5 . 4 \\%$ of the original performance, respectively. ",
+        "bbox": [
+            114,
+            810,
+            883,
+            901
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "The contributions of this work are summarized as follows: ",
+        "bbox": [
+            116,
+            909,
+            529,
+            924
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "discarded",
+        "text": "Published in Transactions on Machine Learning Research (01/2026) ",
+        "bbox": [
+            116,
+            34,
+            601,
+            46
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            493,
+            949,
+            503,
+            959
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "• We conduct comprehensive analyses to reveal how visual knowledge evolves throughout the entire LVLM, offering insights to inform the design of more effective visual token reduction strategies. • We introduce VScan, a two-stage training-free visual token reduction framework that progressively eliminates unimportant visual tokens to reduce both visual redundancy and textual irrelevance. • Extensive evaluations across sixteen benchmarks demonstrate that VScan consistently outperforms state-of-the-art methods in maintaining robust performance under constrained token budgets. ",
+        "bbox": [
+            116,
+            103,
+            885,
+            207
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "2 Related Work ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            224,
+            272,
+            243
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Efficient Large Vision-Language Models. Building on powerful auto-regressive LLMs [57, 15], recent LVLMs typically adopt an encoder-projector-decoder architecture, where visual inputs are encoded into tokens and jointly processed with language sequences [38, 36, 4, 13, 56, 11]. However, as image resolution increases or the input scales to multi-image/video, the number of visual tokens grows proportionally, leading to a quadratic increase in computation cost and runtime due to the self-attention mechanism [58, 7, 14, 67], which limits the scalability of LVLMs in real-world applications [6, 12, 49, 31, 69, 68, 9]. To mitigate this issue, several LVLMs introduced specialized modules to enhance efficiency—such as the Q-Former in InstructBLIP [16] and the perceiver resampler [26] in OpenFlamingo [1]—that distill dense visual inputs into a compact set of features before LLM decoding. Orthogonal to these architectural strategies, FlashAttention [18, 17] has emerged as a widely adopted, hardware-aware optimization that accelerates attention computation by minimizing redundant memory access, offering substantial speedups without compromising performance. ",
+        "bbox": [
+            114,
+            258,
+            882,
+            425
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Vision Token Reduction in LVLMs. Another line of work aims to improve model efficiency on the sequence dimension—pioneering works such as ToMe [6] and FastV [12] have explored strategies like visual token merging and text-guided pruning to improve the efficiency of LVLMs. Building on these advances, subsequent approaches can be broadly divided into two main categories: (1) Text-agnostic pruning approaches [52, 3, 70, 64, 59, 60], which identify and remove redundant or uninformative visual tokens during the visual encoding stage. For instance, VisionZip [64] selects dominant tokens based on [CLS] attention scores, while FOLDER [59] introduces token merging with reduction overflow in the final blocks of the visual encoder. (2) Text-aware pruning approaches [71, 62, 41, 65, 55], which aim to remove visual tokens that are irrelevant to the text query during the LLM decoding stage. For instance, SparseVLM [71] proposes an iterative sparsification strategy that selects visual-relevant text tokens to rate the significance of vision tokens, and PyramidDrop [62] performs progressive pruning at multiple decoding layers to balance efficiency and context preservation. In this work, we present a comprehensive analysis of how LVLMs process visual tokens during both the visual encoding and language decoding stages, and propose a corresponding two-stage approach, VScan, to effectively improve the inference efficiency of LVLMs while maintaining robust performance. ",
+        "bbox": [
+            114,
+            433,
+            883,
+            643
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "3 Empirical Analysis ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            662,
+            312,
+            681
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "In this section, we provide a comprehensive analysis of how LVLMs process visual tokens during both the visual encoding and language decoding stages, offering empirical guidance for designing more effective visual token reduction strategies. ",
+        "bbox": [
+            116,
+            696,
+            882,
+            742
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Preliminary: Architecture of LVLMs. We consider an LVLM parameterized by $\\theta$ , which consists of three major components: a visual encoder, a feature projector, and an LLM decoder. Given an image input, the visual encoder processes the image patches, and the projector converts them into $n$ visual tokens $\\mathbf { x } _ { V } = \\{ x _ { V } ^ { i } \\} _ { i = 1 } ^ { n }$ . These visual tokens are then concatenated with the tokenized textual query $\\mathbf { x } _ { T }$ and fed into the LLM decoder for auto-regressive next-token generation, represented as $y _ { t } \\sim p _ { \\theta } \\big ( y _ { t } | \\mathbf { x } _ { V } , \\mathbf { x } _ { T } , \\mathbf { y } _ { < t } \\big )$ , where the next token $y _ { t }$ is sampled from the output probability distribution $p _ { \\theta } ( \\cdot )$ , and $\\mathbf { y } _ { < t }$ denotes the sequence of tokens generated prior to timestep $t$ . ",
+        "bbox": [
+            114,
+            750,
+            883,
+            856
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Rethinking Visual Redundancy Reduction. To address visual redundancy in token representations, recent studies [70, 64] have proposed text-agnostic approaches that retain visual tokens with high [CLS] attention at the output layer of the ViT-based visual encoder. While effective to some extent, this strategy raises an important question: Is relying solely on output [CLS] attention truly sufficient to capture all task-relevant visual information? Upon closer examination, we identify a clear yet often overlooked limitation of these approaches: they tend to favor tokens corresponding to visually salient objects, while aggressively discarding background visual details that may carry essential semantic information. As illustrated by the examples in Figure 2 (Left), output [CLS] attention is incorrectly directed to the wall and person, ignoring the actual targets—the pan and leather bag—leading to incorrect model responses. ",
+        "bbox": [
+            116,
+            863,
+            882,
+            924
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "discarded",
+        "text": "Published in Transactions on Machine Learning Research (01/2026) ",
+        "bbox": [
+            116,
+            34,
+            599,
+            46
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "discarded",
+        "text": "3 ",
+        "bbox": [
+            493,
+            948,
+            504,
+            959
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "image",
+        "img_path": "images/e6ef21398be955bc75baca6408912eb48c2a8d477a5c4754ae276244a4cade05.jpg",
+        "image_caption": [
+            "Figure 2: Empirical study on visual redundancy reduction. (Left) We illustrate two failure cases where relying solely on the output [CLS] attention leads to incorrect predictions. For comparison, we include reference token selections from CLIP-ViT-L-336px [51], following Gandelsman et al. [22], which highlight regions of interest relevant to the text query. (Right) We visualize the [CLS] attention maps and self-attention maps of representative tokens (e.g., $\\# 5 3 6$ : ground, $\\# 2 3 4$ : person) across different encoding layers, illustrating how attention patterns evolve from localized focus in shallow layers to broader global context in deeper layers. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            116,
+            99,
+            880,
+            309
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            114,
+            445,
+            882,
+            520
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "To better understand and overcome this limitation, we analyze how visual information is processed across the visual encoding layers in LVLMs. Specifically, we visualize both the [CLS] attention and self-attention of representative tokens across different visual encoding layers, as illustrated in Figure 2 (Right). Our observations are as follows: (1) In the shallow layers, the [CLS] attention maps capture fine-grained local details across the image. In contrast, in the deeper layers, the attention becomes increasingly concentrated on the main entities, reflecting their global semantic relevance; (2) The self-attention maps for representative visual tokens reveal a similar local-to-global trend: in the shallow layers, these tokens primarily attend to nearby regions with similar semantic meaning, while in the deeper layers, their attention becomes more dispersed, integrating context from the entire image. These findings highlight a gradual transition in the visual encoder from capturing low-level local details to modeling high-level, globally relevant semantics, suggesting that relying solely on the output layer may overlook the rich local information encoded in the shallow layers. ",
+        "bbox": [
+            114,
+            529,
+            882,
+            694
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Rethinking Textual Irrelevance Reduction. While prior studies [12, 71, 37] have proposed effective text-aware approaches for pruning visual tokens at early layers during LLM decoding, a critical question remains: Are early layers the optimal stage for pruning visual tokens to minimize their impact on the model’s final response? To investigate this, we conduct three empirical studies on POPE [35] and GQA [25], analyzing how the model’s knowledge and predictions evolve during the decoding process: ",
+        "bbox": [
+            116,
+            702,
+            882,
+            777
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "• Study 1: How does position bias in token selection evolve across LLM layers? Specifically, we visualize the distribution of the retained tokens selected by the attention score of the last instruction token [12] across LLM layers using LLaVA-1.5-7B. As shown in Figure 3 (Left), early layers (e.g., layers 2 and 8) tend to select tokens at the bottom of the image, reflecting an inherent LLM position bias, as the last instruction token primarily attends to nearby tokens and focuses on local context [58, 50], and flattened visual tokens from the bottom of the image are positioned closest to the instruction tokens in the sequence. As the LLM layers deepen, this undesirable position bias diminishes and the focus shifts toward the center of the image, which is more intuitive since the center of the image typically carries the most informative and task-relevant features [2, 8]. ",
+        "bbox": [
+            117,
+            787,
+            882,
+            925
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "discarded",
+        "text": "Published in Transactions on Machine Learning Research (01/2026) ",
+        "bbox": [
+            116,
+            34,
+            601,
+            46
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "discarded",
+        "text": "4 ",
+        "bbox": [
+            493,
+            949,
+            503,
+            959
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "image",
+        "img_path": "images/047c7ce010b1bb16a7948aa38393e9ba90905a76a2986fadabde6fca63b76f50.jpg",
+        "image_caption": [
+            "Figure 3: (Left) Study 1: Distribution of retained tokens at a $5 0 \\%$ reduction rate in layers 2, 8, and 16 of LLaVA-1.5-7B on POPE [35]; (Right) Study 2: Sum of visual attention across different attention heads and LLM layers using LLaVA-1.5-7B and Qwen-2.5-VL-7B on POPE [35]. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            116,
+            99,
+            885,
+            231
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "image",
+        "img_path": "images/706461ffba15c15c1968a1c5ae2fcff59cc3c61a30483614d03f201b6a4d76bf.jpg",
+        "image_caption": [
+            "Figure 4: Study 3: Visualization of next-token predictions derived from the output hidden states of each LLM layer using (a) LLaVA-1.5-7B; (b) LLaVA-NeXT-7B. Darker colors indicate higher prediction confidence. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            112,
+            295,
+            885,
+            708
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "• Study 2: From which layer does the LLM begin to gather and process visual information? We visualize the sum of attention received by all visual tokens from the last instruction token across different LLM layers using LLaVA-1.5-7B and Qwen-2.5-VL-7B in Figure 3 (Right). The red curve in each plot highlights the layer-wise attention patterns directed towards visual information. We observe that the middle LLM layers are primarily responsible for interacting with the visual tokens, whereas the early and deep layers focus predominantly on processing textual information. ",
+        "bbox": [
+            119,
+            765,
+            882,
+            856
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Study 3: At which LLM layer do next-token predictions begin to converge? In Figure 4, we provide an interpretation of the hidden states across different LLM layers using LLaVA-1.5-7B and LLaVA-NeXT-7B. Specifically, we feed the hidden states from each LLM decoding layer into the final linear projection layer to obtain vocabulary logits and intermediate next-token predictions. We observe that in more challenging open-ended tasks like GQA, the next-token predictions stabilize around LLM layer 20, whereas in simpler yes/no tasks such as POPE, the predictions converge earlier, around LLM layer 16. Our findings indicate that early layers are still forming core cross-modal semantics, and pruning them risks disrupting essential grounding. In contrast, by the middle layers, next-token predictions have largely stabilized, meaning that these layers contribute diminishing semantic change. This directly motivates pruning in the middle-to-late layers rather than the early layers. ",
+        "bbox": [
+            119,
+            863,
+            882,
+            924
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "discarded",
+        "text": "Published in Transactions on Machine Learning Research (01/2026) ",
+        "bbox": [
+            116,
+            34,
+            601,
+            46
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "discarded",
+        "text": "5 ",
+        "bbox": [
+            493,
+            948,
+            504,
+            959
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            133,
+            102,
+            882,
+            194
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "These findings collectively suggest that early layers are suboptimal for pruning due to position bias and limited engagement with visual content. In contrast, pruning at middle layers is more appropriate as it better preserves critical cross-modal interactions and minimizes disruption to model predictions. ",
+        "bbox": [
+            117,
+            203,
+            882,
+            248
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "4 Method ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            266,
+            220,
+            284
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "We introduce VScan, a training-free approach that progressively prunes uninformative tokens in both visual encoding and LLM decoding stages to accelerate LVLM inference, as illustrated in Figure 1(c). ",
+        "bbox": [
+            116,
+            299,
+            882,
+            330
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "4.1 Reducing Visual Redundancy via Complementary Global and Local Scans ",
+        "text_level": 1,
+        "bbox": [
+            112,
+            348,
+            702,
+            364
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Motivated by the observations in Section 3, we design two complementary token selection schemes for the visual encoding stage, namely global and local scan, which select important tokens based on both local and global significance, enabling the capture of more comprehensive visual details. ",
+        "bbox": [
+            114,
+            377,
+            883,
+            422
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Global Scan. Given that the final layers of visual encoders capture global information, we follow recent works [70, 64] to select global tokens that receive the most attention from the [CLS] token $x _ { [ \\mathsf { C L S } ] }$ in the output layer (e.g., the penultimate layer in LLaVA-1.5 [39]). Specifically, the [CLS] attention computation for each attention head can be represented by ",
+        "bbox": [
+            116,
+            429,
+            882,
+            489
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "img_path": "images/f0c1f150f7bb847a2165611dc671ff6256c083f9d052e6c86be4413351931adb.jpg",
+        "text": "$$\nQ _ { [ \\mathbb { C } \\mathbb { L } \\mathbb { S } ] } = x _ { [ \\mathbb { C } \\mathbb { L } \\mathbb { S } ] } W _ { Q } ^ { h } , \\quad K _ { V } = \\mathbf { x } _ { V } W _ { K } ^ { h } , \\quad S _ { [ \\mathbb { C } \\mathbb { S } ] } ^ { h } = \\mathsf { S o f t m a x } \\left( \\frac { Q _ { [ \\mathbb { C } \\mathbb { S } ] } K _ { V } ^ { \\top } } { \\sqrt { D } } \\right) ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            253,
+            494,
+            743,
+            535
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "where $W _ { Q } ^ { h }$ and $W _ { K } ^ { h }$ represent the projections weights for head $h \\in [ 1 , H ]$ , $D$ denotes the hidden state size, and $S _ { [ \\mathbb { C } \\mathrm { L } \\mathbb { S } ] } ^ { h }$ represents the [CLS] attention. The global tokens are then selected by ",
+        "bbox": [
+            114,
+            540,
+            887,
+            574
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "img_path": "images/61f42ac77b3340d81ffc7fb9971b7d52a678d5b8fedba943f95fb630a061c291.jpg",
+        "text": "$$\n\\mathbf { x } _ { V } ^ { \\mathrm { g } } = \\left\\{ x _ { V } ^ { i } \\in \\mathbf { x } _ { V } \\Big | S _ { [ \\mathbb { C } \\mathrm { L } \\mathrm { s } ] } ^ { \\mathrm { a v g } } \\geq \\tau \\right\\} \\mathrm { , ~ w h e r e } S _ { [ \\mathbb { C } \\mathrm { L } \\mathrm { s } ] } ^ { \\mathrm { a v g } } = \\frac { 1 } { H } \\sum _ { h = 1 } ^ { H } S _ { [ \\mathbb { C } \\mathrm { L } \\mathrm { s } ] } ^ { h } \\mathrm { . }\n$$",
+        "text_format": "latex",
+        "bbox": [
+            287,
+            582,
+            710,
+            623
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Here, $\\tau$ is a soft threshold based on a top percentile of attention scores, set to retain a target number of tokens. Note that for LVLMs without a [CLS] token (e.g., Qwen-2.5-VL [5]), we can similarly select the tokens using self-attention, i.e., the average attention each visual token receives from others. ",
+        "bbox": [
+            114,
+            627,
+            885,
+            672
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Local Scan. To complement the global tokens and capture finer local details, we divide the image into non-overlapping windows and select the locally important tokens with the highest [CLS] attention from the shallow layer $\\it { \\Delta } l$ within each window. Specifically, we allocate token budgets uniformly across windows, and select local tokens from each window as: ",
+        "bbox": [
+            114,
+            679,
+            882,
+            739
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "img_path": "images/f4a64ee948210ab108a8a368b990ef27ae211e4415bb125ee9ebc58c7c16b443.jpg",
+        "text": "$$\n\\mathbf { x } _ { V } ^ { 1 } = \\bigcup _ { w = 1 } ^ { W } \\left\\{ x _ { V } ^ { j } \\in \\mathbf { x } _ { V } ^ { w } \\Big | S _ { [ \\mathtt { C L S } ] } ^ { \\mathtt { a v g } } \\geq \\tau _ { w } \\right\\}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            377,
+            742,
+            620,
+            785
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "where $w$ denotes the window index, $\\mathbf { x } _ { V } ^ { w }$ represents the set of all tokens within the window, and $\\tau _ { w }$ is the soft threshold for window $w$ . The final set of selected tokens is the union of global and local tokens, $\\mathbf { x } _ { V } ^ { \\mathsf { s e l e c t e d } } = \\mathbf { x } _ { V } ^ { \\mathsf { g } } \\cup \\mathbf { x } _ { V } ^ { 1 }$ , resulting in a retention rate of $R _ { 1 } \\%$ . By default, we balance the selection such that $| \\mathbf { x } _ { V } ^ { \\mathtt { g } } | = | \\mathbf { x } _ { V } ^ { 1 } |$ , i.e., half of the retained tokens are global and half are local.1 ",
+        "bbox": [
+            114,
+            787,
+            883,
+            849
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Token Merging. To alleviate information loss, we introduce a similarity-based token merging strategy that merges unselected visual tokens with their most similar selected counterparts. Specifically, for each unselected token $x _ { V } ^ { u }$ , we identify its most similar selected token $x _ { V } ^ { s } \\in \\mathbf { x } _ { V } ^ { \\mathsf { s e l e c t e d } }$ based on the highest cosine similarity. Once all unselected tokens are assigned to their closest selected tokens, we apply average merging [6] within each group to obtain the final merged representation $\\mathbf { x } _ { V } ^ { \\mathtt { m e r g e d } }$ . Specifically, for each selected token $\\mathbf { x } _ { V } ^ { s }$ , we compute the average token representation by ",
+        "bbox": [
+            116,
+            856,
+            877,
+            887
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "discarded",
+        "text": "1To avoid duplication, we prioritize local tokens and exclude them from global token selection. Empirically, we find that this prioritization does not significantly affect the final performance. ",
+        "bbox": [
+            114,
+            898,
+            882,
+            924
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "discarded",
+        "text": "Published in Transactions on Machine Learning Research (01/2026) ",
+        "bbox": [
+            116,
+            34,
+            599,
+            46
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "discarded",
+        "text": "6 ",
+        "bbox": [
+            493,
+            948,
+            504,
+            959
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            114,
+            102,
+            883,
+            164
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "equation",
+        "img_path": "images/fc33b8a353ea40ea66fa092ce637086b339844364de16744dbf904042f4c9b22.jpg",
+        "text": "$$\n\\mathbf { x } _ { V } ^ { \\mathrm { m e r g e d } } = \\frac { 1 } { \\left| \\mathcal { U } ^ { s } \\right| + 1 } \\left( \\sum _ { u \\in \\mathcal { U } ^ { s } } x _ { V } ^ { u } + \\mathbf { x } _ { V } ^ { s } \\right) ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            367,
+            167,
+            629,
+            210
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "where $\\mathcal { U } ^ { s }$ denotes the set of unselected tokens associated with the selected token $\\mathbf { x } _ { V } ^ { s }$ , and $| \\mathcal { U } ^ { s } |$ indicates the cardinality of this set. ",
+        "bbox": [
+            114,
+            214,
+            885,
+            244
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "4.2 Reducing Textual Irrelevance via Middle Layer Pruning ",
+        "text_level": 1,
+        "bbox": [
+            114,
+            261,
+            568,
+            277
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "After selecting visually significant tokens, we further refine the token set based on their relevance to the text query. Building on the empirical insights from Section 3, we design our approach to prune tokens at the mature middle layers of the LLM, aiming to avoid position bias, preserve cross-modal interactions, and minimize the impact on final predictions. Specifically, we compute the attention between all visual tokens and the last instruction token at middle layer $k$ , denoted as ",
+        "bbox": [
+            116,
+            287,
+            882,
+            364
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "equation",
+        "img_path": "images/41b9c47bf61b8b1c4871fc076bc5a388a962f6055d14fca0c2d7c53f07265b8b.jpg",
+        "text": "$$\nQ _ { T } = x _ { T } ^ { \\mathrm { { l a s t } } } W _ { Q } ^ { h } , \\quad K _ { V } = \\mathbf { x } _ { V } ^ { \\mathrm { { m e r g e d } } } W _ { K } ^ { h } , \\quad S _ { \\mathrm { { t e x t } } } ^ { h } = { \\sf S o f t m a x } \\left( \\frac { Q _ { T } K _ { V } ^ { \\top } } { \\sqrt { D } } \\right) .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            258,
+            368,
+            740,
+            402
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "We similarly average the attention scores across different attention heads and select $R _ { 2 } \\%$ textually relevant tokens with the highest average text attention. This allows us to retain a set of visual tokens that are both visually significant and textually relevant, contributing the most to an accurate response. ",
+        "bbox": [
+            114,
+            406,
+            882,
+            453
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Empirical Validation. We conduct a comparative analysis on the GQA benchmark using LLaVA-1.5-7B [39] to examine the effect of pruning tokens at different LLM layers, while keeping the average reduction rate consistent across settings. To better highlight the impact of pruning depth, we first apply a global scan to reduce the visual tokens to 288/144 (i.e., R1 = 50%/25%), and then perform pruning at various LLM layers to reach an average retention rate of 75% during the LLM decoding stage. As shown in Table 1, pruning at middle LLM layers (e.g., layers 16 or 20) yields the best performance, whereas pruning at earlier layers (e.g., layer 2) leads to up to a $1 . 9 \\%$ drop in accuracy. These results align with our empirical insights in Section 3 and validate the effectiveness of pruning at middle layers to remove textual irrelevance in LVLMs. ",
+        "bbox": [
+            114,
+            459,
+            562,
+            671
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Table 1: Comparative study of pruning visual tokens at different LLM layers. $R _ { 1 }$ denotes the retention rate in the visual encoding stage, while $k$ and $R _ { 2 }$ indicate the pruning layer and retention rate in the LLM decoding stage, respectively. ",
+        "bbox": [
+            573,
+            462,
+            883,
+            551
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "table",
+        "img_path": "images/812ea8e6529df80d5b16e830a0afebcf452f031e37063512fc800d970eb57f65.jpg",
+        "table_caption": [],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Settings</td><td>R1 = 50%</td><td>R1 = 25%</td></tr><tr><td>k = 2, R2 = 73.3%</td><td>59.6</td><td>56.8</td></tr><tr><td>k = 8, R2 = 66.7%</td><td>59.6</td><td>57.2</td></tr><tr><td>k = 12, R2 = 60.0%</td><td>59.6</td><td>58.6</td></tr><tr><td>k = 16, R2 = 50.0%</td><td>60.7</td><td>58.7</td></tr><tr><td>k = 20, R2 = 33.3%</td><td>60.6</td><td>58.7</td></tr><tr><td>k = 24, R2 = 0.0%</td><td>60.2</td><td>58.4</td></tr></table>",
+        "bbox": [
+            576,
+            554,
+            879,
+            671
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Remarks on KV Cache and FlashAttention. Our proposed VScan is fully compatible with standard KV caching mechanisms, as pruning occurs before visual tokens are added to the cache. Consequently, the KV cache stores fewer entries while its structure and format remain unchanged. VScan is also compatible with FlashAttention [17, 18], as we recompute the attention scores for the last instruction token using vanilla attention calculation [58] outside the standard LLM layers. ",
+        "bbox": [
+            116,
+            679,
+            882,
+            755
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "5 Experiments ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            772,
+            261,
+            790
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "In this section, we validate the effectiveness of our VScan on four widely used LVLMs, evaluating its performance across various benchmarks and comparing it with other state-of-the-art approaches. ",
+        "bbox": [
+            117,
+            804,
+            880,
+            835
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "5.1 Experimental Settings ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            852,
+            323,
+            867
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Models. We evaluate the general effectiveness of VScan by applying it to four popular LVLMs with diverse architectures. Following prior work in this field, we first compare performance on LLaVA-1.5-7B [39], a widely adopted academic baseline that maps each image input to 576 tokens, and LLaVA-NeXT-7B [40], which improves high-resolution understanding by encoding an image into up to 2,880 visual tokens. We further assess Video-LLaVA-7B [36], which extends the LLaVA framework to videos, processing up to 8 frames with 2,048 visual tokens. Finally, we are among the first to report experimental results on the recent Qwen-2.5-VL [5], tested across different LLM sizes (3B, 7B, 32B). This model incorporates dynamic resolution processing to handle images of varying sizes, supporting visual token counts ranging from 4 to 16,384. ",
+        "bbox": [
+            116,
+            878,
+            883,
+            924
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "discarded",
+        "text": "Published in Transactions on Machine Learning Research (01/2026) ",
+        "bbox": [
+            114,
+            32,
+            601,
+            47
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "discarded",
+        "text": "7 ",
+        "bbox": [
+            493,
+            948,
+            503,
+            959
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            116,
+            103,
+            882,
+            179
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Benchmarks and Metrics. We conduct extensive experiments on 9 standard image understanding benchmarks, including visual question answering benchmarks such as GQA [25], ScienceQA [43], VQAv2 [23], TextVQA [53] and VizWiz [24]; multi-modal reasoning benchmarks such as MMBench [42], MMBench-CN [42], MME [20], and POPE [35]. We also include evaluations on 3 more challenging referring grounding tasks using RefCOCO [30], RefCOCO $^ +$ [30], and RefCOCOg [46], and report the accuracy achieved by different approaches. In these grounding tasks, a localization is considered correct if the predicted bounding box has an IoU score of at least 0.5 with the ground truth. Additionally, we evaluate our approach on 4 video question answering benchmarks: TGIF [27], MSVD [10], MSRVTT [63], and ActivityNet [66]. We follow previous work [45, 62] to utilize both accuracy and the ChatGPT score $^ 2$ as key performance metrics for these video-based benchmarks. The evaluation protocol and prompts are detailed in Section B.4. ",
+        "bbox": [
+            114,
+            186,
+            883,
+            337
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Baselines. We compare the performance of our approach with 6 state-of-the-art visual token pruning methods: ToMe [6], FastV [12], SparseVLM [71], HiRED [3], PyramidDrop [62], and VisionZip [64]. (1) ToMe [6], which uses bipartite soft matching to iteratively merge similar tokens within ViT layers; (2) FastV [12], which drops visual tokens in early layers of the LLM, guided by text-oriented attention score; (3) SparseVLM [71], which selects vision-relevant text tokens to evaluate the significance of visual tokens; (4) HiRED [3], which dynamically assigns token budgets to sub-images for high-resolution image inputs; (5) PyramidDrop [62], which divides the LLM into stages and drops a portion of visual tokens at the end of each stage; (6) VisionZip [64], which selects a set of dominant tokens and merges unselected tokens contextually. To ensure a fair comparison, we directly report the results of these baselines from their respective original papers unless stated otherwise. ",
+        "bbox": [
+            114,
+            344,
+            883,
+            481
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Implementation Details. We adhere to the default inference settings for each evaluated LVLM as specified in their respective codebases. Additionally, we perform local scan at a shallow layer, specifically at $l = 6$ for LLaVA-series models and $\\mathit { l } = 8$ for Qwen-2.5-VL. For LLM-stage pruning, we select the middle layer as $k = 1 6$ for LLaVA-series models and $k = 1 4$ for Qwen-2.5-VL-7B. For Qwen-2.5-VL-3B and -32B, we similarly select the exact middle layer for pruning. By default, we fix the retention rate at the LLM middle layer to $R _ { 2 } = 3 3 . 3 \\%$ , and adjust $R _ { 1 }$ accordingly to achieve the target average reduction rate. For instance, to achieve an average retention rate of $1 1 . 1 \\%$ , we set $R _ { 1 } = 1 6 . 7 \\%$ and $R _ { 2 } = 3 3 . 3 \\%$ . Note that these design choices are grounded in our analysis in Section 3, and we also provide comprehensive ablation studies in Section 5.3. Code will be made publicly available upon acceptance to facilitate reproducibility. ",
+        "bbox": [
+            114,
+            488,
+            883,
+            625
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "5.2 Results and Discussions ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            641,
+            334,
+            656
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Results on LLaVA-1.5. In Table 2, we apply our approach to LLaVA-1.5-7B [39] and compare its performance with other baselines across 9 image understanding tasks. Following previous work [71, 64] in this field, we present a comparative analysis of performance across three settings, retaining an average of 192, 128, and 64 visual tokens across all 32 layers in LLaMA [57], corresponding to reduction rates of 66.7%, $7 7 . 8 \\%$ , and $8 8 . 9 \\%$ , respectively. We also calculate and present the percentage of performance retention in the final column, using the vanilla LLaVA-1.5 performance as the $1 0 0 \\%$ upper limit. As shown in the table, with only 128 and 192 tokens per image instead of the original 576, our approach nearly retains the performance of the original LLaVA-1.5, with only negligible performance declines of $1 . 0 \\%$ and $1 . 2 \\%$ , respectively. Our approach becomes even more advantageous with higher reduction rates: With an aggressive $8 8 . 9 \\%$ reduction rate, our approach results in only a $3 . 3 \\%$ degradation in average performance across benchmarks, outperforming the second-best VisionZip [64] by a substantial margin of $4 . 0 \\%$ . These results suggest that our method effectively maintains high performance while reducing the number of visual tokens processed. ",
+        "bbox": [
+            114,
+            667,
+            883,
+            849
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Results on LLaVA-NeXT. In Table 3, we further compare the performance achieved by our approach with other state-of-the-arts on the more advanced LLaVA-NeXT-7B [40]. We present the performance of all approaches under a fixed budget of 320 tokens per image, corresponding to an $8 8 . 9 \\%$ reduction rate. Our approach continues to achieve superior performance on LLaVA-NeXT-7B [40], attaining the best performance on 6 out of 9 benchmarks, and achieving $9 5 . 4 \\%$ of the original LLaVA-NeXT-7B [40] performance with only $1 1 . 1 \\%$ of the token budget without additional training. ",
+        "bbox": [
+            116,
+            857,
+            882,
+            902
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "discarded",
+        "text": "2Evaluated using gpt-3.5-turbo: https://platform.openai.com/docs/models/gpt-3.5-turbo. ",
+        "bbox": [
+            130,
+            911,
+            705,
+            924
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "discarded",
+        "text": "Published in Transactions on Machine Learning Research (01/2026) ",
+        "bbox": [
+            116,
+            34,
+            599,
+            46
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "discarded",
+        "text": "8 ",
+        "bbox": [
+            493,
+            949,
+            503,
+            959
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "table",
+        "img_path": "images/b6240ebdc3fa7cde6e546d2381a2470f66ba2eb5cb3ebec49bf8555cf1a8ef5e.jpg",
+        "table_caption": [
+            "Table 2: Performance comparisons on LLaVA-1.5-7B [39] across 9 image understanding benchmarks. The best results in each setting are bolded, and the second-best are underlined. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Method</td><td>Venue</td><td>GQA</td><td>MMB</td><td>MMBCN</td><td></td><td>MME POPE SQAIMG</td><td></td><td>VQAV2</td><td>VQAText</td><td>VizWiz</td><td>Average</td></tr><tr><td colspan=\"10\">Upper Bound, 576 Tokens (100%), 3.817 TFLOPs</td></tr><tr><td>LLaVA-1.5-7B [39]</td><td>CVPR&#x27;24</td><td>61.9</td><td>64.7</td><td>58.1</td><td>1862</td><td>85.9</td><td>69.5</td><td>78.5</td><td>58.2</td><td>50.0</td><td>100.0%</td></tr><tr><td colspan=\"10\">Retain 192 Tokens in Average (↓ 66.7%), ~1.253 TFLOPs</td></tr><tr><td>ToMe [6]</td><td>ICLR&#x27;23</td><td>54.3</td><td>60.5</td><td>-</td><td>1563</td><td>72.4</td><td>65.2</td><td>68.0</td><td>52.1</td><td>-</td><td>88.5%</td></tr><tr><td>FastV [12]</td><td>ECCV&#x27;24</td><td>52.7</td><td>61.2</td><td>57.0</td><td>1612</td><td>64.8</td><td>67.3</td><td>67.1</td><td>52.5</td><td>50.8</td><td>90.4%</td></tr><tr><td>SparseVLM [71]</td><td>ICML&#x27;25</td><td>59.5</td><td>64.1</td><td>53.7</td><td>1787</td><td>85.3</td><td>68.7</td><td>75.6</td><td>57.8</td><td>50.5</td><td>97.6%</td></tr><tr><td>PyramidDrop [62]</td><td>CVPR&#x27;25</td><td>57.3</td><td>63.3</td><td>56.8</td><td>1797</td><td>82.3</td><td>69.0</td><td>75.1</td><td>56.5</td><td>51.1</td><td>97.2%</td></tr><tr><td>VisionZip [64]</td><td>CVPR&#x27;25</td><td>59.3</td><td>63.0</td><td>-</td><td>1783</td><td>85.3</td><td>68.9</td><td>77.4</td><td>57.3</td><td>-</td><td>97.8%</td></tr><tr><td>VScan (Ours)</td><td></td><td>60.6</td><td>63.9</td><td>57.4</td><td>1806</td><td>86.2</td><td>68.6</td><td>77.8</td><td>57.7</td><td>50.4</td><td>99.0%</td></tr><tr><td colspan=\"10\">Retain 128 Tokens in Average (↓ 77.8%), ~0.833 TFLOPs</td></tr><tr><td>ToMe [6]</td><td>ICLR&#x27;23</td><td>52.4</td><td>53.3</td><td>-</td><td>1343</td><td>62.8</td><td>59.6</td><td>63.0</td><td>49.1</td><td>-</td><td>80.4%</td></tr><tr><td>FastV [12]</td><td>ECCV&#x27;24</td><td>49.6</td><td>56.1</td><td>56.4</td><td>1490</td><td>59.6</td><td>60.2</td><td>61.8</td><td>50.6</td><td>51.3</td><td>85.4%</td></tr><tr><td>SparseVLM [71]</td><td>ICML&#x27;25</td><td>58.4</td><td>64.5</td><td>51.1</td><td>1746</td><td>85.0</td><td>68.6</td><td>73.8</td><td>56.7</td><td>51.4</td><td>96.4%</td></tr><tr><td>PyramidDrop [62]</td><td>CVPR&#x27;25</td><td>57.1</td><td>61.6</td><td>56.6</td><td>1761</td><td>82.3</td><td>68.4</td><td>72.9</td><td>56.6</td><td>51.0</td><td>96.2%</td></tr><tr><td>VisionZip [64]</td><td>CVPR&#x27;25</td><td>57.6</td><td>62.0</td><td>-</td><td>1763</td><td>83.2</td><td>68.9</td><td>75.6</td><td>56.8</td><td>-</td><td>96.2%</td></tr><tr><td>VScan (Ours)</td><td>-</td><td>59.8</td><td>63.0</td><td>58.0</td><td>1792</td><td>86.1</td><td>68.9</td><td>77.1</td><td>57.3</td><td>51.7</td><td>98.8%</td></tr><tr><td colspan=\"10\">Retain 64 Tokens in Average (↓ 88.9%), ~0.415 TFLOPs</td></tr><tr><td>ToMe [6]</td><td>ICLR&#x27;23</td><td>48.6</td><td>43.7</td><td>-</td><td>1138</td><td>52.5</td><td>50.0</td><td>57.1</td><td>45.3</td><td>-</td><td>70.1%</td></tr><tr><td>FastV [12]</td><td>ECCV&#x27;24</td><td>46.1</td><td>48.0</td><td>52.7</td><td>1256</td><td>48.0</td><td>51.1</td><td>55.0</td><td>47.8</td><td>50.8</td><td>76.7%</td></tr><tr><td>SparseVLM [71]</td><td>ICML&#x27;25</td><td>53.8</td><td>60.1</td><td>46.1</td><td>1589</td><td>77.5</td><td>69.8</td><td>68.2</td><td>53.4</td><td>50.1</td><td>90.4%</td></tr><tr><td>PyramidDrop [62]</td><td>CVPR&#x27;25</td><td>47.5</td><td>58.8</td><td>50.5</td><td>1561</td><td>55.9</td><td>69.2</td><td>69.2</td><td>50.6</td><td>50.7</td><td>86.6%</td></tr><tr><td>VisionZip [64]</td><td>CVPR&#x27;25</td><td>55.1</td><td>60.1</td><td>-</td><td>1690</td><td>77.0</td><td>69.0</td><td>72.4</td><td>55.5</td><td>-</td><td>92.7%</td></tr><tr><td>VScan (Ours)</td><td>-</td><td>58.3</td><td>62.1</td><td>55.7</td><td>1698</td><td>85.0</td><td>69.1</td><td>75.4</td><td>55.6</td><td>51.8</td><td>96.7%</td></tr></table>",
+        "bbox": [
+            117,
+            140,
+            879,
+            534
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "table",
+        "img_path": "images/1a4d8e7af894a0b41c0fc3a32ad3ec250989f20bc14977782b0a1578b5bb7624.jpg",
+        "table_caption": [
+            "Table 3: Performance comparisons on LLaVA-NeXT-7B [40] across 9 image understanding benchmarks. The best results in each setting are bolded, and the second-best are underlined. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Method</td><td>Venue</td><td></td><td>GQA MMB MMBCN</td><td></td><td></td><td>MME POPE SQAIMG</td><td></td><td>VQA V2</td><td>VQAText</td><td>VizWiz</td><td>Average</td></tr><tr><td colspan=\"10\">Upper Bound, 2,880 Tokens (100%), ~20.825 TFLOPs</td></tr><tr><td>LLaVA-NeXT-7B [40]</td><td>CVPR&#x27;24</td><td>64.2</td><td>67.4</td><td>60.6</td><td>1851</td><td>86.5</td><td>70.1</td><td>81.8</td><td>61.3</td><td>57.6</td><td>100.0%</td></tr><tr><td colspan=\"10\">Retain 320 Tokens in Average (↓ 88.9%), ~2.099 TFLOPs</td></tr><tr><td>FastV [12]</td><td>ECCV&#x27;24</td><td>55.9</td><td>61.6</td><td>51.9</td><td>1661</td><td>71.7</td><td>62.8</td><td>72.9</td><td>55.7</td><td>53.1</td><td>88.7%</td></tr><tr><td>HiRED [3]</td><td>AAAI&#x27;25</td><td>59.3</td><td>64.2</td><td>55.9</td><td>1690</td><td>83.3</td><td>66.7</td><td>75.7</td><td>58.8</td><td>54.2</td><td>93.9%</td></tr><tr><td>PyramidDrop [62]</td><td>CVPR&#x27;25</td><td>56.4</td><td>63.4</td><td>56.2</td><td>1663</td><td>77.6</td><td>67.5</td><td>73.5</td><td>54.4</td><td>54.1</td><td>91.4%</td></tr><tr><td>VisionZip [64]</td><td>CVPR&#x27;25</td><td>59.3</td><td>63.1</td><td>-</td><td>1702</td><td>82.1</td><td>67.3</td><td>76.2</td><td>58.9</td><td>-</td><td>94.0%</td></tr><tr><td>VScan (Ours)</td><td>-</td><td>60.7</td><td>65.3</td><td>57.8</td><td>1767</td><td>85.1</td><td>66.9</td><td>77.1</td><td>58.0</td><td>53.8</td><td>95.4%</td></tr></table>",
+        "bbox": [
+            119,
+            588,
+            879,
+            731
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            116,
+            765,
+            882,
+            810
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Results on Qwen-2.5-VL. To further validate the general effectiveness of our approach, we apply it to the more advanced Qwen-2.5-VL [5] with three different LLM scales and visualize the performance on three general visual understanding benchmarks in Figure 5. The full numerical results are also provided in Appendix A.7. As shown, our approach consistently outperforms FastV [12], PDrop [62] and VisionZip [64] across all retention rates (from $1 1 . 1 \\%$ to $5 0 \\%$ ) and model scales. We also observe that on MME, both FastV and PDrop exhibit degraded performance under low token budgets as the LLM scales from 7B to 32B. We speculate that this is due to larger LLMs introducing stronger language priors, which can hinder the accurate selection of critical visual tokens. In contrast, our two-stage reduction strategy mitigates this bias and remains robust across LLM scales, demonstrating superior performance. ",
+        "bbox": [
+            114,
+            818,
+            882,
+            924
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "discarded",
+        "text": "Published in Transactions on Machine Learning Research (01/2026) ",
+        "bbox": [
+            116,
+            34,
+            601,
+            46
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "discarded",
+        "text": "9 ",
+        "bbox": [
+            493,
+            948,
+            504,
+            959
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "image",
+        "img_path": "images/072d979f600513ab9cd5da925ef2a26d4aa66e46ab1f8e56366fb43939f97099.jpg",
+        "image_caption": [
+            "Figure 5: Performance comparisons on Qwen-2.5-VL [5] with different LLM sizes $\\mathbf { ( 3 B / 7 B / 3 2 B ) }$ across 3 image understanding benchmarks. We present the performance of different approaches at 4 various retention rates, along with the original model performance without token reduction. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            119,
+            103,
+            879,
+            270
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "table",
+        "img_path": "images/69f34867d5a399a77c9aa31a865e68e845c2efa370eac6d28c64f9dd9dfb8712.jpg",
+        "table_caption": [
+            "Table 4: Performance comparisons on Qwen-2.5-VL-7B [5] across 3 referring expression comprehension benchmarks: RefCOCO, RefCOCO $^ +$ , and RefCOCOg. The best results in each setting are bolded, and the second-best are underlined. $^ { \\dagger }$ Evaluation is based on our re-implementation. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td rowspan=\"2\">Method</td><td rowspan=\"2\">Venue</td><td colspan=\"3\">RefCOCO</td><td colspan=\"3\">RefCOCO+</td><td colspan=\"2\">RefCOCOg</td><td rowspan=\"2\">Average</td></tr><tr><td>val</td><td>testA</td><td>testB</td><td>val</td><td>testA</td><td>testB</td><td>val</td><td>test</td></tr><tr><td colspan=\"10\">Upper Bound, 4~16384 Tokens (100%)</td></tr><tr><td>Qwen-2.5-VL-7B [5]</td><td>arXiv&#x27;25</td><td>89.45</td><td>92.56</td><td>85.16</td><td>83.50</td><td>89.02</td><td>79.15</td><td>86.76</td><td>87.24</td><td>100.0%</td></tr><tr><td colspan=\"10\">Retain 75% Tokens in Average (↓ 25%)</td></tr><tr><td>FastV† [12]</td><td>ECCV&#x27;24</td><td>85.27</td><td>87.84</td><td>82.28</td><td>79.02</td><td>82.95</td><td>72.86</td><td>82.95</td><td>83.32</td><td>94.8%</td></tr><tr><td>PyramidDrop† [62]</td><td>CVPR&#x27;25</td><td>87.79</td><td>91.00</td><td>83.22</td><td>81.48</td><td>86.55</td><td>74.02</td><td>84.62</td><td>85.10</td><td>97.2%</td></tr><tr><td>VisionZip† [64]</td><td>CVPR&#x27;25</td><td>88.33</td><td>91.55</td><td>83.68</td><td>81.99</td><td>87.28</td><td>74.09</td><td>85.08</td><td>85.92</td><td>97.9%</td></tr><tr><td>VScan (Ours)</td><td></td><td>88.75</td><td>91.94</td><td>83.96</td><td>82.39</td><td>87.90</td><td>74.15</td><td>85.54</td><td>86.55</td><td>98.3%</td></tr><tr><td colspan=\"10\">Retain 50% Tokens in Average (↓ 50%)</td></tr><tr><td>FastV† [12]</td><td>ECCV&#x27;24</td><td>73.85</td><td>73.38</td><td>74.21</td><td>66.75</td><td>68.88</td><td>62.65</td><td>71.06</td><td>71.86</td><td>81.2%</td></tr><tr><td>PyramidDrop† [62]</td><td>CVPR&#x27;25</td><td>77.52</td><td>80.82</td><td>72.07</td><td>70.27</td><td>75.48</td><td>63.33</td><td>74.86</td><td>75.65</td><td>85.1%</td></tr><tr><td>VisionZip† [64]</td><td>CVPR&#x27;25</td><td>80.92</td><td>84.55</td><td>76.91</td><td>74.02</td><td>79.52</td><td>67.89</td><td>78.12</td><td>79.34</td><td>89.7%</td></tr><tr><td>VScan (Ours)</td><td>-</td><td>86.78</td><td>90.74</td><td>82.37</td><td>79.99</td><td>86.12</td><td>71.67</td><td>84.03</td><td>84.44</td><td>96.1%</td></tr><tr><td colspan=\"10\">Retain 25% Tokens in Average (↓ 75%)</td></tr><tr><td>FastV† [12]</td><td>ECCV&#x27;24</td><td>43.57</td><td>46.81</td><td>40.86</td><td>39.47</td><td>43.78</td><td>36.02</td><td>43.04</td><td>42.69</td><td>48.5%</td></tr><tr><td>PyramidDrop† [62]</td><td>CVPR&#x27;25</td><td>46.46</td><td>53.83</td><td>37.23</td><td>42.29</td><td>47.76</td><td>32.81</td><td>45.32</td><td>44.91</td><td>50.4%</td></tr><tr><td>VisionZip† [64]</td><td>CVPR&#x27;25</td><td>60.12</td><td>66.95</td><td>55.41</td><td>58.33</td><td>64.88</td><td>48.52</td><td>57.09</td><td>56.44</td><td>67.8%</td></tr><tr><td>VScan (Ours)</td><td>-</td><td>74.32</td><td>79.05</td><td>68.22</td><td>67.22</td><td>73.72</td><td>58.95</td><td>69.42</td><td>69.43</td><td>80.7%</td></tr></table>",
+        "bbox": [
+            117,
+            383,
+            879,
+            691
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            117,
+            713,
+            877,
+            743
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "We extend our comparisons to more challenging grounding tasks and present the performance of different approaches in Table 4. Compared to image understanding tasks, these grounding tasks require higher token budgets to preserve visual information necessary for precise localization. A $7 5 \\%$ reduction rate, for instance, halves the performance of FastV [12] and PDrop [62]. In this challenging scenario, our approach still robustly maintains 80.7% of the original performance. Additionally, our approach achieves $9 6 . 1 \\%$ of the original performance with only $5 0 \\%$ of the visual tokens. Qualitative results in Figure A2 further demonstrate that our approach effectively retains the critical tokens for accurate localization in challenging cases. ",
+        "bbox": [
+            114,
+            751,
+            882,
+            856
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Results on Video-LLaVA. Finally, we validate the effectiveness of our approach on video understanding tasks and compare its performance against other approaches on Video-LLaVA-7B [36], as shown in Table 5. Specifically, we report the accuracy and GPT-evaluated scores for each benchmark to assess the quality of the responses. The experimental results demonstrate that, even under a strict 25% token budget, our approach ",
+        "bbox": [
+            116,
+            863,
+            882,
+            924
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "discarded",
+        "text": "Published in Transactions on Machine Learning Research (01/2026) ",
+        "bbox": [
+            116,
+            34,
+            601,
+            46
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "discarded",
+        "text": "10 ",
+        "bbox": [
+            490,
+            948,
+            508,
+            959
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Table 5: Performance comparisons on Video-LLaVA-7B [36] across 4 video understanding tasks with a $7 5 \\%$ reduction rate. The best results are bolded, and the secondbest are underlined. †Evaluation is based on our re-implementation. ",
+        "bbox": [
+            604,
+            113,
+            879,
+            220
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "table",
+        "img_path": "images/a8e86627805bf2fdaaf22ba5ba2b6c735c2bd51c075febae7f7f7daf1d19e4b6.jpg",
+        "table_caption": [
+            "Table 6: Ablation experiment using LLaVA-1.5-7B with an average reduction rate of ${ \\bf 1 1 . 1 \\% }$ on GQA and MME. We ablate the effects of (a) retention rates $R _ { 1 }$ and $R _ { 2 }$ ; (b) the proportion of global and local tokens; and (c) encoding layer $l$ for the local scan, while keep all other settings fixed. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td rowspan=\"3\">Method</td><td colspan=\"2\">TGIF</td><td colspan=\"2\">MSVD</td><td colspan=\"2\">MSRVTT</td><td colspan=\"2\">ActivityNet</td></tr><tr><td>Acc.</td><td>Score</td><td>Acc.</td><td>Score</td><td>Acc.</td><td>Score</td><td>Acc.</td><td>Score</td></tr><tr><td>Video-LLaVA-7B [36]</td><td>47.0</td><td>3.40</td><td>70.5</td><td>3.92</td><td>58.3</td><td>3.51</td><td>42.2</td><td>3.37</td></tr><tr><td>FastV† [12]</td><td>42.7</td><td>3.19</td><td>67.4</td><td>3.83</td><td>53.6</td><td>3.40</td><td>36.1</td><td>3.15</td></tr><tr><td>PyramidDrop† [62]</td><td>44.1</td><td>3.26</td><td>66.7</td><td>3.81</td><td>56.1</td><td>3.45</td><td>37.4</td><td>3.15</td></tr><tr><td>VisionZip† [64]</td><td>44.0</td><td>3.28</td><td>68.2</td><td>3.85</td><td>55.4</td><td>3.42</td><td>39.0</td><td>3.23</td></tr><tr><td>VScan (Ours)</td><td>46.9</td><td>3.35</td><td>69.8</td><td>3.93</td><td>57.1</td><td>3.48</td><td>42.6</td><td>3.34</td></tr></table>",
+        "bbox": [
+            119,
+            107,
+            596,
+            228
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "(a) Retention rates $R _ { 1 }$ and $R _ { 2 }$ . ",
+        "bbox": [
+            122,
+            292,
+            356,
+            306
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "table",
+        "img_path": "images/1983d520c4305175cb898ced2075e509f130e3c32ae4228bb03b518d1fb14df9.jpg",
+        "table_caption": [
+            "(b) Global & local tokens. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Global</td><td>Local</td><td>GQA</td><td>MME</td></tr><tr><td>0%</td><td>100%</td><td>58.0</td><td>1681</td></tr><tr><td>25%</td><td>75%</td><td>58.1</td><td>1689</td></tr><tr><td>50%</td><td>50%</td><td>58.3</td><td>1698</td></tr><tr><td>75%</td><td>25%</td><td>57.4</td><td>1688</td></tr><tr><td>100%</td><td>0%</td><td>57.5</td><td>1665</td></tr></table>",
+        "bbox": [
+            379,
+            309,
+            617,
+            410
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "table",
+        "img_path": "images/1ddd4c49df1d17fca3c7b798fa9de7890ebb54bc6887f63d13b8575273421777.jpg",
+        "table_caption": [
+            "(c) Local scan encoding layer l. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Encoding Layer</td><td>GQA</td><td>MME</td></tr><tr><td>l = 2 (shallow)</td><td>57.1</td><td>1712</td></tr><tr><td>l=6 (shallow)</td><td>58.3</td><td>1698</td></tr><tr><td>l = 12 (middle)</td><td>57.8</td><td>1692</td></tr><tr><td>l = 18 (deep)</td><td>57.5</td><td>1678</td></tr><tr><td>l = 23 (output)</td><td>57.3</td><td>1683</td></tr></table>",
+        "bbox": [
+            638,
+            310,
+            877,
+            410
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "table",
+        "img_path": "images/c3d2b1bd1a405db90a73b00c2ad952c242d798cd5239655e4fc82d2c37e3e419.jpg",
+        "table_caption": [],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>R1</td><td>R2</td><td>GQA</td><td>MME</td></tr><tr><td>11.1%</td><td>100.0%</td><td>56.7</td><td>1651</td></tr><tr><td>13.3%</td><td>66.7%</td><td>57.1</td><td>1683</td></tr><tr><td>14.8%</td><td>50.0%</td><td>57.5</td><td>1676</td></tr><tr><td>16.7%</td><td>33.3%</td><td>58.3</td><td>1698</td></tr><tr><td>22.2%</td><td>0.0%</td><td>52.7</td><td>1720</td></tr></table>",
+        "bbox": [
+            119,
+            309,
+            359,
+            410
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "is able to preserve nearly the full performance of the original Video-LLaVA-7B. Moreover, it consistently surpasses prior methods across multiple benchmarks, highlighting the efficiency and robustness of our token reduction strategy in challenging video understanding tasks. ",
+        "bbox": [
+            116,
+            438,
+            882,
+            483
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Additional Results. In Appendix A, we present further experimental results, demonstrating that our VScan generalizes to more challenging benchmarks that require fine-grained visual perception (e.g., DocVQA [47] and InfoVQA [48]) and also effectively accelerates training while largely preserving model accuracy. ",
+        "bbox": [
+            116,
+            491,
+            882,
+            536
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "5.3 Ablation Studies ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            560,
+            281,
+            577
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Varying Retention Rates $R _ { 1 }$ and $R _ { 2 }$ . We analyze how different retention rate configurations affect performance by varying the retention rates $R _ { 1 }$ and $R _ { 2 }$ during the visual encoding and LLM decoding stages, respectively. As shown in Table 6 (a), we observe that relying solely on token selection in the visual encoder or applying overly aggressive pruning during LLM decoding leads to suboptimal performance. Specifically, text-agnostic pruning ( $R _ { 1 }$ ) reduces computation early but lacks awareness of the text prompt, making it prone to removing visually subtle yet instruction-critical cues. In contrast, text-aware pruning ( $R _ { 2 }$ ) benefits from intermediate cross-modal alignment and can better retain tokens relevant to the query, though pruning too aggressively at this stage may interrupt the model’s semantic refinement and harm reasoning stability. Instead, a more balanced and gradual two-stage pruning strategy, i.e., $R _ { 1 } = 1 6 . 7 \\%$ and $R _ { 2 } = 3 3 . 3 \\%$ , achieves the best performance. These results also validate the effectiveness of combining both visual token reduction strategies to jointly improve efficiency and maintain accuracy. ",
+        "bbox": [
+            114,
+            592,
+            883,
+            758
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Mixing Global and Local Tokens. In Table 6 (b), we examine the impact of mixing global and local token selections by varying their proportions. We find that selecting an equal ratio of global and local tokens yields the best performance, achieving $5 8 . 3 \\%$ on GQA and 1698 on MME. In contrast, retaining only local or global tokens results in $0 . 3 \\%$ and 0.8% performance drop on GQA, respectively. These results highlight the complementary roles of global and local tokens, which together capture rich visual information and help preserve the model’s visual reasoning capabilities. ",
+        "bbox": [
+            114,
+            765,
+            882,
+            856
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Different Encoding Layers for Local Scan. In Table 6 (c), we explore the effect of performing local token selection at different layers of the visual encoder. Consistent with our empirical findings in Section 3, we find that applying the local scan at a shallow layer ( $l = 6$ ) yields the best performance. However, performing the local scan at very early ( $l = 2$ ) or the output layer ( $l = 2 3$ ) leads to a noticeable performance drop, with performance on GQA falling to 57.1 and 57.3, respectively. This confirms that local tokens selected from shallow layers are more effective at capturing fine-grained visual details and better complement the global token set. ",
+        "bbox": [
+            116,
+            863,
+            882,
+            924
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "discarded",
+        "text": "Published in Transactions on Machine Learning Research (01/2026) ",
+        "bbox": [
+            116,
+            34,
+            601,
+            46
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "discarded",
+        "text": "11 ",
+        "bbox": [
+            490,
+            948,
+            506,
+            960
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            117,
+            103,
+            883,
+            133
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "5.4 Efficiency Analysis ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            151,
+            295,
+            166
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "In Table 7, we evaluate the practical acceleration effects of VScan. Specifically, we report the total inference time and the time required for the pre-filling stage when processing all samples in the POPE benchmark. By retaining only $1 1 \\%$ of the visual tokens, VScan achieves a $1 . 3 7 \\times$ speedup in overall efficiency and a 1.77 $\\times$ speedup in prefilling efficiency on LLaVA-1.5-7B, while maintaining robust performance with only a $0 . 9 \\%$ decline. ",
+        "bbox": [
+            116,
+            178,
+            883,
+            238
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Our approach achieves even more significant acceleration on LLaVANeXT-7B, where it delivers a $2 . 0 5 \\times$ speedup in inference and a $2 . 9 1 \\times$ speedup in the prefill stage. Additionally, our approach can also effectively compress KV cache storage across different backbones. It is also important to note that VScan is compatible with FlashAttention [17], which can further enhance efficiency. For instance, the inference time of ",
+        "bbox": [
+            116,
+            247,
+            370,
+            428
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "table",
+        "img_path": "images/788e15a4be03386b6591030e83377059ff8485e3c0ecc83521f4d32c84c66734.jpg",
+        "table_caption": [
+            "Table 7: Efficiency comparisons on the POPE benchmark. We report the theoretical FLOPs, actual runtime, KV cache compression rate $\\%$ ), and the achieved accuracy. "
+        ],
+        "table_footnote": [
+            "our approach with an $1 1 \\%$ retention rate on LLaVA-NeXT-7B can be further reduced from 488 to 473 seconds. "
+        ],
+        "table_body": "<table><tr><td>Method</td><td>FLOPs ↓ Total Time ↓ Prefill Time ↓ KV Cache ↓ Accuracy ↑</td><td></td><td></td><td></td></tr><tr><td>LLaVA-1.5-7B</td><td>3.817 T 1113 s (1.00x)</td><td>416 s (1.00x)</td><td>100.0%</td><td>85.9</td></tr><tr><td>+ Ours (33%)</td><td>1.253 T 937 s (1.19×)</td><td>301 s (1.38×)</td><td>39.9%</td><td>86.2</td></tr><tr><td>+ Ours (11%)</td><td>0.415 T 812 s (1.37×)</td><td>235 s (1.77×)</td><td>19.9%</td><td>85.0</td></tr><tr><td>LLaVA-NeXT-7B</td><td>20.825 T 2294 s (1.00x)</td><td>1420 s (1.00X)</td><td>100.0%</td><td>86.5</td></tr><tr><td>+ Ours (33%)</td><td>6.459 T 1701 s (1.35×)</td><td>994 s (1.43×)</td><td>34.8%</td><td>86.1</td></tr><tr><td>+ Ours (11%)</td><td>2.099 T 1120 s (2.05x) 488 s (2.91x)</td><td></td><td>13.1%</td><td>85.1</td></tr></table>",
+        "bbox": [
+            385,
+            303,
+            879,
+            425
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "6 Conclusion ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            462,
+            245,
+            479
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "In this work, we present a comprehensive empirical study to understand how visual information is processed across both the visual encoding and LLM decoding stages. Building on these insights, we propose VScan—a two-stage, training-free visual token reduction framework—to accelerate LVLM inference while maintaining robust performance. Specifically, we design complementary global and local scanning strategies to select informative visual tokens that preserve rich visual details during visual encoding, and further refine this token set via middle layer pruning in the LLM decoding stage based on textual relevance. Extensive experiments across 4 LVLM architectures and 16 image and video benchmarks demonstrate that our approach consistently outperforms existing state-of-the-art methods, achieving a superior trade-off between efficiency and accuracy. ",
+        "bbox": [
+            114,
+            494,
+            882,
+            616
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Limitations. One potential limitation of this work is the inherent trade-off between efficiency and accuracy: while the proposed VScan significantly reduces inference cost of LVLMs, aggressive token pruning may still distort visual information and lead to degraded performance, particularly on challenging tasks that demand fine-grained understanding or compositional reasoning. ",
+        "bbox": [
+            116,
+            623,
+            882,
+            684
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "References ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            703,
+            214,
+            719
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "[1] Jean-Baptiste Alayrac, Jeff Donahue, Pauline Luc, Antoine Miech, Iain Barr, Yana Hasson, Karel Lenc, Arthur Mensch, Katherine Millican, Malcolm Reynolds, Roman Ring, Eliza Rutherford, Serkan Cabi, Tengda Han, Zhitao Gong, Sina Samangooei, Marianne Monteiro, Jacob L Menick, Sebastian Borgeaud, Andy Brock, Aida Nematzadeh, Sahand Sharifzadeh, Mikoł aj Bińkowski, Ricardo Barreira, Oriol Vinyals, Andrew Zisserman, and Karén Simonyan. Flamingo: a visual language model for few-shot learning. In Advances in Neural Information Processing Systems, volume 35, pp. 23716–23736, 2022. 3 [2] Dosovitskiy Alexey, Philipp Fischer, Jost Tobias, Martin Riedmiller Springenberg, and Thomas Brox. Discriminative unsupervised feature learning with exemplar convolutional neural networks. IEEE Transactions on Pattern Analysis and Machine Intelligence, 38(9):1734–1747, 2015. 4 [3] Kazi Hasan Ibn Arif, JinYi Yoon, Dimitrios S Nikolopoulos, Hans Vandierendonck, Deepu John, and Bo Ji. Hired: Attention-guided token dropping for efficient inference of high-resolution vision-language models in resource-constrained environments. In Proceedings of the AAAI Conference on Artificial Intelligence, pp. 1773–1781, 2025. 3, 8, 9 ",
+        "bbox": [
+            122,
+            736,
+            885,
+            924
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "discarded",
+        "text": "Published in Transactions on Machine Learning Research (01/2026) ",
+        "bbox": [
+            116,
+            34,
+            599,
+            46
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "discarded",
+        "text": "12 ",
+        "bbox": [
+            490,
+            948,
+            508,
+            959
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            140,
+            103,
+            882,
+            133
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "[4] Jinze Bai, Shuai Bai, Shusheng Yang, Shijie Wang, Sinan Tan, Peng Wang, Junyang Lin, Chang Zhou, and Jingren Zhou. Qwen-vl: A versatile vision-language model for understanding, localization, text reading, and beyond. arXiv preprint arXiv:2308.12966, 2023. 3 ",
+        "bbox": [
+            124,
+            145,
+            885,
+            193
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "[5] Shuai Bai, Keqin Chen, Xuejing Liu, Jialin Wang, Wenbin Ge, Sibo Song, Kai Dang, Peng Wang, Shijie Wang, Jun Tang, Humen Zhong, Yuanzhi Zhu, Mingkun Yang, Zhaohai Li, Jianqiang Wan, Pengfei Wang, Wei Ding, Zheren Fu, Yiheng Xu, Jiabo Ye, Xi Zhang, Tianbao Xie, Zesen Cheng, Hang Zhang, Zhibo Yang, Haiyang Xu, and Junyang Lin. Qwen2.5-vl technical report. arXiv preprint arXiv:2502.13923, 2025. 1, 2, 6, 8, 9, 10, 18, 19, 24 ",
+        "bbox": [
+            124,
+            204,
+            885,
+            280
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "[6] Daniel Bolya, Cheng-Yang Fu, Xiaoliang Dai, Peizhao Zhang, Christoph Feichtenhofer, and Judy Hoffman. Token merging: Your vit but faster. In International Conference on Learning Representations, 2023. URL https://openreview.net/forum?id=JroZRaRw7Eu. 3, 7, 8, 9 ",
+        "bbox": [
+            124,
+            292,
+            885,
+            339
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "[7] Gianni Brauwers and Flavius Frasincar. A general survey on attention mechanisms in deep learning. IEEE Transactions on Knowledge and Data Engineering, 35(4):3279–3298, 2021. 3 ",
+        "bbox": [
+            124,
+            352,
+            883,
+            383
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "[8] Nicolas Carion, Francisco Massa, Gabriel Synnaeve, Nicolas Usunier, Alexander Kirillov, and Sergey Zagoruyko. End-to-end object detection with transformers. In European Conference on Computer Vision, pp. 213–229. Springer, 2020. 4 ",
+        "bbox": [
+            122,
+            395,
+            885,
+            440
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "[9] Wenhao Chai, Enxin Song, Yilun Du, Chenlin Meng, Vashisht Madhavan, Omer Bar-Tal, Jenq-Neng Hwang, Saining Xie, and Christopher D Manning. Auroracap: Efficient, performant video detailed captioning and a new benchmark. In International Conference on Learning Representations, 2025. URL https://openreview.net/forum?id=tTDUrseRRU. 3 ",
+        "bbox": [
+            120,
+            452,
+            883,
+            513
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "[10] David Chen and William B Dolan. Collecting highly parallel data for paraphrase evaluation. In Proceedings of the 49th Annual Meeting of the Association for Computational Linguistics, pp. 190–200, 2011. 8, 24 ",
+        "bbox": [
+            117,
+            526,
+            885,
+            571
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "[11] Keqin Chen, Zhao Zhang, Weili Zeng, Richong Zhang, Feng Zhu, and Rui Zhao. Shikra: Unleashing multimodal llm’s referential dialogue magic. arXiv preprint arXiv:2306.15195, 2023. 3 ",
+        "bbox": [
+            116,
+            584,
+            880,
+            616
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "[12] Liang Chen, Haozhe Zhao, Tianyu Liu, Shuai Bai, Junyang Lin, Chang Zhou, and Baobao Chang. An image is worth 1/2 tokens after layer 2: Plug-and-play inference acceleration for large vision-language models. In European Conference on Computer Vision, pp. 19–35. Springer, 2024. 1, 2, 3, 4, 8, 9, 10, 11, 18 ",
+        "bbox": [
+            116,
+            627,
+            885,
+            688
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "[13] Zhe Chen, Jiannan Wu, Wenhai Wang, Weijie Su, Guo Chen, Sen Xing, Muyan Zhong, Qinglong Zhang, Xizhou Zhu, Lewei Lu, Bin Li, Ping Luo, Tong Lu, Yu Qiao, and Jifeng Dai. Internvl: Scaling up vision foundation models and aligning for generic visual-linguistic tasks. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp. 24185–24198, 2024. 3 ",
+        "bbox": [
+            116,
+            700,
+            883,
+            762
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "[14] Rewon Child, Scott Gray, Alec Radford, and Ilya Sutskever. Generating long sequences with sparse transformers. arXiv preprint arXiv:1904.10509, 2019. 3 ",
+        "bbox": [
+            111,
+            773,
+            877,
+            806
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "[15] Hyung Won Chung, Le Hou, Shayne Longpre, Barret Zoph, Yi Tay, William Fedus, Yunxuan Li, Xuezhi Wang, Mostafa Dehghani, Siddhartha Brahma, Albert Webson, Shixiang Shane Gu, Zhuyun Dai, Mirac Suzgun, Xinyun Chen, Aakanksha Chowdhery, Alex Castro-Ros, Marie Pellat, Kevin Robinson, Dasha Valter, Sharan Narang, Gaurav Mishra, Adams Yu, Vincent Zhao, Yanping Huang, Andrew Dai, Hongkun Yu, Slav Petrov, Ed H. Chi, Jeff Dean, Jacob Devlin, Adam Roberts, Denny Zhou, Quoc V. Le, and Jason Wei. Scaling instruction-finetuned language models. Journal of Machine Learning Research, 25 (70):1–53, 2024. 3 ",
+        "bbox": [
+            117,
+            818,
+            883,
+            924
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "discarded",
+        "text": "Published in Transactions on Machine Learning Research (01/2026) ",
+        "bbox": [
+            116,
+            34,
+            601,
+            46
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "discarded",
+        "text": "13 ",
+        "bbox": [
+            490,
+            948,
+            508,
+            959
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "[16] Wenliang Dai, Junnan Li, Dongxu Li, Anthony Meng Huat Tiong, Junqi Zhao, Weisheng Wang, Boyang Li, Pascale Fung, and Steven Hoi. Instructblip: towards general-purpose vision-language models with instruction tuning. In Advances in Neural Information Processing Systems, pp. 49250–49267, 2023. 3   \n[17] Tri Dao. Flashattention-2: Faster attention with better parallelism and work partitioning. In International Conference on Learning Representations, 2024. URL https://openreview.net/forum?id=mZn2Xyh9Ec. 2, 3, 7, 12   \n[18] Tri Dao, Dan Fu, Stefano Ermon, Atri Rudra, and Christopher Ré. Flashattention: Fast and memoryefficient exact attention with io-awareness. In Advances in Neural Information Processing Systems, volume 35, pp. 16344–16359, 2022. 2, 3, 7   \n[19] Xinyu Fang, Kangrui Mao, Haodong Duan, Xiangyu Zhao, Yining Li, Dahua Lin, and Kai Chen. Mmbench-video: A long-form multi-shot benchmark for holistic video understanding. In Advances in Neural Information Processing Systems, volume 37, pp. 89098–89124, 2024. 1   \n[20] Chaoyou Fu, Peixian Chen, Yunhang Shen, Yulei Qin, Mengdan Zhang, Xu Lin, Jinrui Yang, Xiawu Zheng, Ke Li, Xing Sun, Yunsheng Wu, and Rongrong Ji. Mme: A comprehensive evaluation benchmark for multimodal large language models. arXiv preprint arXiv:2306.13394, 2023. 8, 24   \n[21] Xingyu Fu, Yushi Hu, Bangzheng Li, Yu Feng, Haoyu Wang, Xudong Lin, Dan Roth, Noah A Smith, Wei-Chiu Ma, and Ranjay Krishna. Blink: Multimodal large language models can see but not perceive. In European Conference on Computer Vision, pp. 148–166. Springer, 2024. 1   \n[22] Yossi Gandelsman, Alexei A Efros, and Jacob Steinhardt. Interpreting CLIP’s image representation via text-based decomposition. In International Conference on Learning Representations, 2024. URL https://openreview.net/forum?id=5Ca9sSzuDp. 4, 18   \n[23] Yash Goyal, Tejas Khot, Douglas Summers-Stay, Dhruv Batra, and Devi Parikh. Making the v in vqa matter: Elevating the role of image understanding in visual question answering. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition, pp. 6904–6913, 2017. 8, 23   \n[24] Danna Gurari, Qing Li, Abigale J Stangl, Anhong Guo, Chi Lin, Kristen Grauman, Jiebo Luo, and Jeffrey P Bigham. Vizwiz grand challenge: Answering visual questions from blind people. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition, pp. 3608–3617, 2018. 8, 24   \n[25] Drew A Hudson and Christopher D Manning. Gqa: A new dataset for real-world visual reasoning and compositional question answering. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp. 6700–6709, 2019. 4, 8, 23   \n[26] Andrew Jaegle, Felix Gimeno, Andy Brock, Oriol Vinyals, Andrew Zisserman, and Joao Carreira. Perceiver: General perception with iterative attention. In International Conference on Machine Learning, pp. 4651–4664. PMLR, 2021. 3   \n[27] Yunseok Jang, Yale Song, Youngjae Yu, Youngjin Kim, and Gunhee Kim. Tgif-qa: Toward spatiotemporal reasoning in visual question answering. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition, pp. 2758–2766, 2017. 8, 24   \n[28] Mengzhao Jia, Wenhao Yu, Kaixin Ma, Tianqing Fang, Zhihan Zhang, Siru Ouyang, Hongming Zhang, Meng Jiang, and Dong Yu. Leopard: A vision language model for text-rich multi-image tasks. arXiv preprint arXiv:2410.01744, 2024. 1   \n[29] Dongfu Jiang, Xuan He, Huaye Zeng, Cong Wei, Max Ku, Qian Liu, and Wenhu Chen. Mantis: Interleaved multi-image instruction tuning. Transactions on Machine Learning Research, 2024. ISSN 2835-8856. URL https://openreview.net/forum?id=skLtdUVaJa. 1   \n[30] Sahar Kazemzadeh, Vicente Ordonez, Mark Matten, and Tamara Berg. Referitgame: Referring to objects in photographs of natural scenes. In Proceedings of the Conference on Empirical Methods in Natural Language Processing, pp. 787–798, 2014. 1, 8, 24 ",
+        "bbox": [
+            111,
+            87,
+            890,
+            931
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "discarded",
+        "text": "Published in Transactions on Machine Learning Research (01/2026) ",
+        "bbox": [
+            116,
+            34,
+            601,
+            46
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "discarded",
+        "text": "14 ",
+        "bbox": [
+            490,
+            948,
+            508,
+            960
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "[31] Dan Kondratyuk, Liangzhe Yuan, Yandong Li, Li Zhang, Mingxing Tan, Matthew Brown, and Boqing Gong. Movinets: Mobile video networks for efficient video recognition. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp. 16020–16030, 2021. 3 ",
+        "bbox": [
+            116,
+            103,
+            885,
+            148
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "[32] Bo Li, Yuanhan Zhang, Dong Guo, Renrui Zhang, Feng Li, Hao Zhang, Kaichen Zhang, Peiyuan Zhang, Yanwei Li, Ziwei Liu, and Chunyuan Li. LLaVA-onevision: Easy visual task transfer. Transactions on Machine Learning Research, 2025. ISSN 2835-8856. URL https://openreview.net/forum?id= zKv8qULV6n. 1 ",
+        "bbox": [
+            116,
+            157,
+            885,
+            218
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "[33] Junnan Li, Dongxu Li, Silvio Savarese, and Steven Hoi. Blip-2: Bootstrapping language-image pretraining with frozen image encoders and large language models. In International Conference on Machine Learning, pp. 19730–19742. PMLR, 2023. 1 ",
+        "bbox": [
+            114,
+            226,
+            883,
+            272
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "[34] Yanwei Li, Yuechen Zhang, Chengyao Wang, Zhisheng Zhong, Yixin Chen, Ruihang Chu, Shaoteng Liu, and Jiaya Jia. Mini-gemini: Mining the potential of multi-modality vision language models. arXiv preprint arXiv:2403.18814, 2024. 1 ",
+        "bbox": [
+            116,
+            280,
+            885,
+            327
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "[35] Yifan Li, Yifan Du, Kun Zhou, Jinpeng Wang, Wayne Xin Zhao, and Ji-Rong Wen. Evaluating object hallucination in large vision-language models. In Proceedings of the Conference on Empirical Methods in Natural Language Processing, pp. 292–305, 2023. 4, 5, 8, 24 ",
+        "bbox": [
+            116,
+            335,
+            885,
+            382
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "[36] Bin Lin, Yang Ye, Bin Zhu, Jiaxi Cui, Munan Ning, Peng Jin, and Li Yuan. Video-llava: Learning united visual representation by alignment before projection. In Proceedings of the Conference on Empirical Methods in Natural Language Processing, pp. 5971–5984, 2024. 1, 2, 3, 8, 10, 11, 24 ",
+        "bbox": [
+            114,
+            388,
+            880,
+            436
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "[37] Zhihang Lin, Mingbao Lin, Luxi Lin, and Rongrong Ji. Boosting multimodal large language models with visual tokens withdrawal for rapid inference. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 39, pp. 5334–5342, 2025. 4 ",
+        "bbox": [
+            116,
+            443,
+            887,
+            489
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "[38] Haotian Liu, Chunyuan Li, Qingyang Wu, and Yong Jae Lee. Visual instruction tuning. In Advances in Neural Information Processing Systems, volume 36, pp. 34892–34916, 2023. 1, 3 ",
+        "bbox": [
+            114,
+            497,
+            882,
+            530
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "[39] Haotian Liu, Chunyuan Li, Yuheng Li, and Yong Jae Lee. Improved baselines with visual instruction tuning. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp. 26296–26306, 2024. 2, 6, 7, 8, 9, 18, 24 ",
+        "bbox": [
+            111,
+            537,
+            882,
+            583
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "[40] Haotian Liu, Chunyuan Li, Yuheng Li, Bo Li, Yuanhan Zhang, Sheng Shen, and Yong Jae Lee. Llava-next: Improved reasoning, ocr, and world knowledge, January 2024. URL https://llava-vl.github.io/ blog/2024-01-30-llava-next/. 1, 2, 7, 8, 9, 24 ",
+        "bbox": [
+            116,
+            592,
+            887,
+            638
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "[41] Ting Liu, Liangtao Shi, Richang Hong, Yue Hu, Quanjun Yin, and Linfeng Zhang. Multi-stage vision token dropping: Towards efficient multimodal large language model. arXiv preprint arXiv:2411.10803, 2024. 3 ",
+        "bbox": [
+            116,
+            646,
+            887,
+            691
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "[42] Yuan Liu, Haodong Duan, Yuanhan Zhang, Bo Li, Songyang Zhang, Wangbo Zhao, Yike Yuan, Jiaqi Wang, Conghui He, Ziwei Liu, Kai Chen, and Dahua Lin. Mmbench: Is your multi-modal model an all-around player? In European Conference on Computer Vision, pp. 216–233. Springer, 2024. 8, 24 [43] Pan Lu, Swaroop Mishra, Tanglin Xia, Liang Qiu, Kai-Wei Chang, Song-Chun Zhu, Oyvind Tafjord, Peter Clark, and Ashwin Kalyan. Learn to explain: Multimodal reasoning via thought chains for science question answering. In Advances in Neural Information Processing Systems, volume 35, pp. 2507–2521, 2022. 8, 23 ",
+        "bbox": [
+            116,
+            700,
+            885,
+            747
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            116,
+            753,
+            885,
+            815
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "[44] Fan Ma, Xiaojie Jin, Heng Wang, Yuchen Xian, Jiashi Feng, and Yi Yang. Vista-llama: Reducing hallucination in video language models via equal distance to visual tokens. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp. 13151–13160, 2024. 1 ",
+        "bbox": [
+            114,
+            824,
+            887,
+            869
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "[45] Muhammad Maaz, Hanoona Rasheed, Salman Khan, and Fahad Khan. Video-chatgpt: Towards detailed video understanding via large vision and language models. In Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics, pp. 12585–12602, 2024. 1, 8 ",
+        "bbox": [
+            117,
+            878,
+            885,
+            924
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "discarded",
+        "text": "Published in Transactions on Machine Learning Research (01/2026) ",
+        "bbox": [
+            116,
+            34,
+            601,
+            46
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "discarded",
+        "text": "15 ",
+        "bbox": [
+            490,
+            948,
+            508,
+            959
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "[46] Junhua Mao, Jonathan Huang, Alexander Toshev, Oana Camburu, Alan L Yuille, and Kevin Murphy. Generation and comprehension of unambiguous object descriptions. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition, pp. 11–20, 2016. 1, 8, 24   \n[47] Minesh Mathew, Dimosthenis Karatzas, and CV Jawahar. Docvqa: A dataset for vqa on document images. In Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision, pp. 2200–2209, 2021. 11   \n[48] Minesh Mathew, Viraj Bagal, Rubèn Tito, Dimosthenis Karatzas, Ernest Valveny, and CV Jawahar. Infographicvqa. In Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision, pp. 1697–1706, 2022. 11   \n[49] Sachin Mehta and Mohammad Rastegari. Mobilevit: Light-weight, general-purpose, and mobilefriendly vision transformer. In International Conference on Learning Representations, 2022. URL https://openreview.net/forum?id=vh-0sUt8HlG. 3   \n[50] Niki Parmar, Ashish Vaswani, Jakob Uszkoreit, Lukasz Kaiser, Noam Shazeer, Alexander Ku, and Dustin Tran. Image transformer. In International Conference on Machine Learning, pp. 4055–4064. PMLR, 2018. 4   \n[51] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sastry, Amanda Askell, Pamela Mishkin, Jack Clark, Gretchen Krueger, and Ilya Sutskever. Learning transferable visual models from natural language supervision. In International Conference on Machine Learning, pp. 8748–8763. PMLR, 2021. 4, 18   \n[52] Yuzhang Shang, Mu Cai, Bingxin Xu, Yong Jae Lee, and Yan Yan. Llava-prumerge: Adaptive token reduction for efficient large multimodal models. arXiv preprint arXiv:2403.15388, 2024. 3   \n[53] Amanpreet Singh, Vivek Natarajan, Meet Shah, Yu Jiang, Xinlei Chen, Dhruv Batra, Devi Parikh, and Marcus Rohrbach. Towards vqa models that can read. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp. 8317–8326, 2019. 8, 23   \n[54] Enxin Song, Wenhao Chai, Weili Xu, Jianwen Xie, Yuxuan Liu, and Gaoang Wang. Video-mmlu: A massive multi-discipline lecture understanding benchmark. arXiv preprint arXiv:2504.14693, 2025. 1   \n[55] Xudong Tan, Peng Ye, Chongjun Tu, Jianjian Cao, Yaoxin Yang, Lin Zhang, Dongzhan Zhou, and Tao Chen. Tokencarve: Information-preserving visual token compression in multimodal large language models. arXiv preprint arXiv:2503.10501, 2025. 3   \n[56] Gemini Team, Petko Georgiev, Ving Ian Lei, Ryan Burnell, Libin Bai, Anmol Gulati, Garrett Tanzer, Damien Vincent, Zhufeng Pan, Shibo Wang, et al. Gemini 1.5: Unlocking multimodal understanding across millions of tokens of context. arXiv preprint arXiv:2403.05530, 2024. 1, 3   \n[57] Hugo Touvron, Thibaut Lavril, Gautier Izacard, Xavier Martinet, Marie-Anne Lachaux, Timothée Lacroix, Baptiste Rozière, Naman Goyal, Eric Hambro, Faisal Azhar, et al. Llama: Open and efficient foundation language models. arXiv preprint arXiv:2302.13971, 2023. 3, 8   \n[58] Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N. Gomez, Łukasz Kaiser, and Illia Polosukhin. Attention is all you need. In Advances in Neural Information Processing Systems, pp. 6000–6010, 2017. 1, 3, 4, 7   \n[59] Haicheng Wang, Zhemeng Yu, Gabriele Spadaro, Chen Ju, Victor Quétu, and Enzo Tartaglione. Folder: Accelerating multi-modal large language models with enhanced performance. arXiv preprint arXiv:2501.02430, 2025. 1, 3   \n[60] Zichen Wen, Yifeng Gao, Shaobo Wang, Junyuan Zhang, Qintong Zhang, Weijia Li, Conghui He, and Linfeng Zhang. Stop looking for important tokens in multimodal language models: Duplication matters more. arXiv preprint arXiv:2502.11494, 2025. 1, 3   \n[61] Haoning Wu, Dongxu Li, Bei Chen, and Junnan Li. Longvideobench: A benchmark for long-context interleaved video-language understanding. In Advances in Neural Information Processing Systems, volume 37, pp. 28828–28857, 2024. 1   \n[62] Long Xing, Qidong Huang, Xiaoyi Dong, Jiajie Lu, Pan Zhang, Yuhang Zang, Yuhang Cao, Conghui He, Jiaqi Wang, Feng Wu, and Dahua Lin. Conical visual concentration for efficient large vision-language models. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp. 14593–14603, 2025. 1, 3, 8, 9, 10, 11, 18, 22, 24   \n[63] Jun Xu, Tao Mei, Ting Yao, and Yong Rui. Msr-vtt: A large video description dataset for bridging video and language. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition, pp. 5288–5296, 2016. 8, 24   \n[64] Senqiao Yang, Yukang Chen, Zhuotao Tian, Chengyao Wang, Jingyao Li, Bei Yu, and Jiaya Jia. Visionzip: Longer is better but not necessary in vision language models. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp. 19792–19802, 2025. 1, 2, 3, 6, 8, 9, 10, 11   \n[65] Xubing Ye, Yukang Gan, Yixiao Ge, Xiao-Ping Zhang, and Yansong Tang. Atp-llava: Adaptive token pruning for large vision language models. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp. 24972–24982, 2025. 1, 3   \n[66] Zhou Yu, Dejing Xu, Jun Yu, Ting Yu, Zhou Zhao, Yueting Zhuang, and Dacheng Tao. Activitynet-qa: A dataset for understanding complex web videos via question answering. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 33, pp. 9127–9134, 2019. 8, 24   \n[67] Manzil Zaheer, Guru Guruganesh, Kumar Avinava Dubey, Joshua Ainslie, Chris Alberti, Santiago Ontanon, Philip Pham, Anirudh Ravula, Qifan Wang, Li Yang, and Amr Ahmed. Big bird: Transformers for longer sequences. In Advances in Neural Information Processing Systems, volume 33, pp. 17283–17297, 2020. 3   \n[68] Ce Zhang, Zifu Wan, Zhehan Kan, Martin Q Ma, Simon Stepputtis, Deva Ramanan, Russ Salakhutdinov, Louis-Philippe Morency, Katia Sycara, and Yaqi Xie. Self-correcting decoding with generative feedback for mitigating hallucinations in large vision-language models. In International Conference on Learning Representations, 2025. URL https://openreview.net/forum?id=tTBXePRKSx. 3   \n[69] Jianshu Zhang, Dongyu Yao, Renjie Pi, Paul Pu Liang, and Yi R Fung. Vlm2-bench: A closer look at how well vlms implicitly link explicit matching visual cues. In Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics, pp. 7510–7545, 2025. 3   \n[70] Qizhe Zhang, Aosong Cheng, Ming Lu, Zhiyong Zhuo, Minqi Wang, Jiajun Cao, Shaobo Guo, Qi She, and Shanghang Zhang. [CLS] attention is all you need for training-free visual token pruning: Make vlm inference faster. arXiv preprint arXiv:2412.01818, 2024. 1, 3, 6, 24   \n[71] Yuan Zhang, Chun-Kai Fan, Junpeng Ma, Wenzhao Zheng, Tao Huang, Kuan Cheng, Denis Gudovskiy, Tomoyuki Okuno, Yohei Nakata, Kurt Keutzer, and Shanghang Zhang. Sparsevlm: Visual token sparsification for efficient vision-language model inference. In International Conference on Machine Learning, 2025. URL https://openreview.net/forum?id=80faIPZ67S. 1, 3, 4, 8, 9 ",
+        "bbox": [
+            111,
+            102,
+            888,
+            928
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "discarded",
+        "text": "Published in Transactions on Machine Learning Research (01/2026) ",
+        "bbox": [
+            116,
+            34,
+            601,
+            46
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "discarded",
+        "text": "16 ",
+        "bbox": [
+            490,
+            948,
+            508,
+            959
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            107,
+            92,
+            887,
+            766
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "discarded",
+        "text": "Published in Transactions on Machine Learning Research (01/2026) ",
+        "bbox": [
+            116,
+            34,
+            601,
+            46
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "discarded",
+        "text": "17 ",
+        "bbox": [
+            490,
+            948,
+            508,
+            959
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "VScan: Rethinking Visual Token Reduction for Efficient Large Vision-Language Models ",
+        "text_level": 1,
+        "bbox": [
+            135,
+            98,
+            864,
+            142
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "Appendix ",
+        "bbox": [
+            449,
+            154,
+            547,
+            174
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "In the appendix, we provide additional details and experimental results to enhance understanding and insights into our method. The appendix is organized as follows: ",
+        "bbox": [
+            119,
+            189,
+            883,
+            220
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "• Section A presents additional experimental results that further validate the effectiveness and robustness of our approach across various settings.   \n• Section B provides extended experimrntal details, including FLOPs calculation and full experimental configurations, to facilitate reproducibility.   \n• Section C lists the license information for all models, baselines, and benchmarks used in this work.   \n• Section D discusses the limitations of this work and explores its broader implications and impacts. ",
+        "bbox": [
+            116,
+            228,
+            885,
+            344
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "A Additional Experimental Results and Discussions ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            364,
+            588,
+            382
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "A.1 Empirical Validation of Global and Local Scan ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            401,
+            503,
+            416
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "To validate the effectiveness of our global and local scan schemes, we construct adversarial subsets for GQA and POPE, namely AdvGQA and AdvPOPE, which contains failure cases similar to those shown in Figure 2 (Left), where the text queries play an important role and relying solely on the global scan to select visual tokens leads to errors. To accurately select these samples, we follow Gandelsman et al. [22] to decompose the image representations and pinpoint the tokens or regions most relevant to the query. Specifically, we utilize both the text and visual encoders of CLIP-ViTL-336px [51] to identify the visual tokens relevant to the text query as a reference. Two examples of the visual tokens selected by CLIP are shown in Figure 2 (Left). A sample is included in the adversarial set if the response is correct when using the 64 tokens selected by CLIP, but becomes incorrect when using the 64 tokens selected solely by the global scan. Following this, we collected 886 and 515 adversarial samples in AdvGQA and AdvPOPE, respectively. ",
+        "bbox": [
+            116,
+            430,
+            539,
+            702
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "image",
+        "img_path": "images/e6367d0a4fe6b55c86a2f2c41cc27343b01f8bce461299bf94d5318347cef9ca.jpg",
+        "image_caption": [
+            "Figure A1: Performance comparisons on AdvGQA and AdvPOPE. We report the results for each approach with 64 visual tokens retained using LLaVA-1.5-7B [39]. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            555,
+            433,
+            879,
+            637
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "In Figure A1, we present a performance comparison of incorporating both global and local scans with FastV [12] and PyramidDrop [62], which select visual tokens based on text attention and are expected to handle samples in the adversarial set effectively. We observe that incorporating both global and local scans achieves performance comparable to these text-guided approaches, despite being text-agnostic and selecting important tokens solely based on visual significance. These results validate that combining both scanning strategies and token merging helps preserve the maximum amount of visual information, effectively preventing information loss. ",
+        "bbox": [
+            116,
+            709,
+            883,
+            814
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "A.2 Qualitative Results ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            835,
+            302,
+            851
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "In Figure A2, we present qualitative examples from the RefCOCO benchmark using Qwen-2.5-VL [5]. For each image, we show the model’s predicted bounding boxes in response to different referring expressions, along with visualizations of the retained visual tokens after token pruning. These examples illustrate that our method can accurately localize the target objects described in queries, while significantly reducing the number of visual tokens used for inference. This demonstrates the model’s ability to preserve semantically important information under token-efficient settings. ",
+        "bbox": [
+            116,
+            863,
+            882,
+            924
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "discarded",
+        "text": "Published in Transactions on Machine Learning Research (01/2026) ",
+        "bbox": [
+            116,
+            34,
+            601,
+            46
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "discarded",
+        "text": "18 ",
+        "bbox": [
+            490,
+            948,
+            508,
+            959
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "image",
+        "img_path": "images/b1b10505f9ee879058f34905b4f5d33110f638ca4ac6c776ab94541b56d020b5.jpg",
+        "image_caption": [
+            "Figure A2: Qualitative results on RefCOCO benchmark using Qwen-2.5-VL [5]. We present the predicted boxes for 6 different queries on 2 images, along with visualizations of the retained tokens. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            117,
+            98,
+            880,
+            344
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            114,
+            400,
+            879,
+            430
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "text",
+        "text": "A.3 Results on More Real-World Benchmarks ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            450,
+            468,
+            467
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "text",
+        "text": "To comprehensively assess the effectiveness of VScan, we evaluate its performance on a range of real-world benchmarks, including DocVQA, InfoVQA, MME-RealWorld, MM-Vet, and MMMU, using the LLaVA-1.5-7B baseline. As shown in Table A1, VScan achieves competitive results while significantly reducing the number of visual tokens. With only 192 tokens, VScan maintains performance nearly identical to the full-token LLaVA-1.5-7B baseline, even surpassing it on MM-Vet and MMMU. When further reducing tokens to 128 and 64, VScan still preserves strong accuracy, demonstrating graceful degradation across tasks. These results highlight the robustness and efficiency of our method, showing that substantial token reduction can be achieved without sacrificing performance on diverse real-world benchmarks. ",
+        "bbox": [
+            114,
+            481,
+            882,
+            602
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "text",
+        "text": "We further compare VScan with FastV and PDrop under different token retention rates on DocVQA and InfoVQA, using both LLaVA-NeXT-7B and Qwen2.5-VL-7B backbones. As shown in Table A2, VScan consistently outperforms FastV and PDrop at the same retention levels. For LLaVA-NeXT-7B, VScan achieves 72.6 on DocVQA and 36.3 on InfoVQA with only 33% of tokens, closely matching the full-model baseline (74.4/37.1) while retaining higher accuracy than FastV and PDrop. Similar trends hold at more aggressive pruning levels, where VScan shows lower degradation compared to stronger drops for the baselines. Results on Qwen2.5-VL-7B further confirm this advantage: VScan reaches 94.0/79.7 at $3 3 \\%$ retention and maintains 83.9/73.4 even at $1 1 \\%$ , substantially outperforming FastV and PDrop. These results demonstrate that VScan generalizes across architectures and provides a more robust trade-off between efficiency and accuracy. ",
+        "bbox": [
+            114,
+            609,
+            882,
+            746
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "table",
+        "img_path": "images/ac4c533cc3e112cef12b7568c64d1f60044fc1479312cbba87fb800204e5b8b3.jpg",
+        "table_caption": [
+            "Table A1: Performance of our VScan across diverse real-world benchmarks. We report results on DocVQA, InfoVQA, MME-RealWorld, MM-Vet, and MMMU. Compared with the LLaVA-1.5-7B baseline, VScan achieves competitive performance while substantially reducing the number of visual tokens retained. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Method</td><td>Retention Rate</td><td>DocVQA</td><td>InfoVQA</td><td>MME-RealWorld</td><td>MM-Vet</td><td>MMMU</td></tr><tr><td>LLaVA-1.5-7B</td><td></td><td>28.1</td><td>25.8</td><td>24.9</td><td>31.1</td><td>35.3</td></tr><tr><td>VScan</td><td>33.3%</td><td>27.5</td><td>25.7</td><td>24.0</td><td>31.8</td><td>35.7</td></tr><tr><td>VScan</td><td>22.2%</td><td>25.7</td><td>25.4</td><td>22.7</td><td>30.5</td><td>36.1</td></tr><tr><td>VScan</td><td>11.1%</td><td>23.9</td><td>23.7</td><td>22.2</td><td>29.7</td><td>35.8</td></tr></table>",
+        "bbox": [
+            119,
+            820,
+            879,
+            909
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "discarded",
+        "text": "Published in Transactions on Machine Learning Research (01/2026) ",
+        "bbox": [
+            116,
+            34,
+            601,
+            46
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "discarded",
+        "text": "19 ",
+        "bbox": [
+            490,
+            948,
+            508,
+            959
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "table",
+        "img_path": "images/80d50fe562bbf113b2f736546dd919fefb73b48b3ce55189ff7e24904385e0f2.jpg",
+        "table_caption": [
+            "Table A2: Comparison of VScan with FastV and PDrop on DocVQA and InfoVQA. Results are reported under different token retention rates ( $3 3 \\%$ , $2 2 \\%$ , $1 1 \\%$ ). †Evaluation is based on our re-implementation. "
+        ],
+        "table_footnote": [
+            "(a) LLaVA-NeXT-7B. "
+        ],
+        "table_body": "<table><tr><td>Method</td><td>DocVQA</td><td>InfoVQA</td></tr><tr><td>LLaVA-NeXT-7B</td><td>74.4</td><td>37.1</td></tr><tr><td>FastV† (33%)</td><td>69.8</td><td>33.5</td></tr><tr><td>PDrop† † (33%)</td><td>71.8</td><td>35.0</td></tr><tr><td>VScan (33%)</td><td>72.6</td><td>36.3</td></tr><tr><td>FastV† (22%)</td><td>64.7</td><td>32.8</td></tr><tr><td>PDrop† (22%)</td><td>67.4</td><td>33.4</td></tr><tr><td>VScan (22%)</td><td>71.6</td><td>34.2</td></tr><tr><td>FastV† (11%)</td><td>61.2</td><td>28.1</td></tr><tr><td></td><td></td><td></td></tr><tr><td>PDrop† (11%) VScan (11%)</td><td>64.0 68.8</td><td>31.6 34.5</td></tr></table>",
+        "bbox": [
+            127,
+            142,
+            465,
+            344
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "table",
+        "img_path": "images/9cd2f88fcb6cd6bbc33ef610b96cb0c5ff27d226772e72ff8e23bb0658876105.jpg",
+        "table_caption": [],
+        "table_footnote": [
+            "(b) Qwen2.5-VL-7B. "
+        ],
+        "table_body": "<table><tr><td>Method</td><td>DocVQA</td><td>InfoVQA</td></tr><tr><td>Qwen2.5-VL-7B</td><td>95.7</td><td>82.6</td></tr><tr><td>FastV (33%)</td><td>88.7</td><td>75.3</td></tr><tr><td>PDrop† (33%)</td><td>90.1</td><td>76.2</td></tr><tr><td>VScan (33%)</td><td>94.0</td><td>79.7</td></tr><tr><td>FastV† (22%)</td><td>81.6</td><td>70.8</td></tr><tr><td>PDrop† (22%)</td><td>83.8</td><td>73.7</td></tr><tr><td>VScan (22%)</td><td>87.8</td><td>77.1</td></tr><tr><td>FastV† (11%)</td><td>74.9</td><td>65.2</td></tr><tr><td>PDrop† (11%)</td><td>77.4</td><td>67.0</td></tr><tr><td>VScan (11%)</td><td>83.9</td><td>73.4</td></tr></table>",
+        "bbox": [
+            526,
+            142,
+            852,
+            345
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "A.4 VScan for Accelerating Training ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            393,
+            398,
+            410
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "We further validate the effectiveness of VScan in reducing training cost while preserving the model performance. As shown in Table A3, VScan reduces training time by 41.7% from 96 GPU hours to 56 GPU hours, achieving $9 6 . 7 \\%$ of the original performance. For comparison, we also report inference-time VScan results, which reach $9 5 . 2 \\%$ of baseline performance. Notably, applying VScan during training yields a $1 . 5 \\%$ improvement over using VScan solely at inference. ",
+        "bbox": [
+            114,
+            421,
+            883,
+            497
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "table",
+        "img_path": "images/5638d84db40a744e625195958ac673f9980fe8269a2a659eba3263f7926f833d.jpg",
+        "table_caption": [
+            "Table A3: Training efficiency and performance of VScan compared with the LLaVA-1.5-7B baseline. VScan significantly reduces GPU hours while maintaining strong performance across benchmarks. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Method</td><td>GPU Hours</td><td>GQA</td><td>MMB</td><td>MMB-CN</td><td>MME</td><td>POPE</td><td>Avg.</td></tr><tr><td>LLaVA-1.5-7B</td><td>96</td><td>61.9</td><td>64.7</td><td>58.1</td><td>1862</td><td>85.9</td><td>100.0%</td></tr><tr><td>VScan (fine-tune)</td><td>56</td><td>59.2</td><td>63.0</td><td>57.9</td><td>1721</td><td>84.6</td><td>96.7%</td></tr><tr><td>VScan (inference)</td><td>−</td><td>58.3</td><td>62.1</td><td>55.7</td><td>1698</td><td>85.0</td><td>95.2%</td></tr></table>",
+        "bbox": [
+            142,
+            550,
+            856,
+            628
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "A.5 Remarks on Multi-Turn Conversations ",
+        "text_level": 1,
+        "bbox": [
+            114,
+            659,
+            446,
+            674
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "Adapting the middle-layer pruning component of VScan to support multi-turn conversations is straightforward: When presented with new questions, VScan can reassess token importance and reselect textually relevant visual tokens from the existing token pool through global-local scans. Although this re-selection introduces additional computation compared to text-agnostic methods (which are inherently compatible with multi-turn dialogue), the overhead is negligible relative to the overall prefill time. ",
+        "bbox": [
+            114,
+            685,
+            883,
+            761
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "A.6 More Efficiency Comparisons ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            776,
+            377,
+            792
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "Table A4 summarizes the trade-off between efficiency and performance for various visual-token pruning methods across different retention ratios $( 3 3 . 3 \\%$ , $2 2 . 2 \\%$ , and $1 1 . 1 \\%$ ). VScan consistently achieves superior accuracy while maintaining competitive FLOPs and inference time, demonstrating its effectiveness in preserving visual information under aggressive pruning. ",
+        "bbox": [
+            114,
+            804,
+            882,
+            866
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "A.7 Full Numerical Results on Qwen-2.5-VL-7B ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            881,
+            483,
+            897
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "We report the full numerical results on Qwen-2.5-VL-7B in Tables A5, A6, and A7. ",
+        "bbox": [
+            116,
+            909,
+            710,
+            924
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "discarded",
+        "text": "Published in Transactions on Machine Learning Research (01/2026) ",
+        "bbox": [
+            116,
+            34,
+            601,
+            46
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            490,
+            948,
+            508,
+            959
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "table",
+        "img_path": "images/29f0fd1cf726e3cb18c8a22af08a8fe8d93d673aa9bd10c5d1e16b1af3f7ec99.jpg",
+        "table_caption": [
+            "Table A4: Efficiency and performance comparison under different token retention ratios. We report the total FLOPs (T), inference time (s), and accuracy achieved by the model at a given retention rate. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Method</td><td colspan=\"2\">33.3%</td><td colspan=\"4\">22.2%</td><td colspan=\"4\">11.1%</td></tr><tr><td>LLaVA-1.5-7B</td><td></td><td></td><td></td><td>3.817T / 416s / 85.9</td><td></td><td></td><td></td><td>-</td><td></td><td></td></tr><tr><td>FastV</td><td>1.253T / 298s / 60.7</td><td></td><td></td><td>0.836T / 266s / 57.2</td><td></td><td></td><td></td><td>0.421T / 231s / 44.5</td><td></td><td></td></tr><tr><td>PDrop</td><td>1.253T / 307s / 82.3</td><td></td><td></td><td>0.834T / 278s / 82.3</td><td></td><td></td><td></td><td>0.415T / 240s / 55.9</td><td></td><td></td></tr><tr><td>VisionZip</td><td>1.253T / 293s / 85.3</td><td></td><td></td><td>0.834T</td><td></td><td>263s / 83.2</td><td></td><td>0.415T / 229s / 77.0</td><td></td><td></td></tr><tr><td>VScan</td><td>1.253T /</td><td>301s / 86.2</td><td></td><td>0.834T/</td><td></td><td>274s / 86.1</td><td></td><td>0.415T / 235s / 85.0</td><td></td><td></td></tr></table>",
+        "bbox": [
+            183,
+            143,
+            808,
+            251
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "table",
+        "img_path": "images/54a5aa46bfb803db9f81a8443ea54ebda42494c0f9899d30d668f37595d9e54b.jpg",
+        "table_caption": [
+            "Table A5: MMBench accuracy under different visual token retention ratios. Higher is better. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Model</td><td>Method</td><td>11%</td><td>22%</td><td>33%</td><td>50%</td><td>100%</td></tr><tr><td></td><td>FastV</td><td>70.13</td><td>78.09</td><td>81.01</td><td>85.40</td><td>87.37</td></tr><tr><td>32B</td><td>PDrop</td><td>73.22</td><td>79.04</td><td>82.74</td><td>86.03</td><td>87.37</td></tr><tr><td></td><td>Ours</td><td>78.09</td><td>82.47</td><td>85.31</td><td>86.17</td><td>87.37</td></tr><tr><td></td><td>FastV</td><td>69.07</td><td>74.74</td><td>77.73</td><td>80.27</td><td>84.19</td></tr><tr><td>7B</td><td>PDrop</td><td>71.08</td><td>75.43</td><td>78.04</td><td>81.96</td><td>84.19</td></tr><tr><td></td><td>Ours</td><td>76.89</td><td>80.50</td><td>80.67</td><td>82.56</td><td>84.19</td></tr><tr><td></td><td>FastV</td><td>56.79</td><td>67.27</td><td>72.42</td><td>74.98</td><td>78.87</td></tr><tr><td>3B</td><td>PDrop</td><td>55.93</td><td>63.22</td><td>70.30</td><td>72.48</td><td>78.87</td></tr><tr><td></td><td>Ours</td><td>69.67</td><td>70.62</td><td>72.81</td><td>75.64</td><td>78.87</td></tr></table>",
+        "bbox": [
+            272,
+            308,
+            720,
+            477
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "B More Experimental Details ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            517,
+            393,
+            536
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "B.1 Remarks on Ensuring Fair Comparisons ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            564,
+            452,
+            580
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "In our main result table, we ensured fair comparisons between our VScan and text-agnostic approaches such as VisionZip. Instead of aligning on the final token retention ratio, we matched the average token retention across all LLM layers, which roughly correlates with the inference complexity/speed. For example, at $1 1 . 1 \\%$ retention rate, VScan retains 96 tokens before the LLM using a global-local scan strategy and then prunes to 32 tokens at the middle LLM layer (layer 16 of 32). This yields an average of 64 tokens retained across all LLM layers—matching the average retention of the text-agnostic methods, ensuring that inference speed is consistent. ",
+        "bbox": [
+            114,
+            599,
+            882,
+            705
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "Additionally, in the comparisons, the compared text-aware approaches, such as FastV and SparseVLM, actually have an advantage over our method, as their reported results are based on the final token count. Since we were unable to fully reproduce all of these methods, we directly reported their results as presented in their respective papers. ",
+        "bbox": [
+            114,
+            713,
+            882,
+            773
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "To account for this, in the Qwen-2.5-VL and Video-LLaVA experiments presented, we reproduce FastV and PyramidDrop while aligning the average token retention across all LLM layers to ensure a fair comparison (marked in the tables with a $\\dagger$ ). For instance, for FastV, to achieve an average retention rate of $1 1 \\%$ , we prune to $5 . 2 \\%$ of the original token count starting from LLM layer 2, resulting in an average retention of $( 1 0 0 \\% \\times 2 + 5 . 2 \\% \\times 3 0$ ) / $3 2 = 1 1 . 1 \\%$ . ",
+        "bbox": [
+            114,
+            780,
+            882,
+            856
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "text",
+        "text": "Therefore, under the same average retention rate, the efficiency metrics are essentially similar. This means that, at the same retention rate, higher performance directly translates into a more favorable performance–efficiency trade-off. In this regard, we have conducted thorough experiments demonstrating that our approach achieves a state-of-the-art performance–efficiency trade-off across benchmarks and models. ",
+        "bbox": [
+            116,
+            863,
+            882,
+            924
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "discarded",
+        "text": "Published in Transactions on Machine Learning Research (01/2026) ",
+        "bbox": [
+            116,
+            34,
+            601,
+            46
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            490,
+            948,
+            506,
+            959
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "table",
+        "img_path": "images/1c2b1d67df900a54287a0d1e99ac8c0df0549fb68db899279682977de52619e0.jpg",
+        "table_caption": [
+            "Table A6: MMBench-CN accuracy under different visual token retention ratios. Higher is better. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Model</td><td>Method</td><td>11%</td><td>22%</td><td>33%</td><td>50%</td><td>100%</td></tr><tr><td rowspan=\"3\">32B</td><td>FastV</td><td>67.61</td><td>76.12</td><td>79.81</td><td>83.42</td><td>86.00</td></tr><tr><td>PDrop</td><td>71.31</td><td>77.65</td><td>80.72</td><td>84.28</td><td>86.00</td></tr><tr><td>Ours</td><td>77.23</td><td>80.76</td><td>84.45</td><td>84.78</td><td>86.00</td></tr><tr><td rowspan=\"3\">7B</td><td>FastV</td><td>66.92</td><td>70.53</td><td>76.98</td><td>77.41</td><td>81.79</td></tr><tr><td>PDrop</td><td>68.59</td><td>69.85</td><td>76.12</td><td>78.15</td><td>81.79</td></tr><tr><td>Ours</td><td>74.48</td><td>76.37</td><td>78.69</td><td>79.04</td><td>81.79</td></tr><tr><td rowspan=\"3\">3B</td><td>FastV</td><td>54.73</td><td>66.32</td><td>71.13</td><td>74.05</td><td>77.41</td></tr><tr><td>PDrop</td><td>57.20</td><td>65.92</td><td>71.58</td><td>74.79</td><td>77.41</td></tr><tr><td>Ours</td><td>63.66</td><td>68.47</td><td>72.45</td><td>74.51</td><td>77.41</td></tr></table>",
+        "bbox": [
+            272,
+            128,
+            720,
+            296
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "table",
+        "img_path": "images/ae07fd15a5b434ee90fdcb893548f709e4d821b5805069a60406769f737bd390.jpg",
+        "table_caption": [
+            "Table A7: MME total scoresunder different visual token retention ratios. Higher is better. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Model</td><td>Method</td><td>11%</td><td>22%</td><td>33%</td><td>50%</td><td>100%</td></tr><tr><td></td><td>FastV</td><td>1536</td><td>1924</td><td>2124</td><td>2316</td><td>2432</td></tr><tr><td>32B</td><td>PDrop</td><td>1536</td><td>1797</td><td>2078</td><td>2279</td><td>2432</td></tr><tr><td></td><td>Ours</td><td>2015</td><td>2189</td><td>2288</td><td>2378</td><td>2432</td></tr><tr><td></td><td>FastV</td><td>1970</td><td>1990</td><td>2240</td><td>2257</td><td>2291</td></tr><tr><td>7B</td><td>PDrop</td><td>1982</td><td>2064</td><td>2218</td><td>2236</td><td>2291</td></tr><tr><td></td><td>Ours</td><td>1990</td><td>2135</td><td>2275</td><td>2270</td><td>2291</td></tr><tr><td></td><td>FastV</td><td>1620</td><td>1800</td><td>1953</td><td>2053</td><td>2139</td></tr><tr><td>3B</td><td>PDrop</td><td>1444</td><td>1692</td><td>1709</td><td>1986</td><td>2139</td></tr><tr><td></td><td>Ours</td><td>1763</td><td>1838</td><td>1977</td><td>2037</td><td>2139</td></tr></table>",
+        "bbox": [
+            282,
+            345,
+            710,
+            513
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "B.2 Computational Complexity ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            547,
+            359,
+            564
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "We follow PyramidDrop [62] to compute the theoretical floating-point operations (FLOPs) introduced in the LLM decoding layers during the pre-filling stage for processing the visual tokens. Specifically, in each of the $K$ decoding layers, self-attention calculation with a causal mask is applied, followed by multiple feed-forward network (FFN) layers. The total FLOPs can thus be computed as: ",
+        "bbox": [
+            114,
+            579,
+            883,
+            640
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "equation",
+        "img_path": "images/9f38fd245eee341c7e5cdf0b659d59d308482956fed4fa4d94cc8cb3f8839dac.jpg",
+        "text": "$$\n\\mathrm { T o t a l ~ F L O P s } = \\sum _ { k = 1 } ^ { K } \\left( 4 n _ { k } d ^ { 2 } + 2 n _ { k } ^ { 2 } d + 3 n _ { k } d m \\right) ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            321,
+            645,
+            676,
+            672
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "where $K$ is the number of transformer layers, $n _ { k }$ is the number of visual tokens at LLM layer $k$ , $d$ is the hidden state size, and $m$ is the intermediate size of the FFN. This calculation suggests that reducing the number of visual tokens can significantly decrease the FLOPs required during inference. ",
+        "bbox": [
+            116,
+            676,
+            883,
+            722
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "B.3 Experimental Design for Study 3 ",
+        "text_level": 1,
+        "bbox": [
+            117,
+            748,
+            405,
+            765
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "The goal of Study 3 is to determine at which LLM layers the next-token predictions stabilize, i.e., when the model’s forward computation becomes semantically saturated. Once the prediction has converged, further layers mainly refine numerical precision rather than introduce new semantic information. Understanding this stabilization point is crucial because pruning before convergence can disrupt semantic formation, whereas pruning after convergence is largely safe and provides meaningful computational speedups. ",
+        "bbox": [
+            114,
+            780,
+            882,
+            857
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "Here is our experimental setup: For each decoding layer $\\it l$ in the LLaVA-1.5-7B LLM backbone, we extract its hidden state $h _ { l }$ and pass it through the original final linear projection layer to obtain the logits, i.e., $s _ { l } = W _ { \\mathrm { p r o j } } h _ { l }$ . We then apply a softmax to compute the prediction confidence and report the top-confidence token for each layer. ",
+        "bbox": [
+            116,
+            863,
+            882,
+            924
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "discarded",
+        "text": "Published in Transactions on Machine Learning Research (01/2026) ",
+        "bbox": [
+            116,
+            32,
+            601,
+            46
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "discarded",
+        "text": "22 ",
+        "bbox": [
+            490,
+            948,
+            508,
+            960
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "text",
+        "text": "You are an intelligent chatbot designed for evaluating the correctness of generative outputs for question-answer pairs. Your task is to compare the predicted answer with the correct answer and determine if they match meaningfully. Here’s how you can accomplish the task: ",
+        "bbox": [
+            174,
+            128,
+            823,
+            170
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "##INSTRUCTIONS: ",
+        "text_level": 1,
+        "bbox": [
+            178,
+            184,
+            323,
+            196
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "- Focus on the meaningful match between the predicted answer and the correct answer.   \n- Consider synonyms or paraphrases as valid matches.   \n- Evaluate the correctness of the prediction compared to the answer. ",
+        "bbox": [
+            178,
+            198,
+            754,
+            239
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "User Input: ",
+        "text_level": 1,
+        "bbox": [
+            178,
+            246,
+            266,
+            258
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "Please evaluate the following video-based question-answer pair: ",
+        "bbox": [
+            178,
+            260,
+            596,
+            273
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "Question: {question} Correct Answer: {answer} Predicted Answer: {pred} ",
+        "bbox": [
+            176,
+            286,
+            354,
+            329
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "Provide your evaluation only as a yes/no and score where the score is an integer value between 0 and 5, with 5 indicating the highest meaningful match. Please generate the response in the form of a Python dictionary string with keys ‘pred’ and ‘score’, where value of ‘pred’ is a string of ‘yes’ or ‘no’ and value of ‘score’ is in INTEGER, not STRING. DO NOT PROVIDE ANY OTHER OUTPUT TEXT OR EXPLANATION. Only provide the Python dictionary string. For example, your response should look like this: {‘pred’: ‘yes’, ‘score’: 4}. ",
+        "bbox": [
+            176,
+            342,
+            825,
+            426
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "Table B8: GPT-aided evaluation setup. We present the prompt and user input format for evaluating the LVLM responses in video understanding tasks. ",
+        "bbox": [
+            135,
+            474,
+            864,
+            505
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "B.4 GPT-Aided Evaluation on Video Understanding Tasks ",
+        "text_level": 1,
+        "bbox": [
+            114,
+            522,
+            563,
+            539
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "Following the evaluation protocol of Video-LLaVA, we employ GPT-3.5-Turbo to assess model responses on video understanding tasks, evaluating them based on both accuracy and quality score. Specifically, we adopt the prompt shown in Table B8 to guide GPT in rating each response: ",
+        "bbox": [
+            116,
+            551,
+            883,
+            597
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "• Accuracy: A binary yes/no judgment indicating whether the response is correct. • Score: An integer ranging from 0 to 5, where 5 represents the highest degree of relevance and informativeness and indicates the highest meaningful match. ",
+        "bbox": [
+            117,
+            604,
+            885,
+            660
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "C License Information ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            681,
+            328,
+            699
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "We list the license information for all the used assets as follows. ",
+        "bbox": [
+            116,
+            715,
+            570,
+            732
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "Benchmarks. We evaluate on a comprehensive set of 16 benchmarks spanning image QA, video QA, multimodal reasoning, and referential understanding tasks: ",
+        "bbox": [
+            114,
+            738,
+            880,
+            770
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "• GQA [25]: compositional visual question answering. This benchmark is released under the CC BY 4.0 license.   \n• ScienceQA [43]: multimodal science questions with diagrams and text. This benchmark is released under the MIT license.   \n• VQAv2 [23]: real-world image-based QA with balanced answers. This benchmark is released under the CC BY 4.0 license.   \n• TextVQA [53]: reading and reasoning over scene text in images. This benchmark is released under the CC BY 4.0 license.   \n• VizWiz [24]: real-world visual questions from blind users. This benchmark is released under the CC BY 4.0 license.   \n• MMBench [42] / MMBench-CN [42]: multilingual multimodal reasoning. These benchmarks are released under Apache License 2.0.   \n• MME [20]: fine-grained multimodal evaluation on object, OCR, and commonsense. This benchmark is released under Apache License 2.0.   \n• POPE [35]: probing object hallucinations in vision-language models. This benchmark is released under the MIT license.   \n• RefCOCO / RefCOCO+ [30], RefCOCOg [46]: referential expression grounding. These benchmarks are released under Apache License 2.0.   \n• TGIF [27]: video QA with spatiotemporal reasoning. The license of this work is not specified.   \n• MSVD [10]: short video captioning and QA. This benchmark is released under the MIT license.   \n• MSRVTT [63]: large-scale video-text retrieval and QA. This benchmark is released under the MIT license.   \n• ActivityNet-QA [66]: complex event-centric video QA. This benchmark is released under Apache License 2.0. ",
+        "bbox": [
+            117,
+            776,
+            885,
+            924
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "discarded",
+        "text": "Published in Transactions on Machine Learning Research (01/2026) ",
+        "bbox": [
+            116,
+            34,
+            601,
+            46
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            490,
+            948,
+            508,
+            959
+        ],
+        "page_idx": 22
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            112,
+            101,
+            885,
+            387
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "Models. We apply our approach to four widely used LVLMs. ",
+        "bbox": [
+            112,
+            393,
+            558,
+            409
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "• LLaVA-1.5 [39] is released under the LLaMA 2 Community License.   \n• LLaVA-NeXT [40] is released under Apache License 2.0.   \n• Qwen-2.5-VL [5] is released under Apache License 2.0.   \n• VideoLLaVA [36] is released under Apache License 2.0. ",
+        "bbox": [
+            117,
+            415,
+            637,
+            491
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "Code. Our codebase builds upon PyramidDrop [62], licensed under MIT, and FasterVLM [70], licensed under Apache 2.0. ",
+        "bbox": [
+            111,
+            497,
+            879,
+            529
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "D Limitations and Broader Impacts ",
+        "text_level": 1,
+        "bbox": [
+            116,
+            546,
+            449,
+            565
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "Limitations. One key limitation of this work is the inherent trade-off between efficiency and accuracy: while the proposed VScan significantly reduces inference cost of LVLMs, aggressive token pruning may still distort visual information and lead to degraded performance, particularly on challenging tasks that demand fine-grained understanding or compositional reasoning. ",
+        "bbox": [
+            114,
+            579,
+            883,
+            640
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "text",
+        "text": "Broader Impacts. The development of efficient LVLMs has significant potential to influence a wide range of applications, from autonomous systems and robotics to healthcare, education, and accessibility. By optimizing visual token reduction with VScan, we are addressing the computational overheads associated with processing large visual inputs, enabling faster and more efficient inference in real-time applications. This can lead to more widespread adoption of LVLMs in settings where rapid decision-making is crucial, such as autonomous vehicles, real-time video analysis, and interactive AI systems. ",
+        "bbox": [
+            114,
+            647,
+            883,
+            739
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "discarded",
+        "text": "Published in Transactions on Machine Learning Research (01/2026) ",
+        "bbox": [
+            116,
+            34,
+            601,
+            46
+        ],
+        "page_idx": 23
+    },
+    {
+        "type": "discarded",
+        "text": "24 ",
+        "bbox": [
+            488,
+            948,
+            508,
+            960
+        ],
+        "page_idx": 23
+    }
+]

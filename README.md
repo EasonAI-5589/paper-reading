@@ -22,6 +22,7 @@ Eason 的文献阅读仓库，按课题组织。每篇论文都有「批读格�
 | [VisionZip](./MLLM-Token-Compression/%5BCVPR%202025%5D%20VisionZip/) | CVPR 2025 | Text-agnostic, [CLS] attention + similarity merging |
 | [CDPruner](./MLLM-Token-Compression/%5BNeurIPS%202025%5D%20CDPruner/) | NeurIPS 2025 | DPP 条件多样性剪枝 |
 | [SCOPE](./MLLM-Token-Compression/%5BNeurIPS%202025%5D%20SCOPE/) | NeurIPS 2025 | Saliency + Coverage 联合优化 |
+| [VScan](./MLLM-Token-Compression/%5BArxiv%202505.22654%5D%20VScan/) | TMLR 2026 | 两阶段 Global+Local Scan + Middle Layer Pruning |
 
 📖 [方法对比总结](./MLLM-Token-Compression/methods-list.md)
 
