@@ -2,7 +2,7 @@
 
 **作者**: Hanxun Yu, Wentong Li, Xuan Qu, Song Wang, Junbo Chen, Jianke Zhu  
 **机构**: Zhejiang University, Nanjing University of Aeronautics and Astronautics, Udeer.ai  
-**arXiv**: [2601.22674](https://arxiv.org/abs/2601.22674) | **日期**: 2026-01-30  
+**会议**: ICLR 2026 | **arXiv**: [2601.22674](https://arxiv.org/abs/2601.22674) | **日期**: 2026-01-30  
 **代码**: [GitHub](https://github.com/hanxunyu/VisionTrim)
 
 ---
@@ -54,10 +54,10 @@ Training-free 的 MLLM 加速框架，通过 DVTS（global-local 双视角选 do
 ## BibTeX
 
 ```bibtex
-@article{yu2026visiontrim,
+@inproceedings{yu2026visiontrim,
   title={VisionTrim: Unified Vision Token Compression for Training-Free MLLM Acceleration},
   author={Yu, Hanxun and Li, Wentong and Qu, Xuan and Wang, Song and Chen, Junbo and Zhu, Jianke},
-  journal={arXiv preprint arXiv:2601.22674},
+  booktitle={International Conference on Learning Representations (ICLR)},
   year={2026}
 }
 ```
