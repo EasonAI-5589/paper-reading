@@ -28,6 +28,65 @@
 | [06 - Conclusion](sections/06-conclusion.md) | 总结 + Impact Statement |
 | [07 - Appendix](sections/07-appendix.md) | 实验细节、额外结果、Prompt 模板、示例轨迹 |
 
+## 📊 Citation Landscape
+
+> 数据来源: [Semantic Scholar](https://www.semanticscholar.org/paper/dfd9cf2191e91dbd6ceb683831d0d554916b0b56) | [Connected Papers](https://www.connectedpapers.com/main/2602.03036)
+
+### TLDR (Semantic Scholar 自动生成)
+
+> LatentMem proposes a learnable multi-agent memory framework that customizes agent-specific memories in a token-efficient manner, introducing Latent Memory Policy Optimization (LMPO) which propagates task-level optimization signals through latent memories to the composer, encouraging it to produce compact and high-utility representations.
+
+### 引用统计
+
+| 指标 | 数值 |
+|------|------|
+| 参考文献数 | 71 |
+| 被引次数 | 0 (2026-02 新论文) |
+| Influential Citations | 0 |
+
+### 参考文献分组 (Top 5 per category, by citations)
+
+#### Multi-Agent Systems
+- **MetaGPT: Meta Programming for Multi-Agent Collaborative Framework** (2023) — 1,367 citations [arXiv](https://arxiv.org/abs/2308.00352)
+- **Improving Factuality and Reasoning in Language Models through Multiagent Debate** (2023) — 1,275 citations [arXiv](https://arxiv.org/abs/2305.14325)
+- **CAMEL: Communicative Agents for "Mind" Exploration of Large Language Model Society** (2023) — 1,047 citations [arXiv](https://arxiv.org/abs/2303.17760)
+- **AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation** (2023) — 1,045 citations [arXiv](https://arxiv.org/abs/2308.08155)
+- **Encouraging Divergent Thinking in Large Language Models through Multi-Agent Debate** (2023) — 871 citations [arXiv](https://arxiv.org/abs/2305.19118)
+
+#### Agent Memory
+- **A-MEM: Agentic Memory for LLM Agents** (2025) — 250 citations [arXiv](https://arxiv.org/abs/2502.12110)
+- **Memory in the Age of AI Agents** (2025) — 55 citations [arXiv](https://arxiv.org/abs/2512.13564)
+- **From Human Memory to AI Memory: A Survey on Memory Mechanisms in the Era of LLMs** (2025) — 52 citations [arXiv](https://arxiv.org/abs/2504.15965)
+- **Agent KB: Leveraging Cross-Domain Experience for Agentic Problem Solving** (2025) — 31 citations [arXiv](https://arxiv.org/abs/2507.06229)
+- **MemGen: Weaving Generative Latent Memory for Self-Evolving Agents** (2025) — 19 citations [arXiv](https://arxiv.org/abs/2509.24704)
+
+#### LLM Reasoning & RL
+- **DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models** (2024) — 4,490 citations [arXiv](https://arxiv.org/abs/2402.03300)
+- **DAPO: An Open-Source LLM Reinforcement Learning System at Scale** (2025) — 1,214 citations [arXiv](https://arxiv.org/abs/2503.14476)
+- **A Survey of Efficient Reasoning for Large Reasoning Models** (2025) — 109 citations [arXiv](https://arxiv.org/abs/2503.21614)
+
+#### Benchmarks & Datasets
+- **TriviaQA: A Large Scale Distantly Supervised Challenge Dataset** (2017) — 3,440 citations [arXiv](https://arxiv.org/abs/1705.03551)
+- **LiveCodeBench: Holistic and Contamination Free Evaluation of LLMs** (2024) — 1,109 citations [arXiv](https://arxiv.org/abs/2403.07974)
+- **AgentBoard: An Analytical Evaluation Board of Multi-turn LLM Agents** (2024) — 142 citations [arXiv](https://arxiv.org/abs/2401.13178)
+
+### 🔗 推荐论文 (Semantic Scholar Recommendations)
+
+| 论文 | 年份 | 引用数 |
+|------|------|--------|
+| [StackPlanner: Centralized Hierarchical MAS with Task-Experience Memory](https://arxiv.org/abs/2601.05890) | 2026 | 1 |
+| [AMA: Adaptive Memory via Multi-Agent Collaboration](https://arxiv.org/abs/2601.20352) | 2026 | 0 |
+| [UMEM: Unified Memory Extraction and Management Framework](https://arxiv.org/abs/2602.10652) | 2026 | 0 |
+| [MemEvolve: Meta-Evolution of Agent Memory Systems](https://arxiv.org/abs/2512.18746) | 2025 | 12 |
+| [Agent Primitives: Reusable Latent Building Blocks for MAS](https://arxiv.org/abs/2602.03695) | 2026 | 0 |
+| [E-mem: Multi-agent based Episodic Context Reconstruction](https://arxiv.org/abs/2601.21714) | 2026 | 0 |
+| [MemBuilder: Reinforcing LLMs for Long-Term Memory Construction](https://arxiv.org/abs/2601.05488) | 2026 | 0 |
+| [Fine-Mem: Fine-Grained Feedback Alignment for Long-Horizon Memory](https://arxiv.org/abs/2601.08435) | 2026 | 0 |
+| [ProcMEM: Learning Reusable Procedural Memory via Non-Parametric PPO](https://arxiv.org/abs/2602.01869) | 2026 | 0 |
+| [MAGMA: Multi-Graph based Agentic Memory Architecture](https://arxiv.org/abs/2601.03236) | 2026 | 0 |
+
+---
+
 ## 关键数字
 
 | 指标 | 数值 |
