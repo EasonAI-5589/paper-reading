@@ -1,8 +1,7 @@
 # HiDivDrop: Vision Token Reduction in MLLMs via Late Injection and Differentiable Top-K
 
-**作者**: Anonymous (double-blind review)
-**会议**: ICLR 2026 (under review)
-**链接**: 暂无（匿名投稿中）
+**会议**: **ICLR 2026 (Accepted)** ✅
+**链接**: [OpenReview](https://openreview.net/forum?id=2baJBgfr9S)
 
 ## 一句话总结
 
