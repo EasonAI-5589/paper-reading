@@ -1,0 +1,356 @@
+# Focus-Scan-Refine: From Human Visual Perception to Efficient Visual Token Pruning
+
+Enwei Tong $^ { 1 }$ , Yuanchao Bai $^ { 1 ^ { * } }$ , Yao Zhu $^ 2$ , Junjun Jiang $^ { 1 }$ , Xianming Liu1 $^ { 1 ^ { * } }$ Faculty of computing, Harbin Institute of Technology, West Dazhi Street, Harbin,   
+150001, Heilongjiang, China. $^ 2$ Chu Kochen Honors College, Zhejiang University, Yuhangtang Road, Hangzhou,   
+310058, Zhejiang, China.
+
+\*Corresponding author(s). E-mail(s): yuanchao.bai@hit.edu.cn; Contributing authors: 24S103434@stu.hit.edu.cn; ee zhuy@zju.edu.cn; jiangjunjun@hit.edu.cn; csxm@hit.edu.cn;
+
+# Abstract
+
+Vision-language models (VLMs) often generate massive visual tokens that greatly increase inference latency and memory footprint; while training-free token pruning offers a practical remedy, existing methods still struggle to balance local evidence and global context under aggressive compression. We propose Focus-Scan-Refine (FSR), a human-inspired, plug-and-play pruning framework that mimics how humans answer visual questions: focus on key evidence, then scan globally if needed, and refine the scanned context by aggregating relevant details. FSR first focuses on key evidence by combining visual importance with instruction relevance, avoiding the bias toward visually salient but queryirrelevant regions. It then scans for complementary context conditioned on the focused set, selecting tokens that are most different from the focused evidence. Finally, FSR refines the scanned context by aggregating nearby informative tokens into the scan anchors via similarity-based assignment and score-weighted merging, without increasing the token budget. Extensive experiments across multiple VLM backbones and vision-language benchmarks show that FSR consistently improves the accuracyefficiency trade-off over existing state-of-the-art pruning methods. The source codes can be found at https://github.com/ILOT-code/FSR
+
+Keywords: Vision–Language Models, Human-Inspired Visual Processing, Visual Token Pruning, Efficient Multimodal Inference
+
+# 1 Introduction
+
+With the rapid progress of large language models (LLMs) OpenAI et al. (2024); Touvron et al. (2023); Jiang et al. (2023); Qwen et al. (2025), vision–language models (VLMs) have advanced substantially in multimodal perception and reasoning Radford et al. (2021); Alayrac et al. (2022); Li et al. (2023a); Dai et al. (2023); Liu et al.
+
+(2023); Zhu et al. (2023); Chen et al. (2024b); OpenAI (2023); Team et al. (2025). A typical VLM encodes an image into a sequence of visual tokens, concatenates them with text tokens, and performs autoregressive decoding with an LLM. To preserve fine details, modern VLMs increasingly adopt high-resolution encoders and tiling strategies Bai et al. (2023); Li et al. (2024a); Chen et al. (2024b), which often produce massive visual tokens. Since Transformer attention scales quadratically with sequence length Vaswani et al. (2017), these tokens greatly increase latency and memory, becoming a key bottleneck for deployment Team et al. (2024); Hu et al. (2024). A practical remedy is training-free visual token pruning, which reduces visual tokens under a fixed budget. Existing methods can be categorized by the signals they exploit: (i) Attention-based pruning selects tokens with high cross-attention or [CLS]- based attention, and thus tends to favor locally salient regions Chen et al. (2024a); Shang et al. (2024); (ii) Similarity-based pruning relies on inter-token similarity to encourage token diversity, and therefore tends to retain tokens that provide global scene coverage Alvar et al. (2025); Wen et al. (2025); (iii) Joint attention–similaritybased pruning combine both cues Yang et al. (2025b); Zhang et al. (2025a,b); Zou et al. (2025), but still struggle to balance local evidence and global context under high reduction ratios.
+
+![](images/8f4376c58b7bb21e6937b04aa87216a1cc7e1bfed323f32d4a7795051781d4e2.jpg)  
+Fig. 1 Dynamic allocation of local evidence and global context. Red tokens denote Focus (local evidence) and blue tokens denote Scan (global context). FSR dynamically reallocates the 32 token budget across tasks: for a simple existence query, it concentrates on a small local region $\mathbf { \mathrm { F o c u s } } = 9 $ , $\mathrm { S c a n } = 2 3 .$ ), whereas for a reasoningintensive query (weather inference), it attends to multiple cues (e.g., umbrella and wet ground), increasing local evidence coverage (Focus $= 1 5$ , $\mathrm { S c a n } = 1 7$ ).
+
+Importantly, the desired allocation between local and global tokens is task-dependent. Tasks involving multiple objects, relations, or reasoning typically require collecting multiple local cues across different regions, while fine-grained recognition often depends on a small set of concentrated evidence. Without a proper balance, the retained tokens are often incomplete for the target question, leaving the LLM with insufficient evidence or context for reliable reasoning.
+
+Studies of human perception in visual question answering tasks show that humans selectively focus on task relevant regions, expand attention to scan the global context, and integrate peripheral cues via ensemble coding for a holistic representation Velichkovsky; (2010); Ding and Yu (2025); Henderson (2003); Alvarez (2011). Inspired by this cognitive process, we propose the Focus-Scan-Refine (FSR) pruning framework, which follows a simple three-stage design. (i) Focus: we employ a dual-pathway scoring mechanism that fuses visual saliency with instruction relevance to identify critical local evidence, keeping top tokens until a cumulative information density threshold is met. (ii) Scan: conditioned on the focused set, we select complementary tokens that are most different from the focused evidence and diverse among themselves, ensuring the added tokens cover missing context without redundancy. (iii) Refine: we further strengthen global context by merging nearby informative tokens into scan anchors via similarity-based assignment and scoreweighted aggregation, while keeping the token budget unchanged.
+
+Overall, FSR dynamically adjusts the allocation between local evidence and global context according to the complexity of the input task, as illustrated in Figure 1. Compared with prior methods, FSR achieves a more effective balance between local and global information, as further demonstrated in Figure 2. The main contributions are summarized as follows:
+
+• We propose FSR, a human-inspired, trainingfree pruning framework that dynamically allocates a fixed token budget between local evidence and complementary global context, rather than relying on static local/global heuristics. We introduce a comprehensive pipeline comprising a dual-pathway scoring mechanism for local evidence, a conditional sampling strategy for global context, and an aggregation module for texture refinement, ensuring efficient and non-redundant token selection. Extensive experiments demonstrate that FSR consistently outperforms prior visual token pruning methods. The improvement arises from its ability to balance local evidence and global context more effectively.
+
+![](images/2ebf59b396c052ca5fd5f8d9083750ff01025474f1cd1936954605878b028be8.jpg)  
+Fig. 2 Visualization-based analysis of FSR on relational visual reasoning tasks. Highlighted tokens indicate the selected visual tokens, while tokens with blue borders denote those used for refinement; a fixed budget of 24 visual tokens is retained for all methods. In the three examples, FSR captures (i) the man, fruit, boat, as well as the surrounding water, (ii) the man and the butterfly-shaped kite he is playing with, and (iii) multiple interacting entities such as the taxi, grass, and fence. By contrast, VisPruner, HoloV, and CDPruner often over focus on a single local region, failing to preserve enough information to answer the question.
+
+# 2 Related work
+
+The high inference cost of modern VLMs is largely driven by the massive number of visual tokens, which dominate both attention computation and KV-cache memory. To mitigate this overhead without additional training, a growing line of work studies training-free visual token reduction. Existing methods primarily differ in the signals used to estimate token importance.
+
+Attention-based Pruning. Attention-based pruning estimates token importance from attention statistics, either inside the LLM decoder or within the vision encoder. On the LLM side, FastV prunes visual tokens according to cross attention scores in shallow layers Chen et al. (2024a). LLaVA-PruMerge further combines attentionbased pruning with token merging to compress redundant visual tokens while preserving spatial semantics Shang et al. (2024). SparseVLM introduces text-guided attention scoring and token recycling to reduce information loss during progressive sparsification Zhang et al. (2024b), while PyramidDrop (PDrop) applies layer-wise progressive dropping to better align pruning strength with model depth Xing et al. (2024). To enhance deployment efficiency, TopV ensures FlashAttention compatibility during prefilling Yang et al. (2025a); Dao et al. (2022) , whereas FitPrune minimizes attention-distribution divergence for budget-aware pruning Ye et al. (2025). On the vision-encoder side, FasterVLM and HiRED rank tokens using [CLS]-based attention, enabling early or region aware pruning Zhang et al. (2024a); Arif et al. (2025). SparseVILA decouples visual sparsity into query-agnostic prefill and query-aware decoding stages Khaki et al. (2025). Overall, while attention-based methods are effective and easy to deploy, their importance estimates can be biased toward salient regions, which may inadvertently limit the coverage of subtle yet critical global contextual information.
+
+Similarity-based Pruning. Similarity-based approaches reduce redundancy by selecting diverse visual tokens in feature space rather than relying on saliency or importance scores. These methods are motivated by the observation that attention-based criteria may not reliably reflect whether a token is redundant, and can even lead to inferior performance or incompatibility with FlashAttention. DivPrune formulates token pruning as a max–min diversity selection problem to retain a representative and diverse subset Alvar et al. (2025). DART further prunes tokens based on duplication by retaining tokens dissimilar to a small set of pivots, enabling training-free acceleration Wen et al. (2025). However, as these methods primarily concentrate on global regions, they often overlook fine-grained local details that are essential for precise reasoning.
+
+Joint attention-similarity-based Pruning. Recent methods combine multiple cues to better trade off query-critical local evidence and complementary global context. VisionZip and VisPruner integrate attention-based importance estimation with redundancy reduction to reduce token count while maintaining coverage Yang et al. (2025b); Zhang et al. (2025a). CDPruner further incorporates instruction relevance and maximizes conditional diversity through a DPP-style formulation, encouraging the retained tokens to be both relevant and diverse under the prompt Zhang et al. (2025b). HoloV promotes holistic context retention by partition-wise allocation and connectivity aware token selection, aiming to avoid over-focusing on a few highlighted regions Zou et al. (2025). Despite their effectiveness, under a fixed and limited token budget these methods can still struggle to simultaneously preserve the most query-critical local evidence and the complementary global context needed for reliable reasoning, especially when the retained tokens become extremely sparse.
+
+Prior research has investigated various token pruning strategies including attention-based, similarity-based, and joint attention-similaritybased pruning. However, effectively preserving both query-critical local evidence and complementary global context remains a formidable and persistent challenge, particularly under stringent token budgets. To address this limitation, we propose FSR, a human-inspired paradigm that dynamically balances fine-grained local detail and broad global context in accordance with the intrinsic complexity of the input.
+
+# 3 Proposed Method
+
+# 3.1 Inspiration from the Human Visual Perception
+
+Our methodology is inspired by how the human visual system allocates perceptual resources under limited attention. Cognitive science research indicates that when answering visual questions, humans do not process the entire scene with equal fidelity; instead, they prioritize extracting information from local regions highly relevant to the query Velichkovsky; (2010); Ding and Yu (2025). Reliance on local cues alone is often insufficient for complex tasks; when initial local evidence fails to yield a confident answer, humans scan the global context to find more cues Henderson (2003); Wolfe and Horowitz (2017). Subsequently, rather than discarding the remaining peripheral information, the brain utilizes ensemble coding to aggregate it into summary statistics, ensuring a complete yet efficient scene representation Alvarez (2011). Figure 3 provides a high-level illustration of this general organization of human visual processing.
+
+![](images/52b0787376314ed1df620e39d82733afd726380a7b61d3af2d174e535ff22e13.jpg)  
+Fig. 3 Human Visual Perceptual Strategy under Limited Attention. (a) Constrained by finite attentional capacity, humans prioritize local regions that are most relevant to the query. (b) To acquire complementary information, humans expand their field of view to scan the global layout and background context. (c) The brain utilizes ensemble coding to aggregate peripheral signals into summary statistics, forming a robust global representation.
+
+Inspired by this perceptual strategy of progressively allocating attention from local evidence to global context, we propose the FSR framework (see Figure 4 for an overview) to simulate this progressive process. To mathematically instantiate this progressive process, we model the task as identifying an optimal subset of tokens within an explicitly constrained budget.
+
+Given an input image, a vision encoder outputs a sequence of visual tokens $\mathbf { V } = \{ \mathbf { v } _ { i } \} _ { i = 1 } ^ { N }$ where $\mathbf { v } _ { i } ~ \in ~ \mathbb { R } ^ { d }$ . Given a query $\mathbf { q }$ and a token budget $K$ ( $K \ll N$ ), our objective is to identify a compressed subset $\overset \sim { \mathbf { V } } \subset \mathbf { V }$ with $| \widetilde { \mathbf { V } } | = K$ . Unlike static pruning, FSR dynamically constructs $\widetilde { \mathbf { V } }$ by first locking onto key local evidence (Focus) and then expanding the field of view (Scan & Refine) to get more contextual information.
+
+# 3.2 Stage I: Focus on local evidence
+
+The Focus stage aims to identify and retain the most critical local visual evidence, mimicking the focus mechanism in human visual perception. To avoid the potential bias of relying solely on a single signal, we employ a dual-pathway scoring mechanism fusing both visual saliency and instruction relevance, ensuring that the selected tokens are not only visually salient but also semantically aligned with the user’s instruction.
+
+![](images/c098996b7dafade8f7f01d65ae726b43a699337c922e90bfe968a37a9c9bc4a1.jpg)  
+Fig. 4 Overview of the FSR framework. Given input visual tokens and a query, FSR progressively compresses information into a fixed budget $K$ : (1) Focus: Identifies critical local evidence $( \mathcal { F } )$ via a dual-pathway scoring mechanism fusing visual saliency and instruction relevance. (2) Scan: Captures complementary global context $( \cal S )$ using the Conditional Context Sampling (CCS) algorithm to maximize information gain. (3) Refine: Enriches the sparse context anchors by aggregating relevant discarded details via weighted merging, ensuring a holistic representation for the LLM.
+
+We first identify inherently salient regions (e.g., foreground objects) using the attention map from the vision encoder. Denote by ${ \textbf { A } } \in$ $\mathbb { R } ^ { H \times ( N + 1 ) \times ( N + 1 ) }$ , the attention map from the [CLS] token to other tokens in a selected layer. The saliency score $s _ { i }$ for the $i$ -th token is computed as:
+
+$$
+s _ { i } = \frac { 1 } { H } \sum _ { h = 1 } ^ { H } \mathbf { A } _ { h } [ \mathrm { C L S } , i ]
+$$
+
+To ensure that the selected tokens are relevant to the user’s instruction, we compute the semantic similarity between visual tokens and the text instruction Zhang et al. (2025b). We encode the textual query q into an embedding $\mathbf { t }$ using the pretrained CLIP text encoder. The relevance score $r _ { i }$ is defined as the cosine similarity:
+
+$$
+\begin{array} { r } { r _ { i } = \cos ( \bar { \bf v } _ { i } , \bar { \bf t } ) , \quad } \\ { { \mathrm { w h e r e ~ } } \bar { \bf v } _ { i } = { \bf v } _ { i } / \| { \bf v } _ { i } \| _ { 2 } , \bar { \bf t } = { \bf t } / \| { \bf t } \| _ { 2 } } \end{array}
+$$
+
+We further normalize both scores to $[ 0 , 1 ]$ (denoted by the hat notation ˆ·) and compute a fused priority score $\phi _ { i }$ to generate a unified priority map:
+
+$$
+\phi _ { i } = \hat { r } _ { i } ^ { \alpha } \hat { s } _ { i } ^ { \beta }
+$$
+
+where $\alpha$ and $\beta$ control the trade-off between relevance and saliency. Tokens are then sorted by $\phi$ in descending order, denoted by the permutation $\boldsymbol { \mathscr { U } }$ . To determine the dynamic budget $K _ { \mathrm { F } }$ , we select the minimum number of tokens required information mass to preserve a ratio $\begin{array} { r } { Z = \sum _ { i = 1 } ^ { N } \phi _ { i } } \end{array}$ $\rho$ (default 0.9) of the total :
+
+$$
+K _ { \mathrm { F } } = \operatorname* { m i n } \left\{ k \mid \sum _ { j = 1 } ^ { k } \phi _ { \pi ( j ) } \geq \rho Z \right\}
+$$
+
+The resulting set ${ \mathcal F } = \{ \pi ( 1 ) , \ldots , \pi ( K _ { \mathrm { F } } ) \}$ constitutes the local evidence.
+
+# 3.3 Stage II: Scan for global context
+
+# 3.3.1 Conditional Context Sampling
+
+Relying solely on local evidence $\mathcal { F }$ often results in missing critical background information required for holistic reasoning. The Scan stage addresses this by expanding the attentional window to capture broader global context when local information is insufficient.
+
+We introduce a Conditional Context Sampling (CCS) algorithm to select $K _ { \mathrm { { S } } } = K - K _ { \mathrm { { F } } }$ supplementary anchors. To maximize information gain, these anchors must be complementary to the focused set $\mathcal { F }$ and diverse among themselves. Specifically, we initialize the available anchor set as $A = F$ . In each iteration, we identify the token $i ^ { \star }$ that is maximally different from the current anchor set $\boldsymbol { A }$ in the feature space:
+
+$$
+\begin{array} { c } { \Delta ( i , \boldsymbol { A } ) = \displaystyle \operatorname* { m i n } _ { j \in \mathcal { A } } \Big ( 1 - \cos \big ( \bar { \mathbf { v } } _ { i } , \bar { \mathbf { v } } _ { j } \big ) \Big ) , } \\ { i ^ { \star } = \arg \displaystyle \operatorname* { m a x } _ { i \notin \mathcal { A } } \Delta ( i , \boldsymbol { A } ) } \end{array}
+$$
+
+We update ${ \mathcal { A } }  { \mathcal { A } } \cup \{ i ^ { \star } \}$ and repeat this process for $K _ { \mathrm { S } }$ iterations. This strategy ensures that the newly captured tokens are different from the salient objects and minimizes redundancy, thereby optimizing the utility of the token budget. Finally, the specific set of scanned context tokens is obtained as $\textstyle S = A \setminus { \mathcal { F } }$ .
+
+# 3.3.2 Theoretical Coverage Guarantee
+
+While the CCS strategy is greedy, it admits a formal coverage guarantee, ensuring that the selected context tokens provide bounded approximation to the optimal global coverage.
+
+The CCS procedure in Eq. (5) can be viewed as a variant of Farthest Point Sampling Gonzalez (1985) in the feature space, where the focus set $\mathcal { F }$ is treated as a fixed set of initial centers. Let $V$ denote the set of all visual tokens, equipped with the distance metric $d ( x , y ) = 1 - \cos ( x , y )$ . Given a total budget $K$ and the fixed focus set $\mathcal { F }$ , we define the optimal conditional covering radius as
+
+$$
+R _ { \mathrm { o p t } } ( \mathcal { F } ) = \operatorname* { m i n } _ { S ^ { \prime } : | S ^ { \prime } | = K - | \mathcal { F } | } \operatorname* { m a x } _ { v \in V } d \bigl ( v , \mathcal { F } \cup S ^ { \prime } \bigr )
+$$
+
+This quantity represents the minimum achievable worst-case distance when extending $\mathcal { F }$ with $K _ { \mathrm { S } }$ additional tokens. By classical results on greedy $k$ - center clustering with fixed centers Hochbaum and Shmoys (1985), the token set $K = { \mathcal { F } } \cup S$ selected by CCS satisfies:
+
+$$
+\operatorname* { m a x } _ { v \in V } \operatorname* { m i n } _ { u \in { \mathcal { K } } } d ( v , u ) \leq 2 R _ { \mathrm { o p t } } ( { \mathcal { F } } )
+$$
+
+which bounds the information loss incurred by pruning. This guarantee implies that CCS attains a near globally optimal solution, ensuring that every unselected token lies within a bounded distance of the selected token set.
+
+# 3.4 Stage III: Refine by aggregation
+
+Directly discarding the unselected tokens $\mathcal { D } =$ $\mathbf { V } \setminus ( \mathcal { F } \cup \mathcal { S } )$ leads to a loss of fine-grained background details. The Refine stage addresses this by aggregating information from the discarded set $\mathcal { D }$ into the selected context anchors.
+
+Crucially, to preserve the high fidelity of the salient objects, we keep the focus set $\mathcal { F }$ unchanged. We treat only the global context tokens $\boldsymbol { S }$ as semantic anchors for aggregation. First, for each discarded token $i \in \mathcal { D }$ , we identify its semantically nearest anchor $j ^ { \star }$ within the scan set $\boldsymbol { S }$ and compute their similarity:
+
+$$
+j ^ { \star } ( i ) = \arg \operatorname* { m a x } _ { j \in S } \cos ( \bar { \bf v } _ { i } , \bar { \bf v } _ { j } )
+$$
+
+To mitigate noise and prevent over-smoothing, we do not aggregate all discarded tokens. Instead, we select the top- $M$ tokens from the discarded set $\mathcal { D }$ that possess the highest similarity scores to their assigned anchors. The total aggregation budget is dynamically determined by the size of the scan set as $M = \kappa | \boldsymbol { S } |$ , where $\kappa$ is a hyperparameter set to 1 by default. Let $\mathcal { D } _ { \mathrm { t o p } }$ denote this subset of highly relevant discarded tokens. We update the anchors by absorbing information only from $\mathcal { D } _ { \mathrm { t o p } }$ . For each $i \in \mathcal { D } _ { \mathrm { t o p } }$ , its feature is aggregated into its nearest anchor ${ \bf v } _ { j ^ { \star } }$ weighted by its priority score $\phi _ { i }$ (from Eq. (3)), as defined below:
+
+$$
+\begin{array} { c } { \displaystyle \mathbf { v } _ { j ^ { \star } } \gets \frac { w _ { j ^ { \star } } \mathbf { v } _ { j ^ { \star } } + w _ { i } \mathbf { v } _ { i } } { w _ { j ^ { \star } } + w _ { i } } , } \\ { \displaystyle w _ { j ^ { \star } } \gets w _ { j ^ { \star } } + w _ { i } } \end{array}
+$$
+
+where weights are initialized as $w _ { j } ~ = ~ \phi _ { j }$ . This step enables the sparse context anchors to capture the essential texture and semantics of their neighborhoods. The final compressed token set is the union of the intact focus tokens and the refined context tokens: $\widetilde { \mathbf { V } } = \mathcal { F } \cup \mathcal { S }$ , which contains exactly $K _ { \mathrm { F } } + K _ { \mathrm { S } } = K$ tokens.
+
+# 4 Experiment
+
+# 4.1 Experimental setup
+
+In this section, we describe the experimental configurations used to evaluate the proposed FSR framework, including the model architectures, implementation details, and benchmarks.
+
+Model architectures. We evaluate FSR on a diverse set of VLMs covering both image and video modalities. For static image understanding, we use the LLaVA series (LLaVA-1.5-7B/13B, LLaVA-NeXT-7B/13B) and Qwen2.5-VL-7B. For video understanding, we extend our evaluation to LLaVA-Video-7B-Qwen2. FSR is applied in a fully training-free, plug-and-play manner at inference time, without modifying any model weights.
+
+Table 1 Performance comparison of different pruning methods on LLaVA-1.5-7B. Avg. represents the average relative performance maintained across all tested benchmarks compared to the unpruned baseline. The best results are highlighted in bold.   
+
+<table><tr><td>Method</td><td>VQAV2</td><td>GQA</td><td>SQAIMG</td><td>VQAText</td><td>POPE</td><td>MME</td><td>MMBEN</td><td>MMBCN</td><td>MMVet</td><td>Avg.</td></tr><tr><td colspan="9">Upper Bound, All 576 Tokens (100%)</td><td rowspan="2">100%</td></tr><tr><td>LLaVA-1.5-7B</td><td>78.5</td><td>61.9</td><td>69.5</td><td>58.2</td><td>85.9</td><td>1862</td><td>64.6</td><td>58.1</td><td>31.7</td></tr><tr><td colspan="10"></td></tr><tr><td>FastV(ECCV24)</td><td>67.1</td><td>52.7</td><td>65.7</td><td>Retain 192 Tokens 52.5</td><td>(↓ 66.7%) 64.8</td><td>1612</td><td>61.2</td><td>57.0</td><td></td><td>88.0%</td></tr><tr><td>SparseVLM(ICML2025)</td><td>75.6</td><td>57.6</td><td>67.5</td><td>56.1</td><td>83.6</td><td>1721</td><td>62.5</td><td>53.7</td><td></td><td>95.2%</td></tr><tr><td>DART (EMNLP2025)</td><td>76.7</td><td>58.9</td><td>68.2</td><td>57.4</td><td>82.8</td><td>1856</td><td>63.6</td><td>57.0</td><td>-</td><td>97.8%</td></tr><tr><td>HoloV(NIPS2025)</td><td>76.4</td><td>58.7</td><td>67.2</td><td>55.8</td><td>85.0</td><td>1759</td><td>62.6</td><td>55.3</td><td>31.5</td><td>96.5%</td></tr><tr><td>VisPruner(Iccv2025)</td><td>76.9</td><td>59.5</td><td>68.5</td><td>57.4</td><td>85.8</td><td>1780</td><td>63.1</td><td>57.0</td><td>33.3</td><td>98.2%</td></tr><tr><td>CDPruner(NIPS2025)</td><td>77.2</td><td>60.3</td><td>68.8</td><td>57.3</td><td>87.3</td><td>1784</td><td>63.1</td><td>55.6</td><td>33.9</td><td>98.5%</td></tr><tr><td>FSR</td><td>77.4</td><td>60.2</td><td>69.1</td><td>57.6</td><td>87.1</td><td>1803</td><td>64.0</td><td>56.5</td><td>33.9</td><td>99.1%</td></tr><tr><td colspan="11">Retain 128 Tokens (↓ 77.8%)</td></tr><tr><td>FastV(ECCV24)</td><td></td><td>71.0</td><td>54.0 69.2</td><td>56.4</td><td>68.2</td><td>1490</td><td>63.0</td><td>55.9</td><td>27.0</td><td>89.6%</td></tr><tr><td>SparseVLM(ICML25)</td><td>75.1</td><td>57.3</td><td>69.0</td><td>56.3</td><td>83.1</td><td>1696</td><td>62.6</td><td>56.9</td><td>29.7</td><td>95.6%</td></tr><tr><td>DART(2025.02)</td><td>74.7</td><td>57.9</td><td>69.1</td><td>56.3</td><td>80.4</td><td>1701</td><td>60.7</td><td>57.3</td><td>30.9</td><td>95.2%</td></tr><tr><td>VisionZip(CVPR25)</td><td>75.6</td><td>57.6</td><td>68.7</td><td>56.9</td><td>83.3</td><td>1721</td><td>62.1</td><td>57.0</td><td>31.6</td><td>96.2%</td></tr><tr><td>DivPrune(CVPR25)</td><td>76.0</td><td>59.4</td><td>68.6</td><td>55.9</td><td>87.0</td><td>1698</td><td>61.5</td><td>54.8</td><td>30.6</td><td>96.2%</td></tr><tr><td>HoloV(NIPS2025)</td><td>75.4</td><td>57.5</td><td>68.9</td><td>55.7</td><td>82.2</td><td>1766</td><td>62.4</td><td>56.8</td><td>31.2</td><td>96.1%</td></tr><tr><td>VisPruner(Iccv2025)</td><td>75.7</td><td>58.5</td><td>69.0</td><td>57.0</td><td>84.5</td><td>1747</td><td>61.8</td><td>56.5</td><td>31.2</td><td>96.7%</td></tr><tr><td>CDPruner(NIPS2025)</td><td>76.5</td><td>59.8</td><td>69.0</td><td>56.2</td><td>87.6</td><td>1775</td><td>63.1</td><td>55.1</td><td>30.9</td><td>97.6%</td></tr><tr><td>FSR</td><td>76.7</td><td>59.7</td><td>68.8</td><td>57.0</td><td>86.5 (↓ 88.9%)</td><td>1769</td><td>63.2</td><td>55.8</td><td>34.9</td><td>98.3%</td></tr><tr><td colspan="11">Retain 64 Tokens</td></tr><tr><td>FastV(ECCV24)</td><td>46.0</td><td>55.9</td><td>70.1</td><td>51.6</td><td>35.5</td><td>1256</td><td>50.1</td><td>42.1</td><td>18.9</td><td>72.0%</td></tr><tr><td>SparseVLM(ICML25)</td><td>66.9</td><td>52.0</td><td>69.2</td><td>52.1</td><td>69.7</td><td>1505</td><td>58.3</td><td>49.6</td><td>24.4</td><td>86.0%</td></tr><tr><td>DART (2025.02)</td><td>71.3</td><td>54.7</td><td>69.3</td><td>54.7</td><td>73.8</td><td>1650</td><td>59.5</td><td>54.0</td><td>26.5</td><td>90.8%</td></tr><tr><td>VisionZip(CVPR25)</td><td>72.4</td><td>55.1</td><td>69.0</td><td>55.5</td><td>77.0</td><td>1673</td><td>60.1</td><td>55.4</td><td>29.4</td><td>92.7%</td></tr><tr><td>DivPrune(CVPR25)</td><td>74.1</td><td>57.5</td><td>68.0</td><td>54.5</td><td>85.5</td><td>1617</td><td>60.1</td><td>52.3</td><td>28.1</td><td>93.3%</td></tr><tr><td>HoloV(NIPS2025)</td><td>72.6</td><td>55.1</td><td>68.7</td><td>54.8</td><td>76.8</td><td>1699</td><td>60.0</td><td>55.8</td><td>30.2</td><td>92.9%</td></tr><tr><td>VisPruner(Iccv2025)</td><td>72.8</td><td>55.8</td><td>68.8</td><td>55.8</td><td>80.9</td><td>1661</td><td>59.4</td><td>54.6</td><td>31.4</td><td>93.5%</td></tr><tr><td>CDPruner(NIPS2025)</td><td>75.4</td><td>58.6</td><td>68.1</td><td>55.1</td><td>87.5</td><td>1710</td><td>60.8</td><td>55.3</td><td>29.6</td><td>95.7%</td></tr><tr><td>FSR</td><td>75.4</td><td>58.2</td><td>69.3</td><td>55.7</td><td>85.7</td><td>1701</td><td>61.9</td><td>53.9</td><td>32.6</td><td>96.1%</td></tr></table>
+
+Implementation Details. All experiments were implemented using PyTorch 2.1.2 and Python 3.10 with CUDA 12.4. Regarding hardware configurations, experiments on 7B parameter models were conducted on NVIDIA GeForce RTX 3090 (24GB). Experiments involving larger architectures(13B) and video models (LLaVA-Video7B-Qwen2) were performed on NVIDIA GPUs with 48GB memory. The default hyperparameters for FSR are set as follows: $\alpha = 3$ , $\beta = 1$ , $\rho = 0 . 9$ , and $\kappa = 1$ , unless otherwise specified.
+
+Evaluation benchmarks. We conduct experiments on comprehensive benchmarks spanning image and video tasks. For image understanding, we cover open-ended QA (VQAv2 Goyal et al. (2017)), compositional reasoning (GQA Hudson and Manning (2019), ScienceQA Lu et al. (2022)), OCR (TextVQA Singh et al. (2019)), and general capability assessment (POPE Li et al. (2023b), MME Fu et al. (2025a),
+
+MMBench Liu et al. (2024), MM-Vet Yu et al. (2023)). For video understanding, we employ three recent benchmarks: MLVU Zhou et al. (2025) for multi-task long video analysis, MVBench Li et al. (2024b) for fine-grained temporal perception, and Video-MME Fu et al. (2025b) for comprehensive multimodal evaluation. To further assess expert-level and world-model-oriented video understanding, we additionally evaluate on MMVU Zhao et al. (2025) and MMWorld He et al. (2024). To ensure fair comparison, we standardize the evaluation setup by strictly applying the same prompts, post-processing steps, and metrics across all models.
+
+# 4.2 Main Results
+
+# 4.2.1 FSR for Standard Benchmarks
+
+We first evaluate FSR on LLaVA-1.5-7B, a widely adopted benchmark model for visual token pruning. Table 1 presents the performance of different pruning methods under three token budgets: retaining 192, 128, and 64 visual tokens, corresponding to reduction ratios of $6 6 . 7 \%$ , $7 7 . 8 \%$ , and
+
+Table 2 Performance comparison of different pruning methods on LLaVA-NeXT-7B. Avg. represents the average relative performance maintained across all tested benchmarks compared to the unpruned baseline. The best results are highlighted in bold.   
+
+<table><tr><td>Method</td><td>VQAV2</td><td>GQA</td><td>SQAIMG</td><td>VQAText</td><td>POPE</td><td>MME</td><td>MMBEN</td><td>MMBCN</td><td>MMVet</td><td>Avg.</td></tr><tr><td colspan="9">Upper Bound, All 2880 Tokens (100%)</td><td></td></tr><tr><td>LLaVA-NeXT-7B</td><td>81.3</td><td>62.5</td><td>67.6</td><td>60.3</td><td>86.8</td><td>1883</td><td>65.9</td><td>57.4</td><td>39.2</td><td>100.0%</td></tr><tr><td colspan="9">Retain 960 Tokens (↓ 66.7%)</td><td></td></tr><tr><td>HoloV (NIPS2025)</td><td>78.9</td><td>61.3</td><td>66.2</td><td>57.4</td><td>86.9</td><td>1713</td><td>50.9</td><td>42.3</td><td>34.4</td><td>91.7%</td></tr><tr><td>VisPruner(Iccv2025)</td><td>80.0</td><td>62.1</td><td>68.2</td><td>60.2</td><td>87.1</td><td>1807</td><td>65.8</td><td>58.2</td><td>38.5</td><td>99.2%</td></tr><tr><td>CDPruner(NIPS2025)</td><td>80.5</td><td>62.7</td><td>68.5</td><td>59.1</td><td>87.1</td><td>1799</td><td>66.9</td><td>57.6</td><td>39.0</td><td>99.4%</td></tr><tr><td>FSR</td><td>80.5</td><td>62.6</td><td>68.5</td><td>60.3</td><td>87.1</td><td>1806</td><td>66.9</td><td>58.3</td><td>41.1</td><td>100.0%</td></tr><tr><td colspan="11">Retain 640 Tokens (↓ 77.8%) 77.0 58.9 67.4 58.1 79.5 1667 63.1 53.5 39.5</td></tr><tr><td colspan="11">FastV (ECCV24)</td></tr><tr><td>DivPrune(CVPR25)</td><td>79.3</td><td>61.9</td><td>67.8</td><td>57.0</td><td>86.9</td><td>1734</td><td>65.8</td><td>57.3</td><td>38.0</td><td>94.4% 97.7%</td></tr><tr><td>HoloV (NIPS2025)</td><td>79.3</td><td>61.2</td><td>63.8</td><td>57.6</td><td>86.2</td><td>1768</td><td>64.3</td><td>56.7</td><td>38.9</td><td>97.0%</td></tr><tr><td>VisPruner(Iccv2025)</td><td>78.8</td><td>61.1</td><td>68.3</td><td>60.0</td><td>85.9</td><td>1828</td><td>64.9</td><td>57.3</td><td>38.5</td><td>98.5%</td></tr><tr><td>CDPruner(NIPS2025)</td><td>79.8</td><td>62.6</td><td>68.0</td><td>58.5</td><td>87.3</td><td>1800</td><td>66.2</td><td>57.6</td><td>41.0</td><td>99.3%</td></tr><tr><td>FSR</td><td>79.7</td><td>62.3</td><td>67.9</td><td>60.0</td><td>87.0</td><td>1833</td><td>66.3</td><td>57.9</td><td>41.9</td><td>99.9%</td></tr><tr><td colspan="11">Retain 320 Tokens (↓ 88.9%)</td></tr><tr><td colspan="11">FastV(ECCV24) 49.8</td></tr><tr><td>DivPrune(CVPR25)</td><td>61.5 77.2</td><td>61.1</td><td>66.6 67.7</td><td>52.2 56.2</td><td>49.5 84.7</td><td>1302 1687</td><td>53.4 63.9</td><td>42.5 55.7</td><td>20.0 34.8</td><td>74.9% 95.2%</td></tr><tr><td>HoloV (NIPS2025)</td><td>77.2</td><td>59.8</td><td>66.2</td><td>57.0</td><td>83.4</td><td>1753</td><td>65.5</td><td>57.0</td><td>36.5</td><td>96.0%</td></tr><tr><td>VisPruner(Iccv2025)</td><td>75.9</td><td>58.7</td><td>68.6</td><td>59.0</td><td>81.4</td><td>1753</td><td>63.8</td><td>55.8</td><td>36.3</td><td>95.4%</td></tr><tr><td>CDPruner(NIPS2025)</td><td>78.4</td><td>61.4</td><td>67.7</td><td>57.4</td><td>87.3</td><td>1773</td><td>65.4</td><td>55.6</td><td>36.7</td><td>97.3%</td></tr><tr><td>FSR</td><td>77.9</td><td>60.9</td><td>68.1</td><td>58.1</td><td>86.1</td><td>1783</td><td>64.9</td><td>56.1</td><td>39.3</td><td>97.6%</td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>
+
+$8 8 . 9 \%$ , respectively. When retaining 192 tokens $( 6 6 . 7 \%$ reduction), most pruning methods preserve competitive performance. FSR achieves the highest average score of $9 9 . 1 \%$ , outperforming strong baselines such as CDPruner $( 9 8 . 5 \% )$ and VisPruner $( 9 8 . 2 \% )$ , incurring negligible performance drop compared to the full token set. As the token budget tightens to 128 tokens ( $7 7 . 8 \%$ reduction), FSR maintains a robust average of $9 8 . 3 \%$ with gains of $0 . 7 \%$ and $1 . 6 \%$ over CDPruner and VisPruner, respectively.
+
+When the budget is further reduced to 64 tokens ( $8 8 . 9 \%$ reduction), FSR demonstrates superior stability. In this extreme setting, while attention-based methods suffer severe degradation and joint-strategy methods struggle to balance informativeness, FSR consistently maintains its lead, preserving $9 6 . 1 \%$ of the original performance and outperforming CDPruner (95.7%) and VisPruner $( 9 3 . 5 \%$ ). This robustness is particularly evident in complex reasoning tasks. Specifically, on complex benchmarks requiring holistic understanding and reasoning, such as MMVet and MMBench-EN, FSR consistently outperforms baselines under high compression (e.g., on MMVet with 64 tokens, 32.6 vs. 29.6 for CDPruner). This indicates that our strategy effectively balances salient local details with background context, preventing information fragmentation and preserving the semantic completeness for complex tasks.
+
+# 4.2.2 FSR for High-Resolution Inputs
+
+Modern VLMs increasingly adopt high-resolution encoders to capture fine-grained details, leading to a massive increase in visual tokens and substantial spatial redundancy. To evaluate the scalability of our method, we apply FSR to LLaVA-NeXT7B. Following prior work Zhang et al. (2025b), we fix the input resolution to 672×672, resulting in 2,880 visual tokens. As shown in Table 2, when retaining 960 tokens (66.7% reduction), FSR achieves performance comparable to the full-token upper bound $1 0 0 . 0 \%$ retention), effectively eliminating massive redundancy. As the reduction ratio increases to retaining 640 tokens ( $7 7 . 8 \%$ reduction), FSR remains the top performer, retaining $9 9 . 9 \%$ of the original performance.
+
+Even under the most aggressive setting of retaining 320 tokens $( 8 8 . 9 \%$ reduction), FSR continues to lead with $9 7 . 6 \%$ performance retention, consistently surpassing CDPruner $( 9 7 . 3 \% )$ and VisPruner $( 9 5 . 4 \% )$ . This result highlights that FSR is particularly well-suited for highresolution scenarios. Unlike low-resolution inputs where details are blurred, high-resolution images provide sharper fine-grained features. FSR effectively capitalizes on this by accurately capturing these clearer local evidences during the Focus stage, while the Scan and Refine stages ensure the preservation of the global context. Compared to other approaches, FSR’s dynamic allocation proves more effective in leveraging the clarity of high-resolution features to maintain high accuracy even with a limited token budget.
+
+# 4.2.3 FSR for Advanced Architectures
+
+To further evaluate the generality of FSR beyond LLaVA-style architectures, we conduct experiments on Qwen2.5-VL-7B, a more advanced VLM that supports dynamic image resolution and native token merging. These built-in efficiency designs inherently reduce token redundancy, making training-free token pruning more challenging in practice. Despite this stronger baseline, FSR still achieves the best accuracy–efficiency tradeoff. To ensure a fair and architecture-compatible evaluation, we apply a minimal adaptation of FSR to Qwen2.5-VL-7B: the Focus-stage scores are derived by aggregating the self-attention map of visual tokens, and the instruction relevance term is omitted due to the absence of text encoder.
+
+Table 3 reports the results under different token reduction ratios, ranging from moderate ( $5 0 \%$ , $6 0 \%$ ) to aggressive ( $8 0 \%$ , $9 0 \%$ ) pruning. Across all reduction ratios, FSR consistently outperforms representative baselines, including FastV and HoloV. Under moderate compression ( $5 0 \%$ and $6 0 \%$ ), FSR preserves nearly all of the original performance, achieving average scores of $9 7 . 9 \%$ and $9 6 . 4 \%$ , respectively, while maintaining clear margins over competing methods. As the compression ratio increases, the advantage of FSR becomes more pronounced. With $8 0 \%$ of visual tokens removed, FSR retains $9 1 . 9 \%$ performance, surpassing HoloV by $3 . 3 \%$ . At the extreme setting of $9 0 \%$ token reduction, FSR still achieves $8 4 . 0 \%$ of the original performance, compared to $8 2 . 1 \%$ for HoloV and $7 8 . 3 \%$ for FastV.
+
+The benefits of FSR are particularly evident on benchmarks that require integrated multimodal reasoning and robust global understanding. For example, on MMVet and MME, FSR consistently maintains superior performance even under aggressive compression, demonstrating its exceptional robustness in preserving critical information for complex reasoning tasks.
+
+# 4.2.4 FSR for Video Understanding
+
+We further assess the generalization of FSR to the video domain on LLaVA-Video-7B-Qwen2, utilizing 32 frames per video to capture temporal dynamics. As presented in Table 4, FSR consistently outperforms the state-of-the-art method HoloV across varying pruning ratios ranging from $5 0 \%$ to $8 0 \%$ . Notably, at $6 0 \%$ pruning ratio, FSR retains $9 9 . 6 \%$ of the original performance, significantly surpassing HoloV $( 9 8 . 5 \% )$ and effectively serving as a highly efficient substitute for the full token set. Even under aggressive compression where 80% of tokens are removed, FSR demonstrates superior robustness, maintaining an average score of $9 8 . 2 \%$ compared to $9 8 . 0 \%$ for HoloV. This indicates that FSR’s strategy of balancing local evidence and global context effectively extends to the temporal dimension, enabling robust preservation of critical spatiotemporal cues in challenging benchmarks.
+
+# 4.2.5 FSR for Large-Scale Models
+
+We further evaluate the effectiveness of FSR on larger scale VLMs, including LLaVA-1.5-13B and the more advanced LLaVA-NeXT-13B. The results are summarized in Tables 5 and 6, respectively, under multiple token budgets ranging from moderate to aggressive pruning.
+
+On LLaVA-1.5-13B, FSR consistently achieves the best accuracy–efficiency trade-off across all pruning ratios. Even with $8 8 . 9 \%$ of visual tokens removed, FSR retains $9 6 . 7 \%$ of the original performance, clearly outperforming representative baselines such as VisPruner and CDPruner. More notably, on LLaVA-NeXT-13B, FSR exhibits an interesting behavior. When retaining only 640 visual tokens ( $7 7 . 8 \%$ reduction), FSR slightly outperforms the unpruned baseline, achieving an average score of $1 0 1 . 7 \%$ . This result suggests that the original dense visual token set contains substantial redundancy, which may introduce noise and interfere with multimodal reasoning. By selectively preserving informative local evidence while maintaining sufficient global context, FSR effectively filters out distracting tokens, leading to more focused and accurate reasoning.
+
+Table 3 Performance comparison of different pruning methods on Qwen2.5-VL-7B. Avg. represents the average relative performance maintained across all tested benchmarks compared to the unpruned baseline. The best results are highlighted in bold.   
+
+<table><tr><td>Method</td><td>GQA</td><td>SQAIMG</td><td>VQAText</td><td>POPE</td><td>MME</td><td>MMBEN</td><td>MMBCN</td><td>MMVet</td><td>Avg.</td></tr><tr><td colspan="10">Upper Bound: All Tokens (100%)</td></tr><tr><td>Qwen2.5-VL-7B</td><td>60.8</td><td>88.9</td><td>77.6</td><td>86.5</td><td>2328</td><td>83.5</td><td>81.4</td><td>64.4</td><td>100.0%</td></tr><tr><td colspan="10">Reduction Ratio: ↓ 80%</td></tr><tr><td>FastV(ECCV24)</td><td>56.8</td><td>83.1</td><td>70.7</td><td>81.0</td><td>2102</td><td>76.8</td><td>75.4</td><td>57.4</td><td>92.0%</td></tr><tr><td>HoloV(NIPS2025)</td><td>59.5</td><td>87.8</td><td>73.8</td><td>85.1</td><td>2179</td><td>81.1</td><td>78.9</td><td>55.5</td><td>95.6%</td></tr><tr><td>FSR</td><td>60.2</td><td>87.9</td><td>76.0</td><td>86.1</td><td>2258</td><td>81.5</td><td>79.1</td><td>61.7</td><td>97.9%</td></tr><tr><td colspan="10">Reduction Ratio: ↓60%</td></tr><tr><td>FastV(ECCV24)</td><td>56.3</td><td>83.1</td><td>68.8</td><td>80.2</td><td>2063</td><td>75.7</td><td>73.5</td><td>51.4</td><td>89.8%</td></tr><tr><td>HoloV(NIPS2025)</td><td>59.0</td><td>87.2</td><td>71.9</td><td>84.4</td><td>2177</td><td>79.7</td><td>77.8</td><td>52.1</td><td>94.2%</td></tr><tr><td>FSR</td><td>59.9</td><td>87.5</td><td>75.1</td><td>85.2</td><td>2227</td><td>80.3</td><td>78.5</td><td>57.5</td><td>96.4%</td></tr><tr><td colspan="10">Reduction Ratio: ↓80%</td></tr><tr><td>FastV(ECCV24)</td><td>54.2</td><td>82.2</td><td>61.0</td><td>77.5</td><td>1915</td><td>72.5</td><td>70.0</td><td>44.7</td><td>84.6%</td></tr><tr><td>HoloV(NIPS2025)</td><td>57.1</td><td>86.0</td><td>64.5</td><td>81.3</td><td>2008</td><td>76.3</td><td>73.4</td><td>45.3</td><td>88.6%</td></tr><tr><td>FSR</td><td>58.3</td><td>86.7</td><td>70.3</td><td>83.2</td><td>2089</td><td>78.7</td><td>74.9</td><td>49.8</td><td>91.9%</td></tr><tr><td colspan="10">Reduction Ratio: ↓ 90%</td></tr><tr><td>FastV(ECCV24)</td><td>50.8</td><td>80.0</td><td>53.0</td><td>72.2</td><td>1794.7</td><td>68.2</td><td>65.1</td><td>37.1</td><td>78.3%</td></tr><tr><td>HoloV(NIPS2025)</td><td>53.6</td><td>84.4</td><td>55.7</td><td>76.4</td><td>1831</td><td>72.3</td><td>68.9</td><td>38.9</td><td>82.1%</td></tr><tr><td>FSR</td><td>54.1</td><td>84.5</td><td>61.0</td><td>77.3</td><td>1907</td><td>71.7</td><td>68.3</td><td>41.4</td><td>84.0%</td></tr></table>
+
+Table 4 Performance comparison of different pruning methods on LLaVA-Video-7B-qwen2 with 32 frames per video. Avg. represents the average percentage of performance maintained. “w/o” and $^ { * } \mathrm { w } / ^ { , , }$ indicate without and with subtitle   
+
+<table><tr><td>Method Metric</td><td>MMVU val</td><td>MMWorld test</td><td>MLVU test</td><td>MVBench test</td><td>all+w/o all+w/</td><td>Video-MME</td><td>long</td><td>Avg.</td></tr><tr><td colspan="2"></td><td colspan="3">Upper Bound: All Tokens (100%)</td><td colspan="3"></td><td></td></tr><tr><td colspan="2">LLaVA-Video-7B-qwen2 44.0</td><td>30.0</td><td>50.1</td><td>60.8</td><td>62.6</td><td>62.4</td><td>51.8</td><td>100%</td></tr><tr><td colspan="2"></td><td></td><td>Reduction Ratio: ↓ 50%</td><td></td><td></td><td></td><td></td><td></td></tr><tr><td rowspan="2">HoloV(NIPS2025) FSR</td><td>44.2</td><td>31.5</td><td>49.1</td><td>59.4</td><td>61.7</td><td>61.6</td><td>51.3</td><td>99.2%</td></tr><tr><td>46.0</td><td>31.1</td><td>50.2</td><td>59.7</td><td>61.9</td><td>62.0</td><td>51.6</td><td>100.3%</td></tr><tr><td colspan="2">Reduction Ratio: ↓ 60%</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td rowspan="2">HoloV (NIPS2025) FSR</td><td>43.4</td><td>30.8</td><td>49.1</td><td>59.3</td><td>61.4</td><td>61.0</td><td>51.3</td><td>98.5%</td></tr><tr><td>44.6</td><td>31.1</td><td>50.0</td><td>59.4</td><td>61.6</td><td>61.5</td><td>52.2</td><td>99.6%</td></tr><tr><td colspan="2">Reduction Ratio: ↓ 70%</td><td></td><td></td><td>59.0</td><td></td><td></td><td></td><td></td></tr><tr><td>HoloV(NIPS2025) FSR</td><td>43.7</td><td>31.0</td><td>48.5</td><td></td><td>60.6</td><td>61.2</td><td>51.2</td><td>98.2%</td></tr><tr><td></td><td>44.6</td><td>31.6</td><td>47.6</td><td>59.2</td><td>61.3</td><td>61.5</td><td>52.0</td><td>98.9%</td></tr><tr><td colspan="2">Reduction Ratio: ↓ 80%</td><td></td><td>46.5</td><td>58.3</td><td>60.4</td><td></td><td>51.6</td><td></td></tr><tr><td>HoloV (NIPS2025) FSR</td><td>44.0</td><td>32.9</td><td></td><td>58.5</td><td>60.2</td><td>60.8</td><td></td><td>98.0%</td></tr><tr><td></td><td>43.4</td><td>33.3</td><td>46.5</td><td></td><td></td><td>60.9</td><td>52.3</td><td>98.2%</td></tr></table>
+
+# 4.3 Efficiency Analysis
+
+We evaluate the efficiency of FSR in terms of computational cost, inference latency, and memory footprint on a single NVIDIA RTX 3090 GPU. As shown in Table 7, retaining only 64 tokens, FSR yields substantial resource savings compared to the LLaVA-1.5-7B baseline: FLOPs are reduced by approximately 75%, and KV cache memory is compressed by nearly ${ \bf 9 } \times$ . These reductions translate into significant runtime benefits, achieving a $\mathbf { 3 . 9 \times }$ speedup in the prefill stage.
+
+Crucially, FSR achieves the most superior accuracy–efficiency trade-off among all compared methods. FSR maintains the lowest decode latency (22.317 ms) and matches the prefill speed of state-of-the-art pruners like CDPruner, confirming that our pipeline introduces negligible system overhead. While purely efficiency-oriented methods like FastV suffer severe accuracy drops, FSR delivers the highest score in MMBenchEN, validating its suitability for practical, highperformance deployment.
+
+Table 5 Performance comparison of different pruning methods on LLaVA-1.5-13B. Avg. represents the average relative performance maintained across all tested benchmarks compared to the unpruned baseline. The best results are highlighted in bold.   
+
+<table><tr><td>Method</td><td>VQA V2</td><td>GQA</td><td>SQAIMG</td><td>VQAText</td><td>POPE</td><td>MME</td><td>MMBEN</td><td>MMBCN</td><td>MMVet</td><td>Avg.</td></tr><tr><td colspan="9">Upper Bound, Al 576 Tokens (100%)</td><td rowspan="2">100%</td></tr><tr><td>LLaVA-1.5-13B</td><td>80.0</td><td>63.3</td><td>72.8</td><td>61.2</td><td>86.1</td><td>1828</td><td>68.5</td><td>63.5</td><td>36.7</td></tr><tr><td colspan="11">Retain 192 Tokens (↓ 66.7%)</td></tr><tr><td>HoloV (NIPS2025)</td><td>-</td><td>58.5</td><td>72.3</td><td>58.0</td><td>84.2</td><td>1754</td><td>65.8</td><td>60.2</td><td>35.5</td><td>96.1%</td></tr><tr><td>VisPruner(Iccv2025)</td><td>78.1</td><td>59.5</td><td>73.9</td><td>59.7</td><td>86.0</td><td>1750</td><td>67.2</td><td>62.5</td><td>37.0</td><td>98.1%</td></tr><tr><td>CDPruner(NIPS2025)</td><td>78.4</td><td>60.4</td><td>72.4</td><td>58.7</td><td>86.6</td><td>1776</td><td>67.2</td><td>62.1</td><td>35.7</td><td>97.9%</td></tr><tr><td>FSR</td><td>78.6</td><td>60.2</td><td>73.3</td><td>59.5</td><td>86.4</td><td>1805</td><td>67.3</td><td>63.0</td><td>37.4</td><td>98.8%</td></tr><tr><td colspan="11">Retain 128 Tokens (↓ 77.8%)</td></tr><tr><td colspan="11">FastV(ECCV24) 58.3 58.6 1722 66.1</td></tr><tr><td>VisionZip(CVPR25)</td><td>75.3 76.8</td><td>57.9</td><td>74.2 73.8</td><td>58.9</td><td>75.5 82.7</td><td>1710</td><td>67.4</td><td>62.3 62.5</td><td>32.8 36.0</td><td>94.5% 96.5%</td></tr><tr><td>DivPrune(CVPR25)</td><td>77.1</td><td>59.2</td><td>72.8</td><td>58.0</td><td>86.8</td><td>1720</td><td>66.3</td><td>60.7</td><td>34.4</td><td>96.4%</td></tr><tr><td>HoloV(NIPS2025)</td><td>-</td><td>57.5</td><td>73.6</td><td>58.1</td><td>81.9</td><td>1731</td><td>66.5</td><td>62.0</td><td>35.4</td><td>96.0%</td></tr><tr><td>VisPruner(Iccv2025)</td><td>76.9</td><td>58.4</td><td>73.9</td><td>59.2</td><td>83.8</td><td>1736</td><td>67.2</td><td>62.2</td><td>36.9</td><td>97.1%</td></tr><tr><td>CDPruner(NIPS2025)</td><td>77.7</td><td>59.7</td><td>72.5</td><td>58.4</td><td>87.3</td><td>1778</td><td>67.5</td><td>61.4</td><td>37.3</td><td>97.9%</td></tr><tr><td>FSR</td><td>78.0</td><td>59.6</td><td>73.8</td><td>58.8</td><td>86.3</td><td>1768</td><td>68.2</td><td>61.6</td><td>38.8</td><td>98.4%</td></tr><tr><td colspan="11">Retain 64 Tokens (↓88.9%)</td></tr><tr><td>FastV (ECCV24)</td><td>65.3</td><td>51.9</td><td>73.1</td><td>53.4</td><td>56.9</td><td>1470</td><td>59.2</td><td>55.1</td><td>26.9</td><td>82.6%</td></tr><tr><td>VisionZip(CVPR25)</td><td>73.7</td><td>56.2</td><td>74.2</td><td>57.4</td><td>75.7</td><td>1628</td><td>64.9</td><td>61.3</td><td>33.4</td><td>92.7%</td></tr><tr><td>DivPrune(CVPR25)</td><td>75.2</td><td>57.9</td><td>71.7</td><td>57.4</td><td>84.5</td><td>1713</td><td>64.1</td><td>59.8</td><td>29.3</td><td>93.%</td></tr><tr><td>HoloV(NIPS2025)</td><td>-</td><td>56.0</td><td>74.2</td><td>57.1</td><td>75.6</td><td>1683</td><td>64.4</td><td>60.3</td><td>33.9</td><td>93.0%</td></tr><tr><td>VisPruner(Iccv2025)</td><td>73.9</td><td>56.0</td><td>74.0</td><td>57.9</td><td>79.2</td><td>1694</td><td>65.0</td><td>59.9</td><td>33.1</td><td>93.6%</td></tr><tr><td>CDPruner(NIPS2025)</td><td>76.7</td><td>59.4</td><td>72.4</td><td>57.6</td><td>87.2</td><td>1744</td><td>65.5</td><td>58.9</td><td>35.8</td><td>96.3%</td></tr><tr><td>FSR</td><td>76.8</td><td>58.6</td><td>73.0</td><td>58.1</td><td>85.0</td><td>1750</td><td>66.3</td><td>60.7</td><td>36.7</td><td>96.7%</td></tr></table>
+
+Table 6 Performance comparison of different pruning methods on LLaVA-NeXT-13B. Avg. represents the average relative performance maintained across all tested benchmarks compared to the unpruned baseline. The best results are highlighted in bold.   
+
+<table><tr><td>Method</td><td>VQA V2</td><td>GQA</td><td>SQAIMG</td><td>VQAText</td><td>POPE</td><td>MME</td><td>MMBEN</td><td>MMBCN</td><td>MMVet</td><td>Avg.</td></tr><tr><td colspan="9">Upper Bound, All 2880 Tokens (100%)</td><td rowspan="2">100.0%</td></tr><tr><td>LLaVA-NeXT-13B</td><td>82.3</td><td>64.3</td><td>73.2</td><td>63.2</td><td>85.3</td><td>1837</td><td>68.6</td><td>61.2</td><td>36.6</td></tr><tr><td colspan="10">Retain 960 Tokens (↓ 66.7%)</td></tr><tr><td>HoloV (NIPS2025)</td><td></td><td>63.1</td><td>69.5</td><td>60.6</td><td>85.8</td><td>1840</td><td>64.4</td><td>56.4</td><td>42.3</td><td>98.1%</td></tr><tr><td>VisPruner(Iccv2025)</td><td>- 80.8</td><td>63.7</td><td>71.9</td><td>62.5</td><td>86.0</td><td>1902</td><td>69.0</td><td>63.1</td><td>45.0</td><td>101.7%</td></tr><tr><td>CDPruner(NIPS2025)</td><td>81.6</td><td>64.3</td><td>72.1</td><td>61.3</td><td>87.1</td><td>1880</td><td>69.2</td><td>62.5</td><td>41.7</td><td>101.2%</td></tr><tr><td>FSR</td><td>81.3</td><td>64.4</td><td>72.2</td><td>62.5</td><td>86.9</td><td>1885</td><td>70.4</td><td>63.3</td><td>44.7</td><td>102.1%</td></tr><tr><td colspan="11">Retain 640 Tokens (↓ 77.8%)</td></tr><tr><td colspan="19">FastV(ECCV24)</td></tr><tr><td>VisionZip(CVPR25)</td><td>79.4 79.7</td><td>60.9 62.9</td><td>71.7 70.8</td><td>60.7 62.1</td><td>80.2 85.8</td><td>1804 1844</td><td>65.5 68.1</td><td>59.9 62.6</td><td>43.8 46.8</td><td>97.7% 100.7%</td></tr><tr><td>DivPrune(CVPR25)</td><td>80.4</td><td>63.5</td><td>72.2</td><td>59.2</td><td>86.5</td><td>1816</td><td>67.5</td><td>62.9</td><td>39.0</td><td>99.3%</td></tr><tr><td>HoloV (NIPS2025)</td><td>-</td><td>62.8</td><td>71.7</td><td>60.0</td><td>85.9</td><td>1830</td><td>67.0</td><td>60.6</td><td>41.3</td><td>99.4%</td></tr><tr><td>VisPruner(Iccv2025)</td><td>79.7</td><td>62.9</td><td>71.1</td><td>62.0</td><td>84.6</td><td>1876</td><td>67.7</td><td>62.6</td><td>46.1</td><td>10.6%</td></tr><tr><td>CDPruner(NIPS2025)</td><td>81.0</td><td>63.9</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>100.8%</td></tr><tr><td>FSR</td><td>80.6</td><td>63.8</td><td>71.9 71.6</td><td>60.9 61.9</td><td>87.6 87.2</td><td>1871 1908</td><td>68.9 69.2</td><td>62.5 63.3</td><td>41.4 44.1</td><td>101.7%</td></tr><tr><td colspan="9">Retain 320 Tokens (↓ 88.9%)</td></tr><tr><td>FastV (ECCV24)</td><td>69.8</td><td>54.6</td><td>70.5</td><td>55.4</td><td>63.6</td><td>1522</td><td>59.8</td><td>54.4</td><td>30.2</td><td>85.3%</td></tr><tr><td>VisionZip(CVPR25)</td><td>76.8</td><td>60.7</td><td>70.2</td><td>60.7</td><td>82.3</td><td>1770</td><td>66.5</td><td>62.3</td><td>41.1</td><td>97.2%</td></tr><tr><td>DivPrune(CVPR25)</td><td>78.1</td><td>61.8</td><td>72.3</td><td>57.6</td><td>85.2</td><td>1753</td><td>65.9</td><td>61.9</td><td>39.2</td><td>97.3%</td></tr><tr><td>HoloV (NIPS2025)</td><td>-</td><td>60.9</td><td>70.6</td><td>59.5</td><td>83.4</td><td>1789</td><td>67.9</td><td>62.5</td><td>40.7</td><td>98.3%</td></tr><tr><td>VisPruner(Iccv2025)</td><td>76.7</td><td>60.4</td><td>70.5</td><td>60.3</td><td>81.2</td><td>1831</td><td>66.5</td><td>62.5</td><td>39.7</td><td>97.3%</td></tr><tr><td>CDPruner(NIPS2025)</td><td>79.5</td><td>63.0</td><td>71.1</td><td>59.0</td><td>87.6</td><td>1789</td><td>66.8</td><td>61.9</td><td>42.1</td><td>99.0%</td></tr><tr><td>FSR</td><td>78.8</td><td>62.7</td><td>70.3</td><td>60.3</td><td>86.8</td><td>1882</td><td>67.9</td><td>63.1</td><td>42.3</td><td>100.0%</td></tr></table>
+
+# 4.4 Ablation Study
+
+We conduct ablation studies on LLaVA-v1.5- 7B, LLaVA-NeXT-7B, and LLaVA-NeXT-13B to examine the contribution of each component in FSR across varying pruning ratios. The results are summarized in Figure 5. Starting from single-cue baselines, we progressively validate the efficacy of the proposed Focus–Scan–Refine pipeline.
+
+Impact of hyperparameters $\alpha$ and $\beta$ . We first investigate the trade-off between instruction relevance $( \hat { r } )$ and visual saliency (sˆ) by varying the exponents in Eq. 3 $\phi _ { i } = \hat { r } _ { i } ^ { \alpha } \hat { s } _ { i } ^ { \beta }$ ). As shown in Figure 5, relying solely on visual saliency ( $\alpha =$ $0 , \beta = 1$ ) or instruction relevance ( $\alpha = 1 , \beta =$ 0) leads to noticeable performance degradation, especially under aggressive reduction (88.9%). For instance, instruction relevance alone often fails to capture background context, while visual saliency may miss task-specific targets. In contrast, the dual-pathway strategy ( $\alpha = 3 , \beta = 1$ ) consistently achieves the highest accuracy across all models. This demonstrates that visual saliency and semantic relevance provide complementary signals—one capturing intrinsic visual prominence and the other ensuring instruction-level alignment.
+
+Table 7 Comparison of efficiency and performance metrics on LLaVA-1.5-7B. We evaluate computational cost, inference latency, and memory footprint when retaining 64 visual tokens. Score denotes the accuracy performance on the MMBench-EN benchmark.   
+
+<table><tr><td>Method</td><td>Token</td><td>(T)</td><td>(T)</td><td>(ms/token)</td><td>FLOPS MACs Prefill Time Decode Time KV Cache (ms/token)</td><td>(MB)</td><td>GPU Memory (GB)</td><td>Score</td></tr><tr><td>LLaVA-1.5-7B</td><td>576</td><td>9.042</td><td>4.521</td><td>3.056</td><td>23.952</td><td>288.0</td><td>16.9</td><td>64.6</td></tr><tr><td>FastV</td><td>64</td><td>3.610</td><td>1.800</td><td>0.912</td><td>23.123</td><td>32.1</td><td>15.4</td><td>50.1</td></tr><tr><td>VisPruner</td><td>64</td><td>2.277</td><td>1.138</td><td>0.791</td><td>22.573</td><td>32.0</td><td>13.2</td><td>59.4</td></tr><tr><td>CDPruner</td><td>64</td><td>2.293</td><td>1.146</td><td>0.775</td><td>22.563</td><td>32.0</td><td>13.2</td><td>60.8</td></tr><tr><td>Ours</td><td>64</td><td>2.291</td><td>1.145</td><td>0.788</td><td>22.317</td><td>32.0</td><td>13.2</td><td>61.9</td></tr></table>
+
+![](images/aec45bd02122f6aa9cc0c707a7af7ff3f061e676e453326f28a0244c1e88aba8.jpg)  
+Fig. 5 Ablation study on LLaVA-1.5-7B, LLaVA-NeXT-7B, and LLaVA-NeXT-13B across varying pruning ratios, validating the impact of dual-pathway hyperparameters $( \alpha , \beta )$ , focus-conditioned scanning, and aggregation refinement ratio $( \kappa )$ .
+
+Effectiveness of focus-conditioned scan. Building upon the dual-pathway selection, introducing the second-stage Scan mechanism boosts performance. Compared to using focused tokens alone, this stage effectively supplements complementary global context conditioned on the local evidence. This addition proves crucial for multiobject understanding and reasoning-heavy queries where local cues are insufficient. Notably, the performance gains are most pronounced under aggressive compression, where the information captured by the Focus stage becomes limited and the Scan stage plays a critical role in supplementing sufficient global context.
+
+Impact of aggregation refinement. The Refine stage provides a further performance boost, which becomes increasingly valuable under extreme reduction ratios. By aggregating discarded but relevant tokens into the scan anchors, FSR recovers missing details without expanding the token budget. However, we observe that the gain saturates when the merge ratio is excessive ( $\kappa ~ = ~ 5$ ), as merging too many tokens tends to blur the aggregated representation. A moderate refine ratio ( $\kappa = 1$ ) achieves the optimal trade-off, delivering consistent gains by enriching context without over-smoothing features. Interestingly, we note that this benefit is less pronounced on larger models like LLaVA-NeXT-13B, suggesting that stronger LLM backbones possess higher tolerance for minor information loss in peripheral regions.
+
+# 5 Conclusion
+
+In this paper, we propose FSR, a trainingfree visual token pruning framework inspired by human visual perception, which addresses the fundamental challenge of allocating a limited token budget in VLMs. FSR explicitly models the progressive coordination between local evidence and global context through a three-stage process: focusing on task-critical regions, scanning for complementary contextual cues, and refining sparse representations via aggregation. By jointly considering visual saliency, conditional global coverage, and redundancy-aware refinement, FSR preserves both query-relevant evidence and holistic scene information under strict token constraints.
+
+Extensive experiments across diverse model architectures, input resolutions, and image–video benchmarks demonstrate that FSR consistently achieves a superior accuracy–efficiency trade-off compared to prior methods. These results highlight the effectiveness of human-inspired local– global coordination as a general paradigm for efficient multimodal inference, and position FSR as a practical solution for deploying large-scale VLMs under real-world resource constraints.
+
+# Statements and Declarations
+
+Competing Interests. The authors declare that they have no competing interests.
+
+Data Availability. All data analyzed during this study are included in this published article. The original publicly available datasets used for evaluation are cited within the manuscript.
+
+# References
+
+Alayrac JB, Donahue J, Luc P, et al (2022) Flamingo: a visual language model for fewshot learning. URL https://arxiv.org/abs/2204. 14198, arXiv:2204.14198
+
+Alvar SR, Singh G, Akbari M, et al (2025) Divprune: Diversity-based visual token pruning for large multimodal models. In: Proceedings of the Computer Vision and Pattern Recognition Conference, pp 9392–9401
+
+Alvarez G (2011) Representing multiple objects as an ensamble enhance visual cognition. Trends
+
+Arif KHI, Yoon J, Nikolopoulos DS, et al (2025) Hired: Attention-guided token dropping for efficient inference of high-resolution visionlanguage models. In: Proceedings of the AAAI Conference on Artificial Intelligence, pp 1773– 1781
+
+Bai J, Bai S, Yang S, et al (2023) Qwen-vl: A versatile vision-language model for understanding, localization, text reading, and beyond. URL https://arxiv.org/abs/2308.12966, arXiv:2308.12966
+
+Chen L, Zhao H, Liu T, et al (2024a) An image is worth 1/2 tokens after layer 2: Plug-and-play inference acceleration for large vision-language models. In: European Conference on Computer Vision, Springer, pp 19–35
+
+Chen Z, Wu J, Wang W, et al (2024b) Internvl: Scaling up vision foundation models and aligning for generic visual-linguistic tasks. URL https://arxiv.org/abs/2312.14238, arXiv:2312.14238
+
+Dai W, Li J, Li D, et al (2023) Instructblip: Towards general-purpose vision-language models with instruction tuning. URL https://arxiv. org/abs/2305.06500, arXiv:2305.06500
+
+Dao T, Fu DY, Ermon S, et al (2022) Flashattention: Fast and memory-efficient exact attention with io-awareness. URL https://arxiv.org/abs/ 2205.14135, arXiv:2205.14135
+
+Ding W, Yu G (2025) Young learners’ cognitive processes in picture-based causal explanation speaking tasks: Synchronizing eye movements with speech production. Language Assessment Quarterly 22:1–30. https://doi.org/10. 1080/15434303.2025.2604719
+
+Fu C, Chen P, Shen Y, et al (2025a) Mme: A comprehensive evaluation benchmark for multimodal large language models. In: The Thirtyninth Annual Conference on Neural Information Processing Systems Datasets and Benchmarks Track
+
+Fu C, Dai Y, Luo Y, et al (2025b) Videomme: The first-ever comprehensive evaluation benchmark of multi-modal llms in video analysis. URL https://arxiv.org/abs/2405.21075, arXiv:2405.21075
+
+Gonzalez TF (1985) Clustering to minimize the maximum intercluster distance. Theor Comput Sci 38:293–306. URL https://api. semanticscholar.org/CorpusID:205092276
+
+Goyal Y, Khot T, Summers-Stay D, et al (2017) Making the v in vqa matter: Elevating the role of image understanding in visual question answering. In: Proceedings of the IEEE conference on computer vision and pattern recognition, pp 6904–6913
+
+He X, Feng W, Zheng K, et al (2024) Mmworld: Towards multi-discipline multi-faceted world model evaluation in videos. URL https://arxiv. org/abs/2406.08407, arXiv:2406.08407
+
+Henderson JM (2003) Human gaze control during real-world scene perception. Trends in Cognitive Sciences 7(11):498–504. https://doi.org/https: //doi.org/10.1016/j.tics.2003.09.006, URL https://www.sciencedirect.com/science/ article/pii/S1364661303002481
+
+Hochbaum DS, Shmoys DB (1985) A best possible heuristic for the k-center problem. Mathematics of Operations Research 10(2):180–184. URL http://www.jstor.org/stable/3689371
+
+Hu S, Tu Y, Han X, et al (2024) Minicpm: Unveiling the potential of small language models with scalable training strategies. arXiv preprint arXiv:240406395
+
+Hudson DA, Manning CD (2019) Gqa: A new dataset for real-world visual reasoning and compositional question answering. In: Proceedings of the IEEE/CVF conference on computer vision and pattern recognition, pp 6700–6709
+
+Jiang AQ, Sablayrolles A, Mensch A, et al (2023) Mistral 7b. URL https://arxiv.org/abs/2310. 06825, arXiv:2310.06825
+
+Khaki S, Guo J, Tang J, et al (2025) Sparsevila: Decoupling visual sparsity for efficient vlm inference. In: Proceedings of the IEEE/CVF International Conference on Computer Vision, pp 23784–23794
+
+Li F, Zhang R, Zhang H, et al (2024a) Llava-nextinterleave: Tackling multi-image, video, and 3d in large multimodal models. URL https://arxiv. org/abs/2407.07895, arXiv:2407.07895
+
+Li J, Li D, Savarese S, et al (2023a) Blip2: Bootstrapping language-image pre-training with frozen image encoders and large language models. URL https://arxiv.org/abs/ 2301.12597, arXiv:2301.12597
+
+Li K, Wang Y, He Y, et al (2024b) Mvbench: A comprehensive multi-modal video understanding benchmark. URL https://arxiv.org/abs/ 2311.17005, arXiv:2311.17005
+
+Li Y, Du Y, Zhou K, et al (2023b) Evaluating object hallucination in large vision-language models. arXiv preprint arXiv:230510355
+
+Liu H, Li C, Wu Q, et al (2023) Visual instruction tuning. URL https://arxiv.org/abs/2304.08485, arXiv:2304.08485
+
+Liu Y, Duan H, Zhang Y, et al (2024) Mmbench: Is your multi-modal model an all-around player? In: European conference on computer vision, Springer, pp 216–233
+
+Lu P, Mishra S, Xia T, et al (2022) Learn to explain: Multimodal reasoning via thought chains for science question answering. Advances in Neural Information Processing Systems 35:2507–2521
+
+OpenAI (2023) Gpt-4v(ision) system card. OpenAI Blog, URL https://openai.com/research/ gpt-4v-system-card, accessed: Jan. 15, 2024
+
+OpenAI, Achiam J, Adler S, et al (2024) Gpt4 technical report. URL https://arxiv.org/abs/ 2303.08774, arXiv:2303.08774
+
+Qwen, :, Yang A, et al (2025) Qwen2.5 technical report. URL https://arxiv.org/abs/2412.15115, arXiv:2412.15115
+
+Radford A, Kim JW, Hallacy C, et al (2021) Learning transferable visual models from natural language supervision. URL https://arxiv. org/abs/2103.00020, arXiv:2103.00020
+
+Shang Y, Cai M, Xu B, et al (2024) Llavaprumerge: Adaptive token reduction for efficient large multimodal models. URL https://arxiv. org/abs/2403.15388, arXiv:2403.15388
+
+Singh A, Natarajan V, Shah M, et al (2019) Towards vqa models that can read. In: Proceedings of the IEEE/CVF conference on computer vision and pattern recognition, pp 8317–8326
+
+Team G, Mesnard T, Hardin C, et al (2024) Gemma: Open models based on gemini research and technology. arXiv preprint arXiv:240308295
+
+Team G, Anil R, Borgeaud S, et al (2025) Gemini: A family of highly capable multimodal models. URL https://arxiv.org/abs/ 2312.11805, arXiv:2312.11805
+
+Touvron H, Lavril T, Izacard G, et al (2023) Llama: Open and efficient foundation language models. arXiv preprint arXiv:230213971
+
+Vaswani A, Shazeer N, Parmar N, et al (2017) Attention is all you need. Advances in neural information processing systems 30
+
+Velichkovsky; BWTJWKMFM (2010) Yarbus, eye movements, and vision. i-Perception 1(1):7–27. https://doi.org/10.1068/i0382, URL http://dx.doi.org/10.1068/i0382, http://dx.doi.org/10.1068/i0382
+
+Wen Z, Gao Y, Wang S, et al (2025) Stop looking for important tokens in multimodal language models: Duplication matters more. arXiv preprint arXiv:250211494
+
+Wolfe J, Horowitz T (2017) Five factors that guide attention in visual search. Nature Human Behaviour 1:0058. https://doi.org/10. 1038/s41562-017-0058
+
+Xing L, Huang Q, Dong X, et al (2024) Pyramiddrop: Accelerating your large vision-language models via pyramid visual redundancy reduction. arXiv preprint arXiv:241017247
+
+Yang C, Sui Y, Xiao J, et al (2025a) Topv: Compatible token pruning with inference time optimization for fast and low-memory multimodal vision language model. In: Proceedings of the Computer Vision and Pattern Recognition Conference, pp 19803–19813
+
+Yang S, Chen Y, Tian Z, et al (2025b) Visionzip: Longer is better but not necessary in vision language models. In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), pp 19792– 19802
+
+Ye W, Wu Q, Lin W, et al (2025) Fit and prune: Fast and training-free visual token pruning for multi-modal large language models. In: Proceedings of the AAAI Conference on Artificial Intelligence, pp 22128–22136
+
+Yu W, Yang Z, Li L, et al (2023) Mm-vet: Evaluating large multimodal models for integrated capabilities. arXiv preprint arXiv:230802490
+
+Zhang Q, Cheng A, Lu M, et al (2024a) [cls] attention is all you need for training-free visual token pruning: Make vlm inference faster. arXiv e-prints pp arXiv–2412
+
+Zhang Q, Cheng A, Lu M, et al (2025a) Beyond text-visual attention: Exploiting visual cues for effective token pruning in vlms. In: Proceedings of the IEEE/CVF International Conference on Computer Vision, pp 20857–20867
+
+Zhang Q, Liu M, Li L, et al (2025b) Beyond attention or similarity: Maximizing conditional diversity for token pruning in mllms. arXiv preprint arXiv:250610967
+
+Zhang Y, Fan CK, Ma J, et al (2024b) Sparsevlm: Visual token sparsification for efficient vision-language model inference. arXiv preprint arXiv:241004417
+
+Zhao Y, Xie L, Zhang H, et al (2025) Mmvu: Measuring expert-level multi-discipline video understanding. URL https://arxiv.org/ abs/2501.12380, arXiv:2501.12380
+
+Zhou J, Shu Y, Zhao B, et al (2025) Mlvu: Benchmarking multi-task long video understanding. URL https://arxiv.org/abs/2406.04264, arXiv:2406.04264   
+Zhu D, Chen J, Shen X, et al (2023) Minigpt-4: Enhancing vision-language understanding with advanced large language models. URL https:// arxiv.org/abs/2304.10592, arXiv:2304.10592   
+Zou X, Lu D, Wang Y, et al (2025) Don’t just chase” highlighted tokens” in mllms: Revisiting visual holistic context retention. arXiv preprint arXiv:251002912
