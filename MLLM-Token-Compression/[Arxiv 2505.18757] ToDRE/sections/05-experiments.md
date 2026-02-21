@@ -28,6 +28,9 @@ Experimental Setting. We evaluate ToDRE over multiple prevalent LVLMs (including
 
 **Video Understanding Tasks.** To further assess ToDRE's generalization ability, we evaluate it on both short- and longform video understanding benchmarks. As shown in Table 2, ToDRE outperforms the baseline by $3 . 1 \%$ and $0 . 9 \%$ under the same token retention ratios used for images, and surpasses the second-best method by $0 . 6 \%$ and $0 . 2 \%$ , respectively. Interestingly, ToDRE even surpasses the baseline model in some cases. We attribute this to the reduced interference from redundant visual tokens, which may otherwise suppress task-relevant information during inference. Similarly, SparseVLM is excluded due to transferability issues, and GlobalCom2 [39] is omitted as it is specifically designed for image-only inputs. In contrast, ToDRE demonstrates broad generalization across both modalities and model scales.
 
+![Table 2](../images/b9224de27490a71fcf07a349a54a697c99b0ec73f81a86c69ba18a6cb2ad2779.jpg)
+*Table 2: Performance of training-free token compression methods across video understanding benchmarks.*
+
 > 💡 **Table 2 批读 — Video Understanding**:
 > - ToDRE 在视频任务上甚至**超越原始模型**（103.1% at 25%, 100.9% at 10%）
 > - 原因：冗余 visual token 反而是噪声，删除后减少干扰
@@ -35,6 +38,9 @@ Experimental Setting. We evaluate ToDRE over multiple prevalent LVLMs (including
 > - DivPrune 也不错（100.7% at 10%）但 ToDRE 的 Stage 2 带来额外增益
 
 ---
+
+![Table 3](../images/8a595f3f538fcc993fa82cfd93d894b69b0acc8fedb8a3d969d9266a875c5630.jpg)
+*Table 3: Cross-model evaluation on Qwen2.5-VL-7B-Instruct and InternVL2-8B.*
 
 **Cross-Model Evaluation.** As shown in Table 3, we further evaluate ToDRE on Qwen and InternVL backbones. Specifically, ToDRE retains $9 7 . 1 \%$ and $9 6 . 8 \%$ of the original performance on Qwen2.5-VL-7B-Instruct and InternVL2- 8B at a $2 5 \%$ retention ratio, respectively, and still maintains more than $90 \%$ of the original performance even when only $10 \%$ of visual tokens are preserved, demonstrating strong robustness across different model architectures.
 
