@@ -24,9 +24,7 @@ Benchmarks To thoroughly evaluate the HiDivDrop, we conduct experiments on 11 ma
 
 Efficiency Evaluation We consider the efficiency in both training and inference following PDrop (Xing et al., 2024). For training, we report real GPU hours on the same device; for inference, we report FLOPs for vision token part. Specifically, for a Transformer block, the FLOPs from MHA and FFN are $4 n d ^ { 2 } + 2 n ^ { 2 } d + 3 \dot { n } d m$ , where $n$ is the number of vision tokens, $d$ is the hidden size, and $m$ is the FFN intermediate dimension. Aggregating across layers (with $n _ { \ell }$ denoting the number of vision tokens at layer $\ell$ ), the total FLOPs are:
 
-$$
-\mathrm { F L O P s } = \sum _ { \ell = 1 } ^ { L } \left( 4 n _ { \ell } d ^ { 2 } + 2 n _ { \ell } ^ { 2 } d + 3 n _ { \ell } d m \right)
-$$
+![Equation](../images/45c13e38dd9d4bc86a865ce056a142d5354dbcf28aa515408f88d3899e6dff48.jpg)
 
 > 💡 **FLOPs 计算公式**:
 > - 每层：MHA ($4nd^2 + 2n^2d$) + FFN ($3ndm$)

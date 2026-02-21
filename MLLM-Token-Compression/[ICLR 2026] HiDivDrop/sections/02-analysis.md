@@ -39,9 +39,7 @@ Shallow Layers: Propagators A prevalent assumption in progressive pruning is tha
 
 First, we analyze intra-modal refinement by measuring how token representations evolve across layers for each modality $\mathcal { M } \in$ {System, Visual, Textual}. Concretely, we compute the modalityspecific cosine similarity $( \mathbf { S } _ { \mathrm { i n t r a } } ^ { \mathcal { M } } )$ ) between the outputs of consecutive layers:
 
-$$
-\mathbf { S } _ { \mathrm { i n t r a } } ^ { \mathcal { M } } = \frac { 1 } { N _ { \mathrm { s a m p l e } } } \sum _ { i = 1 } ^ { N _ { \mathrm { s a m p l e } } } \left( \frac { 1 } { N _ { \mathcal { M } } } \sum _ { t \in \mathcal { T } _ { \mathcal { M } } } \frac { \langle x _ { i , t } ^ { l } , x _ { i , t } ^ { l + 1 } \rangle } { \| x _ { i , t } ^ { l } \| _ { 2 } \| x _ { i , t } ^ { l + 1 } \| _ { 2 } } \right) .
-$$
+![Equation](../images/6bf3835a0d429328071ae8951704cb3ee11fab91c75c35cb032ac0fb0603958f.jpg)
 
 where $l$ denotes the layer index, $N _ { \mathrm { s a m p l e } }$ is the number of samples, $\tau _ { \mathcal { M } }$ is the set of tokens belonging to modality $\mathcal { M }$ with $N _ { \mathcal { M } } = \vert \mathcal { T } _ { \mathcal { M } } \vert$ , and $\boldsymbol { x } _ { i , t } ^ { l }$ is the representation of token $t$ in sample $i$ at layer $l$ .
 
@@ -69,9 +67,7 @@ As shown in the left panel of Fig. 2, visual token representations in the shallo
 
 Second, we measure cross-modal influence by how much text embeddings for a fixed instruction change when paired with different images, and define the resulting cross-modal similarity as $\mathbf { S } _ { \mathrm { c r o s s } } ^ { \mathrm { I n s } }$ :
 
-$$
-\mathbf { S } _ { \mathrm { c r o s s } } ^ { \mathrm { I n s } } = \frac { 1 } { N _ { \mathrm { s a m p l e } } } \sum _ { i = 1 } ^ { N _ { \mathrm { s a m p l e } } } \frac { \langle \mathbf { h } _ { i , \mathrm { i n s } } ^ { ( l , \mathrm { m i s } ) } , \mathbf { h } _ { i , \mathrm { i n s } } ^ { ( l , \mathrm { r e f } ) } \rangle } { \| \mathbf { h } _ { i , \mathrm { i n s } } ^ { ( l , \mathrm { m i s } ) } \| _ { 2 } \| \mathbf { h } _ { i , \mathrm { i n s } } ^ { ( l , \mathrm { r e f } ) } \| _ { 2 } } .
-$$
+![Equation](../images/e42e464497284204e18b90a74c6da65d8a075444caee2720779bbf64f1c1850f.jpg)
 
 where h(l,mii,ins is the layer- $l$ instruction embedding for sample $i$ paired with a mismatched image, and h(l,refi,ins is the counterpart paired with a fixed reference image.
 

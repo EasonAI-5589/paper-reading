@@ -51,9 +51,7 @@ The Focus stage aims to identify and retain the most critical local visual evide
 
 We first identify inherently salient regions (e.g., foreground objects) using the attention map from the vision encoder. Denote by ${ \textbf { A } } \in$ $\mathbb { R } ^ { H \times ( N + 1 ) \times ( N + 1 ) }$ , the attention map from the [CLS] token to other tokens in a selected layer. The saliency score $s _ { i }$ for the $i$ -th token is computed as:
 
-$$
-s _ { i } = \frac { 1 } { H } \sum _ { h = 1 } ^ { H } \mathbf { A } _ { h } [ \mathrm { C L S } , i ]
-$$
+![Equation](../images/ca73a60b249dbc8e657450a8c74fedf7691d8edeae905891798c73d848d01ee1.jpg)
 
 > 💡 **Saliency score**: 来自 vision encoder（非 LLM），跨 head 平均的 [CLS] attention。与 FasterVLM/HiRED 相同的信号源。
 
@@ -61,9 +59,7 @@ $$
 
 To ensure that the selected tokens are relevant to the user's instruction, we compute the semantic similarity between visual tokens and the text instruction Zhang et al. (2025b). We encode the textual query q into an embedding $\mathbf { t }$ using the pretrained CLIP text encoder. The relevance score $r _ { i }$ is defined as the cosine similarity:
 
-$$
-\begin{array} { r } { r _ { i } = \cos ( \bar { \bf v } _ { i } , \bar { \bf t } ) , \quad } \\ { { \mathrm { w h e r e ~ } } \bar { \bf v } _ { i } = { \bf v } _ { i } / \| { \bf v } _ { i } \| _ { 2 } , \bar { \bf t } = { \bf t } / \| { \bf t } \| _ { 2 } } \end{array}
-$$
+![Equation](../images/0be6fbf3e30e3dc56a88a23803ab95ff9ad495a690b869003a457e4868c610c6.jpg)
 
 > 💡 **Relevance score**: 用 CLIP text encoder 编码 query，与 visual token 做 cosine similarity。
 > - 这与 CDPruner 的做法类似
@@ -73,15 +69,11 @@ $$
 
 We further normalize both scores to $[ 0 , 1 ]$ (denoted by the hat notation ˆ·) and compute a fused priority score $\phi _ { i }$ to generate a unified priority map:
 
-$$
-\phi _ { i } = \hat { r } _ { i } ^ { \alpha } \hat { s } _ { i } ^ { \beta }
-$$
+![Equation](../images/8edefb3ac766dfc36f9c93922b8dd7c2e45d7a20ee6204334b1926ec8ccba8e3.jpg)
 
 where $\alpha$ and $\beta$ control the trade-off between relevance and saliency. Tokens are then sorted by $\phi$ in descending order, denoted by the permutation $\boldsymbol { \mathscr { U } }$ . To determine the dynamic budget $K _ { \mathrm { F } }$ , we select the minimum number of tokens required information mass to preserve a ratio $\begin{array} { r } { Z = \sum _ { i = 1 } ^ { N } \phi _ { i } } \end{array}$ $\rho$ (default 0.9) of the total :
 
-$$
-K _ { \mathrm { F } } = \operatorname* { m i n } \left\{ k \mid \sum _ { j = 1 } ^ { k } \phi _ { \pi ( j ) } \geq \rho Z \right\}
-$$
+![Equation](../images/4a80108b1a80648752a313fce79696542019928366d6f9e109690ee7a2243fc3.jpg)
 
 The resulting set ${ \mathcal F } = \{ \pi ( 1 ) , \ldots , \pi ( K _ { \mathrm { F } } ) \}$ constitutes the local evidence.
 
@@ -103,9 +95,7 @@ Relying solely on local evidence $\mathcal { F }$ often results in missing criti
 
 We introduce a Conditional Context Sampling (CCS) algorithm to select $K _ { \mathrm { { S } } } = K - K _ { \mathrm { { F } } }$ supplementary anchors. To maximize information gain, these anchors must be complementary to the focused set $\mathcal { F }$ and diverse among themselves. Specifically, we initialize the available anchor set as $A = F$ . In each iteration, we identify the token $i ^ { \star }$ that is maximally different from the current anchor set $\boldsymbol { A }$ in the feature space:
 
-$$
-\begin{array} { c } { \Delta ( i , \boldsymbol { A } ) = \displaystyle \operatorname* { m i n } _ { j \in \mathcal { A } } \Big ( 1 - \cos \big ( \bar { \mathbf { v } } _ { i } , \bar { \mathbf { v } } _ { j } \big ) \Big ) , } \\ { i ^ { \star } = \arg \displaystyle \operatorname* { m a x } _ { i \notin \mathcal { A } } \Delta ( i , \boldsymbol { A } ) } \end{array}
-$$
+![Equation](../images/8a763b0f102425b2ad1c43ad886cdd0fae5ee769794dd0e8fedafb6f051f7f48.jpg)
 
 We update ${ \mathcal { A } }  { \mathcal { A } } \cup \{ i ^ { \star } \}$ and repeat this process for $K _ { \mathrm { S } }$ iterations. This strategy ensures that the newly captured tokens are different from the salient objects and minimizes redundancy, thereby optimizing the utility of the token budget. Finally, the specific set of scanned context tokens is obtained as $\textstyle S = A \setminus { \mathcal { F } }$ .
 
@@ -123,15 +113,11 @@ While the CCS strategy is greedy, it admits a formal coverage guarantee, ensurin
 
 The CCS procedure in Eq. (5) can be viewed as a variant of Farthest Point Sampling Gonzalez (1985) in the feature space, where the focus set $\mathcal { F }$ is treated as a fixed set of initial centers. Let $V$ denote the set of all visual tokens, equipped with the distance metric $d ( x , y ) = 1 - \cos ( x , y )$ . Given a total budget $K$ and the fixed focus set $\mathcal { F }$ , we define the optimal conditional covering radius as
 
-$$
-R _ { \mathrm { o p t } } ( \mathcal { F } ) = \operatorname* { m i n } _ { S ^ { \prime } : | S ^ { \prime } | = K - | \mathcal { F } | } \operatorname* { m a x } _ { v \in V } d \bigl ( v , \mathcal { F } \cup S ^ { \prime } \bigr )
-$$
+![Equation](../images/5146c71a774e169f604f9d0ba324ccdf5039a3afa8172d3c1bef083dfc4a6119.jpg)
 
 This quantity represents the minimum achievable worst-case distance when extending $\mathcal { F }$ with $K _ { \mathrm { S } }$ additional tokens. By classical results on greedy $k$ - center clustering with fixed centers Hochbaum and Shmoys (1985), the token set $K = { \mathcal { F } } \cup S$ selected by CCS satisfies:
 
-$$
-\operatorname* { m a x } _ { v \in V } \operatorname* { m i n } _ { u \in { \mathcal { K } } } d ( v , u ) \leq 2 R _ { \mathrm { o p t } } ( { \mathcal { F } } )
-$$
+![Equation](../images/2942e55e9fe50d58094282c47f0dc93fb030786bdd11cab2071ffe37afb76859.jpg)
 
 which bounds the information loss incurred by pruning. This guarantee implies that CCS attains a near globally optimal solution, ensuring that every unselected token lies within a bounded distance of the selected token set.
 
@@ -149,9 +135,7 @@ Directly discarding the unselected tokens $\mathcal { D } =$ $\mathbf { V } \set
 
 Crucially, to preserve the high fidelity of the salient objects, we keep the focus set $\mathcal { F }$ unchanged. We treat only the global context tokens $\boldsymbol { S }$ as semantic anchors for aggregation. First, for each discarded token $i \in \mathcal { D }$ , we identify its semantically nearest anchor $j ^ { \star }$ within the scan set $\boldsymbol { S }$ and compute their similarity:
 
-$$
-j ^ { \star } ( i ) = \arg \operatorname* { m a x } _ { j \in S } \cos ( \bar { \bf v } _ { i } , \bar { \bf v } _ { j } )
-$$
+![Equation](../images/84bc517e04daef3a7a45d05c4daa14e7bcea086a50bc77da31b72d23561d93cd.jpg)
 
 > 💡 **关键设计**: 只 merge 到 Scan 锚点，**Focus 集保持不动**
 > - 这保护了局部证据的 high fidelity
@@ -161,9 +145,7 @@ $$
 
 To mitigate noise and prevent over-smoothing, we do not aggregate all discarded tokens. Instead, we select the top- $M$ tokens from the discarded set $\mathcal { D }$ that possess the highest similarity scores to their assigned anchors. The total aggregation budget is dynamically determined by the size of the scan set as $M = \kappa | \boldsymbol { S } |$ , where $\kappa$ is a hyperparameter set to 1 by default. Let $\mathcal { D } _ { \mathrm { t o p } }$ denote this subset of highly relevant discarded tokens. We update the anchors by absorbing information only from $\mathcal { D } _ { \mathrm { t o p } }$ . For each $i \in \mathcal { D } _ { \mathrm { t o p } }$ , its feature is aggregated into its nearest anchor ${ \bf v } _ { j ^ { \star } }$ weighted by its priority score $\phi _ { i }$ (from Eq. (3)), as defined below:
 
-$$
-\begin{array} { c } { \displaystyle \mathbf { v } _ { j ^ { \star } } \gets \frac { w _ { j ^ { \star } } \mathbf { v } _ { j ^ { \star } } + w _ { i } \mathbf { v } _ { i } } { w _ { j ^ { \star } } + w _ { i } } , } \\ { \displaystyle w _ { j ^ { \star } } \gets w _ { j ^ { \star } } + w _ { i } } \end{array}
-$$
+![Equation](../images/b5bd1adae2c47623d7c96dc9af72cc3a632b72e628454983d265e495e3d16311.jpg)
 
 where weights are initialized as $w _ { j } ~ = ~ \phi _ { j }$ . This step enables the sparse context anchors to capture the essential texture and semantics of their neighborhoods. The final compressed token set is the union of the intact focus tokens and the refined context tokens: $\widetilde { \mathbf { V } } = \mathcal { F } \cup \mathcal { S }$ , which contains exactly $K _ { \mathrm { F } } + K _ { \mathrm { S } } = K$ tokens.
 

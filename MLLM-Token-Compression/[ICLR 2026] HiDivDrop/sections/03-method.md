@@ -71,9 +71,7 @@ Within the core vision processing window, we propose Concave Pyramid Pruning, an
 
 Where to Prune: Identifying Filtering Layers with ILVAS To determine the optimal layers for pruning, we introduce the Inter-Layer Visual Attention Similarity (ILVAS) metric. The core idea is to identify layers where the model has formed a stable assessment of token importance, making them ideal "filtering" points. ILVAS measures how consistently the most attended to visual tokens at one layer remain important in subsequent layers. Specifically, we compare the top- $K$ attention distributions for vision tokens between a layer $l$ and a future layer $l + n$ :
 
-$$
-\mathrm { I L V A S } ( l , l + n , K ) = \frac { 1 } { | \mathcal { V } _ { K } ^ { l } | } \sum _ { i \in \mathcal { V } _ { K } ^ { l } } \frac { \left. \tilde { \mathbf { A } } _ { i } ^ { l } , \tilde { \mathbf { A } } _ { i } ^ { l + n } \right. } { \left\| \tilde { \mathbf { A } } _ { i } ^ { l } \right\| \left\| \tilde { \mathbf { A } } _ { i } ^ { l + n } \right\| } ,
-$$
+![Equation](../images/11d4ce2f7ddb424e7e15185516acab3cc568325c7b9c277f31c63882d6257b1a.jpg)
 
 where $\tilde { \mathbf { A } } _ { i } ^ { l }$ is the head-wise attention vector for vision token $i$ . A high ILVAS score indicates a stable filtering capacity. We compute its curve across the middle layers and select the local maxima to form our set of filtering layers $\mathcal { F }$ (e.g., layers $\{ 1 0 , 1 4 , 1 6 , 1 8 \}$ in Fig. 6).
 
@@ -94,9 +92,7 @@ Which Tokens to Prune: Learnable Selection with Differentiable Top-K Once the fi
 
 normalized rank score c′ for each token: c′i = 1n Pnj=1 ⊮(ci ≥ cj ). This maps the scores to a [0, 1] $c \in \mathbb { R } ^ { N }$ range. Next, a soft mask is generated using a sigmoid function with a learnable pruning ratio $a$ :
 
-$$
-M a s k ( c , a ) = \mathrm { S i g m o i d } ( ( c - a ) \cdot \lambda ) = \frac { 1 } { 1 + e ^ { - \lambda ( c _ { i } ^ { \prime } - a ) } } .
-$$
+![Equation](../images/c12be4a4c7fc26eeb641a7d466a74c8aa9b874a53c7542d53fca14d017cd9642.jpg)
 
 This soft mask allows gradients to flow during backpropagation, enabling the model to learn which tokens are important. For the forward pass, a hard threshold is applied to the mask to make a discrete token selection. By combining ILVAS to determine where to prune and DTop- $K$ to learn which tokens to prune, our method dynamically and efficiently compresses visual information. A detailed comparison with Hard Top- $K$ is provided in Sec. 4.3.
 

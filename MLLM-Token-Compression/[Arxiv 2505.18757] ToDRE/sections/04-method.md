@@ -32,9 +32,7 @@ To obtain a maximally diverse subset of visual tokens, we adopt a greedy max-sum
 
 **Pivot Token Selection.** To determine the initial pivot, we leverage the [CLS] attention from the last layer of the vision encoder [45] as an importance indicator. The attention from the [CLS] token $z _ { \mathrm { [ C L S ] } } \in \mathbb { R } ^ { d }$ to other visual tokens $Z _ { v } \in$ $\mathbb { R } ^ { n \times d }$ is calculated as:
 
-$$
-\begin{array} { r l } & { { \pmb q } _ { \mathrm { [ C L S ] } } = z _ { \mathrm { [ C L S ] } } { \cal W } _ { Q } , \quad { \pmb K } _ { v } = { \pmb Z } _ { v } { \pmb W } _ { K } , } \\ & { { \pmb a } _ { \mathrm { [ C L S ] } } = \mathrm { S o f t m a x } \bigg ( \frac { { \pmb q } _ { \mathrm { [ C L S ] } } { \pmb K } _ { v } ^ { \top } } { \sqrt { d } } \bigg ) , } \end{array}
-$$
+![Equation](../images/8cdbccdd64650ca7148256f1c9de4ceeb50ca8bf1e286fe61d8accb8a16f00cf.jpg)
 
 where $n$ is the length of the visual token sequence; $d$ is the hidden state size of vision encoder; $W _ { Q } \in \mathbb { R } ^ { d \times d }$ and $W _ { K } \in \mathbb { R } ^ { d \times d }$ represent the weight matrices for queries and keys, respectively.
 
@@ -53,27 +51,19 @@ For MLLMs without a [CLS] token in their encoders, a random selection strategy i
 
 **Greedy Max-Sum Diversification.** The expansion starts from the designated pivot. At iteration $t$ , we pick a new token index $c ^ { ( \bar { t } ) }$ by minimizing its cumulative similarity to the already selected set:
 
-$$
-c ^ { ( t ) } = \underset { v \in V \backslash \mathcal { C } ^ { ( t - 1 ) } } { \arg \operatorname* { m i n } } \left[ \sum _ { c \in \mathcal { C } ^ { ( t - 1 ) } } s ( \mathbf { x } _ { v } , \mathbf { x } _ { c } ) \right] ,
-$$
+![Equation](../images/8b6e1077b66c5db2b2470b0464a2affb5611985ee6456b8e789a00354fe6044f.jpg)
 
 where $\mathbf { x } _ { v }$ and $\mathbf { x } _ { c }$ denote visual token features with indices $v$ and $c$ , and $\mathcal { C } ^ { ( t - 1 ) }$ is the selected set from the previous iteration. The similarity between two tokens is measured with cosine similarity
 
-$$
-s ( \mathbf { x } _ { v } , \mathbf { x } _ { c } ) = \frac { \mathbf { x } _ { v } ^ { \top } \mathbf { x } _ { c } } { \| \mathbf { x } _ { v } \| \left\| \mathbf { x } _ { c } \right\| } .
-$$
+![Equation](../images/fe4ce3826b4a42a9aca2b31eebe4a4a794b8e57520d526d23173b934c349bf4b.jpg)
 
 Equivalently, (4) maximizes the sum of distances if $d ( \cdot , \cdot ) =$ $1 - s ( \cdot , \cdot )$ . After selecting $c ^ { ( t ) }$ , we update the cumulative similarities by adding its contribution:
 
-$$
-\forall v \in V \setminus \mathcal { C } ^ { ( t ) } : ~ S _ { v } ^ { ( t ) } = S _ { v } ^ { ( t - 1 ) } + s ( \mathbf { x } _ { v } , \mathbf { x } _ { c ^ { ( t ) } } ) ,
-$$
+![Equation](../images/55a92a9fc82d0e6e62c05e17411d18a2ae189c46968f2cd9539e5e811fa9ea4b.jpg)
 
 and mask the chosen index. This greedy procedure repeats until $k$ diverse tokens (e.g., $k { = } 2 8 8$ , about $1 0 \%$ of visual tokens) are retained, yielding
 
-$$
-{ \mathcal C } = \{ c ^ { ( 1 ) } , c ^ { ( 2 ) } , \ldots , c ^ { ( k ) } \} .
-$$
+![Equation](../images/c830c1498f94f89f00278861b79d0726b56ad17fd40dc8e87c3ed7cf0d798db4.jpg)
 
 Finally, all remaining visual tokens are discarded; the retained visual tokens together with all text tokens are fed to the LLM decoder for inference.
 
@@ -101,9 +91,7 @@ While strategies involving partial or multi-stage pruning could be further appli
 
 Specifically, let $L$ be the number of decoder layers of LLM. Based on our empirical observation (Figure 2) that deeper layers exhibit limited cross-modal interaction, we compute cross-modal attention ratios only at a few selected layers in the later prefilling stages of the model. Since these attention ratios tend to remain stable across consecutive deeper layers, computing them at every layer would introduce unnecessary overhead. In our implementation, we select layers located at fractional depth $7 L / 8$ . A more detailed ablation of layer selection can be found in Appendix. At each selected layer $\ell$ , we compute two cross-modal attention ratios based on average attention probabilities across all attention heads and tokens:
 
-$$
-\begin{array} { r l } & { \alpha _ { t  v } ^ { ( \ell ) } = \frac { \sum _ { i \in T } \sum _ { j \in V } A _ { i j } ^ { ( \ell ) } } { \sum _ { i \in T } \sum _ { j \in S \cup V \cup T } A _ { i j } ^ { ( \ell ) } } , } \\ & { \alpha _ { v  t } ^ { ( \ell ) } = \frac { \sum _ { i \in V } \sum _ { j \in T } A _ { i j } ^ { ( \ell ) } } { \sum _ { i \in V } \sum _ { j \in S \cup V \cup T } A _ { i j } ^ { ( \ell ) } } , } \end{array}
-$$
+![Equation](../images/cf40f6cf7cf650f9d699f50905b3b9117bb89e336c24d2a77259d3a516bb6efd.jpg)
 
 where $A _ { i j } ^ { \ell }$ denotes the softmax-normalized attention weight from query token $i$ to key token $j$ at layer $\ell ; ~ S$ $V$ , and $T$ represent the system prompt, visual, and textual tokens, respectively. To further enhance efficiency, all visual tokens are removed at a certain layer $\ell$ if and only if both $\alpha _ { t  v } ^ { ( \ell ) }$ and $\alpha _ { v  t } ^ { ( \ell ) }$ are lower than a threshold $\tau$ . A more detailed ablation of the threshold can be found in Appendix.
 

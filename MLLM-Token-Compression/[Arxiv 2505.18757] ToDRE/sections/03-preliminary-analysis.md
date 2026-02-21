@@ -30,13 +30,9 @@ Architecture and Processing Flow. Typically, existing LVLMs consist of three mai
 
 Computational Cost Analysis. Prior studies [19, 38] have shown that the dominant contributors to inference cost in LVLMs are the vision-encoding stage, the LLM prefilling stage, and the LLM decoding stage, each of which incurs substantial self-attention and feed-forward network (FFN) computations. Following previous studies [10, 55], we formulate the calculation of floating-point operations (FLOPs) as follows:
 
-$$
-{ \mathrm { F L O P s } } _ { \mathrm { e n c o d i n g } } = { \mathrm { F L O P s } } _ { \mathrm { p r e f i l l i n g } } = T \times \left( 4 n d ^ { 2 } + 2 n ^ { 2 } d + 2 n d m \right) ,
-$$
+![Equation](../images/43d8ced0d19a12d93d7920290441d88f65922dccf07974c8d6f69d0889ac7b22.jpg)
 
-$$
-\begin{array} { c } { { \mathrm { F L O P s } _ { \mathrm { d e c o d i n g } } = \displaystyle T \sum _ { t = 1 } ^ { L } \left( 4 d ^ { 2 } + 2 d ( n + t - 1 ) + 2 d m \right) } } \\ { { = T \left( 4 L d ^ { 2 } + 2 L d m + d L ( 2 n + L - 1 ) \right) , } } \end{array}
-$$
+![Equation](../images/584b0facba3a3ad241d1d4de61722d03e91846ff115dc4df89866284fec84446.jpg)
 
 where $T$ is the number of transformer layers; $n$ and $L$ respectively denote the lengths of the input and output sequences; $d$ is size of the hidden state; and $m$ is the intermediate dimension of the FFN. We take LLaVA-NeXT-7B [37], which employs CLIP-ViT-Large-Patch14 [45] vision encoder and Vicuna-7B-v1.5 [12] LLM decoder, as an example. The relative ratio of FLOPs (with $\scriptstyle n = 3 0 0 0$ and $L { = } 2 0$ ) is approximately encoding:prefilling:decoding $\approx 1 { : } 6 3 . 6 { : } 0 . 4$ . When scaled to LLaVA-NeXT-13B, the relative ratio shifts to 1:121.1:0.8, indicating that the LLM's prefilling and decoding stages roughly double their share of the total computational cost. This underscores the importance of pruning visual tokens as early as possible—ideally prior to or during the LLM prefilling stage—to mitigate the exploding computational burden.
 

@@ -29,9 +29,7 @@ To maintain spatial integrity, we partition the input token grid $\mathcal { T }
 
 Within each region $\mathcal { R }$ , we select representative benchmark tokens as aggregation centers. These tokens should exhibit high global salience; we initially use attention scores from the [CLS] token. However, analysis indicates sparse distributions in deeper vision encoder layers. To mitigate this, we incorporate information capacity, defined as the L2-norm of the token's key vector $( \left. \mathbf { k } _ { i } \right. _ { 2 } )$ , as a secondary criterion. The resulting salience score $S ( t _ { i } )$ for token $t _ { i }$ is the product of its global attention score and information capacity:
 
-$$
-S ( t _ { i } ) = \alpha _ { \mathrm { c l s } , i } \cdot | \mathbf { k } _ { i } | _ { 2 }
-$$
+![Equation](../images/41e624ad01f3c051b844ce11a5556fd8ad319200ac9e768c6320e1e4e92cda13.jpg)
 
 where $\alpha _ { \mathrm { c l s } , i }$ is the attention weight from the [CLS] token. In each local region $\mathcal { R } _ { k }$ , we select the $k$ tokens with the highest salience scores to form the Benchmark Token set $\mathcal { T } _ { B }$ .
 
@@ -56,9 +54,7 @@ This operation merges features from other tokens into the benchmark set $\mathca
 
 Role Assignment: Pillars and Collectors. We differentiate benchmark tokens in $\mathcal { T } _ { B }$ by information capacity. Recent works (Darcet et al., 2024; Lappe & Giese, 2025) identify high-norm tokens in ViTs as registers — frequently attended during decoding and often task-agnostic. Modifications to these can shift feature distributions and affect predictions. Thus, we classify tokens with $\| \mathbf { k } _ { i } \| _ { 2 }$ in the top quartile as Pillar Tokens $( \mathcal { T } _ { P } )$ , whose features remain unmodified. The rest are Collector Tokens $( \mathcal { T } _ { C } )$ , which aggregate from spatial neighbors.
 
-$$
-\begin{array} { r } { \mathcal { T } _ { P } = \big \{ t _ { i } \in \mathcal { T } _ { B } \ | \ | \mathbf { k } _ { i } | _ { 2 } \geq \mathrm { Q u a n t i l e } \big ( \{ | \mathbf { k } _ { j } | _ { 2 } \} _ { t _ { j } \in \mathcal { T } _ { B } } , 0 . 7 5 \big ) \big \} ; \quad \mathcal { T } _ { C } = \mathcal { T } _ { B } \setminus \mathcal { T } _ { P } } \end{array}
-$$
+![Equation](../images/098e31e5c5b9fa107dff08ebe5ea844df79d506612836ebb8e1780fb050e5c86.jpg)
 
 > 💡 **批注**: Pillar Token 的设计基于 ViT register token 的发现（Darcet et al., 2024）。这些高 L2-norm token 是全局信息的"锚点"，修改它们会导致特征分布偏移。因此保持不变（Kronecker delta），只让 Collector Token 聚合邻居信息。这是一个非常精细的设计，避免了聚合操作对关键 token 的破坏。
 
@@ -70,15 +66,11 @@ spatially distant tokens. Thus, we balance it with spatial proximity to form a w
 
 Semantic Similarity Matrix (A): We consider only positively correlated semantic information. Element $A _ { i j }$ is defined as Eq. (5):
 
-$$
-A _ { i j } = \operatorname { R e L U } \left( \sin ( \mathbf { v } _ { i } , \mathbf { v } _ { j } ) \right) = \operatorname { R e L U } \left( { \frac { \mathbf { v } _ { i } \cdot \mathbf { v } _ { j } } { | \mathbf { v } _ { i } | | \mathbf { v } _ { j } | } } \right)
-$$
+![Equation](../images/1ba0ba735e9f79f849ea71edb4c5708c7f0a03844c2b42e2414eddd000d7d93f.jpg)
 
 Spatial Proximity Matrix $\mathbf { \Pi } ^ { ( \mathbf { P } ) }$ : To penalize long range aggregation, we define a proximity matrix allowing each benchmark token to aggregate features within an extended local neighborhood, enabling limited cross-region interaction. Element $P _ { i j }$ is computed as Eq. (6):
 
-$$
-P _ { i j } = 1 - \operatorname* { m a x } \left( 1 , \frac { d ( p _ { i } , p _ { j } ) } { d _ { \mathrm { t h r e s h } } } \right)
-$$
+![Equation](../images/756396aa58325b16ef80b60f0242667a3f107cd3a0dcfba3399411e21c3bb54f.jpg)
 
 where $d ( p _ { i } , p _ { j } )$ is the Euclidean distance between $p _ { i }$ and $p _ { j }$ , and $d _ { \mathrm { t h r e s h } }$ is a predefined threshold.
 
@@ -91,9 +83,7 @@ where $d ( p _ { i } , p _ { j } )$ is the Euclidean distance between $p _ { i }
 
 Based on role assignment, the final aggregation weight $W _ { i j }$ is defined as:
 
-$$
-\begin{array} { r } { W _ { i j } = \left\{ \begin{array} { l l } { \delta _ { i j } } & { \mathrm { i f ~ } t _ { i } \in \mathcal { T } _ { P } \mathrm { ( P i l l a r ~ T o k e n ) } } \\ { A _ { i j } \cdot P _ { i j } } & { \mathrm { i f ~ } t _ { i } \in \mathcal { T } _ { C } \mathrm { ( C o l l e c t o r ~ T o k e n ) } } \end{array} \right. } \end{array}
-$$
+![Equation](../images/58e1cd2aef7bf1d707142e2d2f8f2d1836b5b65c96a7a9c66ee78b2d5b384d71.jpg)
 
 where $\delta _ { i j }$ is the Kronecker delta, ensuring Pillar Tokens only aggregate from themselves.
 
@@ -107,15 +97,11 @@ The weight $\hat { \mathbf { W } }$ is row-normalized from W, the original featu
 
 Following Stage 1, the aggregated vision tokens $\mathbf { V } _ { B } ^ { \prime }$ are fed into the LLM for multimodal feature interaction. We apply a second round of task-oriented pruning at an intermediate layer, after initial multimodal alignment (Shukor & Cord, 2024), where textual and visual features converge in a shared space. To guide this pruning, we first derive a holistic textual query vector $\bar { \bf q }$ by average-pooling the embeddings $\left\{ \mathbf { q } _ { 1 } , \dots , \mathbf { q } _ { K } \right\}$ of text tokens:
 
-$$
-\bar { \mathbf { q } } = \frac { 1 } { K } \sum _ { k = 1 } ^ { K } \mathbf { q } _ { k }
-$$
+![Equation](../images/b985b2104107752b63446900bf9c908b8f4e02511756c45edf0463ef3316a1db.jpg)
 
 We calculate a relevance score $R _ { i }$ for each visual token $t _ { i } ^ { \prime }$ (with updated feature vector $\mathbf { v } _ { i } ^ { \prime }$ , the $i$ -th token of $\mathbf { V } _ { B } ^ { \prime }$ ) by measuring its cosine similarity to the query vector in the shared embedding space:
 
-$$
-R _ { i } = \mathrm { s i m } ( \mathrm { p r o j } ( \mathbf { v } _ { i } ^ { \prime } ) , \bar { \mathbf { q } } ) = \frac { \mathrm { p r o j } ( \mathbf { v } _ { i } ^ { \prime } ) \cdot \bar { \mathbf { q } } } { | \mathrm { p r o j } ( \mathbf { v } _ { i } ^ { \prime } ) | \cdot | \bar { \mathbf { q } } | }
-$$
+![Equation](../images/f3d9cf4aaf8177ce93094f6102157d1b62c50f474cdb2470c6a0199bc91c46d9.jpg)
 
 where $\mathrm { p r o j } ( \cdot )$ denotes the multimodal projection layer mapping visual features into the common text-vision embedding space. Finally, we retain only the top- $K _ { \mathrm { f i n a l } }$ visual tokens with the highest relevance scores $R _ { i }$ , passed to subsequent LLM layers for final reasoning and response generation.
 
