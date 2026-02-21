@@ -37,14 +37,10 @@ MMBench Liu et al. (2024), MM-Vet Yu et al. (2023)). For video understanding, we
 
 ## 4.2.1 FSR for Standard Benchmarks (LLaVA-1.5-7B)
 
+![Table 1](../images/ddbd87bceae58f98b9937ae081482e008f76c2bfbcc0e69035a24cd8cdbf306a.jpg)
+*Table 1: Performance comparison of different pruning methods on LLaVA-1.5-7B.*
+
 > 💡 **Table 1 核心数据速查 (LLaVA-1.5-7B)**:
->
-> | Token Budget | FSR Avg. | 次优方法 | 差距 |
-> |---|---|---|---|
-> | 192 (↓66.7%) | **99.1%** | CDPruner 98.5% | +0.6% |
-> | 128 (↓77.8%) | **98.3%** | CDPruner 97.6% | +0.7% |
-> | 64 (↓88.9%) | **96.1%** | CDPruner 95.7% | +0.4% |
->
 > - 64 token 下 FastV 只有 72.0%，FSR 96.1% → **差距巨大**
 > - MMVet（复杂推理）: FSR 32.6 vs CDPruner 29.6（64 tokens）→ 复杂任务优势明显
 
@@ -52,14 +48,10 @@ MMBench Liu et al. (2024), MM-Vet Yu et al. (2023)). For video understanding, we
 
 ## 4.2.2 FSR for High-Resolution Inputs (LLaVA-NeXT-7B)
 
+![Table 2](../images/dfd800c35c7f76c1ebfcb31d9a038233d7c2356a66996ed75bd5fa9246edf88f.jpg)
+*Table 2: Performance comparison of different pruning methods on LLaVA-NeXT-7B.*
+
 > 💡 **Table 2 核心数据速查 (LLaVA-NeXT-7B, 2880 tokens)**:
->
-> | Token Budget | FSR Avg. | 亮点 |
-> |---|---|---|
-> | 960 (↓66.7%) | **100.0%** | 完全无损！ |
-> | 640 (↓77.8%) | **99.9%** | 几乎无损 |
-> | 320 (↓88.9%) | **97.6%** | 超 CDPruner 0.3% |
->
 > - 高分辨率输入冗余更多 → FSR 的动态分配更有效
 > - 960 token 时达到 100% → 说明 2880 tokens 中 2/3 是冗余的
 
@@ -97,17 +89,10 @@ MMBench Liu et al. (2024), MM-Vet Yu et al. (2023)). For video understanding, we
 
 # 4.3 Efficiency Analysis
 
+![Table 7](../images/71e50e2a9e87c0028d6c52a9f1e0a2833bd57e9cc054ba35e334f38dab6f1aa7.jpg)
+*Table 7: Comparison of efficiency and performance metrics on LLaVA-1.5-7B.*
+
 > 💡 **Table 7 效率数据 (LLaVA-1.5-7B, 64 tokens)**:
->
-> | 指标 | Full (576) | FSR (64) | 加速比 |
-> |---|---|---|---|
-> | FLOPs | 9.042T | 2.291T | **~4× ↓** |
-> | MACs | 4.521T | 1.145T | **~4× ↓** |
-> | Prefill | 3.056ms | 0.788ms | **3.9× ↓** |
-> | KV Cache | 288MB | 32MB | **9× ↓** |
-> | Decode | 23.952ms | 22.317ms | 略降 |
-> | Score (MMBEN) | 64.6 | 61.9 | 95.8% |
->
 > - FSR vs CDPruner: Prefill 速度相当，decode 更快，Score 更高（61.9 vs 60.8）
 > - FSR pipeline 几乎无额外系统开销
 

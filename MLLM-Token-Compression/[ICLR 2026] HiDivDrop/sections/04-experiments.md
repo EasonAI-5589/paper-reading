@@ -56,13 +56,10 @@ Implementation Details For DTop- $\mathbf { \nabla } \cdot \mathbf { K }$ operat
 
 Comparison with State-of-the-art Methods To ensure a fair comparison, we conduct controlledbudget experiment under three different compression ratio. As shown in Table 1, using LLaVA1.5-7B as the base LMM, we compare HiDivDrop against state-of-the-art in-LLM vision token compression methods across eleven widely used benchmarks. HiDivDrop consistently and markedly outperforms all counterparts at all pruning ratios. Notably, it retains $9 8 . 3 \%$ and $9 6 . 5 \%$ of the baseline performance while pruning $8 8 . 9 \%$ and $9 1 . 7 \%$ of vision tokens, respectively. Compared with the most similar progressive token pruning approach, PDrop (Xing et al., 2024), HiDivDrop achieves higher performance on nearly all benchmarks under the $8 8 . 9 \%$ pruning ratio, with a gap of $4 . 1 \%$ average performance. At even more aggressive compression, HiDivDrop still retains $9 6 . 5 \%$ of the baseline at $9 1 . 7 \%$ pruning, whereas PDrop cannot reach this pruning level under the same protocol.
 
+![Table 1](../images/e9e4a9b220617260ca471430b7614dcd2fdc1b16c94a9e9457652336b718ebc9.jpg)
+*Table 1: Performance comparisons with three pruning ratios on 11 benchmarks.*
+
 > 💡 **Table 1 核心数字**:
-> | 压缩率 | 保留 token | HiDivDrop Avg(%) | 次优方法 Avg(%) |
-> |--------|-----------|-----------------|----------------|
-> | 86.1% | 80 | 98.4 | 97.9 (TwigVLM) |
-> | 88.9% | 64 | **98.3** | 95.3 (TwigVLM) |
-> | 91.7% | 48 | **96.5** | 91.6 (VoCo-LLaMA) |
-> 
 > - 在 88.9% 压缩率下，HiDivDrop 比 PDrop 高 4.1%
 > - 在 91.7% 压缩率下，PDrop 根本无法达到此压缩率
 > - training-free 方法（FastV）在高压缩率下性能急剧下降
@@ -74,15 +71,10 @@ Comparison with State-of-the-art Methods To ensure a fair comparison, we conduct
 
 Efficiency of HiDivDrop in Training & Inference As shown in Table 2, HiDivDrop reduces the training time (including both pretraining and finetuning stages) of LLaVA-1.5-7B from 159.3 to 94.4 GPU hours, resulting in an impressive $4 0 . 7 \%$ reduction in overall time. In addition to the training efficiency improvement, HiDivDrop also reduces the inference FLOPs from $3 . 8 2 \mathrm { T }$ to $0 . 4 2 \mathrm { T } ,$ , achieving an $8 8 . 9 \%$ reduction. Moreover, HiDivDrop lowers the prefill latency from $6 3 . 6 \mathrm { m s }$ to $3 2 . 6 ~ \mathrm { m s } ,$ , and can be further reduced to $3 1 . 8 ~ \mathrm { { m s } }$ and $2 8 . 8 \mathrm { m s }$ through parallelly decoupled visual KV projection and fewer dropping stages. Notably, compared to PDrop's pruning ratio of $4 6 . 9 \%$ , HiDivDrop achieves a much higher pruning ratio of $8 9 . 0 \%$ , which is 4.8 times more aggressive, while the performance drop is only $1 . 6 \%$ , demonstrating HiDivDrop's superior efficiency and minimal accuracy trade-off. Similar trends are observed on LLaVA-1.5-MobileLLaMA-2.7B and LLaVA-1.5-13B: across both smaller and larger backbones, HiDivDrop consistently delivers substantial reductions in training time, FLOPs, and prefill latency under much stronger pruning ratios, while incurring only a slight degradation compared to the vanilla models.
 
+![Table 2](../images/934c298be8b7817e6c11f739ab321bd02b7e43450188bae9ef1eb34c7d238505.jpg)
+*Table 2: Efficiency comparison across three LLM backbones within the LLaVA-1.5 framework.*
+
 > 💡 **Table 2 效率对比（7B）**:
-> | 指标 | Vanilla | PDrop | HiDivDrop |
-> |------|---------|-------|-----------|
-> | Avg. Vis. Tokens | 576 | 270 | **64** |
-> | Train hours | 159.3 | 107.3 | **94.4** |
-> | Infer TFLOPs | 3.82 | 1.78 | **0.42** |
-> | Prefill (ms) | 63.6 | 43.7 | **32.6→28.8** |
-> | Avg(%) | 100.0 | 100.2 | 98.6 |
-> 
 > - PDrop 仅压缩 46.9% 就接近 baseline → HiDivDrop 压缩 89% 仍只掉 1.6%
 > - FLOPs 降了 **9.1×**（3.82T → 0.42T）
 > - 三个模型规模趋势一致 → 方法的通用性
@@ -116,12 +108,10 @@ Late Injection and Early Exit Our late injection and early exit are guided by tw
 
 Differentiable Top-K We study hard top- $k$ and differentable top- $k$ under a progressive pruning schedule. As shown in Table 3, replacing hard top- $k$ with differentable top- $k$ lifts the average performance from $9 7 . 7 \%$ to $9 9 . 7 \%$ with two-stage training (pretraining then finetuning) and from $9 7 . 5 \%$ to $9 8 . 1 \%$ with one-stage training (finetuning only), indicating more faithful token selection under the same training setting. Since the gain is larger with two-stage training, we adopt this recipe as the default in our experiments. See Appendix G.2 for additional token decay schedules.
 
+![Table 3](../images/c937b717ac137576ef82dafc83cf241adef6481823ee84c21710e9f4f1ba777a.jpg)
+*Table 3: Performance comparison of LLaVA variants with Hard vs. Differentiable Top-K Operators.*
+
 > 💡 **Table 3 DTop-K 消融**:
-> | 训练方式 | Hard Top-K | Diff. Top-K | 提升 |
-> |----------|-----------|-------------|------|
-> | PT+FT | 97.7% | **99.7%** | +2.0% |
-> | FT only | 97.5% | **98.1%** | +0.6% |
-> 
 > - PT+FT 时 DTop-K 收益更大 → 两阶段训练让 DTop-K 有更多机会学习
 > - 99.7% 接近 baseline → DTop-K 几乎完全消除了剪枝带来的性能损失
 
@@ -143,13 +133,10 @@ Token Weighting Strategies We compare training-time strategies for estimating th
 
 Position Encoding Conceptually, similar to the "position-ID mismatch" in streaming LLMs (Tong et al., 2025), but distinct in cause: ours arises from cross-layer changes in the set of surviving vision tokens due to late injection (insertion), progressive dropping (pruning), and early exit (removal). We therefore compare three positional encoding (PE) schemes: (1) Persistent PE: assign fixed RoPE indices at input and never update them; (2) Compacted PE (PDrop-style): start with preset indices and, at pruning stages, reset indices to compact surviving tokens and fill gaps; and (3) Group PE: allocate disjoint RoPE index ranges for instruction and vision tokens, with no in-place updates during injection, pruning, or exit. As summarized in Table 5, Persistent PE achieves the best average performance, Group PE is close, and Compacted PE performs worst, consistent with the hypothesis that resetting indices exacerbates cross-layer position mismatch. Given its accuracy and zero overhead, we adopt Persistent PE by default. More benchmark results appear in Appendix G.4.
 
+![Table 5](../images/f0fd42006af9d1baae1c1302af7686916dff560f18c3b6a64c25cf9f6c9460ae.jpg)
+*Table 5: Effect of position encoding (PE) schemes under shallow–middle–deep compression.*
+
 > 💡 **Table 5 PE 消融**:
-> | PE 方案 | Avg(%) | 特点 |
-> |---------|--------|------|
-> | Persistent PE | **97.6** | 固定 ID，零开销 |
-> | Group PE | 97.0 | 分离索引空间 |
-> | Compacted PE | 96.4 | 重编号（PDrop 方式） |
-> 
 > - 重编号最差 → 印证了 position-ID mismatch 假设
 > - Persistent PE 最简单且最好 → 少即是多
 

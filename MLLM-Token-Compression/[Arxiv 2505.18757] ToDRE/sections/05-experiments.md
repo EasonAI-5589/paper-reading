@@ -15,17 +15,10 @@ Experimental Setting. We evaluate ToDRE over multiple prevalent LVLMs (including
 
 **Image Understanding Tasks.** In Table 1, we report ToDRE's performance on a range of image-understanding benchmarks at different token-retention ratios. First, under the same setup where $7 5 \%$ of visual tokens are pruned in Stage 1—matching competing methods—ToDRE further removes all remaining visual tokens in Stage 2 and achieves a $9 8 . 2 \%$ average score, outperforming the second-best method by $1 . 6 \%$ . Second, under more extreme compression (only $10 \%$ of visual tokens are retained), ToDRE surpasses the second-best approach by $1 . 5 \%$ . Third, ToDRE also achieves top performance on larger models, reaching an average score of $9 3 . 6 \%$ on the 13B variant—demonstrating strong adaptability across model scales. Note that FastV [10] and SparseVLM [63] are excluded from the 13B comparison, as their pruning strategies, originally tailored for the 7B model, lead to substantial performance degradation when directly transferred to the 13B model. This further underscores the robustness and transferability of ToDRE.
 
+![Table 1](../images/cf303c370bcbaf9ff6e7a0856ef05f8113913c10982abce7b1fc2f7ff5421db3.jpg)
+*Table 1: Performance of training-free token compression methods across eight image-language benchmarks.*
+
 > 💡 **Table 1 批读 — Image Understanding**:
->
-> | 方法 | 25% 保留 | 10% 保留 | 特点 |
-> |------|---------|---------|------|
-> | FastV | 95.4% | 88.8% | Attention-based，13B 上崩 |
-> | SparseVLM | 93.1% | 86.3% | 最差，positional bias 严重 |
-> | FasterVLM | 96.0% | 91.4% | [CLS]-based |
-> | GlobalCom2 | 95.6% | 92.2% | 全局 thumbnail 引导 |
-> | DivPrune | 96.6% | 93.5% | Diversity-based 前辈 |
-> | **ToDRE** | **98.2%** | **95.0%** | Diversity + Relevance |
->
 > - ToDRE 在所有保留率下一致最优
 > - 10% 保留率下 ToDRE (95.0%) vs FastV (88.8%) 差距 **6.2%** → 极端压缩下 diversity 优势更大
 > - FastV/SparseVLM 无法迁移到 13B → ToDRE 的 transferability 是显著优势
@@ -57,14 +50,10 @@ Experimental Setting. We evaluate ToDRE over multiple prevalent LVLMs (including
 
 As shown in Table 4, we compare FLOPs, peak memory usage, throughput, and performance across various token pruning methods under a fixed token retention ratio of $10 \%$ . First, ToDRE achieves the highest throughput of 2.9 samples/s on POPE [29], accelerating inference by $1 . 9 \times$ compared to the vanilla LLaVA-NeXT-7B baseline, while matching the lowest memory usage (13.6 GB) alongside FasterVLM and DivPrune [2]. Second, despite its superior efficiency and memory usage, ToDRE maintains the highest average performance $( 9 5 . 0 \% )$ , outperforming the second-best method by $1 . 5 \%$ . These results confirm that ToDRE achieves great overall balance among speed, memory, and accuracy. We attribute the slight efficiency gains over DivPrune (throughput $\uparrow 0 . 1$ samples/s) to our second-stage deletion of all remaining visual tokens—an approach rarely adopted in prior work. In addition, as discussed in Section 3.1, because most image and video understanding benchmarks only require the model to answer a single word or short phrase (where $L$ is considerably small), our efficiency gains during the LLM decoding stage are inevitably marginal. However, we expect ToDRE to deliver even greater efficiency benefits in tasks involving longer text generation, since it effectively mitigates the computational burden of visual tokens during LVLM inference.
 
+![Table 4](../images/36d058fdd2353b5b81295b7b55ee360b9358d3be47367ad10226e3bfae3dc486.jpg)
+*Table 4: Inference efficiency comparisons.*
+
 > 💡 **Table 4 批读 — Efficiency**:
->
-> | 方法 | FLOPs (T) | Memory (GB) | Throughput | Performance |
-> |------|-----------|-------------|-----------|-------------|
-> | Baseline | 31.4 | 15.9 | 1.5 | 100% |
-> | FastV | 8.2 (↓73.9%) | 14.1 | 2.1 (1.4×) | 88.8% |
-> | **ToDRE** | **6.0 (↓80.9%)** | **13.6** | **2.9 (1.9×)** | **95.0%** |
->
 > - FLOPs 减少 80.9% 但性能只降 5% → 极高的压缩效率比
 > - Memory 节省 14.5%（15.9 → 13.6 GB）
 > - Throughput 1.9× 加速（POPE benchmark，短输出）
@@ -79,17 +68,10 @@ We conduct ablation studies to evaluate individual and combined contributions of
 
 In contrast, applying Stage 1 only, which retains $2 5 \%$ or $10 \%$ of tokens based on token diversity, yields substantial time savings of $3 7 . 5 \%$ (48:10) and $5 9 . 4 \%$ (31:18), respectively, with minimal drops in performance. When incorporating both stages (Stage $1 + { \mathrm { S t a g e } } 2$ ), we observe consistent improvements: First, at the $2 5 \%$ ratio, performance improves from $9 8 . 8 \%$ to $9 8 . 9 \%$ with total time reduced (from 48:10 to 44:18). Second, at the $10 \%$ ratio, performance increases from $9 5 . 8 \%$ to $9 6 . 0 \%$ , with total time reduced (from 31:18 to 29:43). Overall, ToDRE reduces inference time by $4 2 . 5 \%$ and $6 1 . 4 \%$ at the $2 5 \%$ and $10 \%$ token retention ratios, respectively, while even improving performance (up to $+ 0 . 2 \%$ gain). These results confirm that the second stage—full visual token removal based on visual-task relevance—provides complementary benefits to the diversity-based Stage 1, leading to improved accuracy-efficiency trade-offs under various compression settings.
 
+![Table 5](../images/bd4199fbfbf8178a21e4b70c47154debd7553bd2d397e96f926fce0f9438e18a.jpg)
+*Table 5: Ablation study on two-stage token compression.*
+
 > 💡 **Table 5 批读 — Ablation Study（最重要的表之一）**:
->
-> | 配置 | 时间 | 性能 |
-> |------|------|------|
-> | Baseline | 77:04 | 100.0% |
-> | Stage 2 only | 70:15 (↓8.8%) | **100.0%** (无损！) |
-> | Stage 1 only (25%) | 48:10 (↓37.5%) | 98.8% |
-> | **Stage 1+2 (25%)** | **44:18 (↓42.5%)** | **98.9%** |
-> | Stage 1 only (10%) | 31:18 (↓59.4%) | 95.8% |
-> | **Stage 1+2 (10%)** | **29:43 (↓61.4%)** | **96.0%** |
->
 > **关键发现**:
 > 1. **Stage 2 alone 完全无损** (100.0%) → information migration 假说得到验证
 > 2. Stage 1 贡献了绝大部分加速（37.5-59.4%），Stage 2 贡献额外 5-2%
