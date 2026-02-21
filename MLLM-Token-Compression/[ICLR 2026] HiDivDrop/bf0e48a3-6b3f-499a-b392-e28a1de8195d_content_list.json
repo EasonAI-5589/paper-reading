@@ -1,0 +1,2569 @@
+[
+    {
+        "type": "text",
+        "text": "HIDIVDROP: VISION TOKEN REDUCTION IN MLLMS VIA LATE INJECTION AND DIFFERENTIABLE TOP-K ",
+        "text_level": 1,
+        "bbox": [
+            176,
+            98,
+            821,
+            146
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Anonymous authors Paper under double-blind review ",
+        "bbox": [
+            184,
+            171,
+            398,
+            196
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "ABSTRACT ",
+        "text_level": 1,
+        "bbox": [
+            454,
+            234,
+            544,
+            251
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "The computational cost of Multimodal Large Language Models (MLLMs), driven by the quadratic complexity of processing vision tokens, remains a significant barrier to their widespread adoption. While progressive vision token pruning is a promising solution, we find that its full potential has been unrealized due to two key limitations: it misinterprets the role of shallow layers as being crucial for fusion and employs overly rigid, non-adaptive pruning schedules. To address these flaws, we introduce HiDivDrop, a framework that tailors token pruning to the true hierarchical function of MLLM layers. HiDivDrop incorporates two key innovations: (1) a Late Injection strategy that bypasses passive shallow layers, introducing visual tokens directly where active fusion begins; and (2) a Concave Pyramid Pruning scheme with an Early Exit mechanism that dynamically adjusts the pruning rate throughout the middle and deep layers. This process is optimized via an inter-layer similarity measure and a differentiable top- $k$ operator. Extensive experiments show that HiDivDrop compresses ${ \\sim } 9 0 \\%$ visual tokens while matching the original performance and accelerating training by $1 . 7 2 \\times$ . Our work not only sets a new state-of-the-art for efficient MLLM training and inference but also provides valuable insights into the hierarchical nature of multimodal fusion. ",
+        "bbox": [
+            233,
+            270,
+            764,
+            505
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "1 INTRODUCTION ",
+        "text_level": 1,
+        "bbox": [
+            176,
+            541,
+            334,
+            556
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Multimodal Large Language Models (MLLMs) have attracted growing attention for their ability to integrate vision and language, enabling progress in tasks such as visual question answering and embodied AI (OpenAI, 2023; 2024; Bai et al., 2025). The dominant paradigm adopts a connectorbased architecture that leverages powerful pre-trained Large Language Models (LLMs) (Liu et al., 2023b;a; 2024a; Bai et al., 2023; Wang et al., 2024; Bai et al., 2025). In this design, a lightweight connector projects visual features into the LLM’s embedding space, allowing a purely text-trained backbone to process multimodal inputs without retraining from scratch. However, visual encoders typically generate substantially more tokens than text due to their higher information density. As the number of tokens scales quadratically with image resolution, and self-attention complexity is also quadratic, the overall computational cost quickly becomes prohibitive. ",
+        "bbox": [
+            174,
+            575,
+            825,
+            715
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "To alleviate this issue, researchers have proposed progressive vision token pruning, a technique that gradually removes less informative vision tokens as they flow through the model. Early layers retain more tokens to preserve fine-grained details, while deeper layers operate on a reduced set of tokens that concentrate on semantically important content. This strategy effectively reduces the number of tokens involved in later computations without sacrificing much accuracy, and has become a widely adopted and popular approach for lowering the inference cost of MLLMs. Yet, through a deeper analysis of these models’ internal dynamics, we find that current pruning methods are hindered by two fundamental misconceptions about how MLLMs process visual information across layers. ",
+        "bbox": [
+            174,
+            722,
+            825,
+            833
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "First, shallow layers are misinterpreted. Prior work observes that removing early layers degrades performance and thus concludes that these layers are critical for multimodal integration (Xing et al., 2024; Zhang et al., 2025; Wu et al., 2025). Our analysis shows otherwise: vision tokens, already deeply processed by the vision encoder, undergo almost no transformation in the initial LLM layers. Both intra-modal evolution and cross-modal influence are negligible. These layers primarily act as propagators and attention sinks, not true integrators. ",
+        "bbox": [
+            174,
+            840,
+            823,
+            924
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "Under review as a conference paper at ICLR 2026 ",
+        "bbox": [
+            174,
+            34,
+            503,
+            46
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            495,
+            948,
+            503,
+            959
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "000 001 002 003 004 005 006 007 008 009 010 011 012 013 014 015 016 017 018 019 020 021 022 023 024 025 026 027 028 029 030 031 032 033 034 035 036 037 038 039 040 041 042 043 044 045 046 047 048 049 050 051 052 053 ",
+        "bbox": [
+            112,
+            77,
+            148,
+            929
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "image",
+        "img_path": "images/c511402f3d06b4559845bc041361f2b3ed2af0c0bdbd441d1f514295aaa51be9.jpg",
+        "image_caption": [
+            "Figure 1: Comparison of progressive vision token pruning methods. (a) FastV conducts single-stage pruning at an early layer. (b) TwigVLM performs early pruning and removes remaining vision tokens at deeper layers. (c) PDrop applies progressive pruning with uniform ratios and intervals. (d) HiDivDrop introduces vision tokens only at the end of shallow layers, prunes them in a non-uniform progressive manner in middle layers, and removes remaining vision tokens before deep layers. (e) HiDivDrop prunes vision tokens by about $4 . 8 \\times$ System Token Layer 3????\\~???? Layer ????n + 1\\~????Layer ????2 + 1\\~???? 98.6%more aggressively than state-of-the-art progressive pruning method with negligible performance drop. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            163,
+            99,
+            823,
+            236
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Text Token Visual 6489%Second, pruning schedules are overly rigid. Existing approaches often adopt fixed-ratio, pyramidLayer ???? + 1\\~???? Layer ???? + 1\\~2???? Layer ???? + 1\\~????Layer ???? + 1\\~???? Tokens576like schemes such as FastV (Chen et al., 2024b), TwigVLM (Shao et al., 2025), and PDrop (Xing .4289%et al., 2024). However, we find that visual information flow is highly non-uniform: redundancy can 3.82be removed more aggressively in middle layers where fusion dominates, while visual tokens can be Training 9441%safely discarded altogether in the deep layers once integration is complete. Uniform schedules miss Layer 1\\~???? Layer 1\\~???? Layer 1\\~????1Layer 1\\~????1this structure and thus lead to suboptimal efficiency–accuracy trade-offs. ",
+        "bbox": [
+            173,
+            338,
+            825,
+            422
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "(a) FastV (b) TwigVLM (c) PDrop (d) Ours: HiDivDrop (e) Performance (e) EfficiencyMotivated by these findings, we propose HiDivDrop (Hierarchical Division-based Vision Token Dropping), a framework that adapts pruning to the actual hierarchical dynamics of MLLMs. ",
+        "bbox": [
+            173,
+            429,
+            821,
+            457
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "To address the shallow-layer misconception, a straightforward solution might be to aggressively prune visual tokens within these early layers. However, this is problematic: any token discarded early is permanently lost and cannot participate in the crucial fusion that occurs in deeper, more meaningful layers. Instead, we adopt a Late Injection strategy: rather than pruning in shallow layers, we bypass them altogether and inject the full set of vision tokens only at the onset of the true fusion stage. This approach perfectly reflects the functional redundancy of the early layers without prematurely discarding potentially valuable information, marking the first attempt to deliberately delay, rather than simply prune, visual input for greater efficiency in MLLMs. ",
+        "bbox": [
+            173,
+            464,
+            825,
+            575
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "To address the limitations of rigid schedules, we propose a Concave Pyramid Pruning scheme, which accelerates token reduction early in the fusion stage and slows it later, together with an Early Exit mechanism that fully discards vision tokens before the language-dominant layers. When applying this schedule, we identify reliable pruning layers using an Inter-Layer Visual Attention Similarity (ILVAS) measure, and select the most informative tokens with a learnable differentiable top- $k$ operator. These mechanisms jointly enable precise and end-to-end optimized pruning decisions. ",
+        "bbox": [
+            174,
+            582,
+            823,
+            666
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Finally, we develop practical strategies to ensure compatibility with efficient implementations such as FlashAttention and to resolve issues like position ID mismatches from dynamic token management, ensuring that theoretical pruning gains translate into real-world acceleration. ",
+        "bbox": [
+            174,
+            672,
+            825,
+            715
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Extensive experiments on LLaVA-1.5-7B show that HiDivDrop compresses ${ \\sim } 9 0 \\%$ of visual tokens while matching the original performance, accelerating training by up to $1 . 7 2 \\times$ and substantially improving inference throughput. Our contributions are threefold: (1) we diagnose two fundamental weaknesses of existing pruning methods related to shallow-layer interpretation and pruning schedules; (2) we introduce HiDivDrop, featuring the novel Late Injection strategy, Concave Pyramid Pruning with Early Exit, and optimized layer- and token-selection mechanisms; and (3) we empirically demonstrate that HiDivDrop achieves state-of-the-art efficiency–accuracy trade-offs. ",
+        "bbox": [
+            174,
+            722,
+            825,
+            819
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "2 UNMASKING THE PROCESSING DYNAMICS IN MLLMS ",
+        "text_level": 1,
+        "bbox": [
+            176,
+            835,
+            661,
+            852
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "A Multimodal Large Language Model (MLLM) processes a unified sequence of text and vision embeddings, $\\mathbf h _ { 0 } = [ \\mathbf E _ { v } : \\mathbf E _ { t } ]$ , through its Transformer layers. The text embeddings $\\mathbf { E } _ { t } \\in \\mathbb { R } ^ { N _ { t } \\times d }$ come from a standard tokenizer, while the vision embeddings $\\mathbf { E } _ { v } \\in \\mathbb { R } ^ { N _ { v } \\times d }$ originate from a vision encoder that partitions an image into $N _ { v }$ patches and projects their features into the LLM’s hidden dimension $d$ . The primary computational bottleneck in this architecture is self-attention, whose cost scales quadratically with the number of vision tokens, $\\mathcal { O } ( N _ { v } ^ { 2 } d )$ , as typically $N _ { v } \\gg N _ { t }$ . ",
+        "bbox": [
+            174,
+            867,
+            823,
+            924
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "discarded",
+        "text": "Under review as a conference paper at ICLR 20261\\~???? 1\\~????1\\~????1 ",
+        "bbox": [
+            173,
+            34,
+            503,
+            46
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "discarded",
+        "text": "055 056 057 058 059 060 061 062 063 064 065 066 067 068 069 070 071 072 073 074 075 076 077 078 079 080 081 082 083 084 085 086 087 088 089 090 091 092 093 094 095 096 097 098 099 100 101 102 103 104 105 106 107 ",
+        "bbox": [
+            111,
+            109,
+            148,
+            931
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "discarded",
+        "text": "2 ",
+        "bbox": [
+            493,
+            948,
+            504,
+            959
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "image",
+        "img_path": "images/2f8b845ff6fd20ad8dcb97ad765f7688b07f93e249addeb1ce211858323375be.jpg",
+        "image_caption": [
+            "Figure 2: Layer-wise representational dynamics, with the left panel showing intra-modal refinement, and the right panel highlighting cross-modal interaction intensity. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            171,
+            97,
+            825,
+            215
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            174,
+            267,
+            823,
+            296
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "To mitigate this computational burden, a common solution is progressive token pruning, which iteratively reduces the number of vision tokens across the model’s layers. Most existing strategies, however, employ predetermined and static pruning schedules (e.g., linear or convex decay). These fixed approaches are applied uniformly, without considering the specific processing that occurs at different stages within the model. ",
+        "bbox": [
+            173,
+            301,
+            825,
+            372
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "This raises a critical question: what is an effective way to prune visual tokens? We contend that any sound strategy must be grounded in the model’s actual behavior, rather than relying on a naive, hand-crafted heuristic. To move toward such a strategy, it is first crucial to understand how MLLMs process and integrate visual information internally. Therefore, this section presents an in-depth analysis of these internal dynamics. Our goal is to reveal that the different layers play fundamentally distinct roles in multimodal fusion, thereby informing a more principled approach to token pruning. ",
+        "bbox": [
+            173,
+            378,
+            825,
+            468
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Shallow Layers: Propagators A prevalent assumption in progressive pruning is that shallow layers are essential for early cross-modal fusion and must be preserved (Xing et al., 2024; Zhang et al., 2025). To scrutinize this belief, we perform a training-free layer-wise probe on LLaVAv1.5-7B, feeding GQA image–question pairs through the network and recording hidden states at all layers. Our analysis, however, reveals that these layers function not as active integrators but as simple propagators. We demonstrate this by examining their contributions from two perspectives. ",
+        "bbox": [
+            173,
+            481,
+            825,
+            565
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "First, we analyze intra-modal refinement by measuring how token representations evolve across layers for each modality $\\mathcal { M } \\in$ {System, Visual, Textual}. Concretely, we compute the modalityspecific cosine similarity $( \\mathbf { S } _ { \\mathrm { i n t r a } } ^ { \\mathcal { M } } )$ ) between the outputs of consecutive layers: ",
+        "bbox": [
+            174,
+            571,
+            825,
+            614
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "img_path": "images/6bf3835a0d429328071ae8951704cb3ee11fab91c75c35cb032ac0fb0603958f.jpg",
+        "text": "$$\n\\mathbf { S } _ { \\mathrm { i n t r a } } ^ { \\mathcal { M } } = \\frac { 1 } { N _ { \\mathrm { s a m p l e } } } \\sum _ { i = 1 } ^ { N _ { \\mathrm { s a m p l e } } } \\left( \\frac { 1 } { N _ { \\mathcal { M } } } \\sum _ { t \\in \\mathcal { T } _ { \\mathcal { M } } } \\frac { \\langle x _ { i , t } ^ { l } , x _ { i , t } ^ { l + 1 } \\rangle } { \\| x _ { i , t } ^ { l } \\| _ { 2 } \\| x _ { i , t } ^ { l + 1 } \\| _ { 2 } } \\right) .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            318,
+            622,
+            678,
+            667
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "where $l$ denotes the layer index, $N _ { \\mathrm { s a m p l e } }$ is the number of samples, $\\tau _ { \\mathcal { M } }$ is the set of tokens belonging to modality $\\mathcal { M }$ with $N _ { \\mathcal { M } } = \\vert \\mathcal { T } _ { \\mathcal { M } } \\vert$ , and $\\boldsymbol { x } _ { i , t } ^ { l }$ is the representation of token $t$ in sample $i$ at layer $l$ . ",
+        "bbox": [
+            173,
+            674,
+            826,
+            707
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "As shown in the left panel of Fig. 2, visual token representations in the shallow layers exhibit remarkably high self-similarity, undergoing only very minor changes across consecutive layers, indicating that the LLM backbone performs negligible processing on them in this stage. ",
+        "bbox": [
+            174,
+            710,
+            825,
+            755
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Second, we measure cross-modal influence by how much text embeddings for a fixed instruction change when paired with different images, and define the resulting cross-modal similarity as $\\mathbf { S } _ { \\mathrm { c r o s s } } ^ { \\mathrm { I n s } }$ : ",
+        "bbox": [
+            174,
+            760,
+            823,
+            790
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "img_path": "images/e42e464497284204e18b90a74c6da65d8a075444caee2720779bbf64f1c1850f.jpg",
+        "text": "$$\n\\mathbf { S } _ { \\mathrm { c r o s s } } ^ { \\mathrm { I n s } } = \\frac { 1 } { N _ { \\mathrm { s a m p l e } } } \\sum _ { i = 1 } ^ { N _ { \\mathrm { s a m p l e } } } \\frac { \\langle \\mathbf { h } _ { i , \\mathrm { i n s } } ^ { ( l , \\mathrm { m i s } ) } , \\mathbf { h } _ { i , \\mathrm { i n s } } ^ { ( l , \\mathrm { r e f } ) } \\rangle } { \\| \\mathbf { h } _ { i , \\mathrm { i n s } } ^ { ( l , \\mathrm { m i s } ) } \\| _ { 2 } \\| \\mathbf { h } _ { i , \\mathrm { i n s } } ^ { ( l , \\mathrm { r e f } ) } \\| _ { 2 } } .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            346,
+            796,
+            650,
+            842
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "where h(l,mii,ins is the layer- $l$ instruction embedding for sample $i$ paired with a mismatched image, and h(l,refi,ins is the counterpart paired with a fixed reference image. ",
+        "bbox": [
+            174,
+            851,
+            825,
+            888
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Contrary to common belief, the right panel of Fig. 2 shows that, in shallow layers, text embeddings for a fixed instruction are nearly invariant to the accompanying image, indicating that cross-modal influence is still negligible and meaningful fusion has not yet occurred. Combined with the intramodal analysis above, these results suggest that shallow layers primarily act as passive conduits, simply passing visual information to deeper layers where substantive processing begins. ",
+        "bbox": [
+            176,
+            895,
+            823,
+            924
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "discarded",
+        "text": "Under review as a conference paper at ICLR 2026 ",
+        "bbox": [
+            173,
+            34,
+            503,
+            46
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "discarded",
+        "text": "3 ",
+        "bbox": [
+            493,
+            948,
+            504,
+            959
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "discarded",
+        "text": "109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127 128 129 130 131 132 133 134 135 136 137 138 139 140 141 142 143 144 145 146 147 148 149 150 151 152 153 154 155 156 157 158 159 160 161 ",
+        "bbox": [
+            112,
+            119,
+            148,
+            930
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            176,
+            103,
+            823,
+            146
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Middle Layers: Sparse Fusion Hubs In stark contrast to the passive shallow layers, the middle layers emerge as the primary hubs for cross-modal fusion. At this stage, the model actively integrates visual information, causing textual representations to vary significantly in response to visual input (Fig. 2). This fusion, however, is highly sparse: a small subset of key visual tokens grounds the textual embeddings, rendering the vast majority of other visual tokens redundant. This dual characteristic, being both the center of fusion and the peak of redundancy, makes the middle layers the natural bottleneck for multimodal processing. ",
+        "bbox": [
+            173,
+            172,
+            825,
+            271
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "We further substantiate this redundancy with training-based pruning experiments. On LLaVA-v1.5-7B, we applied an aggressive middlelayer schedules parameterized by exponential decay (ED) and generalized exponential decay (GED). In GED, an exponent $p$ controls the decay shape, and when $0 < p < 1$ the keep ratio drops much faster in early layers, enabling extremely early pruning. Under an extreme GED schedule that reduces visual tokens from 576 to just 1 across the middle layers, the model still retains $9 9 . 6 \\%$ of its origi",
+        "bbox": [
+            174,
+            271,
+            419,
+            477
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "image",
+        "img_path": "images/9efb4edb10ade73aec196210f4715dd73afb598a980dfeacf146693c5d9b7d71.jpg",
+        "image_caption": [
+            "Figure 3: Left: Vision token reduction curves under different $p$ values, where lower $p$ enforces stronger pruning. Right: Model performance remains stable even under high compression rates, demonstrating robustness of our pruning strategy. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            431,
+            286,
+            823,
+            404
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "nal GQA performance. Moreover, this robustness is not an artifact of a single schedule. As shown in Fig. 3, various alternative pruning strategies also maintain near-perfect accuracy. Such invariance demonstrates that high visual redundancy is a stable, inherent property of the middle layers, making them the ideal location for aggressive token compression. ",
+        "bbox": [
+            174,
+            478,
+            825,
+            534
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Deep Layers: Language-Dominant Reasoning Once cross-modal fusion is completed in the middle layers, the network transitions into its final stage, which is dominated by (a) Token reduction curves (b) Stable performance under high compression ratesabstract, language-centric reasoning. The direct influence of visual tokens steadily diminishes until their role becomes negligible, as seen in Fig. 2. We validate this with behavior on LLaVA-v1.5-7B with a training-free “early exit” experiment, where we discard all visual tokens at a specific layer and observe the impact on performance. As shown in Fig. 4, removing visual tokens in the shallow or middle layers causes a catastrophic performance drop. However, removing them after the main fusion stage (e.g., beyond layer 24) results in almost no degradation. This finding provides strong evidence that the deep layers can operate effectively without direct access to visual information, relying instead on the fused multimodal representations formed in the middle layers. At this point, the network transitions fully into a language-dominant regime to refine semantics and generate the final output. ",
+        "bbox": [
+            174,
+            560,
+            581,
+            741
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "image",
+        "img_path": "images/bb5e1e1786ba81f6b0fe9d6331df63eacc576970b6d97e127b00baa0513310da.jpg",
+        "image_caption": [
+            "Figure 4: Early vision exit analysis under different masking ratios. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            594,
+            564,
+            821,
+            695
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            176,
+            742,
+            821,
+            784
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "3 HIDIVDROP ",
+        "text_level": 1,
+        "bbox": [
+            174,
+            814,
+            308,
+            832
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Building on the insights above, we propose HiDivDrop (Hierarchical Division-based Vision Token Dropping), a framework that adapts pruning to the hierarchical dynamics of MLLMs. As illustrated in Fig. 5, we exploit hierarchical redundancy by partitioning the LLM’s layers into shallow, middle, and deep stages: we handle the shallow and deep stages with Late Injection and Early Exit, and apply Concave Pyramid Dropping in the middle stage to progressively reduce vision tokens. ",
+        "bbox": [
+            174,
+            854,
+            825,
+            924
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "discarded",
+        "text": "Under review as a conference paper at ICLR 2026 ",
+        "bbox": [
+            174,
+            34,
+            503,
+            46
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            493,
+            949,
+            503,
+            958
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "discarded",
+        "text": "162 163 164 165 166 167 168 169 170 171 172 173 174 175 176 177 178 179 180 181 182 183 184 185 186 187 188 189 190 191 192 193 194 195 196 197 198 199 200 201 202 203 204 205 206 207 208 209 210 211 212 213 214 215 ",
+        "bbox": [
+            112,
+            97,
+            148,
+            928
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "image",
+        "img_path": "images/1fedb0a627ea03739a24d8deebce2a396b7d579019531fff887b83b060370376.jpg",
+        "image_caption": [
+            "Figure 5: Overview of HiDivDrop. (a) Framework illustration, shallow layers focus on vision-independent reasoning, middle layers progressively prune redundant tokens through differentiable top- $k$ selection, and deep layers enable early vision exit. (b) Comparison between hard top- $k$ and our differentiable top- $k$ , which achieves differentiable selection and better information preservation. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            173,
+            98,
+            823,
+            261
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "3.1 SHALLOW AND DEEP: JOINT VISUAL LAYER REDUCTION ",
+        "bbox": [
+            174,
+            332,
+            614,
+            345
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "As shown in Sec. 2, visual tokens are redundant in both shallow and deep stages. We therefore combine Late Vision Injection, which delays their introduction until fusion begins, with Early Vision Exit, which discards them once language-dominant reasoning takes over. ",
+        "bbox": [
+            174,
+            358,
+            825,
+            400
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Late Vision Injection Knowing that shallow layers act as passive conduits (Sec. 2), our approach avoids wasteful computation by employing a Late Vision Injection strategy. Instead of processing visual tokens from the first layer, HiDivDrop bypasses the initial $L _ { \\mathrm { i n j } } - 1$ layers for the visual stream entirely. The text-only forward pass proceeds until the injection layer $L _ { \\mathrm { i n j } }$ , where the vision tokens are first introduced and concatenated with the text representations: $\\mathbf { h } _ { L _ { \\mathrm { i n j } } } = [ \\mathbf { h } _ { L _ { \\mathrm { i n j } } } ^ { v } : \\mathbf { h } _ { L _ { \\mathrm { i n j } } } ^ { t } ]$ . This injection point is strategically chosen at the onset of the active fusion stage, which we identify by a local minimum in the visual layer-wise similarity curve (layer 9 in our experiments, Fig. 2). ",
+        "bbox": [
+            173,
+            416,
+            825,
+            517
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Early Vision Exit Our analysis in Sec. 2 shows that deep layers transition to a language-dominant regime where direct visual input is no longer required for reasoning. Therefore, HiDivDrop incorporates an Early Vision Exit strategy after a specific exit layer $L _ { \\mathrm { e x i t } }$ , all remaining vision tokens are discarded, and the forward pass continues with only the text stream. We determine this exit point by identifying where model performance plateaus in our deep-to-shallow masking analysis, indicating that visual tokens are no longer contributing (layer 25, Fig. 4). ",
+        "bbox": [
+            174,
+            532,
+            823,
+            617
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Together, Late Injection and Early Exit create a focused “vision processing window,” restricting all vision tokens to only middle layers. This targeted approach significantly accelerates both training and inference, all while preserving the model’s predictive accuracy. ",
+        "bbox": [
+            174,
+            623,
+            825,
+            666
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "3.2 MIDDLE: AGGRESSIVE CONCAVE PYRAMID PRUNING ",
+        "text_level": 1,
+        "bbox": [
+            174,
+            678,
+            588,
+            691
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Within the core vision processing window, we propose Concave Pyramid Pruning, an aggressive yet adaptive strategy to manage the high redundancy found in the middle layers (Sec. 2). This approach is designed to prune tokens rapidly at the start of the fusion stage and then more gradually, preserving essential information while maximizing computational savings. Implementing this strategy requires answering two key questions: (1) Where in the middle layers should pruning occur? and (2) Which specific tokens should be pruned at these locations? ",
+        "bbox": [
+            173,
+            698,
+            823,
+            782
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Where to Prune: Identifying Filtering Layers with ILVAS To determine the optimal layers for pruning, we introduce the Inter-Layer Visual Attention Similarity (ILVAS) metric. The core idea is to identify layers where the model has formed a stable assessment of token importance, making them ideal “filtering” points. ILVAS measures how consistently the most attended to visual tokens at one layer remain important in subsequent layers. Specifically, we compare the top- $K$ attention distributions for vision tokens between a layer $l$ and a future ",
+        "bbox": [
+            174,
+            799,
+            581,
+            924
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "image",
+        "img_path": "images/667b7a5d577a918708111e2fc2404bf3d602cb1c7ecf51f1f6f2fcf668225ae8.jpg",
+        "image_caption": [
+            "Figure 6: ILVAS curves for different window sizes, extended results in Appendix. G.5. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            594,
+            787,
+            823,
+            880
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "discarded",
+        "text": "Under review as a conference paper at ICLR 2026 ",
+        "bbox": [
+            173,
+            34,
+            503,
+            46
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            493,
+            948,
+            503,
+            959
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "discarded",
+        "text": "218 219 220 221 222 223 224 225 226 227 228 229 230 231 232 233 234 235 236 237 238 239 240 241 242 243 244 245 246 247 248 249 250 251 252 253 254 255 256 257 258 259 260 261 262 263 264 265 266 267 268 269 ",
+        "bbox": [
+            111,
+            130,
+            148,
+            922
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "layer $l + n$ : ",
+        "bbox": [
+            173,
+            103,
+            253,
+            118
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "img_path": "images/11d4ce2f7ddb424e7e15185516acab3cc568325c7b9c277f31c63882d6257b1a.jpg",
+        "text": "$$\n\\mathrm { I L V A S } ( l , l + n , K ) = \\frac { 1 } { | \\mathcal { V } _ { K } ^ { l } | } \\sum _ { i \\in \\mathcal { V } _ { K } ^ { l } } \\frac { \\left. \\tilde { \\mathbf { A } } _ { i } ^ { l } , \\tilde { \\mathbf { A } } _ { i } ^ { l + n } \\right. } { \\left\\| \\tilde { \\mathbf { A } } _ { i } ^ { l } \\right\\| \\left\\| \\tilde { \\mathbf { A } } _ { i } ^ { l + n } \\right\\| } ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            328,
+            128,
+            666,
+            184
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "where $\\tilde { \\mathbf { A } } _ { i } ^ { l }$ is the head-wise attention vector for vision token $i$ . A high ILVAS score indicates a stable filtering capacity. We compute its curve across the middle layers and select the local maxima to form our set of filtering layers $\\mathcal { F }$ (e.g., layers $\\{ 1 0 , 1 4 , 1 6 , 1 8 \\}$ in Fig. 6). ",
+        "bbox": [
+            174,
+            200,
+            825,
+            244
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Which Tokens to Prune: Learnable Selection with Differentiable Top-K Once the filtering layers are identified, the next challenge is to select which specific tokens to prune. Previous methods often rely on non-differentiable Hard Top- $K$ selection, which prevents the model from learning token importance directly. To overcome this, we employ a Differentiable Top- $K$ (DTop- $K$ ) operator (Liu et al., 2024b), which provides a continuous relaxation of the selection process. ",
+        "bbox": [
+            174,
+            268,
+            825,
+            340
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "normalized rank score c′ for each token: c′i = 1n Pnj=1 ⊮(ci ≥ cj ). This maps the scores to a [0, 1] $c \\in \\mathbb { R } ^ { N }$ range. Next, a soft mask is generated using a sigmoid function with a learnable pruning ratio $a$ : ",
+        "bbox": [
+            174,
+            345,
+            825,
+            390
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "equation",
+        "img_path": "images/c12be4a4c7fc26eeb641a7d466a74c8aa9b874a53c7542d53fca14d017cd9642.jpg",
+        "text": "$$\nM a s k ( c , a ) = \\mathrm { S i g m o i d } ( ( c - a ) \\cdot \\lambda ) = \\frac { 1 } { 1 + e ^ { - \\lambda ( c _ { i } ^ { \\prime } - a ) } } .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            316,
+            405,
+            681,
+            438
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "This soft mask allows gradients to flow during backpropagation, enabling the model to learn which tokens are important. For the forward pass, a hard threshold is applied to the mask to make a discrete token selection. By combining ILVAS to determine where to prune and DTop- $K$ to learn which tokens to prune, our method dynamically and efficiently compresses visual information. A detailed comparison with Hard Top- $K$ is provided in Sec. 4.3. ",
+        "bbox": [
+            174,
+            452,
+            825,
+            522
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "3.3 SOLUTIONS TO IMPLEMENTATION CHALLENGES ",
+        "text_level": 1,
+        "bbox": [
+            174,
+            549,
+            549,
+            564
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Persistent Position Encoding HiDivDrop dynamically changes which visual tokens are active across layers because of late injection, progressive dropping, and early exit. Naively reindexing tokens under this dynamic behavior can misalign positional encodings. To avoid this, each visual token is assigned a persistent positional identifier at input: although the shallow layers contain no visual tokens, their indices are reserved, activated upon injection, and preserved through subsequent dropping or exit. For RoPE, queries and keys are always rotated using these fixed identifiers, ensuring consistent relative geometry across the model. ",
+        "bbox": [
+            173,
+            579,
+            825,
+            678
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Efficient Attention Compatibility To remain compatible with efficient attention kernels such as FlashAttention, the original attention computation is left intact over the full sequence. Token selection is handled separately by a lightweight auxiliary attention pass, restricted to interactions between the final text token and visual tokens. Since this auxiliary step involves only a single query, its overhead is negligible, and the efficiency benefits of HiDivDrop are fully preserved. ",
+        "bbox": [
+            173,
+            703,
+            825,
+            772
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Parallel Decoupling of Vision-related Operations Late injection theoretically allows us to shorten the critical-path prefill time by decoupling vision-related computation from the main attention stack. Before the injection layer, all transformer layers operate purely on text tokens, while in parallel we run the vision encoder once, apply the projector to obtain visual KV tensors, and cache them. At the injection layer, these cached visual KV tensors are concatenated with the text KV tensors, and subsequent layers attend over the combined set. During HiDivDrop’s multi-stage pruning, we only update indices over the cached visual KV tensors instead of recomputing projections. This parallel decoupling removes visual KV projection from the prefill bottleneck and remains compatible with FlashAttention-style kernels. ",
+        "bbox": [
+            173,
+            797,
+            825,
+            924
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "discarded",
+        "text": "Under review as a conference paper at ICLR 2026 ",
+        "bbox": [
+            173,
+            32,
+            503,
+            47
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            493,
+            949,
+            504,
+            959
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "discarded",
+        "text": "270 271 272 273 274 275 276 277 278 279 280 281 282 283 284 285 286 287 288 289 290 291 292 293 294 295 296 297 298 299 300 301 302 303 304 305 306 307 308 309 310 311 312 313 314 315 316 317 318 319 320 321 322 323 ",
+        "bbox": [
+            111,
+            101,
+            148,
+            933
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "4 EXPERIMENT ",
+        "text_level": 1,
+        "bbox": [
+            174,
+            102,
+            316,
+            118
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "4.1 EXPERIMENTAL SETTINGS ",
+        "text_level": 1,
+        "bbox": [
+            174,
+            133,
+            398,
+            147
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Models Within the LLaVA-1.5 architecture (Liu et al., 2023a), we verify the effectiveness of the proposed HiDivDrop with three different LLM backbones: MobileLLaMA-2.7B (Wu et al., 2024), Vicuna-7B-v1.5, and Vicuna-13B-v1.5 (Zheng et al., 2023). The details are provided in Appendix C. ",
+        "bbox": [
+            174,
+            159,
+            825,
+            202
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Benchmarks To thoroughly evaluate the HiDivDrop, we conduct experiments on 11 mainstream benchmarks, including ${ \\bf M M E } ^ { \\mathrm { P } }$ (Fu et al., 2023), MMB, MMBCN (Liu et al., 2025), GQA (Hudson & Manning, 2019), $\\mathrm { V Q } \\bar { \\mathrm { A } } ^ { \\mathrm { v } 2 }$ (Goyal et al., 2017), SQAI (Lu et al., 2022), VizWiz (Gurari et al., 2018), TextVQA (Singh et al., 2019), POPE (Li et al., 2023), SEEDI (Li et al., 2024a), and MMStar (Chen et al., 2024c). Notably, MMStar (Chen et al., 2024c) is a multimodal benchmark characterized by strong visual dependency and minimal data leakage. See Appendix D for details. ",
+        "bbox": [
+            173,
+            215,
+            825,
+            300
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Efficiency Evaluation We consider the efficiency in both training and inference following PDrop (Xing et al., 2024). For training, we report real GPU hours on the same device; for inference, we report FLOPs for vision token part. Specifically, for a Transformer block, the FLOPs from MHA and FFN are $4 n d ^ { 2 } + 2 n ^ { 2 } d + 3 \\dot { n } d m$ , where $n$ is the number of vision tokens, $d$ is the hidden size, and $m$ is the FFN intermediate dimension. Aggregating across layers (with $n _ { \\ell }$ denoting the number of vision tokens at layer $\\ell$ ), the total FLOPs are: ",
+        "bbox": [
+            173,
+            314,
+            825,
+            397
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "equation",
+        "img_path": "images/45c13e38dd9d4bc86a865ce056a142d5354dbcf28aa515408f88d3899e6dff48.jpg",
+        "text": "$$\n\\mathrm { F L O P s } = \\sum _ { \\ell = 1 } ^ { L } \\left( 4 n _ { \\ell } d ^ { 2 } + 2 n _ { \\ell } ^ { 2 } d + 3 n _ { \\ell } d m \\right)\n$$",
+        "text_format": "latex",
+        "bbox": [
+            354,
+            396,
+            642,
+            439
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Implementation Details For DTop- $\\mathbf { \\nabla } \\cdot \\mathbf { K }$ operation, we set the temperate $\\lambda = N _ { v }$ , which means the number of the visual candidate vision tokens. For LLaVA-1.5-7B, we adopt late injection layer $L _ { \\mathrm { i n j } } = 9$ , early exit layer $L _ { \\mathrm { e x i t } } = 2 5$ , and filtering layers $\\mathcal { F } = \\{ 1 0 , 1 4 , 1 6 , \\bar { 1 } 8 \\}$ . For LLaVA-1.5- MobileLLaMA-2.7B, we ues $L _ { \\mathrm { i n j } } = 1 5$ , $L _ { \\mathrm { e x i t } } = 2 8$ , and $\\mathcal { F } = \\{ 1 6 , 1 9 , 2 2 , 2 5 \\}$ . All experiments are conducted on 8 NVIDIA A100 40 GB GPUs. Unless otherwise stated, we follow LLaVA’s default training (pretrain and instruction finetuning) and evaluation settings for benchmarks included in its suite. The evalution of the MMStar is done via LMMS-Eval (Zhang et al., 2024a) toolkit. ",
+        "bbox": [
+            173,
+            448,
+            825,
+            547
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "4.2 MAIN RESULTS ",
+        "text_level": 1,
+        "bbox": [
+            174,
+            563,
+            323,
+            577
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Comparison with State-of-the-art Methods To ensure a fair comparison, we conduct controlledbudget experiment under three different compression ratio. As shown in Table 1, using LLaVA1.5-7B as the base LMM, we compare HiDivDrop against state-of-the-art in-LLM vision token compression methods across eleven widely used benchmarks. HiDivDrop consistently and markedly outperforms all counterparts at all pruning ratios. Notably, it retains $9 8 . 3 \\%$ and $9 6 . 5 \\%$ of the baseline performance while pruning $8 8 . 9 \\%$ and $9 1 . 7 \\%$ of vision tokens, respectively. Compared with the most similar progressive token pruning approach, PDrop (Xing et al., 2024), HiDivDrop achieves higher performance on nearly all benchmarks under the $8 8 . 9 \\%$ pruning ratio, with a gap of $4 . 1 \\%$ average performance. At even more aggressive compression, HiDivDrop still retains $9 6 . 5 \\%$ of the baseline at $9 1 . 7 \\%$ pruning, whereas PDrop cannot reach this pruning level under the same protocol. ",
+        "bbox": [
+            173,
+            588,
+            825,
+            728
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Efficiency of HiDivDrop in Training & Inference As shown in Table 2, HiDivDrop reduces the training time (including both pretraining and finetuning stages) of LLaVA-1.5-7B from 159.3 to 94.4 GPU hours, resulting in an impressive $4 0 . 7 \\%$ reduction in overall time. In addition to the training efficiency improvement, HiDivDrop also reduces the inference FLOPs from $3 . 8 2 \\mathrm { T }$ to $0 . 4 2 \\mathrm { T } ,$ , achieving an $8 8 . 9 \\%$ reduction. Moreover, HiDivDrop lowers the prefill latency from $6 3 . 6 \\mathrm { m s }$ to $3 2 . 6 ~ \\mathrm { m s } ,$ , and can be further reduced to $3 1 . 8 ~ \\mathrm { { m s } }$ and $2 8 . 8 \\mathrm { m s }$ through parallelly decoupled visual KV projection and fewer dropping stages. Notably, compared to PDrop’s pruning ratio of $4 6 . 9 \\%$ , HiDivDrop achieves a much higher pruning ratio of $8 9 . 0 \\%$ , which is 4.8 times more aggressive, while the performance drop is only $1 . 6 \\%$ , demonstrating HiDivDrop’s superior efficiency and minimal accuracy trade-off. Similar trends are observed on LLaVA-1.5-MobileLLaMA-2.7B and LLaVA-1.5-13B: across both smaller and larger backbones, HiDivDrop consistently delivers substantial reductions in training time, FLOPs, and prefill latency under much stronger pruning ratios, while incurring only a slight degradation compared to the vanilla models. ",
+        "bbox": [
+            173,
+            743,
+            825,
+            922
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "discarded",
+        "text": "Under review as a conference paper at ICLR 2026 ",
+        "bbox": [
+            174,
+            34,
+            503,
+            46
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "discarded",
+        "text": "324 325 326 327 328 329 330 331 332 333 334 335 336 337 338 339 340 341 342 343 344 345 346 347 348 349 350 351 352 353 354 355 356 357 358 359 360 361 362 363 364 365 366 367 368 369 370 371 372 373 374 375 376 377 ",
+        "bbox": [
+            111,
+            99,
+            148,
+            934
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "discarded",
+        "text": "7 ",
+        "bbox": [
+            493,
+            948,
+            504,
+            958
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "table",
+        "img_path": "images/e9e4a9b220617260ca471430b7614dcd2fdc1b16c94a9e9457652336b718ebc9.jpg",
+        "table_caption": [
+            "Table 1: Performance comparisons with three pruning ratios on 11 benchmarks. All methods are applied on the same base model LLaVA-1.5-7B. The best result for each benchmark and pruning ratio is bolded. Dashed lines separate training-free (above) and training-based (below) methods within each block. The ∗ denotes results reproduced using the official checkpoints; † denotes training-based methods evaluated under trainingfree settings; ‡ denotes training-free methods evaluated under training-based settings. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>NNME Method</td><td></td><td>0</td><td>NNNRE</td><td></td><td></td><td></td><td>2</td><td>20</td><td>0</td><td>20 SEED</td><td>(% )SAV</td></tr><tr><td colspan=\"10\">Upper Bound, 576 Tokens (100%)</td></tr><tr><td>LLaVA-1.5-7B</td><td>1510.7</td><td>64.3</td><td>58.3 62.0</td><td>78.5</td><td>66.8</td><td>50.0</td><td>58.2</td><td>85.9</td><td>66.1</td><td>-</td><td>-</td></tr><tr><td>LLaVA-1.5-7B*</td><td>1506.5</td><td>64.7</td><td>58.1</td><td>61.9</td><td>78.5</td><td>69.5</td><td>50.1 58.2</td><td>86.8</td><td>66.2</td><td>33.7</td><td>100.0</td></tr><tr><td colspan=\"10\">Retain 80 Tokens in Average (↓ 86.1%)</td></tr><tr><td>FastV</td><td>1214.4</td><td>57.3</td><td>47.8</td><td>51.3</td><td>66.6</td><td>68.8</td><td>51.3 46.9</td><td>52.1 51.5</td><td>73.7 52.9</td><td>31.1</td><td>87.9</td></tr><tr><td>L Drop</td><td>1133.1 1348.2</td><td>53.6 62.3</td><td>41.1</td><td>50.8</td><td>67.2 68.9</td><td>69.1 68.8</td><td>43.4</td><td>72.0 49.1 80.6</td><td>50.8 55.3</td><td>30.8 34.7</td><td>84.5 91.3</td></tr><tr><td>FastVr}$ Drop</td><td>1412.1</td><td>64.6</td><td>53.1 54.7</td><td>55.4 57.9</td><td>74.3</td><td>69.8</td><td>52.4</td><td>54.3</td><td>83.7 59.3</td><td>35.0</td><td>96.8</td></tr><tr><td>VoCo-LLaMA</td><td>1307.0</td><td>58.0</td><td>44.5</td><td>58.7</td><td>74.2</td><td>66.7</td><td>52.1</td><td>50.4</td><td>83.9 54.7</td><td>32.2</td><td>91.2</td></tr><tr><td>TwigVLM</td><td>1471.5</td><td>62.8</td><td>56.4</td><td>59.5</td><td>76.8</td><td>69.7</td><td>51.5</td><td>56.9</td><td>85.0</td><td>60.7 34.0</td><td>97.9</td></tr><tr><td>HiDivDrop (Ours)</td><td>1467.0</td><td>63.7</td><td>56.3</td><td>61.3</td><td>76.6</td><td>67.5</td><td>51.4</td><td>54.9</td><td>86.6 65.3</td><td>31.2</td><td>98.4</td></tr><tr><td colspan=\"10\">Retain 64 Tokens in Average (↓ 88.9%)</td></tr><tr><td>FastV</td><td>1086.6</td><td>53.3</td><td>42.7</td><td>48.8</td><td>61.6</td><td>68.9</td><td>50.5</td><td>49.9</td><td>67.7 49.1</td><td>29.6</td><td>82.8</td></tr><tr><td> Drop</td><td>962.0</td><td>45.6</td><td>32.7</td><td>45.4</td><td>58.3</td><td>68.2</td><td>45.9 48.2</td><td>64.0</td><td>47.3</td><td>29.0</td><td>76.5</td></tr><tr><td>FastV\\}$</td><td>1303.8</td><td>61.7</td><td>52.7</td><td>56.2</td><td>70.7</td><td>70.0</td><td>43.8 51.0</td><td>83.1</td><td>55.6</td><td>33.8</td><td>-91.8</td></tr><tr><td>Drop VoCo-LLaMA</td><td>1350.7</td><td>63.1</td><td>54.3</td><td>56.6</td><td>71.8</td><td>70.3</td><td>51.8</td><td>51.7</td><td>82.6 57.9</td><td>32.7</td><td>94.2</td></tr><tr><td></td><td>1256.5</td><td>55.4</td><td>44.2</td><td>58.1</td><td>73.9</td><td>66.2</td><td>51.8</td><td>49.5</td><td>83.2 54.7</td><td>33.3</td><td>90.4</td></tr><tr><td>TwigVLM</td><td>1404.0</td><td>60.4</td><td>53.6</td><td>58.8</td><td>75.6</td><td>70.0</td><td>51.2</td><td>55.8 82.7</td><td>56.9</td><td>33.1</td><td>95.3</td></tr><tr><td>HiDivDrop (Ours)</td><td>1473.3</td><td>63.2</td><td>58.0</td><td>60.5</td><td>76.5</td><td>68.9</td><td>52.6</td><td>55.2</td><td>86.4 64.5</td><td>32.0</td><td>98.3</td></tr><tr><td colspan=\"10\">Retain 48 Tokens in Average (↓ 91.7%)</td></tr><tr><td>FastV</td><td>816.9</td><td>37.3</td><td>29.8</td><td>42.1</td><td>49.6</td><td>68.7</td><td>47.6</td><td>46.3</td><td>56.1</td><td>42.4 25.6</td><td>70.2</td></tr><tr><td>FastV‡}$</td><td>1327.4</td><td>-61.3</td><td>53.6</td><td>54.4</td><td>68.4</td><td>69.0</td><td>45.8</td><td>49.6 82.2</td><td>54.6</td><td>34.4</td><td>91.4</td></tr><tr><td>VoCo-LLaMA</td><td>1321.9</td><td>56.2</td><td>46.2</td><td>58.6</td><td>74.1</td><td>68.1</td><td>51.8 50.9</td><td>83.9</td><td>54.9</td><td>32.3</td><td>91.6</td></tr><tr><td>TwigVLM</td><td>1199.9</td><td>53.1</td><td>42.6</td><td>55.0</td><td>71.8</td><td>69.0</td><td>49.4</td><td>53.6</td><td>75.7</td><td>48.6 31.6</td><td>87.3</td></tr><tr><td>HiDivDrop (Ours)</td><td>1446.4</td><td>63.7</td><td>55.5</td><td>59.8</td><td>75.6</td><td>67.7</td><td>49.5</td><td>54.4</td><td>85.8</td><td>61.8 32.7</td><td>96.5</td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>",
+        "bbox": [
+            176,
+            178,
+            823,
+            577
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "table",
+        "img_path": "images/934c298be8b7817e6c11f739ab321bd02b7e43450188bae9ef1eb34c7d238505.jpg",
+        "table_caption": [
+            "Table 2: Efficiency comparison across three LLM backbones within the LLaVA-1.5 framework. Prefill latency (ms) is reported as actual / decoupled visual-KV / fewer dropping stages. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Model</td><td>Method</td><td>Avg. Vis. Tokens</td><td>Train hours</td><td>Infer TFlops</td><td>Prefill Latency (ms)</td><td>MMEP</td><td>MMB</td><td>GQA</td><td>VizWiz</td><td>VQAT</td><td>Avg(%)</td></tr><tr><td rowspan=\"3\">LLaVA-1.5- MobileLLaMA-2.7B</td><td>Vanilla</td><td>576</td><td>108.4</td><td>1.52</td><td>35.3</td><td>1258.2</td><td>57.0</td><td>59.4</td><td>32.6</td><td>48.6</td><td>100.0</td></tr><tr><td>PDrop</td><td>270</td><td>50.3</td><td>0.70</td><td>28.7</td><td>1231.1</td><td>54.3</td><td>57.0</td><td>30.9</td><td>47.5</td><td>96.3</td></tr><tr><td>ours</td><td>64 ↓206</td><td>45.6</td><td>0.17</td><td>25.4/25.1/22.0</td><td>1206.6</td><td>53.1</td><td>56.1</td><td>30.4</td><td>47.2</td><td>94.8 ↓ 1.5</td></tr><tr><td rowspan=\"3\">LLaVA-1.5-7B</td><td>Vanilla</td><td>576</td><td>159.3</td><td>3.82</td><td>63.6</td><td>1506.5</td><td>64.7</td><td>61.9</td><td>50.1</td><td>58.2</td><td>100.0</td></tr><tr><td>PDrop</td><td>270</td><td>107.3</td><td>1.78</td><td>43.7</td><td>1490.1</td><td>63.9</td><td>61.7</td><td>52.4</td><td>57.7</td><td>100.2</td></tr><tr><td>ours</td><td>64 ↓ 206</td><td>94.4</td><td>0.42</td><td>32.6/31.8/28.8</td><td>1474.3</td><td>63.2</td><td>60.5</td><td>52.6</td><td>55.2</td><td>98.6↓1.6</td></tr><tr><td rowspan=\"3\">LLaVA-1.5-13B</td><td>Vanilla</td><td>576</td><td>297.2</td><td>7.44</td><td>122.8</td><td>1529.9</td><td>68.5</td><td>63.5</td><td>53.6</td><td>61.2</td><td>100.0</td></tr><tr><td>PDrop</td><td>270</td><td>213.7</td><td>3.47</td><td>74.9</td><td>1555.2</td><td>68.8</td><td>63.1</td><td>53.7</td><td>60.8</td><td>100.3</td></tr><tr><td>ours</td><td>64 ↓ 206</td><td>175.8</td><td>0.82</td><td>48.6/46.6/43.5</td><td>1497.2</td><td>66.9</td><td>62.1</td><td>56.3</td><td>58.0</td><td>98.7↓ 1.6</td></tr></table>",
+        "bbox": [
+            176,
+            636,
+            821,
+            757
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "4.3 ABLATION STUDIES ",
+        "text_level": 1,
+        "bbox": [
+            174,
+            790,
+            354,
+            804
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "To better understand the proposed HiDivDrop, we conduct three group ablation studies to investigate the key attributes of several critical components: (1) Late injrection and early exit, assessed independently on the base model; (2) The effect of differentiable top- $k$ and token importance calculation, examined within the progressive dropping setup, where vision tokens are pruned in stages $( 5 7 6 \\to 6 4 \\to 8 \\to 1 )$ ) at evenly spaced intervals; and (3) Position encoding and filter layer selection, analyzed within the complete shallow-middle-deep compression structure. ",
+        "bbox": [
+            173,
+            819,
+            825,
+            904
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "discarded",
+        "text": "Under review as a conference paper at ICLR 2026 ",
+        "bbox": [
+            174,
+            34,
+            503,
+            46
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "discarded",
+        "text": "8 ",
+        "bbox": [
+            493,
+            948,
+            503,
+            959
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "discarded",
+        "text": "379 380 381 382 383 384 385 386 387 388 389 390 391 392 393 394 395 396 397 398 399 400 401 402 403 404 405 406 407 408 409 410 411 412 413 414 415 416 417 418 419 420 421 422 423 424 425 426 427 428 429 430 431 ",
+        "bbox": [
+            111,
+            117,
+            148,
+            916
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "table",
+        "img_path": "images/c937b717ac137576ef82dafc83cf241adef6481823ee84c21710e9f4f1ba777a.jpg",
+        "table_caption": [
+            "Table 3: Performance comparison of LLaVA variants with Hard vs. Differentiable Top- $K$ Operators. PT and FT denote pretrain and finetune, respectively. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Model</td><td>Train</td><td>Top-K</td><td>MMEP</td><td>MMB</td><td>GQA</td><td>VQAV2</td><td>VizWiz</td><td>VQAT</td><td>MMStar</td><td>Avg(%)</td></tr><tr><td>LLaVA-1.5-7B</td><td>-</td><td>-</td><td>1506.5</td><td>64.7</td><td>61.9</td><td>78.5</td><td>50.1</td><td>58.2</td><td>33.7</td><td>100.0</td></tr><tr><td rowspan=\"4\">LLaVA-1.5-7B + Top-K</td><td>PT+FT</td><td>Hard</td><td>1436.9</td><td>64.2</td><td>59.7</td><td>76.4</td><td>50.1</td><td>55.7</td><td>33.9</td><td>97.7</td></tr><tr><td rowspan=\"2\"></td><td>Diff.</td><td>1484.7</td><td>65.5</td><td>60.2</td><td>76.3</td><td>52.7</td><td>56.2</td><td>34.3</td><td>99.7</td></tr><tr><td>Hard</td><td>1482.7</td><td>65.0</td><td>60.3</td><td>76.5</td><td>46.8</td><td>55.9</td><td>33.4</td><td>97.5</td></tr><tr><td>FT</td><td>DDiff.</td><td>1471.7</td><td>65.2</td><td>59.9</td><td>76.5</td><td>47.1</td><td>56.2</td><td>34.8</td><td>98.1</td></tr></table>",
+        "bbox": [
+            176,
+            130,
+            821,
+            219
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "table",
+        "img_path": "images/1c6eeae26df4c48834846bd769b5c0cfa27e2f605f97476aba3150c7a0215e7f.jpg",
+        "table_caption": [
+            "Table 4: Effect of different strategies for estimating vision token saliency. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Model</td><td>MMEP</td><td>MMB</td><td>GQA</td><td>VQA^{2$</td><td>VizWiz</td><td>VQAT</td><td>MMStar</td><td>Avg(%)</td></tr><tr><td>LLaVA-1.5-7B</td><td>1506.5</td><td>64.7</td><td>61.9</td><td>78.5</td><td>50.1</td><td>58.2</td><td>33.7</td><td>100.0</td></tr><tr><td>Last token (1-rounds)</td><td>1424.7</td><td>65.3</td><td>59.6</td><td>75.6</td><td>49.0</td><td>55.5</td><td>33.2</td><td>97.1</td></tr><tr><td>Last token (n-rounds)</td><td>1484.7</td><td>65.5</td><td>60.2</td><td>76.3</td><td>52.7</td><td>56.2</td><td>34.3</td><td>99.7</td></tr><tr><td>Last token (n-rounds, L2 norm)</td><td>1447.0</td><td>65.2</td><td>59.7</td><td>76.3</td><td>48.8</td><td>55.9</td><td>34.0</td><td>97.9</td></tr><tr><td>All token</td><td>1414.8</td><td>65.0</td><td>59.0</td><td>74.8</td><td>51.4</td><td>56.6</td><td>34.3</td><td>98.1</td></tr><tr><td>All token (L2 norm)</td><td>1424.0</td><td>65.5</td><td>59.</td><td>75.2</td><td>53.2</td><td>56.6</td><td>35.5</td><td>99.6</td></tr></table>",
+        "bbox": [
+            176,
+            250,
+            821,
+            349
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Late Injection and Early Exit Our late injection and early exit are guided by two diagnostics: layer 9 aligns with a local minimum in the visual layer-wise similarities (Fig. 2), and accuracy plateaus around layer 25 under deepto-shallow masking (Fig. 4). We validate these choices with three sweeps (Fig. 7). In the late entry sweep, varying the injection layer with the exit fixed shows a clear peak at layer 9; injecting earlier adds cost with little gain, and injecting later degrades accuracy. In the fixed entry span sweep, fixing injection at layer 9 and varying the exit peaks around layers 25 to 26; later exits add cost and earlier exits hurt accuracy. In the equal depth window sweep, sliding ",
+        "bbox": [
+            173,
+            376,
+            483,
+            583
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "image",
+        "img_path": "images/3a48c3f39290bdbff6688efb4c11fceaaf30b46fc427db8cbfd4a5c26e07d199.jpg",
+        "image_caption": [
+            "Figure 7: Ablation across visual perception layers comparing Late Injection, Fixed-Entry Span, and Equal-Depth Window, confirming that our setting is the most efficient. The full per-benchmark results are provided in Appendix G.1, Table 8. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            498,
+            377,
+            821,
+            501
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "a constant-length window confirms 8–24 and 9–25 as near-optimal, while 10–26 underperforms. Notably, in the deep-to-shallow diagnostic, performance matches the baseline at layer 26 and is only slightly lower at layer 25; we therefore choose 25 as the exit, expecting training to recover the small gap, and the sweeps verify that the 9 to 25 window is a strong choice. ",
+        "bbox": [
+            174,
+            583,
+            825,
+            638
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Differentiable Top-K We study hard top- $k$ and differentable top- $k$ under a progressive pruning schedule. As shown in Table 3, replacing hard top- $k$ with differentable top- $k$ lifts the average performance from $9 7 . 7 \\%$ to $9 9 . 7 \\%$ with two-stage training (pretraining then finetuning) and from $9 7 . 5 \\%$ to $9 8 . 1 \\%$ with one-stage training (finetuning only), indicating more faithful token selection under the same training setting. Since the gain is larger with two-stage training, we adopt this recipe as the default in our experiments. See Appendix G.2 for additional token decay schedules. ",
+        "bbox": [
+            173,
+            655,
+            825,
+            739
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Token Weighting Strategies We compare training-time strategies for estimating the importance of vision tokens. As shown in Table 4, using attention from all text tokens to vision tokens with L2-norm weighting performs only on par with the multi-round last token variant. In fact, on the full set of 11 benchmarks (see Table 10 in the Appendix G.3), the latter is $0 . 3 \\%$ lower on average. Given the extra cost from the eager attention used for importance calculation, we default to the multi-round last-token scheme. ",
+        "bbox": [
+            173,
+            755,
+            825,
+            838
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Position Encoding Conceptually, similar to the “position-ID mismatch” in streaming LLMs (Tong et al., 2025), but distinct in cause: ours arises from cross-layer changes in the set of surviving vision tokens due to late injection (insertion), progressive dropping (pruning), and early exit (removal). We therefore compare three positional encoding (PE) schemes: (1) Persistent PE: assign fixed RoPE indices at input and never update them; (2) Compacted PE (PDrop-style): start with preset indices and, at pruning stages, reset indices to compact surviving vision tokens and fill gaps; and (3) Group PE: allocate disjoint RoPE index ranges for instruction and vision tokens, with no in-place updates during injection, pruning, or exit. As summarized in Table 5, Persistent PE achieves the best average performance, Group PE is close, and Compacted PE performs worst, consistent with the hypothesis that resetting indices exacerbates cross-layer position mismatch. Given its accuracy and zero overhead, we adopt Persistent PE by default. More benchmark results appear in Appendix G.4. ",
+        "bbox": [
+            174,
+            853,
+            823,
+            924
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "discarded",
+        "text": "Under review as a conference paper at ICLR 2026 ",
+        "bbox": [
+            174,
+            34,
+            503,
+            46
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "discarded",
+        "text": "9 ",
+        "bbox": [
+            493,
+            948,
+            504,
+            958
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "discarded",
+        "text": "432 433 434 435 436 437 438 439 440 441 442 443 444 445 446 447 448 449 450 451 452 453 454 455 456 457 458 459 460 461 462 463 464 465 466 467 468 469 470 471 472 473 474 475 476 477 478 479 480 481 482 483 484 485 ",
+        "bbox": [
+            112,
+            106,
+            150,
+            935
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "table",
+        "img_path": "images/f0fd42006af9d1baae1c1302af7686916dff560f18c3b6a64c25cf9f6c9460ae.jpg",
+        "table_caption": [
+            "Table 5: Effect of position encoding (PE) schemes under shallow–middle–deep compression. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Model</td><td>MMEP</td><td>MMB</td><td>GQA</td><td>VQA^2</td><td>VizWiz</td><td>VQAT</td><td>MMStar</td><td>Avg(%)</td></tr><tr><td>LLaVA-1.5-7B</td><td>1506.5</td><td>64.7</td><td>61.9</td><td>78.5</td><td>50.1</td><td>58.2</td><td>33.7</td><td>100.0</td></tr><tr><td>Persistent PE</td><td>1414.4</td><td>63.7</td><td>61.3</td><td>76.6</td><td>52.1</td><td>55.6</td><td>32.0</td><td>97.6</td></tr><tr><td>Compacted PE</td><td>1452.3</td><td>64.6</td><td>61.1</td><td>76.8</td><td>48.9</td><td>55.1</td><td>30.3</td><td>96.4</td></tr><tr><td>Group PE</td><td>1442.2</td><td>63.9</td><td>60.4</td><td>76.2</td><td>51.2</td><td>55.5</td><td>31.1</td><td>97.0</td></tr></table>",
+        "bbox": [
+            176,
+            116,
+            820,
+            204
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "table",
+        "img_path": "images/4fd179398029628cf2b2acfc7829fd6362cf4b19d861dc0d30b826a364009026.jpg",
+        "table_caption": [
+            "Table 6: Effect of instruction fine-tuning data scale (HiDivDrop retains 48 visual tokens in average). "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Model</td><td>Data Scale</td><td>MMEP</td><td>MMB</td><td>GQA</td><td>VQA^2$</td><td>VizWizval</td><td>VQAT</td><td>MMStar</td><td>Avg(%)</td></tr><tr><td>LLaVA-1.5-7B</td><td>665k</td><td>1506.5</td><td>64.7</td><td>61.9</td><td>78.5</td><td>54.4</td><td>58.2</td><td>33.7</td><td>100.0</td></tr><tr><td>HiDivDrop</td><td>1M</td><td>1446.4</td><td>63.7</td><td>59.8</td><td>75.6</td><td>56.3</td><td>54.4</td><td>32.7</td><td>97.0</td></tr><tr><td>LLaVA-1.5-7B</td><td>665k</td><td>1526.1</td><td>68.7</td><td>62.7</td><td>79.2</td><td>61.2</td><td>58.8</td><td>38.2</td><td>100.0</td></tr><tr><td>HiDivDrop</td><td>1M</td><td>1453.9</td><td>66.2</td><td>59.5</td><td>76.1</td><td>60.7</td><td>55.4</td><td>36.9</td><td>96.3</td></tr></table>",
+        "bbox": [
+            176,
+            232,
+            821,
+            309
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            173,
+            334,
+            825,
+            417
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Filtering Layer Selection We first compute the ILVAS curve over the middle layers on a model configured with late injection and early exit, and select its local maxima as the filtering layers, yielding $\\{ 1 0 , 1 4 , 1 6 , 1 8 \\}$ (Fig. 6). To validate this choice, we fix a token–decay schedule that follows the concave pyramid dropping policy and sweep the filtering layers (Fig. 8). Compared with a control schedule $\\{ 1 2 , 1 5 , 1 8 , 2 1 \\}$ , the ILVAS-based set achieves higher average accuracy. Fixing $\\{ 1 0 , 1 6 , 1 8 \\}$ and sweeping the remaining slot produces a clear peak at 14, whereas 12 or 13 degrades performance. Jointly sweeping the middle pair further confirms $\\{ 1 4 , 1 8 \\}$ as the best combination; nearby alternatives $\\{ 1 3 , \\dot { 1 } 8 \\}$ , $\\{ 1 3 , 1 9 \\}$ , and $\\{ 1 4 , 1 9 \\}$ underperform. We therefore adopt $\\{ 1 0 , 1 4 , 1 6 , 1 8 \\}$ in all main experiments. ",
+        "bbox": [
+            174,
+            433,
+            549,
+            613
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "image",
+        "img_path": "images/91e9d10226231055beee108c584a1ba983a875030920255379fd76ef320efc1f.jpg",
+        "image_caption": [
+            "Figure 8: Ablation across filter layers, confirming that our setting is the most efficient. The full per-benchmark results are provided in Appendix G.5, Table 12. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            562,
+            436,
+            821,
+            541
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            174,
+            613,
+            754,
+            627
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Training Data Scale The HiDivDrop variant evaluated in Table 6 retains only 48 visual tokens across all settings. We compare the base LLaVA-v1.5-7B and its HiDivDrop-equipped counterpart under two instruction fine-tuning data scales (665k vs. 1M). As the data scale increases, both the base model and HiDivDrop consistently improve on most benchmarks (e.g., MMB, MMB-CN, SEEDIMG, MMStar), indicating that HiDivDrop continues to benefit from additional instruction data rather than being bottlenecked by compression. At the same time, the compressed model remains close to the base model, with average performance drops of only $3 . 0 \\%$ (665k) and $3 . 7 \\%$ (1M) despite operating under a much more aggressive visual-token budget. These results show that HiDivDrop tracks the gains of the base model as data scale grows, supporting that our layer-wise compression design is compatible with stronger instruction tuning and that the observed improvements are not artifacts of under-training. ",
+        "bbox": [
+            173,
+            642,
+            825,
+            795
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "5 CONCLUSION ",
+        "text_level": 1,
+        "bbox": [
+            176,
+            809,
+            318,
+            824
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "In summary, our study challenges prevailing assumptions about visual processing in MLLMs and demonstrates that shallow layers only act as passive propagators for visual tokens. By introducing HiDivDrop with Late Injection, Concave Pyramid Pruning, and Early Exit, we align pruning with the true hierarchical dynamics of multimodal integration. Our findings not only achieve state-of-the-art efficiency–accuracy trade-offs, but also provide new insights into how MLLMs allocate computation across layers, paving the way for more principled and scalable multimodal architectures. ",
+        "bbox": [
+            173,
+            840,
+            825,
+            924
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "discarded",
+        "text": "Under review as a conference paper at ICLR 2026 ",
+        "bbox": [
+            174,
+            34,
+            503,
+            46
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "discarded",
+        "text": "10 ",
+        "bbox": [
+            490,
+            948,
+            508,
+            959
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "discarded",
+        "text": "486 487 488 489 490 491 492 493 494 495 496 497 498 499 500 501 502 503 504 505 506 507 508 509 510 511 512 513 514 515 516 517 518 519 520 521 522 523 524 525 526 527 528 529 530 531 532 533 534 535 536 537 538 539 ",
+        "bbox": [
+            109,
+            89,
+            147,
+            926
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "ETHICS STATEMENT ",
+        "text_level": 1,
+        "bbox": [
+            176,
+            102,
+            341,
+            117
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "This work does not present any ethical concerns. Our research focuses on methodological contributions and efficiency analysis without involving sensitive data, human subjects, or applications that could raise ethical risks. ",
+        "bbox": [
+            174,
+            133,
+            825,
+            175
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "REPRODUCIBILITY STATEMENT ",
+        "text_level": 1,
+        "bbox": [
+            176,
+            196,
+            434,
+            212
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "We have taken several steps to ensure the reproducibility of our work. All experimental settings, including dataset descriptions, training details, and hyperparameter selections, are clearly documented in the main text and appendix. We further provide extensive ablation studies to justify our design choices. Upon acceptance, we will release the full codebase and scripts to facilitate replication of our results. ",
+        "bbox": [
+            173,
+            227,
+            825,
+            296
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "REFERENCES ",
+        "text_level": 1,
+        "bbox": [
+            174,
+            319,
+            285,
+            333
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Jinze Bai, Shuai Bai, Shusheng Yang, Shijie Wang, Sinan Tan, Peng Wang, Junyang Lin, Chang Zhou, and Jingren Zhou. Qwen-vl: A frontier large vision-language model with versatile abilities. arXiv preprint arXiv:2308.12966, 1(2):3, 2023.   \nShuai Bai, Keqin Chen, Xuejing Liu, Jialin Wang, Wenbin Ge, Sibo Song, Kai Dang, Peng Wang, Shijie Wang, Jun Tang, et al. Qwen2. 5-vl technical report. arXiv preprint arXiv:2502.13923, 2025.   \nJunbum Cha, Wooyoung Kang, Jonghwan Mun, and Byungseok Roh. Honeybee: Locality-enhanced projector for multimodal llm. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp. 13817–13827, 2024.   \nJieneng Chen, Luoxin Ye, Ju He, Zhao-Yang Wang, Daniel Khashabi, and Alan Yuille. Efficient large multi-modal models via visual context compression. Advances in Neural Information Processing Systems, 37:73986–74007, 2024a.   \nLiang Chen, Haozhe Zhao, Tianyu Liu, Shuai Bai, Junyang Lin, Chang Zhou, and Baobao Chang. An image is worth 1/2 tokens after layer 2: Plug-and-play inference acceleration for large visionlanguage models. In European Conference on Computer Vision, pp. 19–35. Springer, 2024b.   \nLin Chen, Jinsong Li, Xiaoyi Dong, Pan Zhang, Yuhang Zang, Zehui Chen, Haodong Duan, Jiaqi Wang, Yu Qiao, Dahua Lin, et al. Are we on the right way for evaluating large vision-language models? arXiv preprint arXiv:2403.20330, 2024c.   \nChaoyou Fu, Peixian Chen, Yunhang Shen, Yulei Qin, Mengdan Zhang, Xu Lin, Jinrui Yang, Xiawu Zheng, Ke Li, Xing Sun, et al. Mme: A comprehensive evaluation benchmark for multimodal large language models. arXiv preprint arXiv:2306.13394, 2023.   \nYash Goyal, Tejas Khot, Douglas Summers-Stay, Dhruv Batra, and Devi Parikh. Making the v in vqa matter: Elevating the role of image understanding in visual question answering. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR), pp. 6904–6913, July 2017.   \nDanna Gurari, Qing Li, Abigale J. Stangl, Anhong Guo, Chi Lin, Kristen Grauman, Jiebo Luo, and Jeffrey P. Bigham. Vizwiz grand challenge: Answering visual questions from blind people. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR), pp. 3608–3617, 2018.   \nWenbo Hu, Zi-Yi Dou, Liunian Harold Li, Amita Kamath, Nanyun Peng, and Kai-Wei Chang. Matryoshka query transformer for large vision-language models. In Advances in Neural Information Processing Systems, pp. 50168–50188, 2024.   \nWenxuan Huang, Zijie Zhai, Yunhang Shen, Shaosheng Cao, Fei Zhao, Xiangfeng Xu, Zheyu Ye, and Shaohui Lin. Dynamic-llava: Efficient multimodal large language models via dynamic visionlanguage context sparsification. arXiv preprint arXiv:2412.00876, 2024.   \nDrew A. Hudson and Christopher D. Manning. Gqa: A new dataset for real-world visual reasoning and compositional question answering. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), pp. 6700–6709, 2019.   \nBohao Li, Yuying Ge, Yixiao Ge, Guangzhi Wang, Rui Wang, Ruimao Zhang, and Ying Shan. Seed-bench: Benchmarking multimodal large language models. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), pp. 13299–13308, 2024a.   \nWentong Li, Yuqian Yuan, Jian Liu, Dongqi Tang, Song Wang, Jie Qin, Jianke Zhu, and Lei Zhang. Tokenpacker: Efficient visual projector for multimodal llm. arXiv preprint arXiv:2407.02392, 2024b.   \nYifan Li, Yifan Du, Kun Zhou, Jinpeng Wang, Xin Zhao, and Ji-Rong Wen. Evaluating object hallucination in large vision-language models. In Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing, pp. 292–305, 2023.   \nHaotian Liu, Chunyuan Li, Yuheng Li, and Yong Jae Lee. Improved baselines with visual instruction tuning, 2023a.   \nHaotian Liu, Chunyuan Li, Qingyang Wu, and Yong Jae Lee. Visual instruction tuning, 2023b.   \nHaotian Liu, Chunyuan Li, Yuheng Li, Bo Li, Yuanhan Zhang, Sheng Shen, and Yong Jae Lee. Llava-next: Improved reasoning, ocr, and world knowledge, January 2024a. URL https:// llava-vl.github.io/blog/2024-01-30-llava-next/.   \nKai Liu, Ruohui Wang, Jianfei Gao, and Kai Chen. Differentiable model scaling using differentiable topk. In Proceedings of the 41st International Conference on Machine Learning, pp. 31994– 32014, 2024b.   \nTing Liu, Liangtao Shi, Richang Hong, Yue Hu, Quanjun Yin, and Linfeng Zhang. Multi-stage vision token dropping: Towards efficient multimodal large language model. arXiv preprint arXiv:2411.10803, 2024c.   \nYuan Liu, Haodong Duan, Yuanhan Zhang, Bo Li, Songyang Zhang, Wangbo Zhao, Yike Yuan, Jiaqi Wang, Conghui He, Ziwei Liu, Kai Chen, and Dahua Lin. Mmbench: Is your multi-modal model an all-around player? In European conference on computer vision, pp. 216–233, 2025.   \nPan Lu, Swaroop Mishra, Tanglin Xia, Liang Qiu, Kai-Wei Chang, Song-Chun Zhu, Oyvind Tafjord, Peter Clark, and Ashwin Kalyan. Learn to explain: Multimodal reasoning via thought chains for science question answering. In Advances in Neural Information Processing Systems, volume 35, pp. 2507–2521, 2022.   \nDavid Marr. Vision: A computational investigation into the human representation and processing of visual information. MIT press, 2010.   \nOpenAI. Gpt-4v(ision) system card. https://cdn.openai.com/papers/GPTV_System_ Card.pdf, 2023.   \nOpenAI. Hello gpt-4o, May 2024. Available: https://openai.com/index/hello-gpt-4o.   \nZhenwei Shao, Mingyang Wang, Zhou Yu, Wenwen Pan, Yan Yang, Tao Wei, Hongyuan Zhang, Ning Mao, Wei Chen, and Jun Yu. Growing a twig to accelerate large vision-language models. arXiv preprint arXiv:2503.14075, 2025.   \nAmanpreet Singh, Vivek Natarajan, Meet Shah, Yu Jiang, Xinlei Chen, Dhruv Batra, Devi Parikh, and Marcus Rohrbach. Towards vqa models that can read. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), pp. 8317–8326, 2019.   \nDingjie Song, Wenjun Wang, Shunian Chen, Xidong Wang, Michael X. Guan, and Benyou Wang. Less is more: A simple yet effective token reduction method for efficient multi-modal llms. In Proceedings of the 31st International Conference on Computational Linguistics, pp. 7614–7623, 2025.   \nJunlong Tong, Jinlan Fu, Zixuan Lin, Yingqi Fan, Anhao Zhao, Hui Su, and Xiaoyu Shen. Llm as effective streaming processor: Bridging streaming-batch mismatches with group position encoding. arXiv preprint arXiv:2505.16983, 2025.   \nPeng Wang, Shuai Bai, Sinan Tan, Shijie Wang, Zhihao Fan, Jinze Bai, Keqin Chen, Xuejing Liu, Jialin Wang, Wenbin Ge, et al. Qwen2-vl: Enhancing vision-language model’s perception of the world at any resolution. arXiv preprint arXiv:2409.12191, 2024.   \nQinzhuo Wu, Weikai Xu, Wei Liu, Tao Tan, Jianfeng Liu, Ang Li, Jian Luan, Bin Wang, and Shuo Shang. Mobilevlm: A vision-language model for better intra-and inter-ui understanding. arXiv preprint arXiv:2409.14818, 2024.   \nQiong Wu, Wenhao Lin, Yiyi Zhou, Weihao Ye, Zhanpeng Zen, Xiaoshuai Sun, and Rongrong Ji. Accelerating multimodal large language models via dynamic visual-token exit and the empirical findings, 2025. URL https://arxiv.org/abs/2411.19628.   \nLong Xing, Qidong Huang, Xiaoyi Dong, Jiajie Lu, Pan Zhang, Yuhang Zang, Yuhang Cao, Conghui He, Jiaqi Wang, Feng Wu, et al. Pyramiddrop: Accelerating your large vision-language models via pyramid visual redundancy reduction. arXiv preprint arXiv:2410.17247, 2024.   \nSenqiao Yang, Yukang Chen, Zhuotao Tian, Chengyao Wang, Jingyao Li, Bei Yu, and Jiaya Jia. Visionzip: Longer is better but not necessary in vision language models. In Proceedings of the Computer Vision and Pattern Recognition Conference, pp. 19792–19802, 2025.   \nXubing Ye, Yukang Gan, Yixiao Ge, Xiao-Ping Zhang, and Yansong Tang. Atp-llava: Adaptive token pruning for large vision language models. arXiv preprint arXiv:2412.00447, 2024a.   \nXubing Ye, Yukang Gan, Xiaoke Huang, Yixiao Ge, and Yansong Tang. Voco-llama: Towards vision compression with large language models. arXiv preprint arXiv:2406.12275, 2024b.   \nKaichen Zhang, Bo Li, Peiyuan Zhang, Fanyi Pu, Joshua Adrian Cahyono, Kairui Hu, Shuai Liu, Yuanhan Zhang, Jingkang Yang, Chunyuan Li, and Ziwei Liu. Lmms-eval: Reality check on the evaluation of large multimodal models, 2024a. URL https://arxiv.org/abs/2407. 12772.   \nShaolei Zhang, Qingkai Fang, Zhe Yang, and Yang Feng. Llava-mini: Efficient image and video large multimodal models with one vision token. arXiv preprint arXiv:2501.03895, 2025.   \nYuan Zhang, Chun-Kai Fan, Junpeng Ma, Wenzhao Zheng, Tao Huang, Kuan Cheng, Denis Gudovskiy, Tomoyuki Okuno, Yohei Nakata, Kurt Keutzer, et al. Sparsevlm: Visual token sparsification for efficient vision-language model inference. arXiv preprint arXiv:2410.04417, 2024b.   \nLianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan Zhuang, Zhanghao Wu, Yonghao Zhuang, Zi Lin, Zhuohan Li, Dacheng Li, Eric Xing, et al. Judging llm-as-a-judge with mt-bench and chatbot arena. Advances in neural information processing systems, 36:46595–46623, 2023.   \nYuke Zhu, Chi Xie, Shuang Liang, Bo Zheng, and Sheng Guo. Focusllava: A coarse-to-fine approach for efficient and effective visual token compression. arXiv preprint arXiv:2411.14228, 2024. ",
+        "bbox": [
+            169,
+            334,
+            826,
+            926
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "discarded",
+        "text": "Under review as a conference paper at ICLR 2026 ",
+        "bbox": [
+            174,
+            34,
+            503,
+            46
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            490,
+            948,
+            506,
+            959
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "discarded",
+        "text": "540 541 542 543 544 545 546 547 548 549 550 551 552 553 554 555 556 557 558 559 560 561 562 563 564 565 566 567 568 569 570 571 572 573 574 575 576 577 578 579 580 581 582 583 584 585 586 587 588 589 590 591 592 593 ",
+        "bbox": [
+            112,
+            103,
+            147,
+            933
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            169,
+            80,
+            828,
+            926
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "discarded",
+        "text": "Under review as a conference paper at ICLR 2026 ",
+        "bbox": [
+            173,
+            34,
+            503,
+            46
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "discarded",
+        "text": "12 ",
+        "bbox": [
+            490,
+            948,
+            508,
+            959
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "discarded",
+        "text": "594 595 596 597 598 599 600 601 602 603 604 605 606 607 608 609 610 611 612 613 614 615 616 617 618 619 620 621 622 623 624 625 626 627 628 629 630 631 632 633 634 635 636 637 638 639 640 641 642 643 644 645 646 647 ",
+        "bbox": [
+            111,
+            80,
+            147,
+            935
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            169,
+            92,
+            828,
+            744
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "discarded",
+        "text": "Under review as a conference paper at ICLR 2026 ",
+        "bbox": [
+            173,
+            34,
+            503,
+            46
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "discarded",
+        "text": "13 ",
+        "bbox": [
+            490,
+            948,
+            508,
+            959
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "discarded",
+        "text": "648 649 650 651 652 653 654 655 656 657 658 659 660 661 662 663 664 665 666 667 668 669 670 671 672 673 674 675 676 677 678 679 680 681 682 683 684 685 686 687 688 689 690 691 692 693 694 695 696 697 698 699 700 701 ",
+        "bbox": [
+            111,
+            79,
+            147,
+            925
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "A THE USE OF LARGE LANGUAGE MODELS ",
+        "text_level": 1,
+        "bbox": [
+            174,
+            102,
+            557,
+            118
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "We employed large language models (LLMs) solely as general-purpose writing assistants for language refinement, including improving clarity, grammar, and style. Importantly, no LLM was involved in research ideation, methodological design, analysis, or result interpretation; the role of the LLM was limited to linguistic polishing. All substantive contributions originated from the authors. This ensured that the scientific content remained entirely authored by the researchers, while benefiting from improved academic writing quality. ",
+        "bbox": [
+            173,
+            137,
+            825,
+            222
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "B RELATED WORK ",
+        "text_level": 1,
+        "bbox": [
+            176,
+            247,
+            348,
+            263
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "A distinctive property of MLLMs is that vision tokens are far more numerous yet information-sparse compared to text tokens (Marr, 2010), making them the primary source of redundancy and motivating research on token compression. Most prior work is training-free, pruning vision tokens during inference via heuristic rules (Chen et al., 2024b; Zhang et al., 2024b; Yang et al., 2025; Liu et al., 2024c). While effective in reducing computation, these methods introduce a train–inference mismatch. To address this issue, training-based approaches learn token reduction end-to-end, achieving alignment between training and inference and enhancing adaptability. ",
+        "bbox": [
+            174,
+            281,
+            825,
+            380
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Among training-based methods, previous studies can be grouped into Pre-LLM, In-LLM, and joint approaches, according to where the reduction is applied. (1) Pre-LLM approaches compress tokens before the LLM via compact projectors (Cha et al., 2024; Li et al., 2024b) or encoder-side modules (Hu et al., 2024; Song et al., 2025; Zhang et al., 2025). Such approaches remain disconnected from the LLM’s internal reasoning, preventing compression from adapting to cross-modal interactions. (2) In-LLM approaches integrate compression into the LLM, enabling strategies for token selection, aggregation, or reduction. Some methods perform representation compression by replacing vision tokens with latent tokens (Ye et al., 2024b) or by pooling operations (Chen et al., 2024a), while others adopt selection-based pruning, either through heuristic schedules (Xing et al., 2024; Shao et al., 2025) or adaptive strategies (Ye et al., 2024a). However, most pruning approaches rely on non-differentiable Top- $k$ operators, hindering end-to-end optimization. Dynamic-LLaVA (Huang et al., 2024) relaxes this with soft gating but still provides only approximate gradients, whereas our differentiable Top- $k$ yields a continuous relaxation with stable gradient flow. (3) Joint approaches combine the strengths of both Pre-LLM and In-LLM strategies, e.g., FocusLLaVA (Zhu et al., 2024), which applies vision-guided pre-LLM compression and text-guided pruning inside the LLM. While such hybrid designs demonstrate the potential of combining both perspectives, their two-stage pipeline increases architectural complexity and prevents unified end-to-end optimization. Our work instead focuses on the In-LLM setting, aiming to achieve effective compression with a fully differentiable and text-aware token selection strategy. ",
+        "bbox": [
+            174,
+            386,
+            825,
+            650
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "C LLM BACKBONES ",
+        "text_level": 1,
+        "bbox": [
+            176,
+            676,
+            362,
+            691
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "table",
+        "img_path": "images/1bfb4155261712415a905341414d33d3b99ed5bc9c220dd9029f022a18969da7.jpg",
+        "table_caption": [
+            "Table 7: Detailed settings of LLM backbones. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Model</td><td>Blocks</td><td>Heads</td><td>Hidden Dim</td><td>FFN Dim</td></tr><tr><td>MobileLLaMA 2.7B</td><td>32</td><td>32</td><td>2560</td><td>6912</td></tr><tr><td>Vicuna-7B-v1.5</td><td>32</td><td>32</td><td>4096</td><td>11008</td></tr><tr><td>Vicuna-13B-v1.5</td><td>40</td><td>40</td><td>5120</td><td>13824</td></tr></table>",
+        "bbox": [
+            263,
+            746,
+            730,
+            819
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "We use two decoder-only LLM backbones within the LLaVA-1.5 framework: MobileLLaMA 2.7B (Wu et al., 2024) and Vicuna-7B-v1.5 (Zheng et al., 2023). As shown in Table 7, both have 32 transformer blocks and 32 attention heads. MobileLLaMA 2.7B uses a hidden size of 2560 with an FFN dimension of 6912, while Vicuna-7B-v1.5 uses 4096 and 11008, respectively. Unless otherwise noted, all other architectural and training settings follow LLaVA defaults; our method changes only the vision token schedule and leaves the tokenizer, projector, and attention kernels untouched. ",
+        "bbox": [
+            173,
+            839,
+            825,
+            924
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "discarded",
+        "text": "Under review as a conference paper at ICLR 2026 ",
+        "bbox": [
+            174,
+            34,
+            503,
+            46
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "discarded",
+        "text": "14 ",
+        "bbox": [
+            490,
+            948,
+            508,
+            959
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "discarded",
+        "text": "702 703 704 705 706 707 708 709 710 711 712 713 714 715 716 717 718 719 720 721 722 723 724 725 726 727 728 729 730 731 732 733 734 735 736 737 738 739 740 741 742 743 744 745 746 747 748 749 750 751 752 753 754 755 ",
+        "bbox": [
+            112,
+            95,
+            148,
+            921
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "D BENCHMARKS ",
+        "text_level": 1,
+        "bbox": [
+            174,
+            102,
+            331,
+            117
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "We conduct experiments on 11 mainstream benchmarks, including MME-Perception (Fu et al., 2023), MMBench, MMBench-CN (Liu et al., 2025), GQA (Hudson & Manning, 2019), VQAv2 (Goyal et al., 2017), ScienceQA-Iamge (Lu et al., 2022), VizWiz (Gurari et al., 2018), TextVQA (Singh et al., 2019), POPE (Li et al., 2023), SEED-Image (Li et al., 2024a), and MMStar (Chen et al., 2024c). ",
+        "bbox": [
+            174,
+            136,
+            825,
+            207
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "MME-Perception (Fu et al., 2023). A subset of tasks within the MME benchmark that focuses on evaluating a model’s perception abilities. It relies on manually constructed instruction–answer pairs to ensure that the model must genuinely “understand” the image or comprehend the text to respond, rather than relying on memory or data leakage. ",
+        "bbox": [
+            174,
+            213,
+            825,
+            268
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "MMBench (Liu et al., 2025). Comprehensively measures a model’s performance across different ability dimensions. It not only assesses whether the model can “understand” images or text but also evaluates its reasoning ability, knowledge integration, and more refined cognitive performance. ",
+        "bbox": [
+            174,
+            276,
+            821,
+            319
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "GQA (Hudson & Manning, 2019). Used to evaluate a model’s understanding and reasoning abilities on real images. It emphasizes scene understanding and logical reasoning, not just the recognition of individual objects. ",
+        "bbox": [
+            174,
+            324,
+            825,
+            367
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "VQAv2 (Goyal et al., 2017). Evaluates a model’s visual perception ability through open-ended questions. Its core objective is to test whether the model can understand the content of an image and provide reasonable answers based on the questions. ",
+        "bbox": [
+            174,
+            373,
+            825,
+            416
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "ScienceQA-Iamge (Lu et al., 2022). Aims to evaluate a model’s multimodal understanding, complex reasoning, and explainability abilities, covering multiple domains including natural sciences, language sciences, and social sciences. ",
+        "bbox": [
+            174,
+            422,
+            825,
+            465
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "VizWiz (Gurari et al., 2018). Used to evaluate a model’s visual understanding under real-world, non-ideal image conditions. Its goal is to test whether the model can provide accurate answers in low-quality images and real-world question scenarios. ",
+        "bbox": [
+            174,
+            472,
+            825,
+            515
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "TextVQA (Singh et al., 2019). Focuses on evaluating a model’s ability to understand textual information in images. It requires the model to recognize, read, and reason about the text in the image, and then generate correct answers by integrating visual information. ",
+        "bbox": [
+            174,
+            521,
+            825,
+            563
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "POPE (Li et al., 2023). Used to evaluate the degree of object hallucination in models. Its core objective is to quantify the extent to which a model produces hallucinations, helping researchers understand the model’s reliability in visual perception and generation. ",
+        "bbox": [
+            174,
+            570,
+            825,
+            612
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "SEED-Image (Li et al., 2024a). Evaluates a multimodal large model’s ability to understand and generate image content. Its goal is to test the model’s comprehensive multimodal abilities in visual perception, spatial reasoning, and image–text interaction tasks. ",
+        "bbox": [
+            174,
+            618,
+            825,
+            661
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "MMStar (Chen et al., 2024c). Aims to address insufficient visual dependency and data leakage issues in current multimodal evaluations. It defines 6 core visual–language (VL) abilities and constructs 18 detailed evaluation dimensions based on them, covering multiple aspects from coarse perception to fine-grained reasoning. ",
+        "bbox": [
+            174,
+            667,
+            825,
+            724
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "Protocol. Unless otherwise noted, we follow the official LLaVA evaluation protocol for all benchmarks above; MMStar is evaluated via LMMS-Eval. ",
+        "bbox": [
+            173,
+            731,
+            821,
+            758
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "E INTRODUCTION TO BASELINES ",
+        "text_level": 1,
+        "bbox": [
+            176,
+            785,
+            464,
+            800
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "We conduct comparisons under the LLaVA-v1.5 (Liu et al., 2023a) framework to ensure consistency and fairness across different approaches. Specifically, we evaluate our method alongside several representative vision compression techniques, including FastV (Chen et al., 2024b), PDrop (Xing et al., 2024), VoCo-LLaMA (Ye et al., 2024b) and TwigVLM (Shao et al., 2025). ",
+        "bbox": [
+            174,
+            818,
+            825,
+            875
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "FastV (Chen et al., 2024b). A general plug-and-play method that prunes unnecessary visual tokens in the early filtering layer according to attention score ranking, thereby significantly reducing inference cost without sacrificing performance. ",
+        "bbox": [
+            174,
+            882,
+            823,
+            924
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "discarded",
+        "text": "Under review as a conference paper at ICLR 2026 ",
+        "bbox": [
+            174,
+            34,
+            503,
+            46
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "discarded",
+        "text": "15 ",
+        "bbox": [
+            490,
+            948,
+            508,
+            959
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "discarded",
+        "text": "756 757 758 759 760 761 762 763 764 765 766 767 768 769 770 771 772 773 774 775 776 777 778 779 780 781 782 783 784 785 786 787 788 789 790 791 792 793 794 795 796 797 798 799 800 801 802 803 804 805 806 807 808 809 ",
+        "bbox": [
+            112,
+            102,
+            148,
+            931
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "image",
+        "img_path": "images/76afcc5f7c2b5aeb0964d7d3abba6cef4cd90d8cedde74dd354973d3f15b07e4.jpg",
+        "image_caption": [
+            "Figure 9: Layer-wise representational dynamics, where each subfigure consists of a left panel showing intra-modal refinement and a right panel highlighting cross-modal interaction intensity "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            178,
+            101,
+            818,
+            482
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "PDrop (Xing et al., 2024). An approach dividing the LVLM into several stages, discarding part of the image tokens at the end of each stage based on lightweight similarity computation with a predefined ratio, with negligible time overhead. ",
+        "bbox": [
+            173,
+            549,
+            825,
+            592
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "VoCo-LLaMA (Chen et al., 2024b). The first method to compress visual information using LLMs, distilling the LLM’s understanding of visual tokens into compact representations, compressing hundreds of visual tokens into a single VoCo token while minimizing information loss. ",
+        "bbox": [
+            174,
+            598,
+            825,
+            641
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "TwigVLM (Shao et al., 2025). A method that trains a lightweight twig block on the early layers of the base VLM, and through a twig-guided token pruning (TTP) strategy and a self-speculative decoding (SSD) strategy, achieves better accuracy and faster generation. ",
+        "bbox": [
+            174,
+            647,
+            825,
+            690
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "F EXTENDED ANALYSIS ",
+        "text_level": 1,
+        "bbox": [
+            176,
+            712,
+            392,
+            727
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "F.1 LAYER-WISE REPRESENTATIONAL DYNAMICS ANAYLSIS ",
+        "text_level": 1,
+        "bbox": [
+            174,
+            744,
+            607,
+            758
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "To demonstrate that the phenomena observed in this paper are universal, we conducted layer-wise representational dynamics analysis on various LLM backbones and model sizes within the LLaVAv1.5 framework, including MobileLLaMA-2.7B, Vicuna-7B, LLaMA3.1-8B and Vicuna-13B. As shown in Figs. 9a- 9d, all these LLMs exhibit similar trends and behaviors: (1) the intra-modality similarity in shallow layers starts at a relatively high level, then decreases and remains low for a while, before gradually increasing again and stabilizing at a higher level; and (2) the cross-modality similarity is also relatively high in the shallow layers. Besides, we also performed the same analysis under the LLaVA-NeXT framework using Vicuna-7B and LLaMA3-8B as backbones, as shown in Figs. 9e and 9f, and observed highly consistent patterns in both intra-modality and cross-modality similarity across layers. This further supports the universality of the identified phenomena across different LLM architectures and multimodal training pipelines. ",
+        "bbox": [
+            173,
+            770,
+            825,
+            924
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "discarded",
+        "text": "Under review as a conference paper at ICLR 2026 ",
+        "bbox": [
+            174,
+            34,
+            503,
+            46
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "discarded",
+        "text": "16 ",
+        "bbox": [
+            490,
+            948,
+            508,
+            959
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "discarded",
+        "text": "830 831 832 833 834 835 836 837 838 839 840 841 842 843 844 845 846 847 848 849 850 851 852 853 854 855 856 857 858 859 860 861 862 ",
+        "bbox": [
+            111,
+            397,
+            143,
+            902
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "table",
+        "img_path": "images/35969ebf4c3938888f9bebc15b19d4983194199256447580090a628fcaf1859e.jpg",
+        "table_caption": [
+            "Table 8: Complete per-benchmark results corresponding to Fig. 7. Ii denotes visual injection at layer i, $\\mathrm { E _ { i } }$ denotes early visual exit at layer i "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td></td><td>Model</td><td>NMME</td><td>M</td><td>NNAE</td><td>e</td><td></td><td></td><td>2</td><td>20</td><td>0</td><td>SED</td><td>20</td><td>(%)SAV</td></tr><tr><td># 1</td><td>Baseline</td><td>1506.5</td><td>64.7</td><td>58.1</td><td>61.9</td><td>78.5</td><td>69.5</td><td>50.1</td><td>58.2</td><td>86.8</td><td>66.2</td><td>33.7</td><td>100.0</td></tr><tr><td colspan=\"14\"></td></tr><tr><td></td><td>I5</td><td>1441.9</td><td>66.0</td><td>59.9</td><td>62.4</td><td>Late Injection 78.5</td><td>69.5</td><td>51.9</td><td>55.9</td><td>86.5</td><td>65.6</td><td>34.0</td><td>100.1</td></tr><tr><td>3</td><td>I6</td><td>1442.5</td><td>65.8</td><td>58.3</td><td>62.4</td><td>78.5</td><td>69.3</td><td>51.5</td><td>56.5</td><td>86.8</td><td>66.1</td><td>33.3</td><td>99.7</td></tr><tr><td>4</td><td>I7</td><td>1413.8</td><td>66.2</td><td>58.8</td><td>62.2</td><td>78.3</td><td>69.8</td><td>48.6</td><td>56.6</td><td>86.4</td><td>65.3</td><td>33.1</td><td>99.0</td></tr><tr><td>5</td><td>I8</td><td>1424.1</td><td>65.1</td><td>58.2</td><td>62.7</td><td>78.3</td><td>69.1</td><td>50.7</td><td>57.3</td><td>87.1</td><td>65.9</td><td>31.9</td><td>99.1</td></tr><tr><td>6</td><td>I9</td><td>1444.4</td><td>65.4</td><td>57.9</td><td>61.5</td><td>77.9</td><td>68.9</td><td>53.0</td><td>56.1</td><td>86.5</td><td>65.3</td><td>32.7</td><td>99.3</td></tr><tr><td>7</td><td>I10</td><td>1402.3</td><td>63.5</td><td>54.4</td><td>62.0</td><td>77.8</td><td>68.9</td><td>50.6</td><td>56.8</td><td>87.0</td><td>63.7</td><td>32.7</td><td>97.7</td></tr><tr><td>8</td><td>I1</td><td>1392.8</td><td>63.1</td><td>56.4</td><td>61.9</td><td>77.7</td><td>68.6</td><td>50.9</td><td>57.6</td><td>86.8</td><td>62.8</td><td>33.3</td><td>97.7</td></tr><tr><td colspan=\"14\">Fixed-Injection Span</td></tr><tr><td>9</td><td>I9 &amp; E22</td><td>1456.2</td><td>63.8</td><td>56.4</td><td>61.9</td><td>78.1</td><td>68.1</td><td>50.9</td><td>57.6</td><td>86.9</td><td>64.3</td><td>31.8</td><td>98.4</td></tr><tr><td>10</td><td>I9 &amp; E23</td><td>1438.2</td><td>63.9</td><td>56.6</td><td>61.9</td><td>78.1</td><td>66.7</td><td>51.9</td><td>58.0</td><td>86.7</td><td>65.0</td><td>32.9</td><td>98.7</td></tr><tr><td>11</td><td>I9 &amp; E24</td><td>1461.5</td><td>63.9</td><td>57.4</td><td>61.7</td><td>78.1</td><td>68.7</td><td>51.2</td><td>57.8</td><td>86.7</td><td>64.1</td><td>31.9</td><td>98.7</td></tr><tr><td>12</td><td>I9 &amp; E25</td><td>1436.6</td><td>65.8</td><td>56.4</td><td>62.5</td><td>77.9</td><td>67.1</td><td>51.5</td><td>57.3</td><td>87.1</td><td>65.3</td><td>33.5</td><td>99.2</td></tr><tr><td>13</td><td>I9 &amp; E26</td><td>1460.8</td><td>65.4</td><td>57.9</td><td>62.2</td><td>78.1</td><td>68.8</td><td>50.9</td><td>57.4</td><td>87.1</td><td>65.0</td><td>35.2</td><td>100.0</td></tr><tr><td>14</td><td>I9 &amp; E27</td><td>1435.9</td><td>65.2</td><td>58.2</td><td>62.4</td><td>78.0</td><td>68.5</td><td>48.3</td><td>56.7</td><td>86.9</td><td>64.9</td><td>33.1</td><td>98.6</td></tr><tr><td>15</td><td>I9 &amp; E28</td><td>1467.2</td><td>65.2</td><td>57.8</td><td>62.4</td><td>78.0</td><td>68.3</td><td>50.7</td><td>56.2</td><td>87.2</td><td>65.0</td><td>33.0</td><td>99.2</td></tr><tr><td colspan=\"14\">Equal-Depth Window</td></tr><tr><td>16</td><td>I8 &amp; E24</td><td>1441.5</td><td>64.7</td><td>56.2</td><td>61.7</td><td>78.1</td><td>68.0</td><td>50.1</td><td>57.7</td><td>87.2</td><td>65.0</td><td>34.7</td><td>99.1</td></tr><tr><td>17</td><td>I9 &amp; E2s</td><td>1436.6</td><td>65.8</td><td>56.4</td><td>62.5</td><td>77.9</td><td>67.1</td><td>51.5</td><td>57.3</td><td>87.1</td><td>65.3</td><td>33.5</td><td>99.2</td></tr><tr><td>18</td><td>I10 &amp; E26</td><td>1383.4</td><td>62.4</td><td>53.3</td><td>61.6</td><td>77.8</td><td>68.1</td><td>51.3</td><td>56.8</td><td>86.7</td><td>63.1</td><td>30.6</td><td>96.6</td></tr></table>",
+        "bbox": [
+            176,
+            142,
+            823,
+            481
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "G EXTENDED EXPERIMENTAL RESULTS ",
+        "text_level": 1,
+        "bbox": [
+            174,
+            511,
+            522,
+            527
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "G.1 LATE INJECTION AND EARLY EXIT ",
+        "text_level": 1,
+        "bbox": [
+            178,
+            546,
+            460,
+            561
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "Our design of late injection and early exit is guided by two key diagnostics. First, layer 9 coincides with a local minimum in the visual layer-wise similarity curve (Fig. 2), suggesting a natural entry point for visual tokens. Second, accuracy plateaus around layer 25 under the deep-to-shallow masking experiment (Fig. 4), indicating a reasonable cutoff for discarding vision tokens. We validate these choices through three sets of sweeps (Fig. 7): ",
+        "bbox": [
+            174,
+            575,
+            825,
+            646
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "(1) Late injection sweep. Varying the injection layer while fixing the exit depth reveals a clear peak at layer 9. Injecting earlier increases computation with negligible gains, whereas injecting later leads to accuracy degradation. ",
+        "bbox": [
+            176,
+            652,
+            820,
+            694
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "(2) Fixed-entry span sweep. With injection fixed at layer 9, varying the exit depth yields an optimum around layers 25–26. Exiting later adds cost, while exiting earlier reduces accuracy. ",
+        "bbox": [
+            174,
+            702,
+            821,
+            729
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "(3) Equal-depth window sweep. Sliding a constant-length window confirms 8–24 and 9–25 as nearoptimal spans, while 10–26 underperforms. ",
+        "bbox": [
+            173,
+            737,
+            821,
+            765
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "Notably, in the deep-to-shallow diagnostic, accuracy at layer 26 matches the baseline and at layer 25 is only marginally lower. We therefore select 25 as the exit depth, expecting training to recover the small gap. Taken together, these ablations validate the 9–25 window as a strong design choice for balancing efficiency and accuracy. ",
+        "bbox": [
+            174,
+            772,
+            825,
+            829
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "G.2 DIFFERENTIABLE TOP- $k$ ",
+        "text_level": 1,
+        "bbox": [
+            176,
+            853,
+            388,
+            866
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "Here we present more detailed results on the advantages brought by our differentiable Top- $k$ operator. In the main text, we compared hard and differentiable Top- $k$ under a progressive pruning schedule (Table 3), showing that replacing hard Top- $k$ with differentiable Top- $k$ improves the average score from $9 7 . 7 \\%$ to $9 9 . 7 \\%$ with two-stage training $( \\mathrm { P T + F T } )$ ) and from $9 7 . 5 \\%$ to $9 8 . 1 \\%$ with one-stage training (FT only). ",
+        "bbox": [
+            176,
+            882,
+            823,
+            924
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "discarded",
+        "text": "Under review as a conference paper at ICLR 2026 ",
+        "bbox": [
+            174,
+            34,
+            503,
+            46
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "discarded",
+        "text": "17 ",
+        "bbox": [
+            490,
+            948,
+            508,
+            959
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "discarded",
+        "text": "864 865 866 867 868 869 870 871 872 873 874 875 876 877 878 879 880 881 882 883 884 885 886 887 888 889 890 891 892 893 894 895 896 897 898 899 900 901 902 903 904 905 906 907 908 909 910 911 912 913 914 915 916 917 ",
+        "bbox": [
+            111,
+            88,
+            150,
+            931
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            173,
+            103,
+            823,
+            132
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "Appendix Table 9 further demonstrates that the gain of differentiable Top- $k$ is most pronounced under high compression ratios. For example, when the number of visual tokens is reduced from the original 576 to as few as 72, hard Top- $k$ suffers clear degradation, whereas our differentiable Top- $k$ consistently preserves accuracy across benchmarks. The improvement is especially evident in vision-heavy tasks such as MMBench, SQA-I, and VizWiz, where more faithful token retention plays a critical role. ",
+        "bbox": [
+            173,
+            138,
+            825,
+            222
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "These results confirm that differentiable Top- $k$ provides a smoother selection mechanism that adapts to training signals, making it particularly effective in aggressive pruning regimes. We therefore adopt $\\mathrm { P T + F T }$ with differentiable Top- $k$ as the default configuration in all main experiments. ",
+        "bbox": [
+            176,
+            229,
+            821,
+            272
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "Table 9: Performance comparison of LLaVA variants with Hard vs. Differentiable top- $k$ Operators.   \nPT and FT denote pretrain and finetune, respectively. ",
+        "bbox": [
+            174,
+            282,
+            820,
+            311
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "table",
+        "img_path": "images/4696061ae80db2754fdd979ac3fffaa194a4c19edc7dd4da52ee334bf57454e1.jpg",
+        "table_caption": [],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Model</td><td>Train</td><td>Topk</td><td>NMEE</td><td>M</td><td>NNEE</td><td></td><td></td><td></td><td>2</td><td>20</td><td>M</td><td>SEEED</td><td>20</td><td>2</td></tr><tr><td>LLaVA-1.5-7B</td><td>-</td><td>-</td><td>1506.5</td><td>64.7</td><td>58.1</td><td>61.9</td><td>78.5</td><td>69.5</td><td>50.1</td><td>58.2</td><td>86.8</td><td>66.2</td><td>33.7</td><td>100.0</td></tr><tr><td colspan=\"10\">Hard</td><td></td><td>86.5</td><td></td><td>63.1</td><td>33.6</td><td>98.0</td></tr><tr><td rowspan=\"2\">LLaVA-1.5-7B + TopK</td><td>PT+FT</td><td>Diff.</td><td>1436.9 1484.7</td><td>64.2 65.5</td><td>57.0 56.3</td><td>59.7 60.2</td><td>76.4 76.3</td><td>70.4 71.5</td><td>50.1 52.7</td><td>55.7 56.2</td><td>86.2</td><td>63.3</td><td>34.3</td><td>99.3</td></tr><tr><td>FT</td><td>Hard Diff.</td><td>1482.7 1471.7</td><td>65.0 65.2</td><td>54.9 56.6</td><td>60.3 59.9</td><td>76.5 76.5</td><td>69.9 70.7</td><td>46.8 47.1</td><td>55.9 56.2</td><td>86.0 85.9</td><td>63.5 63.2</td><td>33.4 34.8</td><td>97.5 98.2</td></tr></table>",
+        "bbox": [
+            176,
+            323,
+            821,
+            450
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "G.3 TOKEN WEIGHTING STRATEGIES. ",
+        "text_level": 1,
+        "bbox": [
+            178,
+            472,
+            450,
+            486
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "Table 10 reports the detailed results of different strategies for scoring visual tokens during training. We evaluate both last-token based methods, which compute importance by repeatedly attending from the last text token across multiple rounds, and all-token based methods, which aggregate attention from all text tokens to vision tokens. For each family, we also test variants that incorporate L2-norm weighting. ",
+        "bbox": [
+            174,
+            497,
+            825,
+            568
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "The results show that while all-token strategies slightly improve performance on some individual benchmarks, their overall average is not better than the multi-round last-token baseline. For example, the best all-token variant achieves $9 9 . 6 \\%$ average, compared to $9 9 . 9 \\%$ for the last-token (n-R) variant. Given the additional computational cost of eager attention required by all-token approaches, we conclude that the multi-round last-token scheme provides the best trade-off between efficiency and performance. ",
+        "bbox": [
+            173,
+            574,
+            825,
+            659
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "G.4 POSITION ENCODING ",
+        "text_level": 1,
+        "bbox": [
+            174,
+            674,
+            367,
+            689
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "Table 11 provides the detailed benchmark results of the three positional encoding (PE) schemes compared under the shallow–middle–deep compression setting. As discussed in the main text, the underlying challenge is conceptually similar to the “position-ID mismatch” in streaming LLMs (Tong et al., 2025), but arises here from dynamic changes in the set of surviving vision tokens across layers due to late injection, progressive dropping, and early exit. ",
+        "bbox": [
+            174,
+            700,
+            823,
+            770
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "We evaluate three PE strategies: 1) Persistent $P E$ : fixed RoPE indices assigned at input and never updated across layers. 2) Compacted $P E$ (PDrop-style): indices are reset after pruning to compact surviving tokens and fill gaps. 3) Group $P E$ : disjoint RoPE index ranges are allocated for text and vision tokens, avoiding in-place updates during token injection or removal. ",
+        "bbox": [
+            174,
+            776,
+            823,
+            833
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "text",
+        "text": "As shown in Table 11, Persistent PE achieves the highest average performance $( 9 7 . 8 \\% )$ , supporting the hypothesis that stable positional assignments mitigate cross-layer mismatch. Group PE performs slightly worse $( 9 7 . 1 \\% )$ , suggesting that disjoint indexing is viable but not superior. By contrast, Compacted $P E$ yields the lowest accuracy $( 9 6 . 9 \\% )$ , confirming that index resets exacerbate position inconsistency. Given both its accuracy and zero additional overhead, we adopt Persistent PE as the default in all main experiments. ",
+        "bbox": [
+            174,
+            840,
+            825,
+            924
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "discarded",
+        "text": "Under review as a conference paper at ICLR 2026 ",
+        "bbox": [
+            174,
+            34,
+            503,
+            46
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "discarded",
+        "text": "18 ",
+        "bbox": [
+            490,
+            948,
+            508,
+            959
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "discarded",
+        "text": "919 920 921 922 923 924 925 926 927 928 929 930 931 932 933 934 935 936 937 938 939 940 941 942 943 944 945 946 947 948 949 950 951 952 953 954 955 956 957 958 959 960 961 962 963 964 965 966 967 968 969 970 971 ",
+        "bbox": [
+            111,
+            114,
+            148,
+            920
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "table",
+        "img_path": "images/0af118526089a0d57185a26b1e20e6609d39665701ef1b88d4e4e144c07e0257.jpg",
+        "table_caption": [
+            "Table 10: Different strategies for scoring visual tokens. Last-token variants are computed using repeated attention from the last text token, while all-token variants aggregate attention from all text tokens, with or without L2-norm weighting. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Model</td><td>NNME M</td><td></td><td>NNAE</td><td>e</td><td></td><td></td><td>2</td><td>20</td><td>2</td><td>SEEED</td><td>2</td><td>(%)SAV</td></tr><tr><td>LLaVA-1.5-7B</td><td>1506.5</td><td>64.7</td><td>58.1</td><td>61.9</td><td>78.5</td><td>69.5</td><td>50.1</td><td>58.2</td><td>86.8</td><td>66.2</td><td>33.7</td><td>100.0</td></tr><tr><td>Last token (1-R)</td><td>1424.7</td><td>65.3</td><td>56.9</td><td>59.6</td><td>75.6</td><td>71.0</td><td>49.0</td><td>55.5</td><td>86.2</td><td>63.0</td><td>33.2</td><td>97.7</td></tr><tr><td>Last token (n-R)</td><td>1484.7</td><td>65.5</td><td>56.3</td><td>60.2</td><td>76.3</td><td>71.5</td><td>52.7</td><td>56.2</td><td>86.2</td><td>63.3</td><td>34.3</td><td>99.3</td></tr><tr><td>Last token (n-R, L2)</td><td>1447.0</td><td>65.2</td><td>56.8</td><td>59.7</td><td>76.3</td><td>70.6</td><td>48.8</td><td>55.9</td><td>86.5</td><td>63.5</td><td>34.0</td><td>98.2</td></tr><tr><td>Al token</td><td>14114.8</td><td>65.0</td><td>59.2</td><td>59.0</td><td>74.8</td><td>70.3</td><td>51.4</td><td>56.6</td><td>86.4</td><td>63.4</td><td>34.3</td><td>98.6</td></tr><tr><td>All token (L2)</td><td>1424.0</td><td>65.5</td><td>58.7</td><td>59.9</td><td>75.2</td><td>68.9</td><td>53.2</td><td>56.6</td><td>87.0</td><td>64.7</td><td>35.5</td><td>99.6</td></tr></table>",
+        "bbox": [
+            173,
+            143,
+            823,
+            270
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "table",
+        "img_path": "images/6690cba8f2c5f766b4da547bf89624cd6cb4f63845a527201c9feadaadf3d872.jpg",
+        "table_caption": [
+            "Table 11: Effect of position encoding (PE) schemes under shallow–middle–deep compression. Persistent PE with fixed RoPE indices performs best overall, while resetting indices (Compacted PE) leads to accuracy degradation. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td></td><td colspan=\"7\">NNEE 2</td><td>0</td><td>P</td><td>SEET</td><td>20</td><td>2</td></tr><tr><td>Model LLaVA-1.5-7B</td><td>1506.5</td><td>64.7</td><td>NNRE 58.1</td><td>61.9</td><td>78.5</td><td>69.5</td><td>2 50.1</td><td>58.2</td><td>86.8</td><td>66.2</td><td>33.7</td><td>100.0</td></tr><tr><td>Persistent PE</td><td>1414.4</td><td>63.7</td><td>56.7</td><td>61.3</td><td>76.6</td><td>67.0</td><td>52.1</td><td>55.6</td><td>86.9</td><td>65.2</td><td>32.0</td><td>97.8</td></tr><tr><td>Compacted PE</td><td>1452.3</td><td>64.6</td><td>56.1</td><td>61.1</td><td>76.8</td><td>67.9</td><td>48.9</td><td>55.1</td><td>86.5</td><td>64.6</td><td>30.3</td><td>96.9</td></tr><tr><td> Group PE</td><td>1442.2</td><td>63.9</td><td>55.4</td><td>60.4</td><td>76.2</td><td>67.6</td><td>51.2</td><td>55.5</td><td>86.9</td><td>63.6</td><td>31.1</td><td>97.1</td></tr></table>",
+        "bbox": [
+            176,
+            330,
+            821,
+            446
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "text",
+        "text": "G.5 FILTERING LAYER SELECTION ",
+        "text_level": 1,
+        "bbox": [
+            178,
+            477,
+            429,
+            491
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "text",
+        "text": "Table 12 reports the detailed per-benchmark results for the selection of filtering layers. We first compute the ILVAS curve over the middle layers on a model configured with late injection and early exit. As shown in Figure 10, the ILVAS profiles are consistent across Top- $\\cdot K \\in \\{ 5 , 1 0 , 2 0 , 5 0 , 1 0 0 , 2 0 0 \\}$ and window sizes $n \\in \\{ 4 , 8 \\}$ , with local maxima occurring at layers 10, 14, 16, 18. We therefore select $\\{ 1 0 , 1 4 , 1 6 , 1 8 \\}$ as the filtering layer set $\\mathcal { F }$ . ",
+        "bbox": [
+            174,
+            503,
+            825,
+            575
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "text",
+        "text": "To validate this choice, we fix the concave pyramid token–decay schedule and sweep different layer configurations. Compared with a control schedule $\\{ 1 2 , 1 5 , 1 8 , 2 1 \\}$ , the ILVAS-based selection achieves consistently higher average accuracy. Fixing $\\{ 1 0 , 1 6 , 1 8 \\}$ and sweeping the remaining slot yields a clear peak at 14, whereas 12 or 13 lead to noticeable degradation. Similarly, joint sweeps of the middle pair confirm $\\{ 1 4 , 1 8 \\}$ as the strongest combination, while nearby alternatives such as $\\{ 1 3 , 1 8 \\}$ , $\\{ 1 3 , 1 9 \\}$ , and $\\{ 1 4 , 1 9 \\}$ underperform. These ablations confirm $\\{ 1 \\dot { 0 } , 1 4 , 1 6 , 1 8 \\}$ as our final filtering-layer configuration for all main experiments, balancing efficiency and accuracy across tasks. ",
+        "bbox": [
+            174,
+            582,
+            825,
+            693
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "table",
+        "img_path": "images/c1c55ea743bfeb552098617a17df0b774c729d37c5234ed737711734093fe6e1.jpg",
+        "table_caption": [
+            "Table 12: Per-benchmark results for different filtering layer configurations under the concave pyramid dropping policy. The ILVAS-based set $\\{ 1 0 , 1 4 , \\bar { 1 6 } , \\bar { 1 8 } \\}$ achieves the best trade-off. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>#</td><td>Model</td><td>NNME</td><td>0</td><td>NNRE</td><td></td><td></td><td></td><td>2</td><td>0</td><td>20</td><td>SEED</td><td>20</td><td>2</td></tr><tr><td>1 2</td><td>Baseline {12,15,18,21}</td><td>1506.5 1431.0</td><td>64.7 64.6</td><td>58.1 59.5</td><td>61.9 61.4</td><td>78.5 77.4</td><td>69.5 67.4</td><td>50.1 46.5</td><td>58.2 56.2</td><td>86.8 86.7</td><td>66.2 65.3</td><td>33.7 32.0</td><td>100.0 97.7</td></tr><tr><td>3</td><td>{10,12,16,18}</td><td>1452.9</td><td>61.3</td><td>55.2</td><td>60.7</td><td>76.8</td><td>67.6</td><td>49.3</td><td>54.1</td><td>86.4</td><td>64.5</td><td>31.7</td><td>96.5</td></tr><tr><td>4</td><td>{10,13,16,18}</td><td>1459.3</td><td>64.8</td><td>56.8</td><td>60.0</td><td>76.3</td><td>68.1</td><td>49.3</td><td>55.3</td><td>86.6</td><td>64.5</td><td>29.9</td><td>96.9</td></tr><tr><td>5</td><td>{10,14,16,18</td><td>1469.5</td><td>65.0</td><td>56.2</td><td>60.9</td><td>76.7</td><td>69.0</td><td>50.8</td><td>55.1</td><td>86.1</td><td>64.7</td><td>33.1</td><td>98.3</td></tr><tr><td>6</td><td>10,15,16,18}</td><td>1468.9</td><td>64.9</td><td>57.0</td><td>61.6</td><td>77.2</td><td>68.6</td><td>50.0</td><td>56.2</td><td>86.8</td><td>64.5</td><td>30.6</td><td>97.9</td></tr><tr><td>7</td><td>{10,13,16,18}</td><td>1459.3</td><td>64.8</td><td>56.8</td><td>60.0</td><td>76.3</td><td>68.1</td><td>49.3</td><td>55.3</td><td>86.6</td><td>64.5</td><td>29.9</td><td>96.9</td></tr><tr><td>8</td><td>{10,13,16,19}</td><td>1460.9</td><td>63.6</td><td>56.6</td><td>60.8</td><td>76.6</td><td>67.9</td><td>50.1</td><td>54.8</td><td>86.6</td><td>64.6</td><td>31.8</td><td>97.5</td></tr><tr><td>9</td><td>{10,14,16,18}</td><td>1469.5</td><td>65.0</td><td>56.2</td><td>60.9</td><td>76.7</td><td>69.0</td><td>50.8</td><td>55.1</td><td>86.1</td><td>64.7</td><td>33.1</td><td>98.3</td></tr><tr><td>10</td><td>{10,14 ,16,19}</td><td>1472.6</td><td>64.0</td><td>57.2</td><td>60.5</td><td>76.8</td><td>68.5</td><td>47.5</td><td>55.1</td><td>86.2</td><td>64.6</td><td>31.5</td><td>97.2</td></tr></table>",
+        "bbox": [
+            174,
+            747,
+            823,
+            920
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "discarded",
+        "text": "Under review as a conference paper at ICLR 2026 ",
+        "bbox": [
+            174,
+            34,
+            503,
+            46
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "discarded",
+        "text": "19 ",
+        "bbox": [
+            490,
+            948,
+            508,
+            959
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "discarded",
+        "text": "972 973 974 975 976 977 978 979 980 981 982 983 984 985 986 987 988 989 990 991 992 993 994 995 996 997 998 999 1000 1001 1002 1003 1004 1005 1006 1007 1008 1009 1010 1011 1012 1013 1014 1015 1016 1017 1018 1019 1020 1021 1022 1023 1024 1025 ",
+        "bbox": [
+            112,
+            103,
+            155,
+            926
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "image",
+        "img_path": "images/ee344a4159807cefce4cad5419a3cec330fc3f0a2dfcd6cbf8b8bfa8b4c9b505.jpg",
+        "image_caption": [
+            "Figure 10: ILVAS curve over the middle layers on a model configured with the late injection and early exit. (a)–(f) sweep top- $\\boldsymbol { \\cdot } \\boldsymbol { k } \\in \\{ 5 , 1 0 , 2 0 , 5 0 , 1 0 0 , 2 0 0 \\}$ , and each curve compares observation windows $n = 4$ and $n = 8$ . Consistent valleys across $K$ indicate layers with strong filtering ability, i.e., candidates for the pruning set $\\mathcal { F }$ . "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            176,
+            102,
+            818,
+            380
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "text",
+        "text": "These results support our final choice of $\\{ 1 0 , 1 4 , 1 6 , 1 8 \\}$ as the filtering layers for all main experiments, balancing efficiency and accuracy across tasks. ",
+        "bbox": [
+            174,
+            474,
+            823,
+            503
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "discarded",
+        "text": "Under review as a conference paper at ICLR 2026 ",
+        "bbox": [
+            173,
+            34,
+            503,
+            46
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            490,
+            948,
+            508,
+            959
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "discarded",
+        "text": "1027 1028 1029 1030 1031 1032 1033 1034 1035 1036 1037 1038 1039 1040 1041 1042 1043 1044 1045 1046 1047 1048 1049 1050 1051 1052 1053 1054 1055 1056 1057 1058 1059 1060 1061 1062 1063 1064 1065 1066 1067 1068 1069 1070 1071 1072 1073 1074 1075 1076 1077 1078 1079 ",
+        "bbox": [
+            112,
+            111,
+            153,
+            929
+        ],
+        "page_idx": 19
+    }
+]
