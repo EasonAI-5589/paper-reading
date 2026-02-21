@@ -59,6 +59,9 @@ MMBench Liu et al. (2024), MM-Vet Yu et al. (2023)). For video understanding, we
 
 ## 4.2.3 FSR for Advanced Architectures (Qwen2.5-VL-7B)
 
+![Table 3](../images/819f7ee66216d9a85088b3cc5bb366d617980826e2c205d9f4e7014be35e3915.jpg)
+*Table 3: Performance comparison on Qwen2.5-VL-7B.*
+
 > 💡 **Table 3 核心数据速查**:
 > - Qwen2.5-VL 自带 dynamic resolution + native token merging → 更难的 baseline
 > - FSR 适配：Focus 用 self-attention map（无 CLIP text encoder）
@@ -69,6 +72,9 @@ MMBench Liu et al. (2024), MM-Vet Yu et al. (2023)). For video understanding, we
 
 ## 4.2.4 FSR for Video Understanding (LLaVA-Video-7B)
 
+![Table 4](../images/e6fdff9621a9770318305fa7c4f5e1b5152a7c8ccf7ac017d8b0cd94cf29f36c.jpg)
+*Table 4: Performance comparison on LLaVA-Video-7B.*
+
 > 💡 **Table 4 核心数据速查**:
 > - 32 frames/video, 50%-80% 压缩
 > - 60% pruning: FSR 99.6% vs HoloV 98.5%
@@ -78,6 +84,12 @@ MMBench Liu et al. (2024), MM-Vet Yu et al. (2023)). For video understanding, we
 ---
 
 ## 4.2.5 FSR for Large-Scale Models (13B)
+
+![Table 5](../images/4f01199ecfd2bc79794e6369676b2fffe2d4af0f9165a1ab393c0b0e2c7380d8.jpg)
+*Table 5: Performance comparison on LLaVA-1.5-13B.*
+
+![Table 6](../images/f44dbc7eec5eae2cb71e47db2cf70bd84f43ebdf22ad9ff4bf47742a74d931df.jpg)
+*Table 6: Performance comparison on LLaVA-NeXT-13B.*
 
 > 💡 **Table 5&6 亮点**:
 > - LLaVA-1.5-13B, 64 tokens: FSR 96.7% vs CDPruner 96.3%
