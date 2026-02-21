@@ -80,6 +80,7 @@ HiDivDrop 的核心创新链:
   author    = {Anonymous},
   booktitle = {International Conference on Learning Representations (ICLR)},
   year      = {2026},
-  note      = {Under review}
+  url       = {https://openreview.net/forum?id=2baJBgfr9S},
+  note      = {Accepted; authors under double-blind anonymity as of 2026-02-22}
 }
 ```

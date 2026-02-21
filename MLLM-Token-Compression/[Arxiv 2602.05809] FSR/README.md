@@ -114,10 +114,10 @@ Training-free Visual Token Pruning
 ## BibTeX
 
 ```bibtex
-@article{tong2025fsr,
+@article{tong2026fsr,
   title={Focus-Scan-Refine: From Human Visual Perception to Efficient Visual Token Pruning},
   author={Tong, Enwei and Bai, Yuanchao and Zhu, Yao and Jiang, Junjun and Liu, Xianming},
   journal={arXiv preprint arXiv:2602.05809},
-  year={2025}
+  year={2026}
 }
 ```

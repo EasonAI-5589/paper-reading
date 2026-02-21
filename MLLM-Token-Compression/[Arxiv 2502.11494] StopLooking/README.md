@@ -10,8 +10,8 @@
 | **作者** | Zichen Wen, Yifeng Gao, Shaobo Wang, Junyuan Zhang, Qintong Zhang, Weijia Li, Conghui He†, Linfeng Zhang† |
 | **机构** | Shanghai Jiao Tong University, Shanghai AI Laboratory, Sun Yat-sen University, Peking University |
 | **发表** | EMNLP 2025 (arXiv: 2502.11494) |
-| **代码** | 未公开 |
-| **引用数** | 55 (截至 2026-02-21) |
+| **代码** | [GitHub](https://github.com/ZichenWen1/DART) |
+| **引用数** | 55 (Semantic Scholar, 截至 2026-02-21) |
 
 ## 🎯 核心贡献
 
@@ -82,3 +82,27 @@
 - 理论分析的 Lipschitz 假设在实际 transformer 中可能很松
 - OCRBench 等信息密度高的任务上 DART 优势缩小
 - 缺少与 ToMe (merging) 的深度对比——merging 本质上也是处理 duplication
+
+## BibTeX
+
+```bibtex
+@inproceedings{DBLP:conf/emnlp/WenGWZZLHZ25,
+  author       = {Zichen Wen and
+                  Yifeng Gao and
+                  Shaobo Wang and
+                  Junyuan Zhang and
+                  Qintong Zhang and
+                  Weijia Li and
+                  Conghui He and
+                  Linfeng Zhang},
+  title        = {Stop Looking for "Important Tokens" in Multimodal Language Models:
+                  Duplication Matters More},
+  booktitle    = {Proceedings of the 2025 Conference on Empirical Methods in Natural
+                  Language Processing, {EMNLP} 2025, Suzhou, China, November 4-9, 2025},
+  pages        = {9961--9980},
+  publisher    = {Association for Computational Linguistics},
+  year         = {2025},
+  url          = {https://doi.org/10.18653/v1/2025.emnlp-main.505},
+  doi          = {10.18653/V1/2025.EMNLP-MAIN.505}
+}
+```

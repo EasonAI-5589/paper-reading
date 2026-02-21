@@ -2,8 +2,8 @@
 
 **作者**: Yihong Huang, Fei Ma*, Yihua Shao, Jingcai Guo, Zitong Yu, Laizhong Cui, Qi Tian  
 **单位**: Guangdong Lab of AI & Digital Economy (SZ), Xidian University, HK PolyU, Great Bay University, Shenzhen University, Huawei  
-**会议**: ICLR 2026  
-**链接**: [arXiv 2602.02951](https://arxiv.org/abs/2602.02951) | [GitHub](https://github.com/Man-PaperRejected/Nuwa)
+**会议**: ICLR 2026 (Poster) ✅  
+**链接**: [arXiv 2602.02951](https://arxiv.org/abs/2602.02951) | [GitHub](https://github.com/Man-PaperRejected/Nuwa) | [OpenReview](https://openreview.net/forum?id=C9yclwdquU)
 
 ## 一句话总结
 
