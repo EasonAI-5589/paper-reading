@@ -1,101 +1,84 @@
-# Stop Looking for "Important Tokens" in Multimodal Language Models: Duplication Matters More
+# Stop Looking for Important Tokens in Multimodal Language Models: Duplication Matters More (DART)
 
-> **DART (Duplication-Aware Reduction of Tokens)**
-> Zichen Wen, Yifeng Gao, Shaobo Wang, Junyuan Zhang, Qintong Zhang, Weijia Li, Conghui He, Linfeng Zhang
-> Shanghai Jiao Tong University, Shanghai AI Laboratory, Sun Yat-sen University, Peking University
-> arXiv: [2502.11494](https://arxiv.org/abs/2502.11494) | GitHub: [ZichenWen1/DART](https://github.com/ZichenWen1/DART)
+> **一句话总结**: 不要找"重要"的 token，而是删掉"重复"的 token——DART 通过 pivot token + 余弦相似度实现 training-free、FlashAttention 兼容的视觉 token 剪枝，88.9% 压缩下仍保持 93.7% 性能。
 
-## 一句话总结
+## 📋 论文元信息
 
-**不要再找 "重要 token" 了**——importance-based token pruning 常常不如 random pruning。DART 用 token duplication（而非 importance）指导 vision token 裁剪，88.9% 压缩下仍保持 93.7% 性能，1.99× 实际加速，兼容 FlashAttention。
+| 项目 | 内容 |
+|------|------|
+| **标题** | Stop Looking for "Important Tokens" in Multimodal Language Models: Duplication Matters More |
+| **作者** | Zichen Wen, Yifeng Gao, Shaobo Wang, Junyuan Zhang, Qintong Zhang, Weijia Li, Conghui He†, Linfeng Zhang† |
+| **机构** | Shanghai Jiao Tong University, Shanghai AI Laboratory, Sun Yat-sen University, Peking University |
+| **发表** | EMNLP 2025 (arXiv: 2502.11494) |
+| **代码** | 未公开 |
+| **引用数** | 55 (截至 2026-02-21) |
 
-## 核心发现
+## 🎯 核心贡献
 
-1. **Importance-based ≤ Random**: FastV/SparseVLM 在 88.9% 压缩下 2/3 benchmark 不如 random pruning（Figure 2）
-2. **Duplication > Importance**: 去重比选重要 token 更有效——信息论视角下应最大化 retained information 而非 importance sum
-3. **多组最优解存在**: 不同 pivot 策略保留的 token 集重叠 <50%，但性能相似——不存在唯一的 "关键 token 集"
-4. **Token pruning 可减少 hallucination**: 深层剪枝后 POPE 超越 vanilla model
+1. **挑战 Importance Paradigm**: 实证表明 attention-based importance score 作为 token pruning 指标存在四大缺陷（静态评分、FlashAttention 不兼容、位置偏差、不如 random）
+2. **提出 Duplication Paradigm (DART)**: 选取少量 pivot token（≤2%），通过余弦相似度删除高重复 token，完全不需要 attention score → 天然兼容 FlashAttention
+3. **理论保障**: 基于 Hausdorff 距离和 Lipschitz 连续性证明了输出误差上界
+4. **全面实验验证**: 4 个 MLLM × 10+ benchmark，88.9% 压缩下超第二名 2.2%
+5. **跨模态泛化**: 扩展到语音（ASR）和机器人操作（VLA），均展示优越性
 
-## DART 方法
+## 📖 批读导航
 
-```
-输入: Vision tokens X = {x₁, ..., xₙ}, 目标保留比例 r
-1. 选 k 个 pivot tokens P (k ≤ 8, 可用 K-norm / random)
-2. 计算 cosine similarity: dup(pᵢ, xⱼ) = pᵢ⊤xⱼ / (‖pᵢ‖‖xⱼ‖)
-3. 保留与所有 pivot 相似度最低的 r·n 个 token
-输出: 精简后的 token 集 R, |R| = r·n
-```
+| Section | 文件 | 要点 |
+|---------|------|------|
+| Abstract | [00-abstract.md](sections/00-abstract.md) | DART 核心思想与关键数字 |
+| 1 Introduction | [01-introduction.md](sections/01-introduction.md) | 四大问题 + DART 设计动机 |
+| 2 Related Work | [02-related-work.md](sections/02-related-work.md) | MLLM 架构与 token compression 方法综述 |
+| 3 Methodology | [03-methodology.md](sections/03-methodology.md) | Preliminary → Importance 缺陷 → DART 方法 → 理论分析 |
+| 4 Experiments | [04-experiments.md](sections/04-experiments.md) | 图像/视频理解主实验 |
+| 5 Analysis | [05-analysis.md](sections/05-analysis.md) | 效率分析、pivot 选取、层/数量影响、模态分析 |
+| 6-7 Conclusion & Limitations | [06-conclusion.md](sections/06-conclusion.md) | 总结与局限 |
+| Appendix | [07-appendix.md](sections/07-appendix.md) | 大模型验证、语音/VLA 扩展、可视化 |
 
-**关键优势**: 不需要 attention scores → 兼容 FlashAttention；O(kn) 计算 → ≤0.08s overhead；pivot 选择不敏感 → robust
+## 🔢 关键数字速查
 
-## 主要结果
+| 指标 | 数值 |
+|------|------|
+| LLaVA-1.5-7B 88.9% 压缩 (64 tokens) | 93.7% 原始性能 |
+| LLaVA-Next-7B 88.9% 压缩 (320 tokens) | 93.9% 原始性能 |
+| Qwen2-VL-72B 88.9% 压缩 | 92.2% 原始性能 |
+| 总推理加速 | 1.99× |
+| Prefill 加速 | 2.99× |
+| DART 额外计算开销 | < 0.08s |
+| Pivot token 数量 | 8 (4 visual + 4 text) |
+| 默认剪枝层 | Layer 2 |
+| 不同 pivot 策略最大性能差 | 2.3% (94.9%~97.2%) |
+| 不同策略保留 token 重叠率 | < 50% |
+| DART† (训练时应用) 192 tokens | 100.4% (超过原模型) |
+| 深层删除所有 vision token 性能降 | 0.1~1.6% |
 
-| Model | 压缩比 | DART | 第二名 | FastV |
-|-------|--------|------|--------|-------|
-| LLaVA-1.5-7B | 88.9% | **93.7%** | 91.5% (FiCoCo) | 77.3% |
-| LLaVA-Next-7B | 88.9% | **93.9%** | 91.8% (HiRED) | 86.4% |
-| LLaVA-1.5-13B | 88.9% | **94.7%** | 81.0% (FastV) | 81.0% |
-| Qwen2-VL-72B | 88.9% | **92.2%** | 88.0% (FastV) | 88.0% |
+## 🗺️ Citation Landscape
 
-实际加速: **1.99× total, 2.99× prefill** (LLaVA-Next-7B)
+**被引用 55 次** (Semantic Scholar, 2026-02-21)
 
-## 批读目录
+### 代表性后续工作
+- EntropyPrune: Matrix Entropy Guided Visual Token Pruning (2026)
+- IDPruner: Harmonizing Importance and Diversity (2026)
+- D2Pruner: Debiased Importance and Structural Diversity (2025)
+- "All You Need Are Random Visual Tokens?" — 进一步验证 random > importance (2025)
+- VLM-Pruner: Buffering for Spatial Sparsity (2025)
+- Script: Graph-Structured Token Pruning (2025)
 
-| Section | 文件 |
-|---------|------|
-| Abstract | [00-abstract.md](sections/00-abstract.md) |
-| 1. Introduction | [01-introduction.md](sections/01-introduction.md) |
-| 2. Related Work | [02-related-work.md](sections/02-related-work.md) |
-| 3. Methodology | [03-methodology.md](sections/03-methodology.md) |
-| 4. Experiments | [04-experiments.md](sections/04-experiments.md) |
-| 5. Analysis | [05-analysis.md](sections/05-analysis.md) |
-| 6. Conclusion & Limitations | [06-conclusion.md](sections/06-conclusion.md) |
-| Appendix | [07-appendix.md](sections/07-appendix.md) |
+### 关键引用 (本文引用)
+- **FastV** (Chen et al., ECCV 2024): Attention-based token pruning，本文主要对比对象
+- **SparseVLM** (Zhang et al., ICML 2025): Text-guided pruning，不兼容 FlashAttention
+- **ToMe** (Bolya et al., ICLR 2023): Token merging，破坏跨模态交互
+- **FlashAttention** (Dao et al., NeurIPS 2022): DART 的兼容优势来源
+- **Over-smoothing** (Nguyen et al., NeurIPS 2023): Token duplication 的理论基础
 
-## Citation Landscape
-
-### 本文挑战的方法
-| 方法 | 会议 | 核心思路 | DART 的批判 |
-|------|------|---------|------------|
-| **FastV** | ECCV 2024 | Attention score → 删低 attention 的 image token | Position bias, 不兼容 FA, 不如 random |
-| **SparseVLM** | ICML 2025 | Text-guided attention → token sparsification | 不兼容 FA, 部分 benchmark 不如 random |
-| **ToMe** | ICLR 2023 | Bipartite matching → token merging | 破坏 cross-modal interaction |
-| **HiRED** | AAAI 2025 | CLS attention → partition-aware token selection | 依赖 attention scores |
-
-### DART 胜出的对手
-| 方法 | 来源 | 88.9% 压缩 (LLaVA-1.5-7B) |
-|------|------|---------------------------|
-| FastV | ECCV 2024 | 77.3% |
-| SparseVLM | ICML 2025 | 84.6% |
-| PDrop | CVPR 2025 | 78.1% |
-| MustDrop | 2024.11 | 90.1% |
-| FiCoCo-V | 2024.11 | 91.5% |
-| **DART** | **本文** | **93.7%** |
-
-### 扩展应用
-- **Audio**: Phi-4-Multimodal ASR，50% 压缩下 DART WER 34.03 vs FastV 134.19
-- **VLA**: CogACT 机器人操作，DART 75.2% 超越 vanilla 74.8%
-
-### 关键引用
-- Chen et al. 2024 (FastV) — 本文主要对比基线
-- Dao et al. 2022 (FlashAttention) — DART 兼容性的关键
-- Bolya et al. 2023 (ToMe) — Token merging 的先驱
-- Nguyen et al. 2023 — Over-smoothing 现象，DART 的理论动机
-
-## 个人评价
+## 💡 个人评价
 
 **优点**:
-- 🎯 核心 insight 简洁有力：duplication > importance
-- 📊 实验极其充分：4 MLLM × 10+ benchmarks × 3 压缩比
-- 🔧 工程友好：兼容 FA，overhead ≤0.08s，plug-and-play
-- 🔬 分析深入：<50% overlap 发现很有启发性
+- 核心洞察优秀：importance < random 是非常有力的实验证据，duplication paradigm 逻辑自洽
+- 方法极简但有效：仅需余弦相似度，0.08s 开销，兼容 FlashAttention
+- 实验全面：4 模型 × 10+ benchmark × 3 压缩率 + 消融 + 跨模态
+- Pivot 不敏感是关键发现，大大降低了方法的超参敏感性
 
-**不足**:
-- 理论分析较弱（Lipschitz bound 太 loose，对 importance-based 方法同样适用）
-- 未讨论 dynamic resolution models（如 Qwen2-VL 的 naive resize vs dynamic tiling）
-- Pivot 数量 = 8 似乎是固定的，未探讨与模型/图像复杂度的自适应
-
-**与 FastV 的关系**: DART 的 §3.2 对 FastV 的批判非常到位。FastV 的核心 insight "深层不需要 image tokens" 是对的，但 "用 attention score 选 token" 是错的。DART 本质上保留了 FastV 的 "在某层执行 pruning" 框架，但把选择标准从 importance 换成了 duplication。
-
----
-*批读完成于 2026-02-21 | 3号机*
+**局限**:
+- 理论分析的 Lipschitz 假设在实际 transformer 中可能很松
+- OCRBench 等信息密度高的任务上 DART 优势缩小
+- 缺少与 ToMe (merging) 的深度对比——merging 本质上也是处理 duplication
