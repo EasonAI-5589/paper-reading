@@ -1,84 +1,104 @@
 # HiDivDrop: Vision Token Reduction in MLLMs via Late Injection and Differentiable Top-K
 
-> **ICLR 2026** (Submission #25145)
-> OpenReview: https://openreview.net/forum?id=2baJBgfr9S
-> arXiv: 可能为 2503.14075 或尚未公开 (搜索结果显示 OpenReview-only)
-> Keywords: MLLMs, Vision Token Pruning, Efficiency and Compression, Interpretability and Analysis
+**作者**: Anonymous (under double-blind review)  
+**会议**: ICLR 2026 (Under Review)  
+**链接**: [OpenReview](https://openreview.net/forum?id=2baJBgfr9S) | [PDF](https://openreview.net/pdf?id=2baJBgfr9S)
 
 ## 一句话总结
 
-现有 progressive vision token pruning 方法**误解了浅层的作用**（以为浅层做 fusion，实际是 passive 的）并使用**过于僵硬的 pruning schedule**。HiDivDrop 通过 **Late Injection**（跳过浅层）和 **Concave Pyramid Pruning**（动态自适应 pruning rate + Early Exit）解决这两个问题，~90% compression 下保持原始性能。
+将MLLM的层级划分为浅层（传播者）→中层（稀疏融合中心）→深层（语言推理），通过Late Injection跳过浅层、Concave Pyramid Pruning在中层积极剪枝、Early Exit在深层丢弃vision tokens，实现~90%压缩率几乎无损性能。
 
 ## 核心贡献
 
-1. **Late Injection Strategy**: 绕过 passive 浅层，直接在 active fusion 层注入 visual tokens，避免过早丢弃
-2. **Concave Pyramid Pruning**: 动态调整 middle/deep layers 的 pruning rate，early exit 机制
-3. **Differentiable Top-K Operator**: 可微分的 token 选择算子，支持端到端训练优化
-4. **Inter-layer Similarity Measure**: 层间相似性度量用于优化 pruning schedule
-5. **SOTA Results**: ~90% visual token compression，98.3% performance retention @ 88.9% pruning，training acceleration 1.72×
+1. **诊断两个误解**: 浅层不是融合器而是传播者；pruning schedule不应该是均匀的
+2. **Late Injection**: 首次提出"延迟注入"而非"提前剪枝"，vision tokens直到Layer 9才进入LLM
+3. **Concave Pyramid Pruning**: 前快后慢的非均匀剪枝，配合ILVAS指标自动选择最佳剪枝层
+4. **Early Exit**: Layer 25后完全丢弃vision tokens，深层纯做language reasoning
+5. **Differentiable Top-K**: 可微分token选择，端到端训练，比Hard Top-K提升2%
 
-## 方法概述
+## 📖 批读导航
+
+| Section | 内容 |
+|---------|------|
+| [00 - Abstract](sections/00-abstract.md) | 摘要 + 核心创新总结 |
+| [01 - Introduction](sections/01-introduction.md) | 两个误解 + HiDivDrop动机 + Figure 1对比 |
+| [02 - Processing Dynamics](sections/02-processing-dynamics.md) | ⭐ MLLM三层结构分析（最重要的分析Section） |
+| [03 - Method](sections/03-method.md) | Late Injection + Concave Pyramid + DTop-K + 工程细节 |
+| [04 - Experiments](sections/04-experiments.md) | 11 benchmarks × 3 backbones + 详细ablation |
+| [05 - Conclusion](sections/05-conclusion.md) | 总结 + 与STAR-Pro对比 |
+| [06 - Related Work](sections/06-related-work.md) | Pre-LLM / In-LLM / Joint分类 |
+
+## 关键数字速查
+
+| 指标 | 数值 |
+|------|------|
+| Visual token压缩率 | 88.9% (576→64) |
+| 性能保持 (88.9%压缩) | 98.3% |
+| 性能保持 (91.7%压缩) | 96.5% |
+| 训练加速 (7B) | 1.69× (159→94 GPU hours) |
+| 推理FLOPs减少 | 9.1× (3.82T→0.42T) |
+| Prefill延迟降低 | 49% (63.6→32.6ms) |
+| Late Injection layer | 9 (7B) / 15 (2.7B) |
+| Early Exit layer | 25 (7B) / 28 (2.7B) |
+| Filtering layers | {10, 14, 16, 18} (7B) |
+| DTop-K vs Hard Top-K | +2.0% (PT+FT设置) |
+
+## 🏗️ 方法架构
 
 ```
-Visual Encoder → [Skip Shallow Layers] → Late Injection at Active Fusion Layer
-                                        → Concave Pyramid Pruning:
-                                          - Accelerated early reduction
-                                          - Differentiable Top-K selection
-                                          - Early Exit when similarity saturates
-                                        → Reduced tokens for remaining layers
+Input: 576 vision tokens + Nt text tokens
+  │
+  ├── Layer 1-8:  只处理text tokens ←── Late Injection
+  │               (并行运行vision encoder)
+  │
+  ├── Layer 9:    注入全部576 vision tokens
+  ├── Layer 10:   DTop-K → ~256 tokens ←── ILVAS filtering
+  ├── Layer 14:   DTop-K → ~128 tokens     layers
+  ├── Layer 16:   DTop-K → ~96 tokens
+  ├── Layer 18:   DTop-K → ~64 tokens
+  │
+  ├── Layer 25:   丢弃所有vision tokens ←── Early Exit
+  │
+  └── Layer 26-32: 纯language reasoning
 ```
 
-### 1. Late Injection
-- 观察：MLLM 浅层对 visual tokens 是 "passive" 的（不做真正的 multimodal fusion）
-- 方案：不在 layer 0 注入 visual tokens，而是在 active fusion 开始的层注入
-- 好处：减少浅层的无效计算 + 兼容 FlashAttention + 解决动态 pruning 的 position ID mismatch
+## 🔬 与STAR-Pro的对比
 
-### 2. Concave Pyramid Pruning
-- 不同于 PyramidDrop 的线性/均匀 schedule
-- 使用凹形（concave）曲线：前期快速裁剪，后期逐渐减缓
-- Early Exit: 当层间表示相似度饱和时停止 pruning
+| 维度 | HiDivDrop | STAR-Pro |
+|------|-----------|----------|
+| 核心问题 | **WHERE** — 在哪些层做什么 | **WHAT** — 用什么indicator选token |
+| 层级理解 | shallow/middle/deep三段式 | 未显式区分层级 |
+| Token选择 | DTop-K (attention-based) | Star indicator (multi-criteria) |
+| 创新点 | Late Injection, Concave Pyramid | Importance indicator设计 |
+| 互补性 | 可在HiDivDrop框架中替换DTop-K为STAR indicator |
 
-### 3. Differentiable Top-K
-- 标准 Top-K 不可导，无法做端到端训练
-- 使用可微分近似，使 pruning 决策可以被 gradient-based optimization 优化
-- 使得 pruning schedule 可以与模型训练联合优化
+## 📊 Citation Landscape
 
-## 关键实验结果 (LLaVA-1.5-7B, 11 benchmarks)
+> ⚠️ 论文处于ICLR 2026 double-blind review阶段，尚未公开作者信息，Semantic Scholar暂无收录。
 
-| Pruning Ratio | Avg. Performance Retention | vs PDrop |
-|---|---|---|
-| 66.7% | ~99%+ | — |
-| 88.9% | **98.3%** | +4.1% |
-| 91.7% | **96.5%** | PDrop fails at this ratio |
+### 参考文献分组
 
-- Training acceleration: **1.72×**
-- Prefill latency: 63.6ms → 28.8ms
+**Progressive Token Pruning**:
+- FastV (Chen et al., 2024b) — 单次early pruning
+- PDrop / PyramidDrop (Xing et al., 2024) — 均匀progressive pruning
+- TwigVLM (Shao et al., 2025) — twig block辅助剪枝
+- Multi-stage VTD (Liu et al., 2024c) — 多阶段token dropping
 
-## 局限性（推测）
+**Token Compression (Non-pruning)**:
+- VoCo-LLaMA (Ye et al., 2024b) — 压缩到VoCo token
+- LLaVA-PruMerge (Chen et al., 2024a) — 池化压缩
+- TokenPacker (Li et al., 2024b) — compact projector
+- Honeybee (Cha et al., 2024) — locality-enhanced projector
 
-- 需要训练（vs DART 的 training-free）
-- Late Injection 的最优层需要确定（可能 model-specific）
-- Differentiable Top-K 的训练稳定性可能需要额外调参
+**Adaptive Pruning**:
+- ATP-LLaVA (Ye et al., 2024a) — adaptive token pruning
+- Dynamic-LLaVA (Huang et al., 2024) — soft gating
+- FocusLLaVA (Zhu et al., 2024) — 粗到细
 
-## 与其他工作的关系
+**Differentiable Selection**:
+- Differentiable Top-K (Liu et al., 2024b) — HiDivDrop采用的基础operator
 
-- **vs PyramidDrop/PDrop**: HiDivDrop 纠正了 PDrop 对浅层角色的误解，且用更灵活的 concave schedule
-- **vs DART/StopLooking**: DART 是 training-free + duplication-based；HiDivDrop 是 training-based + schedule-optimized。两者关注不同维度（what to prune vs when/how much to prune），可能互补
-- **vs FastV**: FastV 在固定层做 one-shot pruning；HiDivDrop 做 progressive 但 with better schedule
-- **vs VisionTrim**: 另一篇 ICLR 2026 token compression 工作，可能关注不同方面
-
----
-
-## Citation Landscape
-
-*Note: 由于 Semantic Scholar 429 rate limit，暂无 citation 数据。HiDivDrop 作为 ICLR 2026 接收论文，预计会有较高影响力。*
-
-### 核心参考文献
-
-| Paper | Relation |
-|---|---|
-| PyramidDrop (CVPR 2025) | 直接 baseline，HiDivDrop 纠正其设计缺陷 |
-| FastV (ECCV 2024) | Attention-based one-shot pruning |
-| ToMe (ICLR 2023) | Token merging 先驱 |
-| FlashAttention (NeurIPS 2022) | HiDivDrop 兼容 FA |
-| LLaVA-1.5 | 主要实验平台 |
+**MLLM Architectures**:
+- LLaVA-1.5 (Liu et al., 2023a) — 基础架构
+- Qwen-VL (Bai et al., 2023) / Qwen2.5-VL (Bai et al., 2025)
+- GPT-4V (OpenAI, 2023) / GPT-4o (OpenAI, 2024)
