@@ -2,36 +2,40 @@
 
 # 6 Conclusion
 
+## 📌 预览
+
+总结 HoloV 的核心贡献和局限性。
+
 ---
 
 We present HoloV, a holistic token pruning framework that addresses two critical limitations of attention-based visual compression: 1) semantic fragmentation from over-pruning non-salient regions, and 2) static importance estimation ignoring token interdependencies. The core innovation lies in variance-modulated dynamic scoring and capacity-constrained allocation, which preserve holistic context. Extensive experiments validate our method's effectiveness in maintaining both perceptual details and abstract spatial reasoning capabilities under aggressive token reduction.
 
-> 💡 **总结**:
-> 两个关键创新：
-> 1. **Variance-modulated dynamic scoring**: 用语义多样性（variance）+ [CLS] attention 混合评分，替代纯 attention 评分
-> 2. **Capacity-constrained allocation**: crop-wise 自适应分配剪枝配额，保证空间覆盖
-> 
-> 这两个设计共同解决了 attention-first 方法的两个核心问题：语义碎片化和静态重要性估计。
+> 💡 **总结批注**: HoloV 解决的两个核心问题：
+> 1. **语义碎片化**: 过度剪枝非显著区域导致全局语义断裂
+> 2. **静态重要性估计**: 现有方法忽略 token 间的相互依赖关系
+>
+> 核心技术创新：**方差调制动态评分** (diversity variance + [CLS] attention) + **容量约束分配** (crop-wise adaptive allocation)
 
 ---
 
-## 💡 个人总评
+**Acknowledgments and Disclosure of Funding**
 
-### 优点
-1. **问题分析深入**: Section 3 的三个分析（信息冗余、位置偏置、注意力分散）非常透彻，Random vs FastV 实验尤其精彩
-2. **方法简洁有效**: Crop-wise 分配 + variance 评分，没有复杂的训练或优化，工程上非常友好
-3. **实验全面**: 3 种架构 × 3 种剪枝率 × 9+ baseline × 12 benchmark，覆盖面极广
-4. **高剪枝率鲁棒**: 88.9% 剪枝下的 95.8% 性能保留是非常强的数字
+This work was supported by the National Natural Science Foundation of China (Grant No.62506318); Guangdong Provincial Department of Education Project (Grant No.2024KQNCX028); CAAI-Ant Group Research Fund; Scientific Research Projects for the Higher-educational Institutions (Grant No.2024312096), Education Bureau of Guangzhou Municipality; Guangzhou-HKUST(GZ) Joint Funding Program.
 
-### 不足/疑问
-1. **与 CDPruner 的对比不够充分**: CDPruner（同为 NeurIPS 2025）也强调 diversity，两者的核心理念相似但实现不同（DPP vs variance）。论文中 CDPruner 没有出现在 Table 1 中，可能因为发表时间接近
-2. **Visual Context Refetching 的消融缺失**: 这个机制在主实验中是否启用？对性能贡献多大？论文没有清楚说明
-3. **Qwen 实验只和 FastV 比**: 缺少与 DART、HiRED 等更强 baseline 的对比
-4. **Variance 评分的计算开销**: 需要计算 O(M²) 的 pair-wise similarity，当 crop 内 token 数较多时可能不可忽略。虽然 Table 4 显示总体开销可控
-5. **τ 参数未消融**: crop allocation 的 sharpness 参数 τ 的影响没有讨论
+---
 
-### 与领域内其他工作的关系
-- **vs CDPruner**: 都关注 diversity，但 CDPruner 用 DPP（更数学化），HoloV 用 variance（更直观）。CDPruner 是 instruction-centric，HoloV 是 vision-centric
-- **vs DART (EMNLP25)**: DART 是 Table 1 中最强 baseline，两者差距在 1-2%。DART 的方法和 HoloV 有什么不同？值得深入了解
-- **vs SCOPE (NeurIPS 2025)**: SCOPE 也关注"saliency + coverage"的平衡，和 HoloV 的思路有相似之处
-- **整体趋势**: 2024-2025 年的 token pruning 方法从"纯 attention 评分"转向"多样性/覆盖度保证"，HoloV 是这个趋势的代表作之一
+**Limitations and Future Work.** HoloV demonstrates robust performance in preserving holistic visual context but faces two key limitations: its dependence on fixed spatial crop partitioning may hinder fine-grained semantic capture in complex scenes, and minor accuracy declines persist even at high pruning ratios (e.g., $4.2\%$ drop when pruning $88.9\%$ visual tokens). To address these, future work could prioritize adaptive crop, sparse attention, multi-modality extensions (e.g., 3D data), and integration with hallucination mitigation, while optimizing for edge computing energy efficiency.
+
+> 💡 **局限性和未来方向**:
+> - **局限 1**: 固定空间 crop 划分不够灵活，复杂场景下可能影响细粒度语义捕获
+> - **局限 2**: 高剪枝率下仍有 4.2% 性能下降
+> - **未来方向**: 自适应 crop、稀疏注意力、3D 数据扩展、幻觉缓解集成、边缘计算优化
+
+---
+
+## 🔖 Section 总结
+
+### 核心洞察
+1. HoloV 的成功归因于两个核心创新：diversity variance 评分 + crop-wise 分配
+2. 方法虽然简单（plug-and-play、training-free），但理论上有保证，实验上一致最优
+3. 固定 crop 划分是最大局限，自适应 crop 是最有价值的未来方向

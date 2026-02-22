@@ -25,6 +25,7 @@ Eason 的文献阅读仓库，按课题组织。每篇论文都有「批读格�
 | [SCOPE](./MLLM-Token-Compression/%5BNeurIPS%202025%5D%20SCOPE/) | NeurIPS 2025 | Saliency + Coverage 联合优化 |
 | [VScan](./MLLM-Token-Compression/%5BArxiv%202505.22654%5D%20VScan/) | TMLR 2026 | 两阶段 Global+Local Scan + Middle Layer Pruning |
 | [VisionTrim](./MLLM-Token-Compression/%5BICLR%202026%5D%20VisionTrim/) | ICLR 2026 | Training-free, DVTS (global-local 选) + TGVC (text-guided 补), 两阶段统一压缩 |
+| [HoloV](./MLLM-Token-Compression/%5BNeurIPS%202025%5D%20HoloV/) | NeurIPS 2025 | Crop-wise 自适应分配 + Diversity Variance, 88.9% 剪枝保留 95.8% 性能 |
 
 📖 [方法对比总结](./MLLM-Token-Compression/methods-list.md)
 
