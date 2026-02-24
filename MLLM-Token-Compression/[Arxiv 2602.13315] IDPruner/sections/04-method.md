@@ -21,7 +21,7 @@ To this end, we adopt the importance estimation mechanism of VisionSelector (Zhu
 
 However, since MMR involves a direct subtraction between importance and similarity, both metrics must have comparable scales to prevent one from dominating the selection process. We therefore apply min-max normalization to the raw importance vector **w** to define the normalized importance metric:
 
-Imp(v_i) = (w_i - min(**w**)) / (max(**w**) - min(**w**) + ε)
+![Eq. Imp](../images/c097b134a012584f8346dc59e4e2750eb285ac9efc08bb78987005bb95f0b07b.jpg)
 
 where ε is a small constant for numerical stability. This procedure maps importance scores to the interval [0, 1], ensuring they are commensurate with the similarity constraint.
 
@@ -31,7 +31,7 @@ where ε is a small constant for numerical stability. This procedure maps import
 
 In addition to importance, the MMR framework requires a metric to quantify semantic redundancy. In the latent feature space of MLLMs, tokens representing similar visual concepts tend to cluster together. Thus, we define the pairwise similarity between a candidate token v_i and a reference token v_j using cosine similarity:
 
-Sim(v_i, v_j) = (v_i^T v_j) / (||v_i|| · ||v_j||)
+![Eq. Sim](../images/f2193f2ee12d2e36a982a387d297aff47f777cf8321bbe24231b7f3e20e662be.jpg)
 
 where ||·|| denotes the Euclidean norm. This metric enables the algorithm to identify tokens that are semantically similar to those already selected.
 
@@ -41,7 +41,7 @@ where ||·|| denotes the Euclidean norm. This metric enables the algorithm to id
 
 Building upon the normalized importance and semantic similarity metrics defined above, we formally present the Importance and Diversity Pruner (IDPruner). This method harmonizes the two conflicting objectives within the MMR framework to iteratively construct the optimal subset. At each step t, IDPruner selects the token v* from the remaining candidates V\S_{t-1} by maximizing the following objective:
 
-v* = arg max_{v_i ∈ V\S_{t-1}} [λ · Imp(v_i) - (1 - λ) · m_i]
+![Eq. IDPruner](../images/4d659fa2114b7213a5bc43d3886a232725f494a082162047638ca3819ee4572b.jpg)
 
 where m_i = max_{v_j ∈ S_{t-1}} Sim(v_i, v_j) represents the maximum similarity between the candidate v_i and any token in the currently selected set, and λ ∈ [0, 1] is the hyperparameter balancing importance and diversity.
 

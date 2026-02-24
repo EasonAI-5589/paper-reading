@@ -20,7 +20,7 @@ To decouple the combining strategy from any specific importance estimator, we pr
 
 **Definition 2 (Importance Retention Ratio).** The importance retention ratio of a subset S is defined as the normalized sum of retained scores:
 
-T(S) = (Σ_{v_k ∈ S} w_k) / (Σ_{v_i ∈ V} w_i)
+![Eq. T(S)](../images/0d31f841bb8700812560d0ea719adf3fc6c28483473ad899653336f0f774c2e1.jpg)
 
 This metric quantifies the proportion of total information retained by the subset, ranging from 0 to 1.
 
@@ -30,7 +30,7 @@ In contrast to importance, which focuses on individual token utility, we charact
 
 **Definition 3 (Diversity Metric via Hopkins Statistic).** Let S denote the selected token subset with |S| = m. We construct a reference set R by randomly sampling m points from the same feature space as S. Let d(x, y) denote the cosine distance from point x to its nearest neighbor in set V. The Hopkins Statistic is defined as:
 
-H(S) = (Σ_{r ∈ R} d(r, S)) / (Σ_{r ∈ R} d(r, S) + Σ_{v ∈ S} d(v, S\{v}))
+![Eq. H(S)](../images/0855ceab369939078e54476db4193bb41d7a12b86d6f27e525ea7e552d1d900e.jpg)
 
 In this formulation, S\{v} denotes the set difference, representing the subset S excluding the specific token v to ensure the distance is calculated against its nearest neighbor.
 
@@ -70,7 +70,7 @@ Maximal Marginal Relevance (MMR) (Carbonell and Goldstein-Stewart, 1998) provide
 
 Adapting this principle to visual token pruning, the algorithm iteratively selects the token v* from the candidate set V\S that maximizes the following objective:
 
-v* = arg max_{v_i ∈ V\S} [λ · Imp(v_i) - (1 - λ) · max_{v_j ∈ S} Sim(v_i, v_j)]
+![Eq. MMR](../images/9176ac0f25cd8c5b239bda6b2341017110d5a89187476df0b4375c33fa3bc96f.jpg)
 
 where V represents the set of all visual tokens, S denotes the currently selected subset, Imp(·) represents the normalized importance score, Sim(·, ·) measures the pairwise similarity between tokens, and λ is a hyperparameter balancing the two terms.
 
