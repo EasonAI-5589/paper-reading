@@ -291,13 +291,128 @@ VisionZip、VisionTrim (TGVC)、VScan (merging)、SparseVLM (recycling)、FSR (R
 
 ---
 
-## 五、各方法适用场景速查
+## 五、Indicator 分类体系
 
-| 场景 | 推荐方法 | 原因 |
-|------|---------|------|
-| 极简部署，无需调参 | FastV | 一行代码插入，效果尚可 |
-| 高压缩率 + 保性能 | SCOPE / CDPruner | 有覆盖保证，不损语义 |
-| 空间定位任务（OCR/REC） | Nuwa | 专为空间保持设计 |
-| 多轮对话，问题动态变化 | CDPruner / SparseVLM / FSR | 文本引导，每次问题都重新评分 |
-| 需要端到端优化 | HiDivDrop / IDPruner | 可学习 indicator |
-| 视频 / 超长序列 | HoloV / PyramidDrop | crop 分配 / 多层渐进更稳定 |
+> 二分法（Saliency / Diversity）是常见框架，但不够完整。以下提出一个三维分类，更准确地描述 13 篇方法的 indicator 设计空间。
+
+---
+
+### 5.1 三个正交维度
+
+---
+
+#### 维度 A：Saliency（个体重要性）
+
+**核心问题**：这个 token 本身有多重要？  
+**操作对象**：单个 token 的评分，独立于其他已选 token。
+
+Saliency 内部存在**本质分裂**，必须再细分：
+
+##### A1. Visual Saliency（视觉显著性，task-agnostic）
+
+> *"Is this token intrinsically important in the image, regardless of the question?"*
+
+信号来自 **视觉编码器内部**，与用户问题无关。对同一张图，不论问什么，评分结果相同。
+
+- **典型信号**：ViT 倒数第 2 层 CLS token 的 attention weight（$A_{\text{CLS} \to v_i}$）
+- **代表方法**：FastV、VisionZip、SCOPE（saliency 项）、HoloV（$\mathcal{A}^c$ 项）、VScan（Global Scan）、VisionTrim（$S_i^g$）、FSR（$s_i$）、Nuwa（$\alpha_{\text{cls},i}$ 项）
+
+##### A2. Task Relevance（任务相关性，task-aware）
+
+> *"Is this token relevant to the user's current query?"*
+
+信号必须结合文本输入计算，**同一张图不同问题评分不同**，实现动态剪枝。
+
+- **典型信号**：
+  - visual-text cosine similarity（CLIP text encoder 编码问题）
+  - LLM 内部 cross-attention（text token → visual token）
+- **代表方法**：CDPruner（$\tilde{r}_i$）、SparseVLM（$P = A[\mathbb{L}, \mathbb{I}]$）、FSR（$r_i$）、VisionTrim（TGVC 的 $S_{t2v}$）、VScan（Middle Layer last instr attn）、Nuwa（Stage 2）
+
+> ⚠️ **A1 与 A2 的根本区别**：A1 只需 vision encoder，推理时无额外文本交互；A2 需要语言侧信息，天然支持 per-query 个性化剪枝，但依赖 CLIP text encoder 或 LLM 中间层激活的可访问性。
+
+---
+
+#### 维度 B：Diversity（集合多样性）
+
+**核心问题**：选出的 token 子集语义是否足够不冗余？  
+**操作对象**：**集合级别（set-level）**的目标函数，单个 token 的价值依赖于已选集合。
+
+Diversity 内部同样有四种数学实现，性质不同：
+
+| 子类 | 优化目标 | 数学工具 | 理论保证 | 代表方法 |
+|------|---------|---------|---------|---------|
+| **B1 极端距离**（Pairwise） | $\max \min_{i \neq j \in S} d(v_i, v_j)$ | MMDP | 2-近似 | DivPrune |
+| **B2 集合体积**（Volumetric） | $\max \det(\tilde{L}_S)$ | DPP | NP-hard，贪心 $(1{-}1/e)$ | CDPruner |
+| **B3 软覆盖**（Coverage） | $\max \sum_u \max_{s \in S} \text{sim}(u, s)$ | Submodular | 贪心 $(1{-}1/e)$ | SCOPE |
+| **B4 边际增益**（Marginal） | $\max \lambda \cdot \text{Imp}(v) - (1{-}\lambda) \cdot \max_{j \in S}\text{sim}(v,v_j)$ | MMR（贪心迭代） | — | IDPruner |
+
+**B1 vs B2 vs B3 的核心区别**：
+- **B1（MMDP）** 只关注最近邻的那对 token，一旦最小距离确定，其余 pair 不影响结果。对极端情况敏感，不关注全局分布。
+- **B2（DPP）** 最大化所有向量张成的超体积，天然考虑全局几何结构，但计算更重（行列式）。
+- **B3（Submodular Coverage）** 把「每个 token 被最近邻代表的程度」累加，等价于 facility-location 问题，直观且可扩展。
+- **B4（MMR）** 是唯一把 Saliency 和 Diversity **显式加权相减**的方案，λ 提供连续可调的权衡，但无全局近似保证。
+
+---
+
+#### 维度 C：Spatial Coverage（空间覆盖）
+
+**核心问题**：选出的 token 是否覆盖了图像的每个空间区域？  
+**操作对象**：**几何约束**，确保二维空间的均匀分布，与语义无关。
+
+> *"Have we preserved at least one representative token from every spatial region?"*
+
+这一维度在 Saliency-only 和 Diversity-only 方法中均可能失效：高 saliency token 往往集中于图像中心/前景；高 diversity 子集在语义上分散但可能几何上偏斜（如全选图像一角的多种纹理）。
+
+**实现机制**：将 token 网格划分为不重叠的局部区域（crop/grid/window），在每个区域内独立选取，从几何上保证不遗漏任何角落。
+
+- **代表方法**：HoloV（crop-wise adaptive allocation）、Nuwa（M×M grid partition）、VScan（Local Scan windows）、VisionTrim（LTAM 局部邻域）
+
+---
+
+#### 维度 D：Stability（层间稳定性）[次要维度]
+
+**核心问题**：该层对 token 重要性的判断，在后续层是否仍然成立？  
+**代表方法**：HiDivDrop（ILVAS）
+
+这是唯一一个把「indicator 可靠性」本身作为信号的方法，用于**决定在哪一层剪枝**，而非剪哪些 token。
+
+---
+
+### 5.2 各方法的维度归属
+
+| 方法 | A1 Visual Saliency | A2 Task Relevance | B Diversity | C Spatial Coverage | D Stability |
+|------|:-----------------:|:-----------------:|:-----------:|:-----------------:|:-----------:|
+| **FastV** | ✅（LLM attn） | — | — | — | — |
+| **VisionZip** | ✅（CLS attn） | — | Merge | — | — |
+| **DivPrune** | — | — | ✅ B1 MMDP | — | — |
+| **SCOPE** | ✅（CLS attn） | — | ✅ B3 Coverage | — | — |
+| **CDPruner** | — | ✅（CLIP/LLM emb） | ✅ B2 DPP | — | — |
+| **SparseVLM** | — | ✅（LLM cross-attn） | Rank-adaptive | — | — |
+| **VisionTrim** | ✅（CLS attn） | ✅（CLIP text） | Merge | ✅（LTAM 局部） | — |
+| **HoloV** | ✅（CLS attn） | — | Var（局部） | ✅（crop） | — |
+| **VScan** | ✅（deep CLS） | ✅（last instr） | Merge | ✅（window） | — |
+| **Nuwa** | ✅（CLS × L2-norm） | ✅（cosine） | 空间约束聚合 | ✅（grid） | — |
+| **FSR** | ✅（CLS attn） | ✅（CLIP text） | ✅ B3 Coverage | — | — |
+| **IDPruner** | ✅（VisionSelector） | — | ✅ B4 MMR | — | — |
+| **HiDivDrop** | ✅（DTop-K 学习） | — | — | — | ✅ ILVAS |
+
+---
+
+### 5.3 分类体系的核心观察
+
+**观察 1：A1 → A1+B 的演进轨迹**  
+从 FastV（纯 A1）→ VisionZip（A1 + Merge）→ SCOPE（A1 + B3）→ CDPruner（A2 + B2），方法迭代的方向始终是在重要性评分基础上叠加多样性约束。
+
+**观察 2：A2（Task Relevance）是近期方法的标配**  
+2025 年之后的方法（CDPruner、SparseVLM、VisionTrim、Nuwa、FSR、VScan）几乎全部引入 A2，但信号来源分化为两条路线：
+- **CLIP text encoder 路线**（VisionTrim、FSR、CDPruner）：轻量，但依赖 CLIP 架构，对 Qwen2.5-VL 等新型 encoder 需要适配
+- **LLM 内部 cross-attention 路线**（SparseVLM、VScan middle-layer、Nuwa Stage 2）：更通用，但需要访问 LLM 中间层激活
+
+**观察 3：维度 C 是被长期忽视的隐性瓶颈**  
+DivPrune 和 SCOPE 纯粹在语义空间操作，对 OCR、空间关系推理、REC 等需要精确空间定位的任务存在系统性劣势。Nuwa 的实验明确验证了这一点。
+
+**观察 4：B1（MMDP）在理论上最弱**  
+B1 仅优化最近邻 pair，是对全局多样性的粗糙近似。B2（DPP）和 B3（Submodular）均有更严格的全集近似保证，且 B3 的 Submodular Coverage 在直觉上更贴近"让每个 token 都被代表"这一目标。
+
+**观察 5：A1 + C 的组合尚未被充分探索**  
+目前多数方法是 A1+B 或 A2+B 的组合，而 A1+C（空间感知的视觉显著性，无需文本）在理论上是一个被低估的设计点——HoloV 是最接近的，但其 Diversity Variance 仍是语义信号而非纯几何信号。
