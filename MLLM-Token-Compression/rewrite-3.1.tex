@@ -10,6 +10,12 @@ CDPruner augments this saliency signal with text--visual cosine similarity, redi
 By contrast, DivPrune pursues a fundamentally different objective: maximizing the minimum pairwise distance in the feature space, it scatters selections broadly across the image at the expense of fine-grained foreground detail.
 SCOPE mediates between these two poles, coupling CLS-based saliency with a submodular coverage term that curbs token clustering within narrow semantic neighborhoods.
 
+To be specific, we quantify this divergence by measuring the pairwise overlap of selected token sets across methods at varying retention levels.
+Methods sharing the same indicator family exhibit moderate concordance---for instance, VisionZip and SCOPE, both grounded in CLS-based saliency, achieve an overlap of 0.64 at $K{=}128$.
+Cross-family overlap, however, deteriorates precipitously: at $K{=}32$, it plummets to a mere 0.19--0.27.
+Even under the most permissive retention budget ($K{=}128$, retaining 22\% of all visual tokens), the average pairwise overlap remains below 0.45---implying that \emph{more than half of the tokens deemed ``most important'' by one indicator family are judged expendable by the other}.
+This pronounced inconsistency reveals that XXX.
+
 This divergence arises because the four methods optimize along fundamentally \textit{orthogonal indicator dimensions}:
 
 \begin{itemize}[leftmargin=*]
