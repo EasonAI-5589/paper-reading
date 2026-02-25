@@ -78,7 +78,7 @@ Log-det 后自然分解：
 $$\log\det(\tilde{L}_S) = \underbrace{\sum_{i\in S}\log \tilde{r}_i^2}_{\text{relevance}} + \underbrace{\log\det(L_S)}_{\text{diversity}}$$
 
 - $L_{ij}$：visual token 间 cosine similarity（多样性）
-- $\tilde{r}_i$：第 $i$ 个视觉 token 与指令 embedding 的归一化 cosine similarity（相关性）
+- $\tilde{r}_{i}$：第 $i$ 个视觉 token 与指令 embedding 的归一化 cosine similarity（相关性）
 - MAP inference via 贪心 + Cholesky 分解，复杂度 $O(nm^2)$，额外延迟 <10ms
 - **特点**：优雅的 DPP 条件化，training-free；两种 embedding 方式兼容有/无 CLIP text encoder 的模型
 
@@ -104,7 +104,7 @@ $$\tilde{E}_v^* = \arg\max_{|\tilde{E}_v|=\tilde{M}} \min_{\gamma,\omega \in \ti
 $$v^* = \arg\max_{v_i \notin \mathcal{S}} \Bigl[\lambda \cdot \widehat{\text{Imp}}(v_i) - (1-\lambda) \cdot \underbrace{\max_{v_j \in \mathcal{S}} \cos(v_i,v_j)}_{m_i}\Bigr]$$
 
 - $\text{Imp}$ 来自 **VisionSelector** 的 DiffTopK 输出（端到端训练）+ min-max 归一化
-- $m_i$ = 候选 token 与已选集合中任意 token 的最大余弦相似度（用 max 而非 mean）
+- $m_{i}$ = 候选 token 与已选集合中任意 token 的最大余弦相似度（用 max 而非 mean）
 - 高效 O(KN) 更新：维护 m 向量，每步 `m ← max(m, sim(V, v*))`
 - **特点**：显式平衡重要性与多样性，λ 可调；与 SCOPE 的区别：用减法而非乘法组合
 - ⚠️ **非 training-free**：依赖 VisionSelector（需训练可学习评分模块）
@@ -117,11 +117,11 @@ $$v^* = \arg\max_{v_i \notin \mathcal{S}} \Bigl[\lambda \cdot \widehat{\text{Imp
 
 $$S_i = \alpha \hat{S}_i^g + (1-\alpha) S_i^l, \quad \alpha = \frac{\sigma_l^2}{\sigma_g^2 + \sigma_l^2}$$
 
-- **Global** $S_i^g$：ViT 倒数第 2 层 CLS attention，多头均值后 softmax
-- **Local** $S_i^l$（LTAM）：局部 k×k 窗口内的 dual-kernel 亲和度
+- **Global** $S_{i}^{g}$：ViT 倒数第 2 层 CLS attention，多头均值后 softmax
+- **Local** $S_{i}^{l}$（LTAM）：局部 k×k 窗口内的 dual-kernel 亲和度
   - $\kappa_{\text{feat}}$：特征空间高斯距离
   - $\kappa_{\text{pos}}$：空间位置高斯距离
-  - $\kappa^* = \kappa_{\text{feat}} + w_3 \kappa_{\text{pos}}$
+  - $\kappa^{*} = \kappa_{\text{feat}} + w_{3} \kappa_{\text{pos}}$
 - **自适应权重**：方差大 = 信号不稳定 → 给小权重
 
 **TGVC 信号**（补充）：CLIP text encoder → text-visual similarity → 文本引导聚类 merge
@@ -136,11 +136,11 @@ $$S_i = \alpha \hat{S}_i^g + (1-\alpha) S_i^l, \quad \alpha = \frac{\sigma_l^2}{
 
 $$\mathcal{H}_i^c = \gamma_c \mathcal{V}_i^c + \mathcal{A}_i^c, \quad \gamma_c = \frac{\mathbb{E}[\|\mathcal{A}^c\|]}{\mathbb{E}[\|\mathcal{V}^c\|]}$$
 
-- **多样性方差** $\mathcal{V}_i^c$：token $i$ 与 crop 内其他 token 相似度的方差
+- **多样性方差** $\mathcal{V}_{i}^{c}$：token $i$ 与 crop 内其他 token 相似度的方差
   - 高方差 = 该 token 与周围差异大 = 语义独特
-- $\mathcal{A}_i^c$：CLS attention（全局显著性）
-- 自适应缩放因子 $\gamma_c$ 确保两者量级一致
-- **Crop-wise 分配**：$w_c \propto$ crop 平均 holistic score，配额 $q_c$ 按权重分配（设上下限防垄断）
+- $\mathcal{A}_{i}^{c}$：CLS attention（全局显著性）
+- 自适应缩放因子 $\gamma_{c}$ 确保两者量级一致
+- **Crop-wise 分配**：$w_{c} \propto$ crop 平均 holistic score，配额 $q_{c}$ 按权重分配（设上下限防垄断）
 - **特点**：在 LLM 之前剪枝（prefill 超线性收益）；另有 Fast VCR 在高不确定性时补回信息
 
 ---
@@ -158,8 +158,8 @@ $$\text{ILVAS}(l) = \text{sim}\left(\tilde{A}_i^{(l)},\ \tilde{A}_i^{(l+n)}\righ
 
 **DTop-K**（可微 token 选择）：
 
-1. 重要性分数 $c_i$ → 归一化排名 $c'_i \in [0,1]$  
-2. 软掩码：$\text{Mask}_i = \sigma\!\left(\lambda(c'_i - a)\right)$，$a$ 是**可学习的剪枝阈值**  
+1. 重要性分数 $c_{i}$ → 归一化排名 $c'_{i} \in [0,1]$  
+2. 软掩码：$\text{Mask}_{i} = \sigma\!\left(\lambda(c'_{i} - a)\right)$，$a$ 是**可学习的剪枝阈值**  
 3. 前向用 hard threshold，反向用 sigmoid 梯度
 
 - **三段式架构**：Late Injection（跳过浅层）+ Concave Pyramid（中间层渐进）+ Early Exit（深层停止）
@@ -178,7 +178,7 @@ $$\text{ILVAS}(l) = \text{sim}\left(\tilde{A}_i^{(l)},\ \tilde{A}_i^{(l+n)}\righ
 | Local Scan | 浅层 CLS attention（layer 6）+ 非重叠窗口划分 | Vision Encoder |
 | Middle Layer Pruning | last instruction token → visual tokens attention | LLM 第 16 层 |
 
-- Global 和 Local 各取 $R_1/2$，union 后做 Token Merging（cosine similarity → average pooling）
+- Global 和 Local 各取 $R_{1}/2$，union 后做 Token Merging（cosine similarity → average pooling）
 - **中间层而非早期层**：实验验证 k=16 >> k=2（FastV 的位置），避免位置偏差
 - **特点**：training-free，兼容 FlashAttention（auxiliary vanilla attention pass）
 
@@ -190,8 +190,8 @@ $$\text{ILVAS}(l) = \text{sim}\left(\tilde{A}_i^{(l)},\ \tilde{A}_i^{(l+n)}\righ
 
 $$P = A[\mathbb{L}, \mathbb{I}] \in \mathbb{R}^{L_t \times L_v}, \quad \tilde{p}_j = \frac{1}{|\text{raters}|}\sum_{i \in \text{raters}} P_{ij}$$
 
-- **Text Rater 筛选**：先用 $H_v \cdot H_q^T$ 过滤出视觉相关文本 token（超均值才成为 rater），排除代词/介词噪声
-- **Rank-based 自适应裁剪量**：$N = \lambda \times (L_v - \text{rank}(P))$
+- **Text Rater 筛选**：先用 $H_{v} \cdot H_{q}^{T}$ 过滤出视觉相关文本 token（超均值才成为 rater），排除代词/介词噪声
+- **Rank-based 自适应裁剪量**：$N = \lambda \times (L_{v} - \text{rank}(P))$
   - 低 rank → 高冗余 → 多剪；每层自动决定裁剪量
 - Token Recycling：density peak clustering → 求和重构，减少信息损失
 - **特点**：逐层自适应，无需预设固定压缩率；training-free
@@ -223,8 +223,8 @@ $$S(t_i) = \alpha_{\text{cls},i} \times \|\mathbf{k}_i\|_2$$
 
 $$\phi_i = \alpha \hat{r}_i + \beta \hat{s}_i, \quad K_F = \min\left\lbrace k : \sum_{j=1}^k \phi_{\pi(j)} \geq \rho \cdot Z \right\rbrace$$
 
-- $s_i$：CLS attention（视觉显著性）
-- $r_i$：CLIP text encoder cosine similarity（指令相关性）
+- $s_{i}$：CLS attention（视觉显著性）
+- $r_{i}$：CLIP text encoder cosine similarity（指令相关性）
 - 动态 budget：保留覆盖 90% 总 $\phi$ 质量所需的最少 token 数
 
 **Scan**（全局背景，CCS 算法）：
@@ -314,8 +314,8 @@ Saliency 内部存在**本质分裂**，必须再细分：
 
 信号来自 **视觉编码器内部**，与用户问题无关。对同一张图，不论问什么，评分结果相同。
 
-- **典型信号**：ViT 倒数第 2 层 CLS token 的 attention weight（$A_{\text{CLS} \to v_i}$）
-- **代表方法**：FastV、VisionZip、SCOPE（saliency 项）、HoloV（$\mathcal{A}^c$ 项）、VScan（Global Scan）、VisionTrim（$S_i^g$）、FSR（$s_i$）、Nuwa（$\alpha_{\text{cls},i}$ 项）
+- **典型信号**：ViT 倒数第 2 层 CLS token 的 attention weight（$A_{\text{CLS} \to v_{i}}$）
+- **代表方法**：FastV、VisionZip、SCOPE（saliency 项）、HoloV（$\mathcal{A}^{c}$ 项）、VScan（Global Scan）、VisionTrim（$S_{i}^{g}$）、FSR（$s_{i}$）、Nuwa（$\alpha_{\text{cls},i}$ 项）
 
 ##### A2. Task Relevance（任务相关性，task-aware）
 
@@ -326,7 +326,7 @@ Saliency 内部存在**本质分裂**，必须再细分：
 - **典型信号**：
   - visual-text cosine similarity（CLIP text encoder 编码问题）
   - LLM 内部 cross-attention（text token → visual token）
-- **代表方法**：CDPruner（$\tilde{r}_i$）、SparseVLM（$P = A[\mathbb{L}, \mathbb{I}]$）、FSR（$r_i$）、VisionTrim（TGVC 的 $S_{t2v}$）、VScan（Middle Layer last instr attn）、Nuwa（Stage 2）
+- **代表方法**：CDPruner（$\tilde{r}_{i}$）、SparseVLM（$P = A[\mathbb{L}, \mathbb{I}]$）、FSR（$r_{i}$）、VisionTrim（TGVC 的 $S_{t2v}$）、VScan（Middle Layer last instr attn）、Nuwa（Stage 2）
 
 > ⚠️ **A1 与 A2 的根本区别**：A1 只需 vision encoder，推理时无额外文本交互；A2 需要语言侧信息，天然支持 per-query 个性化剪枝，但依赖 CLIP text encoder 或 LLM 中间层激活的可访问性。
 
@@ -341,10 +341,10 @@ Diversity 内部同样有四种数学实现，性质不同：
 
 | 子类 | 优化目标 | 数学工具 | 理论保证 | 代表方法 |
 |------|---------|---------|---------|---------|
-| **B1 极端距离**（Pairwise） | $\max \min_{i \neq j \in S} d(v_i, v_j)$ | MMDP | 2-近似 | DivPrune |
-| **B2 集合体积**（Volumetric） | $\max \det(\tilde{L}_S)$ | DPP | NP-hard，贪心 $(1{-}1/e)$ | CDPruner |
-| **B3 软覆盖**（Coverage） | $\max \sum_u \max_{s \in S} \text{sim}(u, s)$ | Submodular | 贪心 $(1{-}1/e)$ | SCOPE |
-| **B4 边际增益**（Marginal） | $\max \lambda \cdot \text{Imp}(v) - (1{-}\lambda) \cdot \max_{j \in S}\text{sim}(v,v_j)$ | MMR（贪心迭代） | — | IDPruner |
+| **B1 极端距离**（Pairwise） | $\max \min_{i \neq j \in S} d(v_{i}, v_{j})$ | MMDP | 2-近似 | DivPrune |
+| **B2 集合体积**（Volumetric） | $\max \det(\tilde{L}_{S})$ | DPP | NP-hard，贪心 $(1{-}1/e)$ | CDPruner |
+| **B3 软覆盖**（Coverage） | $\max \sum_{u} \max_{s \in S} \text{sim}(u, s)$ | Submodular | 贪心 $(1{-}1/e)$ | SCOPE |
+| **B4 边际增益**（Marginal） | $\max \lambda \cdot \text{Imp}(v) - (1{-}\lambda) \cdot \max_{j \in S}\text{sim}(v,v_{j})$ | MMR（贪心迭代） | — | IDPruner |
 
 **B1 vs B2 vs B3 的核心区别**：
 - **B1（MMDP）** 只关注最近邻的那对 token，一旦最小距离确定，其余 pair 不影响结果。对极端情况敏感，不关注全局分布。
