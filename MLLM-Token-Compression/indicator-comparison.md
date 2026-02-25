@@ -221,7 +221,7 @@ $$S(t_i) = \alpha_{\text{cls},i} \times \|\mathbf{k}_i\|_2$$
 
 **Focus**（局部证据，动态 budget）：
 
-$$\phi_i = \alpha \hat{r}_i + \beta \hat{s}_i, \quad K_F = \min\left\{k : \sum_{j=1}^k \phi_{\pi(j)} \geq \rho \cdot Z\right\}$$
+$$\phi_i = \alpha \hat{r}_i + \beta \hat{s}_i, \quad K_F = \min\left\lbrace k : \sum_{j=1}^k \phi_{\pi(j)} \geq \rho \cdot Z \right\rbrace$$
 
 - $s_i$：CLS attention（视觉显著性）
 - $r_i$：CLIP text encoder cosine similarity（指令相关性）
