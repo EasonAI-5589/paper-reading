@@ -245,6 +245,7 @@ $$\phi_i = \alpha \hat{r}_i + \beta \hat{s}_i, \quad K_F = \min\left\lbrace k : 
 | 论文 | Venue | 主信号来源 | 文本引导 | 多样性设计 | 剪枝位置 | Training-free |
 |------|-------|-----------|---------|-----------|---------|--------------|
 | **FastV** | ECCV 2024 | LLM 浅层 attn | ✗ | ✗ | LLM 内（L2） | ✅ |
+| **PyramidDrop** | CVPR 2025 | LLM last-instr attn | ✅（渐进多阶段） | ✗ | LLM 内（多层） | ✅ |
 | **VisionZip** | CVPR 2025 | ViT CLS attn | ✗ | Merge | ViT 后 | ✅ |
 | **DivPrune** | CVPR 2025 | — | ✗ | MMDP（最大最小距离） | LLM 前 | ✅ |
 | **SCOPE** | NeurIPS 2025 | ViT CLS attn | ✗ | Coverage marginal gain | LLM 前 | ✅ |
@@ -382,6 +383,7 @@ Diversity 内部同样有四种数学实现，性质不同：
 
 | 方法 | A1 Visual Saliency | A2 Task Relevance | B Diversity | C Spatial Coverage | D Stability |
 |------|:-----------------:|:-----------------:|:-----------:|:-----------------:|:-----------:|
+| **PyramidDrop** | — | ✅（last instr，多阶段） | — | — | — |
 | **FastV** | ✅（LLM attn） | — | — | — | — |
 | **VisionZip** | ✅（CLS attn） | — | Merge | — | — |
 | **DivPrune** | — | — | ✅ B1 MMDP | — | — |
