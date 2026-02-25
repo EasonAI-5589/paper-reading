@@ -452,7 +452,7 @@ Saliency 内部存在**本质分裂**，必须再细分：
 ### 5.3 分类体系的核心观察
 
 **观察 1：纯 saliency → saliency + B1 的演进轨迹**  
-从 VisionZip（纯 A1）→ SCOPE（A1 + B1 Submodular Coverage）→ CDPruner（A2 + B1 DPP），主线是在重要性评分基础上叠加语义多样性约束。FastV 和 PyramidDrop 走的是另一条轨迹——同样使用 LLM text→visual attention（A2），但完全放弃 B1，专注于剪枝策略的效率设计（单次 L2 → 渐进多阶段），说明 "saliency-only" 的设计空间通过工程优化仍有很大价值。
+从 VisionZip（纯 A1）→ SCOPE（A1 + B1 Submodular Coverage）→ CDPruner（A2 + B1 DPP），主线是在重要性评分基础上叠加语义多样性约束。FastV 和 PyramidDrop 走的是另一条轨迹——同样利用 LLM 内部 attention 信号（A2），但完全放弃 B1，专注于剪枝策略的效率设计（FastV 单次 L2 全 token received attn → PyramidDrop 多阶段 last-instr Q·K），说明 "saliency-only" 的设计空间通过工程优化仍有很大价值。
 
 **观察 2：A2（Task Relevance）信号的两个代际**  
 A2 信号从 FastV（2024）就已出现（LLM L2 全 token received attn 均值），并非 2025 年之后的新发明。但两代方法在设计意图上有本质区别：
