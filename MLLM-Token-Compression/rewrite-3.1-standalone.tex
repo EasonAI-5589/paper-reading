@@ -11,16 +11,14 @@
 
 \section*{3.1\quad Finding 1: Cross-Indicator Inconsistency}
 
-A common assumption in existing pruning methods is that a single importance
-indicator suffices to identify the most valuable visual tokens.
-We challenge this assumption by systematically comparing indicators across
-four representative methods that span three distinct paradigms:
-\textit{vision-intrinsic saliency} (VisionZip~[54], using ViT CLS attention),
-\textit{text-conditioned hybrid} (CDPruner~[58], coupling text--visual cosine
-similarity with a conditional DPP kernel),
-\textit{pure semantic diversity} (DivPrune~[3], using max-min pairwise distance),
-and \textit{saliency--coverage hybrid} (SCOPE~[11], fusing CLS attention with
-submodular coverage gain).
+A foundational yet rarely scrutinized premise pervades the visual token pruning
+literature: that a single importance indicator can reliably separate
+indispensable tokens from expendable ones.
+Our investigation reveals that the indicators employed by existing methods
+naturally coalesce into two distinct families: \textit{saliency}, which
+quantifies individual token importance (VisionZip~[54], CDPruner~[58]), and
+\textit{diversity}, which promotes collective representativeness of the
+retained set (DivPrune~[3], SCOPE~[11]).
 
 As visualized in Fig.~3, these indicators produce strikingly different token
 selections---even on the same image under the same compression ratio.
@@ -82,21 +80,38 @@ This divergence arises because the four methods optimize along fundamentally
   \end{itemize}
 \end{itemize}
 
-Critically, high saliency does not imply high representativeness: a set of
-tokens may all receive top CLS attention scores yet cluster within a narrow
-semantic region, leaving background context---essential for holistic
-reasoning---entirely unrepresented.
-SCOPE's own analysis confirms this: under pure saliency selection, the
-$\theta$-coverage of the retained set can fall \emph{below random
-sampling}~[11].
-Conversely, maximizing diversity alone (DivPrune) scatters tokens across
-task-irrelevant regions while omitting fine-grained details critical for
-query-specific understanding.
-The B2 dimension introduces yet another failure mode: methods operating purely
-in the embedding space (B1) can produce spatially skewed selections that miss
-entire image regions---a systematic weakness for OCR, spatial reasoning, and
-referring expression comprehension tasks~[39].
-These observations motivate a unified framework that jointly optimizes across
-all four sub-dimensions.
+Crucially, these dimensions are not merely orthogonal---their failure modes are
+\emph{complementary}.
+Optimizing saliency alone (Dimension~A) causes the retained tokens to cluster
+around a few high-attention foreground regions, leaving the semantic space
+severely under-covered; SCOPE's analysis quantifies this: under pure
+CLS-attention selection on LLaVA-1.5, the $\theta$-coverage of the retained
+set falls \emph{below that of random sampling} across all threshold
+values~[11].
+Optimizing semantic diversity alone (B1) yields the opposite pathology:
+DivPrune distributes tokens broadly in the embedding space but is agnostic to
+which regions are task-relevant, retaining background noise at the expense of
+fine-grained foreground details.
+Furthermore, even a semantically diverse subset (B1) may remain spatially
+skewed---tokens from texturally varied but co-located patches can achieve high
+pairwise distance in feature space while leaving entire image quadrants
+unrepresented, a systematic weakness for OCR, spatial reasoning, and referring
+expression comprehension~[39].
+
+These complementary failure modes reveal that no single indicator dimension
+suffices: saliency without representativeness discards context;
+representativeness without saliency discards detail; and semantic diversity
+without spatial awareness discards regions.
+This analysis motivates the design of a unified pruning framework that jointly
+optimizes across all four sub-dimensions (A1, A2, B1, B2), as we present in
+Sec.~4.
 
 \end{document}
+%1 limited to
+%2 系统研究，分为两大类 four -- two   sali Di   不要具体描述 
+%%
+%3  语气陈述 在相同d的compression ratio下 不同的indicator显示不同结果
+%4  名词  方法    选择，填充bycontrast等对比词   加实验结果
+%5   
+%6  接170行 To be specific     这个现象启发我们XXX
+% visionzip--text-agnostic  cdpruner text-aware   divprune-diversity SCOPE
