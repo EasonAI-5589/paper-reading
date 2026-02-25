@@ -154,7 +154,7 @@ $$\mathcal{H}_i^c = \gamma_c \mathcal{V}_i^c + \mathcal{A}_i^c, \quad \gamma_c =
 $$\text{ILVAS}(l) = \text{sim}\left(\tilde{A}_i^{(l)},\ \tilde{A}_i^{(l+n)}\right)$$
 
 - 衡量 layer $l$ 对 token 重要性的评估在未来层的稳定性
-- 选 ILVAS 曲线的局部最大值作为剪枝层：$\mathcal{F} = \{10, 14, 16, 18\}$
+- 选 ILVAS 曲线的局部最大值作为剪枝层：`F = {10, 14, 16, 18}`
 
 **DTop-K**（可微 token 选择）：
 
@@ -314,8 +314,8 @@ Saliency 内部存在**本质分裂**，必须再细分：
 
 信号来自 **视觉编码器内部**，与用户问题无关。对同一张图，不论问什么，评分结果相同。
 
-- **典型信号**：ViT 倒数第 2 层 CLS token 的 attention weight（$A_{\text{CLS} \to v_{i}}$）
-- **代表方法**：FastV、VisionZip、SCOPE（saliency 项）、HoloV（$\mathcal{A}^{c}$ 项）、VScan（Global Scan）、VisionTrim（$S_{i}^{g}$）、FSR（$s_{i}$）、Nuwa（$\alpha_{\text{cls},i}$ 项）
+- **典型信号**：ViT 倒数第 2 层 CLS token 的 attention weight（`A_CLS→vi`）
+- **代表方法**：FastV、VisionZip、SCOPE（saliency 项）、HoloV（`𝒜ᶜ` 项）、VScan（Global Scan）、VisionTrim（`Sᵍ` 项）、FSR（`sᵢ`）、Nuwa（`α_cls` 项）
 
 ##### A2. Task Relevance（任务相关性，task-aware）
 
@@ -326,7 +326,7 @@ Saliency 内部存在**本质分裂**，必须再细分：
 - **典型信号**：
   - visual-text cosine similarity（CLIP text encoder 编码问题）
   - LLM 内部 cross-attention（text token → visual token）
-- **代表方法**：CDPruner（$\tilde{r}_{i}$）、SparseVLM（$P = A[\mathbb{L}, \mathbb{I}]$）、FSR（$r_{i}$）、VisionTrim（TGVC 的 $S_{t2v}$）、VScan（Middle Layer last instr attn）、Nuwa（Stage 2）
+- **代表方法**：CDPruner（`r̃ᵢ` 相关性权重）、SparseVLM（`P = A[text, vision]`）、FSR（`rᵢ`）、VisionTrim（TGVC `S_t2v`）、VScan（Middle Layer last instr attn）、Nuwa（Stage 2）
 
 > ⚠️ **A1 与 A2 的根本区别**：A1 只需 vision encoder，推理时无额外文本交互；A2 需要语言侧信息，天然支持 per-query 个性化剪枝，但依赖 CLIP text encoder 或 LLM 中间层激活的可访问性。
 
