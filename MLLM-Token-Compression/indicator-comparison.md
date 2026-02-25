@@ -11,9 +11,10 @@
 
 | 信号来源 | 单信号方法 | 融合方法 |
 |---------|-----------|---------|
-| **视觉自注意力**（CLS attn） | FastV, VisionZip | — |
+| **ViT 自注意力**（CLS attn） | VisionZip | — |
+| **LLM 内部 attention**（saliency proxy） | FastV, PyramidDrop | — |
 | **多样性 / 覆盖** | DivPrune | SCOPE, HoloV |
-| **跨模态文本** | SparseVLM (LLM attn) | CDPruner, FSR, Nuwa, VisionTrim |
+| **跨模态文本**（显式 text-guided） | SparseVLM (LLM attn) | CDPruner, FSR, Nuwa, VisionTrim |
 | **重要性 + 多样性** | — | IDPruner (MMR), HiDivDrop (DTop-K) |
 | **时序一致性** | HiDivDrop (ILVAS) | VScan (Global+Local) |
 
@@ -30,7 +31,7 @@
 $$\phi_{\text{attn}}(v_i) = \frac{1}{H \cdot |\mathcal{Q}_i|}\sum_h \sum_{j \in \mathcal{Q}_i} A_{h,\, j \to v_i}^{(K)}, \quad \mathcal{Q}_i = \{j : j > p_i\}$$
 
 - 在 LLM 第 $K$ 层（默认 K=2），计算每个 visual token 从**所有后续 token**（因果掩码下含后续 image token + 全部 instruction token）收到的 attention 均值
-- 多头 × 多 query position 取 mean，直接 top-R% 选取
+- 多头 × 多 query position 取 mean，去除 bottom $R\%$（$R$ 为裁剪比例，默认 50%），保留前 $(1{-}R)\%$ token
 - **特点**：极简，training-free；"一刀切"剪枝，后续层全生效
 - **局限**：第 2 层 attention 尚不稳定，高 attention token 集中一处，覆盖率低
 
@@ -436,7 +437,7 @@ Saliency 内部存在**本质分裂**，必须再细分：
 | 方法 | A1 Visual Saliency | A2 Task Relevance | B1 Semantic Diversity | B2 Spatial Coverage |
 |------|-----|-----|-----|-----|
 | **PyramidDrop** | — | $\text{score}\_i = q\_j^{t\_I} \cdot (k\_j^{v\_i})^T$：每个 stage 末尾计算 last-instruction token 的 query 与各 image token 的 key 的点积，按分数降序保留比例 $\lambda$（$\lambda \in (0,1)$，默认 0.5）的 token，丢弃其余。复用 self-attention 的 Q/K 矩阵，零额外参数。默认 $S{=}4$ stage，第 $s$ 阶段后剩余 token 数为 $V\_s = \lambda^s V$，呈指数递减 | — | — |
-| **FastV** | — | $\phi\_{\text{attn}}(v\_i) = \text{mean}\_{h,\, j \in \mathcal{Q}\_i} A\_{h,\, j \to v\_i}^{(K=2)}$，$\mathcal{Q}\_i = \{j : j > p\_i\}$：在 LLM 第 2 层计算每个 visual token 从所有后续 token（因果掩码下含后续 image token + 全部 instruction token）收到的 attention 均值（多头 × 多 query position 取 mean），one-shot 保留 top-$R\%$。因 instruction token 参与均值，信号隐式依赖文本输入（不同问题 → 不同排名），但 image-to-image attention 也参与平均，加之 L2 交互极浅，text dependency 被显著稀释，实际分布近似 task-agnostic saliency | — | — |
+| **FastV** | — | $\phi\_{\text{attn}}(v\_i) = \text{mean}\_{h,\, j \in \mathcal{Q}\_i} A\_{h,\, j \to v\_i}^{(K=2)}$，$\mathcal{Q}\_i = \{j : j > p\_i\}$：在 LLM 第 2 层计算每个 visual token 从所有后续 token（因果掩码下含后续 image token + 全部 instruction token）收到的 attention 均值（多头 × 多 query position 取 mean），one-shot 去除 bottom $R\%$（$R$ 为裁剪比例，默认 50%），保留前 $(1{-}R)\%$ token。因 instruction token 参与均值，信号隐式依赖文本输入（不同问题 → 不同排名），但 image-to-image attention 也参与平均，加之 L2 交互极浅，text dependency 被显著稀释，实际分布近似 task-agnostic saliency | — | — |
 | **VisionZip** | 取 ViT 倒数第 2 层 CLS token 对各 visual token 的 attention 多头均值作为 saliency score，选分数最高的 K 个为 dominant tokens。信号完全来自 vision encoder，与文本无关。对无 CLS token 的模型（如 SigLIP），改用每个 token 从所有其他 token 收到的平均 attention | — | Token Merging（Algorithm 2）：剩余非 dominant token 均匀拆分为 target 和 merge 两组；以 Key 向量点积度量相似度，将每个 merge token 分配到最相似的 target 上做**均值聚合**，生成 contextual tokens。最终输出 = dominant tokens + contextual tokens。属信息保留机制，非显式 diversity 目标 | — |
 | **DivPrune** | — | — | MMDP（Max-Min Diversity Problem）：在大小为 M 的子集中最大化任意两 token 间余弦距离的最小值（距离 = 1 − cos similarity）。预计算全 token 对距离矩阵后，贪心迭代每步选离已选集合最远的 token（farthest-first traversal）。纯多样性驱动，不使用任何 saliency 信号，2-近似保证 | — |
 | **SCOPE** | $A\_v^\alpha$：取 ViT 倒数第 2 层 CLS attention 作为 per-token saliency，指数 $\alpha$（默认 1.0）控制 saliency 权重。最终选择准则 $v^* = \arg\max\_{v \notin \mathcal{S}} \Delta(v;\mathcal{S}) \cdot A\_v^\alpha$，以乘法融合 saliency 与 coverage marginal gain | — | Submodular Coverage：边际增量 $\Delta(v;\mathcal{S}) = \sum\_{u \in \mathcal{V}} \max(\text{sim}(u,v) - C(u,\mathcal{S}),\, 0)$，其中 $C(u,\mathcal{S}) = \max\_{s \in \mathcal{S}} \text{sim}(u,s)$ 为 $u$ 在已选集合中的最大覆盖度。底层集合覆盖函数 $f(\mathcal{S}) = \sum\_u C(u,\mathcal{S})$ 是单调次模函数，纯 coverage 贪心具 $(1{-}1/e)$ 近似保证。作者实验证明纯 saliency 选择的 $\theta$-coverage 甚至低于 random | — |
