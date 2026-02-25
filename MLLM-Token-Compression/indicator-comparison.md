@@ -27,7 +27,7 @@
 
 **信号**：LLM 浅层 self-attention
 
-$$\text{score}_i = \frac{1}{H}\sum_h A_{h,\ \text{last\_text} \to v_i}^{(K)}$$
+$$\text{score}_i = \frac{1}{H}\sum_h A_{h,\ t_{\text{last}} \to v_i}^{(K)}$$
 
 - 在 LLM 第 $K$ 层（默认 K=2），取最后一个文本 token 对各视觉 token 的 attention
 - 多头取平均，直接 top-R% 选取
