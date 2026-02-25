@@ -1,12 +1,8 @@
 \subsection{Finding 1: Cross-Indicator Inconsistency}
 \label{sec:finding1}
 
-A common assumption in existing pruning methods is that a single importance indicator suffices to identify the most valuable visual tokens.
-We challenge this assumption by systematically comparing indicators across four representative methods that span three distinct paradigms:
-\textit{vision-intrinsic saliency} (VisionZip~\cite{visionzip}, using ViT CLS attention),
-\textit{text-conditioned hybrid} (CDPruner~\cite{cdpruner}, coupling text--visual cosine similarity with a conditional DPP kernel),
-\textit{pure semantic diversity} (DivPrune~\cite{divprune}, using max-min pairwise distance),
-and \textit{saliency--coverage hybrid} (SCOPE~\cite{scope}, fusing CLS attention with submodular coverage gain).
+A foundational yet rarely scrutinized premise pervades the visual token pruning literature: that a single importance indicator can reliably separate indispensable tokens from expendable ones.
+Our investigation reveals that the indicators employed by existing methods naturally coalesce into two distinct families: \textit{saliency}, which quantifies individual token importance (VisionZip~\cite{visionzip}, CDPruner~\cite{cdpruner}), and \textit{diversity}, which promotes collective representativeness of the retained set (DivPrune~\cite{divprune}, SCOPE~\cite{scope}).
 
 As visualized in Fig.~\ref{fig:indicator_vis}, these indicators produce strikingly different token selections---even on the same image under the same compression ratio.
 VisionZip concentrates on regions receiving high CLS attention, typically semantically salient foreground objects, \emph{irrespective of the user's question}.
@@ -32,8 +28,10 @@ This divergence arises because the four methods optimize along fundamentally \te
   \end{itemize}
 \end{itemize}
 
-Critically, high saliency does not imply high representativeness: a set of tokens may all receive top CLS attention scores yet cluster within a narrow semantic region, leaving background context---essential for holistic reasoning---entirely unrepresented.
-SCOPE's own analysis confirms this: under pure saliency selection, the $\theta$-coverage of the retained set can fall \emph{below random sampling}~\cite{scope}.
-Conversely, maximizing diversity alone (DivPrune) scatters tokens across task-irrelevant regions while omitting fine-grained details critical for query-specific understanding.
-The B2 dimension introduces yet another failure mode: methods operating purely in the embedding space (B1) can produce spatially skewed selections that miss entire image regions---a systematic weakness for OCR, spatial reasoning, and referring expression comprehension tasks~\cite{nuwa}.
-These observations motivate a unified framework that jointly optimizes across all four sub-dimensions.
+Crucially, these dimensions are not merely orthogonal---their failure modes are \emph{complementary}.
+Optimizing saliency alone (Dimension~A) causes the retained tokens to cluster around a few high-attention foreground regions, leaving the semantic space severely under-covered; SCOPE's analysis quantifies this: under pure CLS-attention selection on LLaVA-1.5, the $\theta$-coverage of the retained set falls \emph{below that of random sampling} across all threshold values~\cite{scope}.
+Optimizing semantic diversity alone (B1) yields the opposite pathology: DivPrune distributes tokens broadly in the embedding space but is agnostic to which regions are task-relevant, retaining background noise at the expense of fine-grained foreground details.
+Furthermore, even a semantically diverse subset (B1) may remain spatially skewed---tokens from texturally varied but co-located patches can achieve high pairwise distance in feature space while leaving entire image quadrants unrepresented, a systematic weakness for OCR, spatial reasoning, and referring expression comprehension~\cite{nuwa}.
+
+These complementary failure modes reveal that no single indicator dimension suffices: saliency without representativeness discards context; representativeness without saliency discards detail; and semantic diversity without spatial awareness discards regions.
+This analysis motivates the design of a unified pruning framework that jointly optimizes across all four sub-dimensions (A1, A2, B1, B2), as we present in Sec.~\ref{sec:method}.
