@@ -1,7 +1,7 @@
 # Visual Token Pruning：Indicator 全景对比
 
-> 整理时间：2026-02-24  
-> 覆盖论文：FastV · VisionZip · DivPrune · SCOPE · CDPruner · SparseVLM · VisionTrim · HoloV · VScan · Nuwa · FSR · IDPruner · HiDivDrop（共 13 篇）
+> 整理时间：2026-02-25  
+> 覆盖论文：FastV · PyramidDrop · VisionZip · DivPrune · SCOPE · CDPruner · SparseVLM · VisionTrim · HoloV · VScan · Nuwa · FSR · IDPruner · HiDivDrop（共 14 篇）
 
 ---
 
@@ -36,7 +36,58 @@ $$\text{score}_i = \frac{1}{H}\sum_h A_{h,\ t_{\text{last}} \to v_i}^{(K)}$$
 
 ---
 
-### 2. VisionZip（CVPR 2025）
+### 2. PyramidDrop（CVPR 2025）
+
+**信号**：LLM 各 stage 末尾 last instruction token → image tokens 的 attention score（渐进多阶段）
+
+$$\text{score}_i = q_j^{t_I} \cdot (k_j^{v_i})^T$$
+
+- 将 LLM 均分为 $S$ 个 stage（默认 $S=4$，32 层模型每 8 层一个 stage）
+- 每个 stage 末尾，计算 **last instruction token** 的 query 与所有 image token 的 key 的点积作为重要性排名
+- 保留 top-$\lambda$ 比例的 token，丢弃剩余：$V_s = \lambda^s \cdot V$
+- 默认 $\lambda=0.5$ 时，token 数量呈指数递减：$V \to V/2 \to V/4 \to V/8$
+- 直接复用 self-attention 的 Q/K 矩阵，零额外参数
+
+**核心观察**：视觉 token 冗余度随 LLM 层数**单调递增** — 浅层（L2）丢弃任何比例都掉点，深层（L24）保留 10% 性能也不降。均匀压缩忽略了这一层级差异。
+
+**特点**：
+- 渐进式剪枝完美匹配冗余度变化规律
+- **训练 + 推理双加速**（唯一同时适用于两个阶段的方法）：训练 40%+，推理 55%+，性能几乎无损
+- PyramidDrop 训练迫使模型学会**更紧凑的视觉表示**（Figure 3：训练后模型在任意压缩率下都优于 vanilla）
+- FlashAttention 兼容，额外开销 $O(N) \times (S-1)$，可忽略
+- 更高分辨率 + PyramidDrop 的训练成本甚至**低于原始分辨率**，但性能更好
+
+**关键性能数据**：
+
+| 模型 | 设置 | Avg Token | Avg Perf (%) | FLOPs |
+|------|------|-----------|-------------|-------|
+| LLaVA-1.5-7B | Vanilla | 576 | 100% | 3.82T |
+| LLaVA-1.5-7B | PyramidDrop | 192 (avg) | 96.8% | 1.78T |
+| LLaVA-1.5-7B | FastV | 192 (avg) | 90.6% | 2.01T |
+| LLaVA-1.5-7B | SparseVLM | 192 (avg) | 95.5% | — |
+| LLaVA-1.5-7B | PyramidDrop (极端) | 64 (avg) | 87.6% | — |
+| LLaVA-1.5-7B | FastV (极端) | 64 (avg) | 73.7% | — |
+
+> 极端压缩（64 tokens）下 PyramidDrop 仍保持 87.6%，而 FastV 骤降至 73.7% — 渐进式丢弃的鲁棒性远优于一次性丢弃。
+
+**训练加速**：
+
+| 模型 | Vanilla GPU-h | PDrop GPU-h | 加速比 | 性能变化 |
+|------|:---:|:---:|:---:|:---:|
+| LLaVA-NeXT-7B (p5) | 366 | 218 | **40.4%** | −0.1 |
+| LLaVA-NeXT-7B (p9) | 483 | 269 | **44.3%** | +0.6 |
+| LLaVA-1.5-7B | 104 | 79 | **24.0%** | +0.7 |
+| Video-LLaVA | 183 | 132 | **27.8%** | −0.01 |
+
+**局限**：
+- 纯 saliency 驱动，**无多样性设计**（高 attention token 可能聚集一处，空间覆盖差）
+- 无 merge 机制，被丢弃 token 的信息完全丧失
+- $\lambda$ 和 $S$ 是全局超参数，不同任务（通用 vs 细粒度 OCR）需求不同但无法自适应
+- 仅在 LLaVA 系列验证，未验证 Qwen2.5-VL 等新型架构
+
+---
+
+### 3. VisionZip（CVPR 2025）
 
 **信号**：Vision encoder 倒数第 2 层的 CLS attention
 
@@ -48,7 +99,7 @@ $$\text{Dominant score}_i = \frac{1}{H}\sum_h A_{h,\text{CLS} \to v_i}^{(L-1)}$$
 
 ---
 
-### 3. SCOPE（NeurIPS 2025）
+### 4. SCOPE（NeurIPS 2025）
 
 **信号**：Coverage Marginal Gain × CLS Attention Saliency
 
@@ -67,7 +118,7 @@ $$C(u,\mathcal{S}) = \max_{s \in \mathcal{S}} \text{sim}(u,s)$$
 
 ---
 
-### 4. CDPruner（NeurIPS 2025）
+### 5. CDPruner（NeurIPS 2025）
 
 **信号**：Conditional DPP kernel = 视觉多样性 × 指令相关性
 
@@ -84,7 +135,7 @@ $$\log\det(\tilde{L}_S) = \underbrace{\sum_{i\in S}\log \tilde{r}_i^2}_{\text{re
 
 ---
 
-### 5. DivPrune（CVPR 2025）
+### 6. DivPrune（CVPR 2025）
 
 **信号**：纯多样性，Max-Min Distance Problem (MMDP)
 
@@ -97,7 +148,7 @@ $$\tilde{E}_v^* = \arg\max_{|\tilde{E}_v|=\tilde{M}} \min_{\gamma,\omega \in \ti
 
 ---
 
-### 6. IDPruner（Arxiv 2602.13315）
+### 7. IDPruner（Arxiv 2602.13315）
 
 **信号**：MMR（Maximal Marginal Relevance）= 重要性 - 多样性惩罚
 
@@ -111,7 +162,7 @@ $$v^* = \arg\max_{v_i \notin \mathcal{S}} \Bigl[\lambda \cdot \widehat{\text{Imp
 
 ---
 
-### 7. VisionTrim（ICLR 2026）
+### 8. VisionTrim（ICLR 2026）
 
 **DVTS 信号**：Global CLS attention + Local LTAM（dual-kernel）自适应融合
 
@@ -130,7 +181,7 @@ $$S_i = \alpha \hat{S}_i^g + (1-\alpha) S_i^l, \quad \alpha = \frac{\sigma_l^2}{
 
 ---
 
-### 8. HoloV（NeurIPS 2025）
+### 9. HoloV（NeurIPS 2025）
 
 **信号**：Diversity Variance + CLS Attention，crop-wise 自适应分配
 
@@ -145,7 +196,7 @@ $$\mathcal{H}_i^c = \gamma_c \mathcal{V}_i^c + \mathcal{A}_i^c, \quad \gamma_c =
 
 ---
 
-### 9. HiDivDrop（ICLR 2026）
+### 10. HiDivDrop（ICLR 2026）
 
 **两层 indicator 设计：ILVAS（在哪剪）+ DTop-K（剪什么）**
 
@@ -168,7 +219,7 @@ $$\text{ILVAS}(l) = \text{sim}\left(\tilde{A}_i^{(l)},\ \tilde{A}_i^{(l+n)}\righ
 
 ---
 
-### 10. VScan（TMLR 2026）
+### 11. VScan（TMLR 2026）
 
 **三阶段 indicator**：
 
@@ -184,7 +235,7 @@ $$\text{ILVAS}(l) = \text{sim}\left(\tilde{A}_i^{(l)},\ \tilde{A}_i^{(l+n)}\righ
 
 ---
 
-### 11. SparseVLM（ICML 2025）
+### 12. SparseVLM（ICML 2025）
 
 **信号**：LLM 内部 text→visual 注意力，自适应 rank-based 剪枝量
 
@@ -198,7 +249,7 @@ $$P = A[\mathbb{L}, \mathbb{I}] \in \mathbb{R}^{L_t \times L_v}, \quad \tilde{p}
 
 ---
 
-### 12. Nuwa（Arxiv 2602.02951）
+### 13. Nuwa（Arxiv 2602.02951）
 
 **Stage 1 信号**：CLS attention × Key vector L2-norm
 
@@ -215,7 +266,7 @@ $$S(t_i) = \alpha_{\text{cls},i} \times \|\mathbf{k}_i\|_2$$
 
 ---
 
-### 13. FSR（Arxiv 2602.05809）
+### 14. FSR（Arxiv 2602.05809）
 
 **三段式 indicator，模拟人类视觉感知**
 
@@ -282,6 +333,7 @@ CDPruner、SparseVLM、VisionTrim、Nuwa、FSR、VScan 全都引入文本信号�
 ### 4. 剪枝位置从单点到多阶段
 
 - FastV：单层（LLM L2）
+- PyramidDrop：LLM 内多层（S=4 个 stage，每 stage 末尾丢弃一次）— 首个将「渐进式多阶段」引入 LLM 内部的方法
 - VisionZip/DivPrune/SCOPE/CDPruner：Vision Encoder 后
 - VisionTrim/VScan/Nuwa：ViT + LLM 双阶段
 - HiDivDrop：浅层（Late Injection）+ 中间层（渐进）+ 深层（Early Exit）三段式
@@ -294,7 +346,7 @@ VisionZip、VisionTrim (TGVC)、VScan (merging)、SparseVLM (recycling)、FSR (R
 
 ## 五、Indicator 分类体系
 
-> 二分法（Saliency / Diversity）是常见框架，但不够完整。以下提出一个三维分类，更准确地描述 13 篇方法的 indicator 设计空间。
+> 二分法（Saliency / Diversity）是常见框架，但不够完整。以下提出一个三维分类，更准确地描述 14 篇方法的 indicator 设计空间。
 
 ---
 
