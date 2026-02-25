@@ -25,12 +25,12 @@
 
 ### 1. FastV（ECCV 2024）
 
-**信号**：LLM 浅层 self-attention
+**信号**：LLM 浅层 self-attention（全 token 平均 received attention）
 
-$$\text{score}_i = \frac{1}{H}\sum_h A_{h,\ t_{\text{last}} \to v_i}^{(K)}$$
+$$\phi_{\text{attn}}(v_i) = \frac{1}{H \cdot |\mathcal{Q}_i|}\sum_h \sum_{j \in \mathcal{Q}_i} A_{h,\, j \to v_i}^{(K)}, \quad \mathcal{Q}_i = \{j : j > p_i\}$$
 
-- 在 LLM 第 $K$ 层（默认 K=2），取最后一个文本 token 对各视觉 token 的 attention
-- 多头取平均，直接 top-R% 选取
+- 在 LLM 第 $K$ 层（默认 K=2），计算每个 visual token 从**所有后续 token**（因果掩码下含后续 image token + 全部 instruction token）收到的 attention 均值
+- 多头 × 多 query position 取 mean，直接 top-R% 选取
 - **特点**：极简，training-free；"一刀切"剪枝，后续层全生效
 - **局限**：第 2 层 attention 尚不稳定，高 attention token 集中一处，覆盖率低
 
@@ -295,7 +295,7 @@ $$\phi_i = \alpha \hat{r}_i + \beta \hat{s}_i, \quad K_F = \min\left\lbrace k : 
 
 | 论文 | Venue | 主信号来源 | 文本引导 | 多样性设计 | 剪枝位置 | Training-free |
 |------|-------|-----------|---------|-----------|---------|--------------|
-| **FastV** | ECCV 2024 | LLM 浅层 attn | ✅（last token，L2 单次） | ✗ | LLM 内（L2） | ✅ |
+| **FastV** | ECCV 2024 | LLM 浅层 attn | ✅（全 token received attn，L2 单次） | ✗ | LLM 内（L2） | ✅ |
 | **PyramidDrop** | CVPR 2025 | LLM last-instr attn | ✅（渐进多阶段） | ✗ | LLM 内（多层） | ✅ |
 | **VisionZip** | CVPR 2025 | ViT CLS attn | ✗ | Merge | ViT 后 | ✅ |
 | **DivPrune** | CVPR 2025 | — | ✗ | MMDP（最大最小距离） | LLM 前 | ✅ |
@@ -370,7 +370,7 @@ Saliency 内部存在**本质分裂**，必须再细分：
 - **典型信号**：ViT 倒数第 2 层 CLS token 的 attention weight（`A_CLS→vi`）
 - **代表方法**：VisionZip、SCOPE（saliency 项）、HoloV（`𝒜ᶜ` 项）、VScan（Global/Local CLS）、VisionTrim（`Sᵍ` 项）、FSR（`sᵢ`）、Nuwa（`α_cls` × `‖kᵢ‖₂`）、IDPruner（VisionSelector）、HiDivDrop（DTop-K）
 
-> ⚠️ **FastV 不属于 A1**：虽然 FastV 在 LLM 第 2 层取 attention，但其公式 $A_{t_\text{last} \to v_i}^{(K=2)}$ 明确使用**最后一个文本 token**作为 query，信号依赖文本输入（不同问题 → 不同排名），严格来说属于 A2。之所以常被误归为 A1，是因为第 2 层文本-视觉交互尚浅，attention 分布近似于 task-agnostic saliency。
+> ⚠️ **FastV 不属于 A1**：FastV 在 LLM 第 2 层计算每个 visual token 从所有后续 token（含后续 image token + 全部 instruction token）收到的平均 attention。由于 instruction token 参与了 attention 均值，信号依赖文本输入（不同问题 → instruction 对 visual token 的 attention 不同 → 排名不同），属于 A2。但 image-to-image attention（text-agnostic）也参与平均，加之 L2 文本-视觉交互尚浅，text dependency 被显著稀释，实际分布近似 task-agnostic saliency。
 
 ##### A2. Task Relevance（任务相关性，task-aware）
 
@@ -382,7 +382,7 @@ Saliency 内部存在**本质分裂**，必须再细分：
   - visual-text cosine similarity（CLIP text encoder 编码问题）
   - LLM 内部 cross-attention（text token → visual token）
 - **代表方法**：
-  - *LLM 内部 attention 路线*：FastV（LLM L2 last-token → visual attn）、PyramidDrop（multi-stage last-instr → visual attn）、SparseVLM（text rater 筛选后 text → visual attn）、VScan（LLM L16 last-instr attn）、Nuwa（Stage 2 text-visual cos sim）
+  - *LLM 内部 attention 路线*：FastV（LLM L2 全 token → visual received attn 均值）、PyramidDrop（multi-stage last-instr Q·K → visual attn）、SparseVLM（text rater 筛选后 text → visual attn）、VScan（LLM L16 last-instr attn）、Nuwa（Stage 2 text-visual cos sim）
   - *CLIP text encoder 路线*：CDPruner（`r̃ᵢ` = cos(vᵢ, instr_emb)）、FSR（`rᵢ` = CLIP text cos sim）、VisionTrim（TGVC `S_t2v` = CLIP text → visual sim）
 
 > ⚠️ **A1 与 A2 的根本区别**：A1 只需 vision encoder，推理时无额外文本交互；A2 需要语言侧信息，天然支持 per-query 个性化剪枝，但依赖 CLIP text encoder 或 LLM 中间层激活的可访问性。
@@ -435,7 +435,7 @@ Saliency 内部存在**本质分裂**，必须再细分：
 | 方法 | A1 Visual Saliency | A2 Task Relevance | B1 Semantic Diversity | B2 Spatial Coverage |
 |------|-----|-----|-----|-----|
 | **PyramidDrop** | — | $\text{score}\_i = q\_j^{t\_I} \cdot (k\_j^{v\_i})^T$：每个 stage 末尾计算 last-instruction token 的 query 与各 image token 的 key 的点积，按分数降序保留比例 $\lambda$（$\lambda \in (0,1)$，默认 0.5）的 token，丢弃其余。复用 self-attention 的 Q/K 矩阵，零额外参数。默认 $S{=}4$ stage，第 $s$ 阶段后剩余 token 数为 $V\_s = \lambda^s V$，呈指数递减 | — | — |
-| **FastV** | — | $\text{score}\_i = \frac{1}{H}\sum\_h A\_{h,\,t\_{\text{last}} \to v\_i}^{(K=2)}$：在 LLM 第 2 层提取最后一个文本 token 对每个 visual token 的 attention 值并多头取均值，one-shot 保留 top-$R\%$。信号由 $t\_\text{last}$（指令末 token）生成因此依赖文本输入，但因 L2 文本-视觉交互极浅，实际分布近似 task-agnostic saliency | — | — |
+| **FastV** | — | $\phi\_{\text{attn}}(v\_i) = \text{mean}\_{h,\, j \in \mathcal{Q}\_i} A\_{h,\, j \to v\_i}^{(K=2)}$，$\mathcal{Q}\_i = \{j : j > p\_i\}$：在 LLM 第 2 层计算每个 visual token 从所有后续 token（因果掩码下含后续 image token + 全部 instruction token）收到的 attention 均值（多头 × 多 query position 取 mean），one-shot 保留 top-$R\%$。因 instruction token 参与均值，信号隐式依赖文本输入（不同问题 → 不同排名），但 image-to-image attention 也参与平均，加之 L2 交互极浅，text dependency 被显著稀释，实际分布近似 task-agnostic saliency | — | — |
 | **VisionZip** | $\text{score}\_i = \frac{1}{H}\sum\_h A\_{h,\text{CLS} \to v\_i}^{(L-1)}$：取 ViT 倒数第 2 层 CLS token 对各 visual token 的 attention 多头均值，分数最高的 $K$ 个 token 选为 dominant tokens。信号完全来自 vision encoder，与文本无关 | — | Merge：未被选中的 token 按 cosine similarity 归并到最相似的 dominant token，以加权平均生成 contextual tokens，避免纯 prune 导致的信息丢失。属信息保留机制，非显式 diversity 目标 | — |
 | **DivPrune** | — | — | MMDP：$S^* = \arg\max\_{\lvert S\rvert = M} \min\_{\gamma \neq \omega \in S} d(\gamma,\omega)$，$d(\gamma,\omega)=1-\cos(\gamma,\omega)$；一次性预计算全 token 对的余弦距离矩阵后，贪心迭代每步选离当前已选集合最远的 token（类 k-center）。纯多样性驱动，不使用任何 saliency 信号，2-近似保证 | — |
 | **SCOPE** | $A\_v^\alpha$：取 ViT 倒数第 2 层 CLS attention 作为 per-token saliency，指数 $\alpha$（默认 1.0）控制 saliency 权重。最终选择准则 $v^* = \arg\max\_{v \notin \mathcal{S}} \Delta(v;\mathcal{S}) \cdot A\_v^\alpha$，以乘法融合 saliency 与 coverage marginal gain | — | Submodular Coverage：边际增量 $\Delta(v;\mathcal{S}) = \sum\_{u \in \mathcal{V}} \max(\text{sim}(u,v) - C(u,\mathcal{S}),\, 0)$，其中 $C(u,\mathcal{S}) = \max\_{s \in \mathcal{S}} \text{sim}(u,s)$ 为 $u$ 在已选集合中的最大覆盖度。底层集合覆盖函数 $f(\mathcal{S}) = \sum\_u C(u,\mathcal{S})$ 是单调次模函数，纯 coverage 贪心具 $(1{-}1/e)$ 近似保证。作者实验证明纯 saliency 选择的 $\theta$-coverage 甚至低于 random | — |
@@ -455,8 +455,8 @@ Saliency 内部存在**本质分裂**，必须再细分：
 从 VisionZip（纯 A1）→ SCOPE（A1 + B1 Submodular Coverage）→ CDPruner（A2 + B1 DPP），主线是在重要性评分基础上叠加语义多样性约束。FastV 和 PyramidDrop 走的是另一条轨迹——同样使用 LLM text→visual attention（A2），但完全放弃 B1，专注于剪枝策略的效率设计（单次 L2 → 渐进多阶段），说明 "saliency-only" 的设计空间通过工程优化仍有很大价值。
 
 **观察 2：A2（Task Relevance）信号的两个代际**  
-A2 信号从 FastV（2024）就已出现（LLM L2 last-token attn），并非 2025 年之后的新发明。但两代方法在设计意图上有本质区别：
-- **第一代（隐式 A2）**：FastV、PyramidDrop——使用 LLM text→visual attention 作为**显著性代理**，设计目标是效率而非文本语义对齐，text 信号是副产品
+A2 信号从 FastV（2024）就已出现（LLM L2 全 token received attn 均值），并非 2025 年之后的新发明。但两代方法在设计意图上有本质区别：
+- **第一代（隐式 A2）**：FastV（全 token received attn 均值，text 信号被 img-to-img attn 稀释）、PyramidDrop（last-instr Q·K 点积，text 信号更集中）——使用 LLM attention 作为**显著性代理**，设计目标是效率而非文本语义对齐，text 信号是副产品
 - **第二代（显式 A2）**：CDPruner、SparseVLM、VisionTrim、Nuwa、FSR、VScan——**有意设计**文本引导信号，目标是让剪枝结果对当前 query 敏感，实现 per-query 个性化选择  
 
 信号来源进一步分化为两条技术路线：
