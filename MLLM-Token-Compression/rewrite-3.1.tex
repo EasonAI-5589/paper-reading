@@ -22,10 +22,18 @@ This divergence arises because the four methods optimize along fundamentally \te
     \item \textbf{A1 (Vision-Intrinsic):} \textit{``Is this token intrinsically important in the image, regardless of the question?''}---relying solely on vision-encoder signals (\eg, CLS attention in VisionZip and SCOPE), producing a fixed ranking for a given image.
     \item \textbf{A2 (Task Relevance):} \textit{``Is this token relevant to the user's current query?''}---requiring text--visual interaction (\eg, CDPruner computes cosine similarity between each visual token and the instruction embedding), yielding query-dependent rankings that differ across prompts.
   \end{itemize}
-  \item \textbf{Dimension~B---Representativeness} evaluates \textit{set-level} coverage of the selected subset, asking \textit{``Is the selected token set collectively non-redundant?''}---penalizing semantic duplication via set-theoretic objectives (\eg, DivPrune's MMDP criterion and SCOPE's submodular coverage function) rather than scoring tokens individually.
+  \item \textbf{Dimension~B---Representativeness} evaluates whether the selected subset collectively represents the original token set, and further decomposes along two complementary spaces:
+  \begin{itemize}
+    \item \textbf{B1 (Semantic Diversity):}
+          \textit{``Are the selected tokens semantically non-redundant in the embedding space?''}---enforced via set-theoretic objectives that penalize feature-space duplication (\eg, DivPrune's MMDP maximizes the minimum pairwise distance; SCOPE's submodular coverage maximizes the sum of nearest-neighbor similarities; CDPruner's conditional DPP maximizes the volume spanned by the selected feature vectors).
+    \item \textbf{B2 (Spatial Coverage):}
+          \textit{``Does the selected set preserve at least one representative token from every spatial region of the image?''}---enforced via geometric partitioning of the token grid (\eg, Nuwa~\cite{nuwa} divides the grid into $M{\times}M$ non-overlapping blocks and selects top-$n$ tokens per block; HoloV~\cite{holov} allocates per-crop budgets proportional to holistic scores).
+          Notably, B1 and B2 are not redundant: a semantically diverse subset may still concentrate in a single spatial quadrant, while a spatially uniform selection may retain redundant tokens from texturally homogeneous regions.
+  \end{itemize}
 \end{itemize}
 
 Critically, high saliency does not imply high representativeness: a set of tokens may all receive top CLS attention scores yet cluster within a narrow semantic region, leaving background context---essential for holistic reasoning---entirely unrepresented.
 SCOPE's own analysis confirms this: under pure saliency selection, the $\theta$-coverage of the retained set can fall \emph{below random sampling}~\cite{scope}.
 Conversely, maximizing diversity alone (DivPrune) scatters tokens across task-irrelevant regions while omitting fine-grained details critical for query-specific understanding.
-These observations motivate a unified framework that jointly optimizes across both dimensions.
+The B2 dimension introduces yet another failure mode: methods operating purely in the embedding space (B1) can produce spatially skewed selections that miss entire image regions---a systematic weakness for OCR, spatial reasoning, and referring expression comprehension tasks~\cite{nuwa}.
+These observations motivate a unified framework that jointly optimizes across all four sub-dimensions.
