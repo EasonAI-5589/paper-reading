@@ -1,0 +1,31 @@
+\subsection{Finding 1: Cross-Indicator Inconsistency}
+\label{sec:finding1}
+
+A common assumption in existing pruning methods is that a single importance indicator suffices to identify the most valuable visual tokens.
+We challenge this assumption by systematically comparing indicators across four representative methods that span three distinct paradigms:
+\textit{vision-intrinsic saliency} (VisionZip~\cite{visionzip}, using ViT CLS attention),
+\textit{text-conditioned hybrid} (CDPruner~\cite{cdpruner}, coupling text--visual cosine similarity with a conditional DPP kernel),
+\textit{pure semantic diversity} (DivPrune~\cite{divprune}, using max-min pairwise distance),
+and \textit{saliency--coverage hybrid} (SCOPE~\cite{scope}, fusing CLS attention with submodular coverage gain).
+
+As visualized in Fig.~\ref{fig:indicator_vis}, these indicators produce strikingly different token selections---even on the same image under the same compression ratio.
+VisionZip concentrates on regions receiving high CLS attention, typically semantically salient foreground objects, \emph{irrespective of the user's question}.
+CDPruner shifts the selection toward regions most relevant to the text query, while its DPP kernel simultaneously promotes geometric spread among the retained tokens.
+DivPrune, by contrast, distributes selections to maximize the minimum pairwise distance in the feature space, yielding broad spatial coverage at the cost of foreground detail.
+SCOPE occupies a middle ground: its submodular coverage term prevents token clustering in a narrow semantic region, while the CLS saliency weight steers selection toward informative patches.
+
+This divergence arises because the four methods optimize along fundamentally \textit{orthogonal indicator dimensions}:
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Dimension~A---Saliency} evaluates individual token importance and further decomposes into two sub-dimensions with distinct behaviors:
+  \begin{itemize}
+    \item \textbf{A1 (Vision-Intrinsic):} \textit{``Is this token intrinsically important in the image, regardless of the question?''}---relying solely on vision-encoder signals (\eg, CLS attention in VisionZip and SCOPE), producing a fixed ranking for a given image.
+    \item \textbf{A2 (Task Relevance):} \textit{``Is this token relevant to the user's current query?''}---requiring text--visual interaction (\eg, CDPruner computes cosine similarity between each visual token and the instruction embedding), yielding query-dependent rankings that differ across prompts.
+  \end{itemize}
+  \item \textbf{Dimension~B---Representativeness} evaluates \textit{set-level} coverage of the selected subset, asking \textit{``Is the selected token set collectively non-redundant?''}---penalizing semantic duplication via set-theoretic objectives (\eg, DivPrune's MMDP criterion and SCOPE's submodular coverage function) rather than scoring tokens individually.
+\end{itemize}
+
+Critically, high saliency does not imply high representativeness: a set of tokens may all receive top CLS attention scores yet cluster within a narrow semantic region, leaving background context---essential for holistic reasoning---entirely unrepresented.
+SCOPE's own analysis confirms this: under pure saliency selection, the $\theta$-coverage of the retained set can fall \emph{below random sampling}~\cite{scope}.
+Conversely, maximizing diversity alone (DivPrune) scatters tokens across task-irrelevant regions while omitting fine-grained details critical for query-specific understanding.
+These observations motivate a unified framework that jointly optimizes across both dimensions.
