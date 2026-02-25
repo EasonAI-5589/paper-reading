@@ -346,11 +346,11 @@ VisionZip、VisionTrim (TGVC)、VScan (merging)、SparseVLM (recycling)、FSR (R
 
 ## 五、Indicator 分类体系
 
-> 二分法（Saliency / Diversity）是常见框架，但不够完整。以下提出一个三维分类，更准确地描述 14 篇方法的 indicator 设计空间。
+> 二分法（Saliency / Diversity）是常见框架，但不够完整。以下提出一个二维分类（A: Saliency × B: Representativeness），更准确地描述 14 篇方法的 indicator 设计空间。
 
 ---
 
-### 5.1 三个正交维度
+### 5.1 两个正交维度
 
 ---
 
@@ -389,36 +389,37 @@ Saliency 内部存在**本质分裂**，必须再细分：
 
 ---
 
-#### 维度 B：Diversity（集合多样性）
+#### 维度 B：Representativeness（集合代表性）
 
-**核心问题**：选出的 token 子集语义是否足够不冗余？  
-**操作对象**：**集合级别（set-level）**的目标函数，单个 token 的价值依赖于已选集合。
+**核心问题**：选出的 token 子集是否充分代表了原始 token 集合——在语义空间和物理空间两个层面？  
+**操作对象**：**集合级别（set-level）**的目标函数或几何约束，单个 token 的价值依赖于已选集合或其空间位置。
 
-Diversity 内部同样有四种数学实现，性质不同：
+根据代表性所保障的空间不同，分为两个子维度：
 
-| 子类 | 优化目标 | 数学工具 | 理论保证 | 代表方法 |
-|------|---------|---------|---------|---------|
-| **B1 极端距离**（Pairwise） | $\max \min_{i \neq j \in S} d(v_{i}, v_{j})$ | MMDP | 2-近似 | DivPrune |
-| **B2 集合体积**（Volumetric） | $\max \det(\tilde{L}_{S})$ | DPP | NP-hard，贪心 $(1{-}1/e)$ | CDPruner |
-| **B3 软覆盖**（Coverage） | $\max \sum_{u} \max_{s \in S} \text{sim}(u, s)$ | Submodular | 贪心 $(1{-}1/e)$ | SCOPE |
-| **B4 边际增益**（Marginal） | $\max \lambda \cdot \text{Imp}(v) - (1{-}\lambda) \cdot \max_{j \in S}\text{sim}(v,v_{j})$ | MMR（贪心迭代） | — | IDPruner |
+##### B1. Semantic Diversity（语义多样性）
 
-**B1 vs B2 vs B3 的核心区别**：
-- **B1（MMDP）** 只关注最近邻的那对 token，一旦最小距离确定，其余 pair 不影响结果。对极端情况敏感，不关注全局分布。
-- **B2（DPP）** 最大化所有向量张成的超体积，天然考虑全局几何结构，但计算更重（行列式）。
-- **B3（Submodular Coverage）** 把「每个 token 被最近邻代表的程度」累加，等价于 facility-location 问题，直观且可扩展。
-- **B4（MMR）** 是唯一把 Saliency 和 Diversity **显式加权相减**的方案，λ 提供连续可调的权衡，但无全局近似保证。
+> *"Are the selected tokens semantically non-redundant in the embedding space?"*
 
----
+在特征/语义空间中确保所选子集不冗余。四种主要数学实现，性质各异：
 
-#### 维度 C：Spatial Coverage（空间覆盖）
+| 技术路线 | 优化目标 | 数学工具 | 理论保证 | 代表方法 |
+|---------|---------|---------|---------|---------|
+| **极端距离**（Pairwise） | $\max \min_{i \neq j \in S} d(v_{i}, v_{j})$ | MMDP | 2-近似 | DivPrune |
+| **集合体积**（Volumetric） | $\max \det(\tilde{L}_{S})$ | DPP | NP-hard，贪心 $(1{-}1/e)$ | CDPruner |
+| **软覆盖**（Coverage） | $\max \sum_{u} \max_{s \in S} \text{sim}(u, s)$ | Submodular | 贪心 $(1{-}1/e)$ | SCOPE |
+| **边际增益**（Marginal） | $\max \lambda \cdot \text{Imp}(v) - (1{-}\lambda) \cdot \max_{j \in S}\text{sim}(v,v_{j})$ | MMR（贪心迭代） | — | IDPruner |
 
-**核心问题**：选出的 token 是否覆盖了图像的每个空间区域？  
-**操作对象**：**几何约束**，确保二维空间的均匀分布，与语义无关。
+**四种实现的核心区别**：
+- **MMDP** 只关注最近邻的那对 token，一旦最小距离确定，其余 pair 不影响结果。对极端情况敏感，不关注全局分布。
+- **DPP** 最大化所有向量张成的超体积，天然考虑全局几何结构，但计算更重（行列式）。
+- **Submodular Coverage** 把「每个 token 被最近邻代表的程度」累加，等价于 facility-location 问题，直观且可扩展。
+- **MMR** 是唯一把 Saliency 和 Diversity **显式加权相减**的方案，λ 提供连续可调的权衡，但无全局近似保证。
+
+##### B2. Spatial Coverage（空间覆盖）
 
 > *"Have we preserved at least one representative token from every spatial region?"*
 
-这一维度在 Saliency-only 和 Diversity-only 方法中均可能失效：高 saliency token 往往集中于图像中心/前景；高 diversity 子集在语义上分散但可能几何上偏斜（如全选图像一角的多种纹理）。
+在物理二维空间中确保所选 token 覆盖图像各区域，与语义无关。B1（语义多样性）和纯 Saliency 方法均可能在空间上失效：高 saliency token 往往集中于图像中心/前景；高语义 diversity 子集可能几何上偏斜（如全选图像一角的多种纹理）。
 
 **实现机制**：将 token 网格划分为不重叠的局部区域（crop/grid/window），在每个区域内独立选取，从几何上保证不遗漏任何角落。
 
@@ -427,40 +428,31 @@ Diversity 内部同样有四种数学实现，性质不同：
 
 ---
 
-#### 维度 D：Stability（层间稳定性）[次要维度]
-
-**核心问题**：该层对 token 重要性的判断，在后续层是否仍然成立？  
-**代表方法**：HiDivDrop（ILVAS）
-
-这是唯一一个把「indicator 可靠性」本身作为信号的方法，用于**决定在哪一层剪枝**，而非剪哪些 token。
-
----
-
 ### 5.2 各方法的维度归属
 
 > 各维度定义参见 5.1。每格给出该方法在对应维度的核心公式与机制概述，"—" 表示该方法不涉及此维度。
 
-| 方法 | A1 Visual Saliency | A2 Task Relevance | B Diversity | C Spatial Coverage | D Stability |
-|------|-----|-----|-----|-----|-----|
-| **PyramidDrop** | — | $\text{score}\_i = q\_j^{t\_I} \cdot (k\_j^{v\_i})^T$：每个 stage 末尾计算 last-instruction token 的 query 与各 image token 的 key 的点积，按分数降序保留比例 $\lambda$（$\lambda \in (0,1)$，默认 0.5）的 token，丢弃其余。复用 self-attention 的 Q/K 矩阵，零额外参数。默认 $S{=}4$ stage，第 $s$ 阶段后剩余 token 数为 $V\_s = \lambda^s V$，呈指数递减 | — | — | — |
-| **FastV** | — | $\text{score}\_i = \frac{1}{H}\sum\_h A\_{h,\,t\_{\text{last}} \to v\_i}^{(K=2)}$：在 LLM 第 2 层提取最后一个文本 token 对每个 visual token 的 attention 值并多头取均值，one-shot 保留 top-$R\%$。信号由 $t\_\text{last}$（指令末 token）生成因此依赖文本输入，但因 L2 文本-视觉交互极浅，实际分布近似 task-agnostic saliency | — | — | — |
-| **VisionZip** | $\text{score}\_i = \frac{1}{H}\sum\_h A\_{h,\text{CLS} \to v\_i}^{(L-1)}$：取 ViT 倒数第 2 层 CLS token 对各 visual token 的 attention 多头均值，分数最高的 $K$ 个 token 选为 dominant tokens。信号完全来自 vision encoder，与文本无关 | — | Merge：未被选中的 token 按 cosine similarity 归并到最相似的 dominant token，以加权平均生成 contextual tokens，避免纯 prune 导致的信息丢失。属信息保留机制，非显式 diversity 目标 | — | — |
-| **DivPrune** | — | — | **B1** MMDP：$S^* = \arg\max\_{\lvert S\rvert = M} \min\_{\gamma \neq \omega \in S} d(\gamma,\omega)$，$d(\gamma,\omega)=1-\cos(\gamma,\omega)$；一次性预计算全 token 对的余弦距离矩阵后，贪心迭代每步选离当前已选集合最远的 token（类 k-center）。纯多样性驱动，不使用任何 saliency 信号，2-近似保证 | — | — |
-| **SCOPE** | $A\_v^\alpha$：取 ViT 倒数第 2 层 CLS attention 作为 per-token saliency，指数 $\alpha$（默认 1.0）控制 saliency 权重。最终选择准则 $v^* = \arg\max\_{v \notin \mathcal{S}} \Delta(v;\mathcal{S}) \cdot A\_v^\alpha$，以乘法融合 saliency 与 coverage marginal gain | — | **B3** Submodular Coverage：边际增量 $\Delta(v;\mathcal{S}) = \sum\_{u \in \mathcal{V}} \max(\text{sim}(u,v) - C(u,\mathcal{S}),\, 0)$，其中 $C(u,\mathcal{S}) = \max\_{s \in \mathcal{S}} \text{sim}(u,s)$ 为 $u$ 在已选集合中的最大覆盖度。底层集合覆盖函数 $f(\mathcal{S}) = \sum\_u C(u,\mathcal{S})$ 是单调次模函数，纯 coverage 贪心具 $(1{-}1/e)$ 近似保证。作者实验证明纯 saliency 选择的 $\theta$-coverage 甚至低于 random | — | — |
-| **CDPruner** | — | $\tilde{r}\_i = \frac{\cos(v\_i, e\_{\text{instr}})}{\sum\_k \cos(v\_k, e\_{\text{instr}})}$：将每个 visual token 与指令 embedding 的 cosine similarity 归一化，作为 task-relevance 权重。兼容两种 embedding 来源：CLIP text encoder（有独立文本编码器的架构）或 LLM 首层 hidden state（无独立编码器时） | **B2** Conditional DPP：条件核 $\tilde{L}\_{ij} = \tilde{r}\_i \cdot \cos(v\_i,v\_j) \cdot \tilde{r}\_j$，使 $\log\det(\tilde{L}\_S) = \sum\_{i \in S} \log \tilde{r}\_i^2 + \log\det(L\_S)$，将 relevance 与 diversity 天然分解到行列式中联合优化。MAP inference 经贪心 + Cholesky 增量分解实现，$O(nm^2)$，实测额外延迟 <10ms | — | — |
-| **SparseVLM** | — | $\tilde{p}\_j = \frac{1}{\lvert\text{raters}\rvert} \sum\_{i \in \text{raters}} P\_{ij}$，$P = A[\mathbb{L}, \mathbb{I}]$：从 LLM self-attention 中抽取 text→visual 子矩阵 $P$；先以 $H\_v \cdot H\_q^T$ 过滤出视觉相关的 text rater（超均值才入选，排除代词、介词等噪声 token），再对筛选后的 rater 取 attention 均值作为每个 visual token 的重要性分数 | Rank-adaptive budget + Merge：$N = \lambda (L\_v - \text{rank}(P))$，以 attention 矩阵 $P$ 的秩衡量冗余度——低秩意味着 visual token 间高度冗余，因此分配更大裁剪量。该机制逐层独立运行，无需预设固定压缩率。被裁剪 token 经 density peak clustering 聚合后以 Token Recycling 求和重构到保留 token 中 | — | — |
-| **VisionTrim** | DVTS 双信号自适应融合：$S\_i = \alpha \hat{S}\_i^g + (1{-}\alpha) S\_i^l$，$\alpha = \sigma\_l^2 / (\sigma\_g^2 + \sigma\_l^2)$（逆方差加权：等价于 $\alpha \propto 1/\sigma\_g^2$，即全局信号方差越大，其权重 $\alpha$ 越小，自动倾向更稳定的信号源）。全局信号 $\hat{S}\_i^g$：ViT 倒数第 2 层 CLS attention 多头均值经 softmax 归一化。局部信号 $S\_i^l$（LTAM）：在 $k{\times}k$ 局部窗口内以 dual-kernel $\kappa^* = \kappa\_{\text{feat}} + w\_3 \kappa\_{\text{pos}}$（特征空间高斯 + 空间位置高斯）计算每个 token 与其邻域的亲和度均值，转换为概率分布后作为 per-token 局部显著性分数 | TGVC $S\_{t2v}$：以 CLIP text encoder 编码用户指令，计算指令 embedding 与各 visual token 的 cosine similarity，得到 per-token 文本相关性分数，驱动后续聚类 merge 阶段的 token 选择 | TGVC merge：以 $S\_{t2v}$ 对 token 排序，将低相关性 token 按语义相似度聚类到高 $S\_{t2v}$ 的 anchor token 上，加权聚合保留语义信息 | — | — |
-| **HoloV** | $\mathcal{A}\_i^c$：ViT CLS attention 多头均值，衡量每个 token 在 crop $c$ 中的全局语义显著性。作为 holistic score 的基础分量参与后续融合 | — | $\mathcal{V}\_i^c$：token $i$ 与 crop 内所有其他 token 的 cosine similarity 的**方差**（高方差表明该 token 与邻居差异大，语义独特性强）。Holistic score $\mathcal{H}\_i^c = \gamma\_c \mathcal{V}\_i^c + \mathcal{A}\_i^c$，其中 $\gamma\_c = \mathbb{E}[\lVert\mathcal{A}^c\rVert] / \mathbb{E}[\lVert\mathcal{V}^c\rVert]$ 自适应缩放使两项量级一致。该设计为 per-token 局部唯一性度量，非 B1–B4 式集合级目标。另有 Fast VCR 机制在模型输出高不确定性时动态补回被剪 token | Crop-wise adaptive allocation：$w\_c \propto \text{avg}(\mathcal{H}^c)$，每个 crop 按平均 holistic score 分配 token 配额 $q\_c$，并设上下限防止单一 crop 垄断所有额度，从几何上保证多区域覆盖 | — |
-| **HiDivDrop** | DTop-K（可微 token 选择）：对每个 token 的重要性分数 $c\_i$ 做归一化排名 $c'\_i \in [0,1]$，再施加软掩码 $\text{Mask}\_i = \sigma(\lambda(c'\_i - a))$，其中 $a$ 为可学习剪枝阈值。前向传播使用 hard threshold，反向传播以 sigmoid 梯度近似实现端到端训练。⚠️ 非 training-free | — | —（方法名称含 "Div" 但多样性体现于三段式架构设计——Late Injection 跳过浅层 / Concave Pyramid 中间层渐进 / Early Exit 深层停止——而非 indicator 层面的显式 diversity 目标函数） | — | $\text{ILVAS}(l) = \text{sim}(\tilde{A}^{(l)}, \tilde{A}^{(l+n)})$：衡量第 $l$ 层 attention 排名在间隔 $n$ 层后的稳定性。选 ILVAS 曲线的**局部最大值**作为剪枝层位（实验确定 $F = \{10, 14, 16, 18\}$）。唯一将 indicator 自身可靠性作为信号的方法，决定的是**在哪层剪枝**而非剪哪些 token |
-| **VScan** | 双尺度 union：Global Scan 取 ViT **output layer** 的 CLS attention 捕捉高层语义显著性，Local Scan 取 ViT **layer 6** 的 CLS attention 保留低层细节信息，两组各选 $R\_1/2$ 个 token 后取 union 实现多粒度互补 | LLM **第 16 层** last-instruction token 对 visual tokens 的 attention。关键设计选择：选中间层而非浅层（实验验证 k=16 远优于 k=2），因浅层 attention 存在位置偏差。以 auxiliary vanilla attention pass 提取 attention map，与 FlashAttention 兼容 | Global/Local union 后对 selected tokens 做 cosine similarity → average pooling token merging，将高相似 token 对聚合为单个代表 token 以保留被丢弃 token 的信息。属信息保留机制，非显式 diversity 目标 | Local Scan 将 token grid 划分为非重叠窗口，每个窗口内独立选取 top-k，从几何上保证图像各空间区域至少保有代表 token，避免全局 CLS attention 导致选择集中于单一区域 | — |
-| **Nuwa** | $S(t\_i) = \alpha\_{\text{cls},i} \times \lVert \mathbf{k}\_i \rVert\_2$：将 ViT CLS attention 与 key vector 的 L2-norm 相乘——前者衡量全局重要性，后者反映信息容量。高 $\lVert k \rVert$ 的 **Pillar Token**（ViT 的 register token）被识别并保护，不参与后续聚合 | Stage 2（LLM 中间层）：在多模态 embedding 经过足够层数的交互充分对齐之后，以 text-visual cosine similarity 作为 indicator 执行第二次剪枝，选择性保留与当前指令高相关的 token | 聚合权重 = 语义 cosine similarity × 空间邻近度高斯核，双约束确保只有语义相近且空间相邻的 token 才被合并，防止语义相似但物理位置遥远的 token 被错误归并。属空间感知的信息保留机制 | M×M grid 分区：将 token grid 划分为 $M \times M$ 个子区域，每区域内独立选取 top-k benchmark token，从几何上保证空间均匀覆盖。该设计专为 OCR、REC 等需要精确空间定位的任务优化 | — |
-| **FSR** | $s\_i$：ViT CLS attention 衡量每个 token 的视觉显著性，与 $r\_i$ 共同加权组合构成 Focus score $\phi\_i$ | $r\_i$：CLIP text encoder 编码指令后与各 visual token 计算 cosine similarity 得到指令相关性分数。Focus score 融合为 $\phi\_i = \alpha \hat{r}\_i + \beta \hat{s}\_i$（$\hat{\cdot}$ 为归一化），并以动态 budget $K\_F = \min\{k : \sum\_{j=1}^k \phi\_{\pi(j)} \geq \rho Z\}$（默认 $\rho{=}0.9$）自适应决定保留 token 数——图像语义越简单，Focus token 越少 | **B3** CCS（Conditional Context Sampling）：≈ Farthest Point Sampling 变体，每步选与 Focus + 已选 Scan token 的综合相似度**最低**的 token 以最大化信息增量，具理论覆盖界保证。Refine 阶段：剩余 token 按 similarity 分配到最近 Scan center 并加权聚合（仅修改 Scan token，保护 Focus token 高保真度） | — | — |
-| **IDPruner** | $\widehat{\text{Imp}}(v\_i)$：由 VisionSelector 模块以 DiffTopK 机制生成 + min-max 归一化。VisionSelector 仅以 visual feature 为输入，不使用文本信息，属**学习型 A1**（⚠️ 非 training-free，需端到端训练） | — | **B4** MMR：$v^* = \arg\max\_{v\_i \notin \mathcal{S}}[\lambda \cdot \widehat{\text{Imp}}(v\_i) - (1{-}\lambda) \cdot \max\_{v\_j \in \mathcal{S}} \cos(v\_i, v\_j)]$，以**减法**显式平衡 importance 与 diversity（对比 SCOPE 的乘法融合），$\lambda{=}0.5$ 最优。$O(KN)$ 复杂度，维护 max-similarity 向量逐步增量更新。无全局近似保证（vs B2/B3 的 $(1{-}1/e)$） | — | — |
+| 方法 | A1 Visual Saliency | A2 Task Relevance | B1 Semantic Diversity | B2 Spatial Coverage |
+|------|-----|-----|-----|-----|
+| **PyramidDrop** | — | $\text{score}\_i = q\_j^{t\_I} \cdot (k\_j^{v\_i})^T$：每个 stage 末尾计算 last-instruction token 的 query 与各 image token 的 key 的点积，按分数降序保留比例 $\lambda$（$\lambda \in (0,1)$，默认 0.5）的 token，丢弃其余。复用 self-attention 的 Q/K 矩阵，零额外参数。默认 $S{=}4$ stage，第 $s$ 阶段后剩余 token 数为 $V\_s = \lambda^s V$，呈指数递减 | — | — |
+| **FastV** | — | $\text{score}\_i = \frac{1}{H}\sum\_h A\_{h,\,t\_{\text{last}} \to v\_i}^{(K=2)}$：在 LLM 第 2 层提取最后一个文本 token 对每个 visual token 的 attention 值并多头取均值，one-shot 保留 top-$R\%$。信号由 $t\_\text{last}$（指令末 token）生成因此依赖文本输入，但因 L2 文本-视觉交互极浅，实际分布近似 task-agnostic saliency | — | — |
+| **VisionZip** | $\text{score}\_i = \frac{1}{H}\sum\_h A\_{h,\text{CLS} \to v\_i}^{(L-1)}$：取 ViT 倒数第 2 层 CLS token 对各 visual token 的 attention 多头均值，分数最高的 $K$ 个 token 选为 dominant tokens。信号完全来自 vision encoder，与文本无关 | — | Merge：未被选中的 token 按 cosine similarity 归并到最相似的 dominant token，以加权平均生成 contextual tokens，避免纯 prune 导致的信息丢失。属信息保留机制，非显式 diversity 目标 | — |
+| **DivPrune** | — | — | MMDP：$S^* = \arg\max\_{\lvert S\rvert = M} \min\_{\gamma \neq \omega \in S} d(\gamma,\omega)$，$d(\gamma,\omega)=1-\cos(\gamma,\omega)$；一次性预计算全 token 对的余弦距离矩阵后，贪心迭代每步选离当前已选集合最远的 token（类 k-center）。纯多样性驱动，不使用任何 saliency 信号，2-近似保证 | — |
+| **SCOPE** | $A\_v^\alpha$：取 ViT 倒数第 2 层 CLS attention 作为 per-token saliency，指数 $\alpha$（默认 1.0）控制 saliency 权重。最终选择准则 $v^* = \arg\max\_{v \notin \mathcal{S}} \Delta(v;\mathcal{S}) \cdot A\_v^\alpha$，以乘法融合 saliency 与 coverage marginal gain | — | Submodular Coverage：边际增量 $\Delta(v;\mathcal{S}) = \sum\_{u \in \mathcal{V}} \max(\text{sim}(u,v) - C(u,\mathcal{S}),\, 0)$，其中 $C(u,\mathcal{S}) = \max\_{s \in \mathcal{S}} \text{sim}(u,s)$ 为 $u$ 在已选集合中的最大覆盖度。底层集合覆盖函数 $f(\mathcal{S}) = \sum\_u C(u,\mathcal{S})$ 是单调次模函数，纯 coverage 贪心具 $(1{-}1/e)$ 近似保证。作者实验证明纯 saliency 选择的 $\theta$-coverage 甚至低于 random | — |
+| **CDPruner** | — | $\tilde{r}\_i = \frac{\cos(v\_i, e\_{\text{instr}})}{\sum\_k \cos(v\_k, e\_{\text{instr}})}$：将每个 visual token 与指令 embedding 的 cosine similarity 归一化，作为 task-relevance 权重。兼容两种 embedding 来源：CLIP text encoder（有独立文本编码器的架构）或 LLM 首层 hidden state（无独立编码器时） | Conditional DPP：条件核 $\tilde{L}\_{ij} = \tilde{r}\_i \cdot \cos(v\_i,v\_j) \cdot \tilde{r}\_j$，使 $\log\det(\tilde{L}\_S) = \sum\_{i \in S} \log \tilde{r}\_i^2 + \log\det(L\_S)$，将 relevance 与 diversity 天然分解到行列式中联合优化。MAP inference 经贪心 + Cholesky 增量分解实现，$O(nm^2)$，实测额外延迟 <10ms | — |
+| **SparseVLM** | — | $\tilde{p}\_j = \frac{1}{\lvert\text{raters}\rvert} \sum\_{i \in \text{raters}} P\_{ij}$，$P = A[\mathbb{L}, \mathbb{I}]$：从 LLM self-attention 中抽取 text→visual 子矩阵 $P$；先以 $H\_v \cdot H\_q^T$ 过滤出视觉相关的 text rater（超均值才入选，排除代词、介词等噪声 token），再对筛选后的 rater 取 attention 均值作为每个 visual token 的重要性分数 | Rank-adaptive budget + Merge：$N = \lambda (L\_v - \text{rank}(P))$，以 attention 矩阵 $P$ 的秩衡量冗余度——低秩意味着 visual token 间高度冗余，因此分配更大裁剪量。该机制逐层独立运行，无需预设固定压缩率。被裁剪 token 经 density peak clustering 聚合后以 Token Recycling 求和重构到保留 token 中 | — |
+| **VisionTrim** | DVTS 双信号自适应融合：$S\_i = \alpha \hat{S}\_i^g + (1{-}\alpha) S\_i^l$，$\alpha = \sigma\_l^2 / (\sigma\_g^2 + \sigma\_l^2)$（逆方差加权：等价于 $\alpha \propto 1/\sigma\_g^2$，即全局信号方差越大，其权重 $\alpha$ 越小，自动倾向更稳定的信号源）。全局信号 $\hat{S}\_i^g$：ViT 倒数第 2 层 CLS attention 多头均值经 softmax 归一化。局部信号 $S\_i^l$（LTAM）：在 $k{\times}k$ 局部窗口内以 dual-kernel $\kappa^* = \kappa\_{\text{feat}} + w\_3 \kappa\_{\text{pos}}$（特征空间高斯 + 空间位置高斯）计算每个 token 与其邻域的亲和度均值，转换为概率分布后作为 per-token 局部显著性分数 | TGVC $S\_{t2v}$：以 CLIP text encoder 编码用户指令，计算指令 embedding 与各 visual token 的 cosine similarity，得到 per-token 文本相关性分数，驱动后续聚类 merge 阶段的 token 选择 | TGVC merge：以 $S\_{t2v}$ 对 token 排序，将低相关性 token 按语义相似度聚类到高 $S\_{t2v}$ 的 anchor token 上，加权聚合保留语义信息 | — |
+| **HoloV** | $\mathcal{A}\_i^c$：ViT CLS attention 多头均值，衡量每个 token 在 crop $c$ 中的全局语义显著性。作为 holistic score 的基础分量参与后续融合 | — | $\mathcal{V}\_i^c$：token $i$ 与 crop 内所有其他 token 的 cosine similarity 的**方差**（高方差表明该 token 与邻居差异大，语义独特性强）。Holistic score $\mathcal{H}\_i^c = \gamma\_c \mathcal{V}\_i^c + \mathcal{A}\_i^c$，其中 $\gamma\_c = \mathbb{E}[\lVert\mathcal{A}^c\rVert] / \mathbb{E}[\lVert\mathcal{V}^c\rVert]$ 自适应缩放使两项量级一致。该设计为 per-token 局部唯一性度量，非 MMDP/DPP/Submodular 式集合级目标。另有 Fast VCR 机制在模型输出高不确定性时动态补回被剪 token | Crop-wise adaptive allocation：$w\_c \propto \text{avg}(\mathcal{H}^c)$，每个 crop 按平均 holistic score 分配 token 配额 $q\_c$，并设上下限防止单一 crop 垄断所有额度，从几何上保证多区域覆盖 |
+| **HiDivDrop** | DTop-K（可微 token 选择）：对每个 token 的重要性分数 $c\_i$ 做归一化排名 $c'\_i \in [0,1]$，再施加软掩码 $\text{Mask}\_i = \sigma(\lambda(c'\_i - a))$，其中 $a$ 为可学习剪枝阈值。前向传播使用 hard threshold，反向传播以 sigmoid 梯度近似实现端到端训练。⚠️ 非 training-free。另：$\text{ILVAS}(l) = \text{sim}(\tilde{A}^{(l)}, \tilde{A}^{(l+n)})$ 评估各层 attention 排名的跨层稳定性，选 ILVAS 曲线**局部最大值**作为剪枝层位（$F = \{10, 14, 16, 18\}$），决定在哪层剪枝而非剪哪些 token | — | —（方法名称含 "Div" 但多样性体现于三段式架构设计——Late Injection 跳过浅层 / Concave Pyramid 中间层渐进 / Early Exit 深层停止——而非 indicator 层面的显式 diversity 目标函数） | — |
+| **VScan** | 双尺度 union：Global Scan 取 ViT **output layer** 的 CLS attention 捕捉高层语义显著性，Local Scan 取 ViT **layer 6** 的 CLS attention 保留低层细节信息，两组各选 $R\_1/2$ 个 token 后取 union 实现多粒度互补 | LLM **第 16 层** last-instruction token 对 visual tokens 的 attention。关键设计选择：选中间层而非浅层（实验验证 k=16 远优于 k=2），因浅层 attention 存在位置偏差。以 auxiliary vanilla attention pass 提取 attention map，与 FlashAttention 兼容 | Global/Local union 后对 selected tokens 做 cosine similarity → average pooling token merging，将高相似 token 对聚合为单个代表 token 以保留被丢弃 token 的信息。属信息保留机制，非显式 diversity 目标 | Local Scan 将 token grid 划分为非重叠窗口，每个窗口内独立选取 top-k，从几何上保证图像各空间区域至少保有代表 token，避免全局 CLS attention 导致选择集中于单一区域 |
+| **Nuwa** | $S(t\_i) = \alpha\_{\text{cls},i} \times \lVert \mathbf{k}\_i \rVert\_2$：将 ViT CLS attention 与 key vector 的 L2-norm 相乘——前者衡量全局重要性，后者反映信息容量。高 $\lVert k \rVert$ 的 **Pillar Token**（ViT 的 register token）被识别并保护，不参与后续聚合 | Stage 2（LLM 中间层）：在多模态 embedding 经过足够层数的交互充分对齐之后，以 text-visual cosine similarity 作为 indicator 执行第二次剪枝，选择性保留与当前指令高相关的 token | 聚合权重 = 语义 cosine similarity × 空间邻近度高斯核，双约束确保只有语义相近且空间相邻的 token 才被合并，防止语义相似但物理位置遥远的 token 被错误归并。属空间感知的信息保留机制 | M×M grid 分区：将 token grid 划分为 $M \times M$ 个子区域，每区域内独立选取 top-k benchmark token，从几何上保证空间均匀覆盖。该设计专为 OCR、REC 等需要精确空间定位的任务优化 |
+| **FSR** | $s\_i$：ViT CLS attention 衡量每个 token 的视觉显著性，与 $r\_i$ 共同加权组合构成 Focus score $\phi\_i$ | $r\_i$：CLIP text encoder 编码指令后与各 visual token 计算 cosine similarity 得到指令相关性分数。Focus score 融合为 $\phi\_i = \alpha \hat{r}\_i + \beta \hat{s}\_i$（$\hat{\cdot}$ 为归一化），并以动态 budget $K\_F = \min\{k : \sum\_{j=1}^k \phi\_{\pi(j)} \geq \rho Z\}$（默认 $\rho{=}0.9$）自适应决定保留 token 数——图像语义越简单，Focus token 越少 | CCS（Conditional Context Sampling）：≈ Farthest Point Sampling 变体，每步选与 Focus + 已选 Scan token 的综合相似度**最低**的 token 以最大化信息增量，具理论覆盖界保证。Refine 阶段：剩余 token 按 similarity 分配到最近 Scan center 并加权聚合（仅修改 Scan token，保护 Focus token 高保真度） | — |
+| **IDPruner** | $\widehat{\text{Imp}}(v\_i)$：由 VisionSelector 模块以 DiffTopK 机制生成 + min-max 归一化。VisionSelector 仅以 visual feature 为输入，不使用文本信息，属**学习型 A1**（⚠️ 非 training-free，需端到端训练） | — | MMR：$v^* = \arg\max\_{v\_i \notin \mathcal{S}}[\lambda \cdot \widehat{\text{Imp}}(v\_i) - (1{-}\lambda) \cdot \max\_{v\_j \in \mathcal{S}} \cos(v\_i, v\_j)]$，以**减法**显式平衡 importance 与 diversity（对比 SCOPE 的乘法融合），$\lambda{=}0.5$ 最优。$O(KN)$ 复杂度，维护 max-similarity 向量逐步增量更新。无全局近似保证（vs DPP/Submodular 的 $(1{-}1/e)$） | — |
 
 ### 5.3 分类体系的核心观察
 
-**观察 1：纯 saliency → saliency+diversity 的演进轨迹**  
-从 VisionZip（纯 A1）→ SCOPE（A1 + B3 Coverage）→ CDPruner（A2 + B2 DPP），主线是在重要性评分基础上叠加多样性约束。FastV 和 PyramidDrop 走的是另一条轨迹——同样使用 LLM text→visual attention（A2），但完全放弃多样性，专注于剪枝策略的效率设计（单次 L2 → 渐进多阶段），说明 "saliency-only" 的设计空间通过工程优化仍有很大价值。
+**观察 1：纯 saliency → saliency + B1 的演进轨迹**  
+从 VisionZip（纯 A1）→ SCOPE（A1 + B1 Submodular Coverage）→ CDPruner（A2 + B1 DPP），主线是在重要性评分基础上叠加语义多样性约束。FastV 和 PyramidDrop 走的是另一条轨迹——同样使用 LLM text→visual attention（A2），但完全放弃 B1，专注于剪枝策略的效率设计（单次 L2 → 渐进多阶段），说明 "saliency-only" 的设计空间通过工程优化仍有很大价值。
 
 **观察 2：A2（Task Relevance）信号的两个代际**  
 A2 信号从 FastV（2024）就已出现（LLM L2 last-token attn），并非 2025 年之后的新发明。但两代方法在设计意图上有本质区别：
@@ -471,11 +463,11 @@ A2 信号从 FastV（2024）就已出现（LLM L2 last-token attn），并非 20
 - **CLIP text encoder 路线**（CDPruner、VisionTrim、FSR）：轻量，但依赖 CLIP 架构，对 Qwen2.5-VL 等无单独 CLIP encoder 的新型架构需适配
 - **LLM 内部 attention 路线**（SparseVLM、VScan L16、Nuwa Stage 2）：更通用，但需要额外 forward pass 或访问中间层激活
 
-**观察 3：维度 C 是被长期忽视的隐性瓶颈**  
-DivPrune 和 SCOPE 纯粹在语义空间操作，对 OCR、空间关系推理、REC 等需要精确空间定位的任务存在系统性劣势。Nuwa 的实验明确验证了这一点。
+**观察 3：B2（空间覆盖）是被长期忽视的隐性瓶颈**  
+DivPrune 和 SCOPE 纯粹在语义空间操作（仅有 B1，无 B2），对 OCR、空间关系推理、REC 等需要精确空间定位的任务存在系统性劣势。Nuwa 的实验明确验证了这一点。
 
-**观察 4：B1（MMDP）在理论上最弱**  
-B1 仅优化最近邻 pair，是对全局多样性的粗糙近似。B2（DPP）和 B3（Submodular）均有更严格的全集近似保证，且 B3 的 Submodular Coverage 在直觉上更贴近"让每个 token 都被代表"这一目标。
+**观察 4：MMDP 在 B1 各实现中理论最弱**  
+MMDP 仅优化最近邻 pair，是对全局多样性的粗糙近似。DPP 和 Submodular Coverage 均有更严格的全集近似保证，且 Submodular Coverage 在直觉上更贴近"让每个 token 都被代表"这一目标。
 
-**观察 5：A1 + C 的组合尚未被充分探索**  
-目前多数方法是 A1+B 或 A2+B 的组合，而 A1+C（空间感知的视觉显著性，无需文本）在理论上是一个被低估的设计点——HoloV 是最接近的，但其 Diversity Variance 仍是语义信号而非纯几何信号。
+**观察 5：A1 + B2 的组合尚未被充分探索**  
+目前多数方法是 A1+B1 或 A2+B1 的组合，而 A1+B2（空间感知的视觉显著性，无需文本）在理论上是一个被低估的设计点——HoloV 是最接近的，但其 Diversity Variance 仍是语义信号（B1）而非纯几何信号（B2）。
