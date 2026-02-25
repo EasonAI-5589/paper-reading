@@ -21,20 +21,20 @@ quantifies individual token importance (VisionZip~[54], CDPruner~[58]), and
 \textit{diversity}, which promotes collective representativeness of the
 retained set (DivPrune~[3], SCOPE~[11]).
 
-As visualized in Fig.~3, these indicators produce strikingly different token
-selections---even on the same image under the same compression ratio.
-VisionZip concentrates on regions receiving high CLS attention, typically
-semantically salient foreground objects, \emph{irrespective of the user's
-question}.
-CDPruner shifts the selection toward regions most relevant to the text query,
-while its DPP kernel simultaneously promotes geometric spread among the
-retained tokens.
-DivPrune, by contrast, distributes selections to maximize the minimum pairwise
-distance in the feature space, yielding broad spatial coverage at the cost of
-foreground detail.
-SCOPE occupies a middle ground: its submodular coverage term prevents token
-clustering in a narrow semantic region, while the CLS saliency weight steers
-selection toward informative patches.
+As illustrated in Fig.~3, under an identical compression ratio, these two
+indicator families yield markedly divergent token selections.
+VisionZip, guided by ViT CLS attention, preferentially retains foreground
+tokens of high semantic saliency---a selection that remains invariant to the
+user's query.
+CDPruner augments this saliency signal with text--visual cosine similarity,
+redirecting retention toward query-relevant regions while its conditional DPP
+kernel enforces geometric spread among the selected tokens.
+By contrast, DivPrune pursues a fundamentally different objective: maximizing
+the minimum pairwise distance in the feature space, it scatters selections
+broadly across the image at the expense of fine-grained foreground detail.
+SCOPE mediates between these two poles, coupling CLS-based saliency with a
+submodular coverage term that curbs token clustering within narrow semantic
+neighborhoods.
 
 This divergence arises because the four methods optimize along fundamentally
 \textit{orthogonal indicator dimensions}:
