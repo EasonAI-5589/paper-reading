@@ -5,7 +5,7 @@ Tethered to a single-indicator paradigm, existing visual token pruning methods r
 Our investigation reveals that the indicators employed by existing methods naturally coalesce into two distinct families: \textit{saliency}, which quantifies individual token importance (VisionZip~\cite{visionzip}, CDPruner~\cite{cdpruner}), and \textit{diversity}, which promotes collective representativeness of the retained set (DivPrune~\cite{divprune}, SCOPE~\cite{scope}).
 
 As illustrated in Fig.~\ref{fig:indicator_vis}, at the same compression ratio, these two indicator families produce notably different token selections.
-VisionZip, guided by ViT CLS attention, preferentially retains foreground tokens of high semantic saliency---a selection that remains invariant to the user's query.
+VisionZip, guided by ViT CLS attention, primarily retains foreground tokens of high semantic saliency---a selection that remains invariant to the user's query.
 CDPruner augments this saliency signal with text--visual cosine similarity, redirecting retention toward query-relevant regions while its conditional DPP kernel enforces geometric spread among the selected tokens.
 By contrast, DivPrune pursues a fundamentally different objective: maximizing the minimum pairwise distance in the feature space, it scatters selections broadly across the image at the expense of fine-grained foreground detail.
 SCOPE mediates between these two poles, coupling CLS-based saliency with a submodular coverage term that curbs token clustering within narrow semantic neighborhoods.
