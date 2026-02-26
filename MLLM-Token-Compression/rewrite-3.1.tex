@@ -1,7 +1,7 @@
 \subsection{Finding 1: Cross-Indicator Inconsistency}
 \label{sec:finding1}
 
-Existing visual token pruning methods share a pervasive yet unexamined assumption: a single importance criterion suffices to separate indispensable tokens from expendable ones.
+Tethered to a single-indicator paradigm, existing visual token pruning methods rest upon an assumption that has largely escaped scrutiny: a single importance criterion suffices to separate indispensable tokens from expendable ones.
 Our investigation reveals that the indicators employed by existing methods naturally coalesce into two distinct families: \textit{saliency}, which quantifies individual token importance (VisionZip~\cite{visionzip}, CDPruner~\cite{cdpruner}), and \textit{diversity}, which promotes collective representativeness of the retained set (DivPrune~\cite{divprune}, SCOPE~\cite{scope}).
 
 As illustrated in Fig.~\ref{fig:indicator_vis}, under an identical compression ratio, these two indicator families yield markedly divergent token selections.
