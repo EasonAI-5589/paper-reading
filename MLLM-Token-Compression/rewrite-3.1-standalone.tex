@@ -15,7 +15,7 @@ Tethered to a single-indicator paradigm, existing visual token pruning methods
 rest on an assumption that has not been systematically examined: a single importance criterion is sufficient to distinguish essential
 tokens from redundant ones.
 Our investigation reveals that the indicators employed by existing methods
-naturally coalesce into two distinct families: \textit{saliency}, which
+naturally fall into two distinct families: \textit{saliency}, which
 quantifies individual token importance (VisionZip~[54], CDPruner~[58]), and
 \textit{diversity}, which promotes collective representativeness of the
 retained set (DivPrune~[3], SCOPE~[11]).
@@ -31,7 +31,7 @@ kernel enforces geometric spread among the selected tokens.
 By contrast, DivPrune pursues a fundamentally different objective: maximizing
 the minimum pairwise distance in the feature space, it scatters selections
 broadly across the image at the expense of fine-grained foreground detail.
-SCOPE mediates between these two poles, coupling CLS-based saliency with a
+SCOPE strikes a balance between the two, coupling CLS-based saliency with a
 submodular coverage term that curbs token clustering within narrow semantic
 neighborhoods.
 
@@ -39,11 +39,11 @@ To be specific, methods sharing the same indicator family exhibit moderate
 concordance---for instance,
 VisionZip and SCOPE, both grounded in CLS-based saliency, achieve an overlap
 of 0.64 at $K{=}128$. Cross-family overlap, however, deteriorates
-precipitously: at $K{=}32$, it plummets to a mere 0.19--0.27. Even under the
+precipitously: at $K{=}32$, it falls to only 0.19--0.27. Even under the
 most permissive retention budget ($K{=}128$, retaining 22\% of all visual
 tokens), the average pairwise overlap remains below 0.45---implying that
 \emph{more than half of the tokens deemed ``most important'' by one indicator
-family are judged expendable by the other}. This pronounced inconsistency
+family are considered unimportant by the other}. This pronounced inconsistency
 reveals that XXX.
 
 This divergence arises because the four methods optimize along fundamentally
