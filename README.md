@@ -59,6 +59,15 @@ Eason 的文献阅读仓库，按课题组织。每篇论文都有「批读格�
 
 ---
 
+### 🌍 World Model
+世界模型 + VLA 策略训练
+
+| 论文 | 来源 | 方法特点 |
+|------|------|----------|
+| [VLAW](./world-model/%5BarXiv%202026%5D%20VLAW/) | arXiv 2602.12063 | 迭代修正世界模型过度乐观偏差 + 合成数据提升 VLA，DROID 5任务 +39.2% |
+
+---
+
 ### 🧠 Agent Memory
 Agent 记忆机制
 
@@ -150,6 +159,9 @@ paper-reading/
 ├── [ICLR 2026] Context-Clues/
 ├── [NeurIPS 2023] EHRSHOT/
 │
+├── world-model/                     # 世界模型 (1 篇)
+│   └── [arXiv 2026] VLAW/
+│
 ├── RLHF/                           # 强化学习人类反馈 (1 篇)
 │   └── [ICML 2025] MM-RLHF/
 │
@@ -192,4 +204,4 @@ paper-reading/
 
 ---
 
-*由 3号机 协助整理 📚 | 更新: 2026-02-15 | 共 38 篇论文*
+*由 3号机 协助整理 📚 | 更新: 2026-03-01 | 共 39 篇论文*
