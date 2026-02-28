@@ -6,99 +6,120 @@
 
 In this paper, we propose VLAW, an iterative improvement pipeline that jointly enhances both the vision–language–action (VLA) policy and the action-conditioned world model. We demonstrate that VLAW consistently improves performance across multiple contact-rich manipulation tasks. Although the learned world model achieves high fidelity on the downstream tasks from which online data are collected, our current evaluation is limited to five task categories. Scaling online rollout data to a broader and more diverse set of tasks is a promising direction for future work. We believe that, as base video models continue to advance and large-scale robot interaction data become increasingly available, world-model-based training will provide a powerful new paradigm for learning generalist robotic policies.
 
-> 💡 **作者自述的局限**：5 个任务类别远不够证明 generalization。关键问题是：世界模型只在收集了 online rollout 的任务上变好，换个新任务（没有 online data）效果未知。
+> 💡 **结论诚实地承认了局限**：只在 5 类任务上验证，泛化到更广泛任务还是未知数。
 >
-> 💡 **更深层的思考**：
+> 💡 **未来方向**：随着基础视频模型（如 Genie 3、Sora 类）越来越强，世界模型的物理保真度会进一步提升，VLAW 框架的天花板也会随之提高——这是一个随时间自动升值的方向。
 >
-> 1. **世界模型的泛化 vs. 特化**：本文的做法本质是 task-specific fine-tuning——需要每个任务都收集真实 rollout 来修正世界模型。如果有一个足够好的基础世界模型（比如 Genie 3），是否还需要 fine-tuning？这是未来方向。
->
-> 2. **真实 rollout 的最低需求**：每个任务 50 个 rollout 是否是最优数量？有没有 sample efficiency 的下界？论文没做这个 ablation。
->
-> 3. **迭代次数**：只做了 2 次迭代。3 次、5 次会继续提升吗？还是会饱和？Figure 7 暗示提升在放缓（Ours-1→Ours-2 的增量在不同任务上不均匀）。
+> 💡 **局限性小结（作者未提但值得注意的）**：
+> 1. **任务覆盖窄**：5 类任务都在 DROID 平台，场景单一（固定桌面，Franka 机械臂）
+> 2. **奖励模型的召回问题**：P(yes)>0.8 阈值漏掉了约 55% 的真实成功轨迹（Table 3），大量好数据被浪费
+> 3. **世界模型 grounding 的样本效率**：每个任务需要 50 个真实 rollout × 2 迭代 = 100 次真实部署，是否可以更少？
+> 4. **跨任务世界模型的干涉问题**：5 个任务同时训练一个世界模型，任务之间的物理规律差异很大，是否存在负迁移？论文没有分析
+> 5. **实验规模有限**：每个任务只评估 50 次，置信区间没有报告，0.92 vs 0.88 的差距统计显著吗？
 
 ---
 
-## Appendix A: Relation to Regularized RL (详细推导)
+## Appendix A: Relation to Regularized Reinforcement Learning (详细推导)
 
-The derivation follows AWR (Peng et al., 2019):
+Under the regularized RL setting, the optimal improved policy admits a closed-form solution:
 
-1. Start from regularized RL objective: maximize reward while staying close to reference policy
-2. Optimal policy: $\pi^\star(a|o) \propto \pi_\mathrm{ref}(a|o) \exp(A^{\pi_\mathrm{ref}}(o,a)/\beta)$
-3. Key innovation: replace KL-based projection with flow-matching surrogate divergence:
-   $$D_\mathrm{FM}(\pi^\star, \pi_\theta) \triangleq \mathbb{E}_{a \sim \pi^\star}[\mathcal{L}_\mathrm{FM}(\theta; o, a)]$$
-4. With $\gamma \to 1$ and binary rewards → $w(o,a) \in \{0,1\}$ → recovers Eq. 4
+$$
+\pi^\star(a \mid o) \propto \pi_\mathrm{ref}(a \mid o) \exp\left(\frac{A^{\pi_\mathrm{ref}}(o, a)}{\beta}\right)
+$$
 
-> 💡 **理论贡献评估**：
-> - 不是新理论，是 AWR 的 flow-matching 适配版
-> - 关键近似：连续 advantage weight → 二值权重；这在 binary reward 设定下损失最小
-> - 实际意义：给"只在成功轨迹上做 SFT"提供了 RL 理论 justification
-> - 但不要过度解读——核心是工程方案有效，理论是包装
+Since the target distribution $\pi^\star$ is generally not representable within a finite parametric policy class, policy improvement is performed via a projection step:
+
+$$
+\theta^\star = \arg\min_\theta \mathbb{E}_{o \sim \mathcal{D}} \left[ D(\pi^\star(\cdot \mid o), \pi_\theta(\cdot \mid o)) \right]
+$$
+
+**AWR for flow-matching policies.** In standard AWR (Peng et al., 2019), the divergence $D$ is the KL divergence, yielding a weighted log-likelihood objective. However, because our VLA policy uses flow-matching and does not provide explicit action likelihoods, we introduce a surrogate divergence:
+
+$$
+D_\mathrm{FM}(\pi^\star(\cdot \mid o), \pi_\theta(\cdot \mid o)) \triangleq \mathbb{E}_{a \sim \pi^\star(\cdot \mid o)} [\mathcal{L}_\mathrm{FM}(\theta; o, a)]
+$$
+
+This yields the projection step:
+
+$$
+\theta^\star \approx \arg\min_\theta \mathbb{E}_{(o,a) \sim \mathcal{D}} \left[ w(o, a) \mathcal{L}_\mathrm{FM}(\theta; o, a) \right]
+$$
+
+where $w(o, a) \propto \exp\left(\frac{A^{\pi_\mathrm{ref}}(o, a)}{\beta}\right)$.
+
+Setting $\gamma \to 1$ and assigning a large negative reward to failure trajectories, this reduces to Eq. 4.
+
+> 💡 **推导的本质**：把 flow-matching SFT 套上 AWR 的外衣。关键近似有两个：
+> 1. 用 flow-matching loss 替代 KL divergence（合理，因为 flow-matching loss 本质是学习目标分布）
+> 2. 二值权重代替连续 advantage weight（粗糙，但 binary reward 场景下近似合理）
+>
+> 💡 **这个推导的价值**：不是为了严格证明，而是给出"为什么这样做有理论依据"的解释，让审稿人接受这个设计选择。实际上 Table 2 的结果才是真正的证明。
 
 ---
 
 ## Appendix B: Task Details
 
 **Success Criteria:**
-- **Stacking**: Block A stably on top of B, stack upright for holding period
-- **Open Book**: Cover opened beyond predefined angle, stays open
-- **Erase Marks**: No detectable marks remain on whiteboard
-- **Scooping**: Minimum amount transferred to bowl, majority inside bowl
-- **Drawing**: Single closed curve forming visually complete circle
 
-> 💡 **评估标准合理**：都是 outcome-based（看最终状态），不是 process-based。每个任务评估 50 次。DSRL 只评估 10 次（太慢了）——这使 DSRL 的结果统计功效较低，但整体趋势还是清晰的。
+- **Stacking**: Block A stably placed on top of Block B, stack remains upright for a short holding period.
+- **Open Book**: Front cover opened beyond a predefined angle and remains open at episode end.
+- **Erase Marks**: All visible marker strokes removed from whiteboard at episode end.
+- **Scooping**: At least a minimum amount of target object transferred into the bowl, majority inside the bowl (not spilled).
+- **Drawing**: Single closed curve forming a visually complete circle, endpoints meet with small gap tolerance.
+
+> 💡 **成功标准的设计**：都是 outcome-based（最终状态判断），不是 process-based（过程是否正确）。这跟奖励模型的评估方式一致——输入最终帧/轨迹视频判断是否成功。
+>
+> 💡 **Drawing 任务的难点**：要求"endpoints meet with small gap tolerance"——闭合圆，这对机器人来说需要全局规划意识，不只是局部运动控制。这也解释了为什么 base model 只有 0.22 的成功率。
 
 ---
 
 ## Appendix C: Reward Model Details
 
-- Base model: Qwen3-VL-4B-Instruct
-- Input: 16-frame downsampled trajectory video
-- Fine-tuning: 200 steps, batch size 128
-- Threshold: P('yes') > 0.8
+We use Qwen3-VL-4B-Instruct as the vision–language reward model. Each trajectory is temporally downsampled into a 16-frame video. We finetune the model for 200 steps with batch size 128.
 
-### Table 3: Reward Model Confusion Matrix (40 manually labeled trajectories)
+We observe that directly prompting for binary yes/no is overly optimistic. Using P(yes) > 0.8 threshold substantially reduces false-positive trajectories.
 
-**Direct Yes/No:**
-|  | Predicted Success | Predicted Failure |
-|--|---|---|
-| GT Success | 15 | 7 |
-| GT Failure | **8** | 10 |
+### Table 3: Reward Model Confusion Matrices (n=40)
 
-**Threshold P(yes) > 0.8:**
-|  | Predicted Success | Predicted Failure |
-|--|---|---|
-| GT Success | 10 | 12 |
-| GT Failure | **2** | 16 |
+**Original (Direct Yes/No):**
 
-> 💡 **奖励模型分析**：
-> - Threshold 方法把 FP 从 8 降到 2——在机器人 RL 里，false positive 意味着"给错误行为正激励"，这是致命的
-> - 代价是 FN=12（30% 的成功轨迹被漏掉），但在合成数据量足够大（500/任务）的情况下，精确度比召回率重要
-> - **40 个样本的评估集太小**——统计显著性存疑，但趋势明确
+|  | Pred: Success | Pred: Failure |
+|--|--------------|--------------|
+| GT: Success | 15 | 7 |
+| GT: Failure | **8** | 10 |
+
+**Ours (P(yes) > 0.8):**
+
+|  | Pred: Success | Pred: Failure |
+|--|--------------|--------------|
+| GT: Success | 10 | 12 |
+| GT: Failure | **2** | 16 |
+
+> 💡 **数字背后的含义**：
+> - Direct 方法：精度 65%（15/23），假阳率 44%（8/18）——接近一半的"成功"标签是错的，会严重污染训练数据
+> - 阈值方法：精度 83%（10/12），假阳率 11%（2/18）——干净多了，但代价是漏掉了 12/22=55% 的真实成功案例
 >
-> 💡 **没讨论的问题**：
-> - 奖励模型在合成轨迹上的表现如何？合成视频的视觉质量不如真实视频，可能导致 domain gap
-> - 如果世界模型产生了 out-of-distribution 的视觉伪影，奖励模型能否识别？
-> - 这两个问题是 VLAW pipeline 的潜在 failure mode
+> 💡 **一个值得 follow-up 的方向**：能不能设计更好的 VLM 奖励模型，同时保持高精度和高召回？比如 chain-of-thought 推理、多帧对比、或者专门的机器人 reward VLM（RoboReward, Lee et al., 2026 已经在做这件事）。
 
 ---
 
-## 总体评价
+## 总结：VLAW 的价值与局限
 
-### 优点
-1. **问题定位精准**：世界模型的过度乐观偏差是真实存在的问题，诊断到位
-2. **方案简洁有效**：没有复杂的 RL 算法，就是 SFT on filtered data，但通过世界模型放大了数据量
-3. **真实机器人实验**：5 个接触丰富任务，不是仿真里的简单任务
-4. **理论与工程兼顾**：AWR for flow-matching 的理论解释合理
+### 核心价值
+| 维度 | 内容 |
+|------|------|
+| **问题** | 真实 rollout 太贵，现有世界模型物理保真度不够 |
+| **方案** | 用少量 rollout 修正世界模型 → 大量合成数据 → 迭代提升 VLA |
+| **亮点** | 在真实机器人接触丰富任务上验证，+39.2% 绝对提升 |
+| **简洁性** | 没有复杂的 RL 算法，全程 SFT，适配 flow-matching 策略 |
 
-### 不足
-1. **迭代次数太少**（只有 2 次）：无法判断是否会持续改善或饱和
-2. **任务数量有限**（5 类）：泛化性证据不足
-3. **计算成本未讨论**：50K steps 微调世界模型需要多少 GPU 时间？生成 500 个轨迹需要多久？
-4. **世界模型误差传播分析缺失**：合成数据里的物理错误如何影响策略？有没有负面案例？
-5. **奖励模型评估集太小**（40 个样本）
-6. **没有与 π₀.₆\* 直接对比**——它们的 baseline 是 Filtered BC 和 DSRL，而不是同期最强的 VLA post-training 方法
+### 主要局限
+| 局限 | 程度 |
+|------|------|
+| 任务覆盖窄（5类，同一平台） | 中等 |
+| 奖励模型召回低（55% 真阳被漏） | 值得改进 |
+| 跨任务负迁移未分析 | 未知 |
+| 实验统计严谨性（无置信区间） | 轻微 |
 
-### 与 STAR-Pro 的潜在关联
-这篇论文与 MLLM Token Compression 方向不直接相关，但：
-- 如果 STAR-Pro 涉及 robot learning / embodied AI，世界模型作为数据放大器的思路可以借鉴
-- 奖励模型（VLM-as-judge）的 threshold 策略是通用技巧
+### 与 STAR-Pro 的关系
+> 💡 STAR-Pro 如果需要在真实机器人上做 post-training，VLAW 的框架非常值得参考——特别是"用少量真实 rollout grounding 世界模型"这个核心思路。Ctrl-World 本身就是同一组人做的，VLAW 相当于给了一个完整的使用范式。
