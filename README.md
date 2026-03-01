@@ -65,6 +65,7 @@ Eason 的文献阅读仓库，按课题组织。每篇论文都有「批读格�
 | 论文 | 来源 | 方法特点 |
 |------|------|----------|
 | [VLAW](./robot-learning/%5BarXiv%202602.12063%5D%20Iterative%20Co-Improvement%20of%20VLA%20Policy%20and%20World%20Model/) | arXiv 2602.12063 | 迭代修正世界模型过度乐观偏差 + 合成数据提升 VLA，DROID 5任务 +39.2% |
+| [WoVR](./robot-learning/%5BarXiv%202602.13977%5D%20WoVR%20World%20Models%20as%20Reliable%20Simulators%20for%20VLA%20RL/) | arXiv 2602.13977 | Hallucination-aware RL框架：KIR + PACE + Wan 5B World Model，LIBERO +29.3pp，真实机器人 +30pp |
 
 ---
 
