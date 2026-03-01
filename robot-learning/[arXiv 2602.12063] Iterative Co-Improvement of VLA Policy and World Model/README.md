@@ -1,126 +1,129 @@
 # VLAW: Iterative Co-Improvement of Vision-Language-Action Policy and World Model
 
-> **arXiv**: [2602.12063](https://arxiv.org/abs/2602.12063)  
-> **PDF**: [paper.pdf](paper.pdf)  
-> **Project Page**: https://sites.google.com/view/vlaw-arxiv
-
----
-
-## 元信息
-
-| 字段 | 内容 |
-|------|------|
-| **标题** | VLAW: Iterative Co-Improvement of Vision-Language-Action Policy and World Model |
-| **作者** | Yanjiang Guo, Tony Lee, Lucy Xiaoyang Shi, Jianyu Chen, Percy Liang, Chelsea Finn |
-| **机构** | Stanford University, Tsinghua University |
-| **发布时间** | 2026-02（arXiv 2602.12063） |
-| **关键词** | VLA, World Model, Robot Manipulation, Iterative Improvement, Flow Matching |
+**作者**: Yanjiang Guo*, Tony Lee*, Lucy Xiaoyang Shi*, Jianyu Chen, Percy Liang, Chelsea Finn  
+**机构**: Stanford University, Tsinghua University  
+**年份**: 2026 | **arXiv**: [2602.12063](https://arxiv.org/abs/2602.12063)  
+**链接**: [PDF](https://arxiv.org/pdf/2602.12063) · [Project Page](https://sites.google.com/view/vlaw-arxiv) · [paper.pdf](paper.pdf)
 
 ---
 
 ## 一句话总结
 
-用少量真实机器人 rollout（含 failure）fine-tune world model，再让 world model 生成大量合成轨迹来改进 VLA policy，迭代两轮后在 5 类 contact-rich 任务上平均成功率从 **46% → 87%**（+39.2 pp），其中合成数据贡献 **+11.6 pp**。
+用少量真实机器人 rollout（含 failure）fine-tune World Model 来消除过度乐观偏差，再让 World Model 生成 10× 的合成成功轨迹训练 VLA policy。两轮迭代后，5 类 contact-rich 任务平均成功率 46% → 87%（+39.2 pp），其中合成数据贡献 +11.6 pp。
 
 ---
 
 ## 核心贡献
 
-1. **发现并解决 world model 的 over-optimism 问题**：用包含 failure case 的 online rollout 数据 fine-tune pretrained world model（Ctrl-World），显著提升物理保真度（FVD 225→64，FP 11→1）
-2. **VLAW 迭代协同优化 pipeline**：World Model ↔ VLA Policy 相互增强的正反馈循环，每轮用 50 条 real rollout 撬动 500 条合成数据
-3. **flow-matching VLA 的 RL 理论框架**：将 binary-filtered BC 与 AWR / regularized RL 联系起来，证明方法有理论依据
+1. **发现并解决 World Model 的 over-optimism 问题**：用包含 failure case 的 online rollout 数据 fine-tune pretrained Ctrl-World，FP 从 11 降到 1（↓91%），FVD 从 225 降到 64
+2. **VLAW 迭代协同优化 pipeline**：World Model ↔ VLA Policy 相互增强的正反馈循环，每轮 50 条 real rollout 撬动 500 条合成轨迹
+3. **Flow-matching VLA 的 RL 理论框架**：将 binary-filtered BC 与 AWR / regularized RL 正式联系起来
+4. **真实机器人验证**：5 类 contact-rich 任务（stacking、open book、erase marks、scooping、drawing），每类 50 次评估
 
 ---
 
-## 方法概述
+## 📖 批读导航
 
-```
-┌─────────────────────────────────────────────────────┐
-│                    VLAW Pipeline                     │
-│                                                      │
-│  Real World Rollout (K=50/task)                     │
-│          │                                           │
-│          ▼                                           │
-│  Fine-tune World Model (Ctrl-World)                  │
-│  + Co-train with DROID dataset                       │
-│  Fine-tune Reward Model (Qwen3-VL-4B)               │
-│          │                                           │
-│          ▼                                           │
-│  Generate Synthetic Trajectories (N=500/task)        │
-│  → Filter with Reward Model (threshold=0.8)          │
-│          │                                           │
-│          ▼                                           │
-│  Fine-tune VLA Policy (π₀.₅)                        │
-│  on D_real+ ∪ D_syn+ (flow-matching loss)            │
-│          │                                           │
-│          └──── Repeat for K_iter=2 iterations ──────┘
-```
+| Section | 文件 | 内容 |
+|---------|------|------|
+| [00 - Abstract](sections/00-abstract.md) | 摘要 | 动机、方法一句话、关键数字（39.2% / 11.6%） |
+| [01 - Introduction](sections/01-introduction.md) | 引言 | 三层铺垫 + 贡献清单 + Figure 1, 2 |
+| [02 - Related Work](sections/02-related-work.md) | 相关工作 | VLA post-training 三条路 + World Model for MBRL 演进 |
+| [03 - Preliminaries](sections/03-preliminaries.md) | 预备知识 | MDP 设定 + π_θ / M_φ 符号 + closed-loop 想象机制 |
+| [04 - Method](sections/04-method.md) | 方法 | 4.1 WM fine-tune + 4.2 Policy fine-tune + 4.3 AWR 理论联系 + Algorithm 1 |
+| [05 - Experiments](sections/05-experiments.md) | 实验 | 5.1 设置 + 5.2 WM 质量（Table 1 + confusion matrix） + 5.3 Policy 提升（Table 2 + ablation） |
+| [06 - Conclusions](sections/06-conclusions.md) | 结论 | 总结 + 总体评价（优缺点） |
+| [07 - Appendix](sections/07-appendix.md) | 附录 | A: AWR 推导 + B: 任务细节 + C: Reward model 混淆矩阵 |
 
 ---
 
-## 关键结果
+## 关键数字
 
-### 成功率（50 次评估 / task）
-
-| Method | Stacking | Wiping | Open Book | Scooping | Drawing | **Mean** |
-|--------|----------|--------|-----------|----------|---------|---------|
-| Base model | 0.62 | 0.46 | 0.56 | 0.44 | 0.22 | 0.460 |
-| DSRL | 0.70 | 0.40 | 0.50 | 0.60 | 0.30 | 0.500 |
-| Filtered BC-1 | 0.80 | 0.62 | 0.72 | 0.64 | 0.46 | 0.648 |
-| Filtered BC-2 | 0.88 | 0.76 | 0.82 | 0.74 | 0.56 | 0.752 |
-| **Ours-1** | 0.80 | 0.72 | 0.80 | 0.72 | 0.68 | 0.744 |
-| **Ours-2** | **0.92** | **0.86** | **0.86** | **0.92** | **0.78** | **0.868** |
-
-### World Model 质量（action replay，wrist camera）
-
-| Method | PSNR↑ | SSIM↑ | LPIPS↓ | FID↓ | FVD↓ | FP↓ |
-|--------|-------|-------|--------|------|------|-----|
-| Pretrained Ctrl-World | 16.32 | 0.634 | 0.347 | 41.03 | 225.13 | - |
-| + Expert Rollout | 19.87 | 0.748 | 0.189 | 12.76 | 99.98 | 11 |
-| + Expert + **Online Rollout** | **21.77** | **0.784** | **0.136** | **9.58** | **64.12** | **1** |
-
----
-
-## 批读笔记导航
-
-| 文件 | 内容 |
+| 指标 | 数值 |
 |------|------|
-| [00-abstract-intro.md](notes/00-abstract-intro.md) | Abstract + Introduction |
-| [01-related-work-preliminaries.md](notes/01-related-work-preliminaries.md) | Related Work + Preliminaries |
-| [02-method.md](notes/02-method.md) | Method（4.1~4.3 + Algorithm） |
-| [03-experiments.md](notes/03-experiments.md) | Experiments（5.1~5.3 + Ablation） |
-| [04-conclusions-appendix.md](notes/04-conclusions-appendix.md) | Conclusions + Appendix A/B/C + 总体评价 |
+| Base policy 平均成功率 | 0.460 |
+| VLAW-2 平均成功率 | **0.868** |
+| 总提升 | +39.2 pp |
+| 合成数据贡献（vs. Filtered BC-2） | +11.6 pp |
+| 最难任务（Drawing）提升 | +56 pp（0.22 → 0.78） |
+| World model FP 减少（加入 online rollout 后） | 11 → 1（↓91%） |
+| Real rollout / task / iteration | 50 条 |
+| Synthetic rollout / task / iteration | 500 条（10× 放大） |
+| 迭代次数 | 2 轮 |
 
 ---
 
-## Citation Landscape
+## 📊 Citation Landscape
 
-### 本文引用的关键工作
+> 数据来源：[Semantic Scholar](https://www.semanticscholar.org/paper/affb9be3dedba7952dfad2fb44a3ccdae909c60d) · [Connected Papers](https://www.connectedpapers.com/main/2602.12063)
 
-| 论文 | 角色 |
+### TLDR (Semantic Scholar)
+
+> A simple iterative improvement algorithm is proposed that uses real-world roll-out data to improve the fidelity of the world model, which can then be used to generate supplemental synthetic data for improving the VLA model.
+
+### 引用统计
+
+| 指标 | 数值 |
 |------|------|
-| π₀.₅ (Intelligence et al., 2025b) | Base VLA model |
-| Ctrl-World (Guo et al., 2025a) | Base world model |
-| π₀.₆* (Intelligence et al., 2025a) | 同类在线 RL for VLA |
-| DayDreamer (Wu et al., 2023) | Real-world MBRL 先驱 |
-| DROID (Khazatsky et al., 2024) | 实验平台 + 预训练数据集 |
-| Qwen3-VL (Team, 2025a) | Reward model 基座 |
-| DSRL (Wagenmaker et al., 2025) | Baseline 方法 |
-| AWR (Peng et al., 2019) | 理论基础 |
+| 参考文献数 | 62 |
+| 被引次数 | 0（新论文，2026-02） |
+| Influential Citations | 0 |
 
-### 同期相关工作（未直接比较）
+### 参考文献分组（Top 5 per category，按引用量排序）
 
-| 论文 | 简述 |
-|------|------|
-| WMPO (Zhu et al., 2025) | World model + VLA policy optimization |
-| World-Gymnast (Sharma et al., 2026) | 在 world model 里做 RL 训练 |
-| VLA-RFT (Li et al., 2025a) | World simulator 里做 RL fine-tuning |
-| World4rl (Jiang et al., 2025) | Diffusion world model for RL |
+#### VLA / Robot Policy
 
----
+| 论文 | 年份 | 引用 |
+|------|------|------|
+| OpenVLA: An Open-Source Vision-Language-Action Model | 2024 | 1,607 |
+| π₀: A Vision-Language-Action Flow Model for General Robot Control | 2024 | 1,150 |
+| π₀.₅: A Vision-Language-Action Model with Open-World Generalization | 2025 | 523 |
+| DROID: A Large-Scale In-The-Wild Robot Manipulation Dataset | 2024 | 551 |
+| AWR: Simple and Scalable Off-Policy Reinforcement Learning | 2019 | 735 |
 
-## 快速批评
+#### World Model / Video Generation
 
-**值得学习**：pipeline 设计简洁、任务选择有挑战性、实验在真实机器人上做、理论联系清晰
+| 论文 | 年份 | 引用 |
+|------|------|------|
+| Stable Video Diffusion | 2023 | 2,080 |
+| Mastering Atari with Discrete World Models (Dreamer v2) | 2020 | 1,092 |
+| DayDreamer: World Models for Physical Robot Learning | 2022 | 428 |
+| Action-Conditional Video Prediction using Deep Networks in Atari Games | 2015 | 890 |
+| Deep visual foresight for planning robot motion | 2016 | 840 |
 
-**值得质疑**：DSRL baseline 只评 10 次；缺少"不 fine-tune world model 直接用 pretrained Ctrl-World 生成数据"的 ablation；reward model 召回率仅约 45%（阈值=0.8）；计算开销未报告；只迭代 2 次，未见收敛曲线
+#### RL / Optimization
+
+| 论文 | 年份 | 引用 |
+|------|------|------|
+| PPO: Proximal Policy Optimization Algorithms | 2017 | 25,333 |
+| TRPO: Trust Region Policy Optimization | 2015 | 7,653 |
+| Dream to Control: Learning Behaviors by Latent Imagination (Dreamer v1) | 2019 | 1,715 |
+| DeepSeekMath (GRPO) | 2024 | 4,690 |
+| Visual Foresight: Model-Based Deep RL for Vision-Based Robotic Control | 2018 | 440 |
+
+#### Metrics / Evaluation
+
+| 论文 | 年份 | 引用 |
+|------|------|------|
+| SSIM: Image quality assessment | 2004 | 54,843 |
+| GANs Trained by a Two Time-Scale Update Rule (FID) | 2017 | 17,037 |
+| Unreasonable Effectiveness of Deep Features (LPIPS) | 2018 | 16,035 |
+| PSNR vs. SSIM | 2010 | 4,617 |
+| Towards Accurate Generative Models of Video (FVD) | 2018 | 1,085 |
+
+### 推荐论文（Semantic Scholar Recommendations）
+
+| 论文 | 年份 | 引用 | arXiv |
+|------|------|------|-------|
+| World-VLA-Loop: Closed-Loop Learning of Video World Model and VLA Policy | 2026 | 0 | 2602.06508 |
+| WoVR: World Models as Reliable Simulators for Post-Training VLA Policies with RL | 2026 | 0 | 2602.13977 |
+| Beyond Imitation: RL-Based Sim-Real Co-Training for VLA Models | 2026 | 0 | 2602.12628 |
+| World-Gymnast: Training Robots with RL in a World Model | 2026 | 1 | 2602.02454 |
+| RISE: Self-Improving Robot Policy with Compositional World Model | 2026 | 0 | 2602.11075 |
+| GigaBrain-0.5M*: a VLA That Learns From World Model-Based RL | 2026 | 0 | 2602.12099 |
+| On-the-Fly VLA Adaptation via Test-Time RL | 2026 | 1 | 2601.06748 |
+| Self-Correcting VLA: Online Action Refinement via Sparse World Imagination | 2026 | 0 | 2602.21633 |
+| RoboCurate: Harnessing Diversity with Action-Verified Neural Trajectory | 2026 | 0 | 2602.18742 |
+| SOP: A Scalable Online Post-Training System for VLA Models | 2026 | 5 | 2601.03044 |
+
+> 💡 推荐列表清一色 2026 年的 VLA + World Model 工作，说明这是一个正在快速发展的研究方向。World-VLA-Loop、WoVR、World-Gymnast 和 GigaBrain 都在做类似的事情（world model + VLA policy 联合优化），是直接竞品。
