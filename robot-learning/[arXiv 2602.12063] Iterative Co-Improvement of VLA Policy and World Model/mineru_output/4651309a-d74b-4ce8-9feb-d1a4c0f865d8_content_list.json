@@ -1,0 +1,2606 @@
+[
+    {
+        "type": "text",
+        "text": "VLAW: Iterative Co-Improvement of Vision-Language-Action Policy and World Model ",
+        "text_level": 1,
+        "bbox": [
+            140,
+            109,
+            833,
+            154
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Yanjiang Guo 1 2 \\* Tony Lee 1 \\* Lucy Xiaoyang Shi 1 \\* Jianyu Chen 2 Percy Liang 1 Chelsea Finn 1 ",
+        "bbox": [
+            133,
+            195,
+            831,
+            212
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Abstract ",
+        "text_level": 1,
+        "bbox": [
+            243,
+            239,
+            318,
+            256
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "The goal of this paper is to improve the performance and reliability of vision-language-action (VLA) models through iterative online interaction. Since collecting policy rollouts in the real world is expensive, we investigate whether a learned simulator—specifically, an action-conditioned video generation model—can be used to generate additional rollout data. Unfortunately, existing world models lack the physical fidelity necessary for policy improvement: they are predominantly trained on demonstration datasets that lack coverage of many different physical interactions (particularly failure cases) and struggle to accurately model small yet critical physical details in contact-rich object manipulation. We propose a simple iterative improvement algorithm that uses real-world roll-out data to improve the fidelity of the world model, which can then, in turn, be used to generate supplemental synthetic data for improving the VLA model. In our experiments on a real robot, we use this approach to improve the performance of a state-of-the-art VLA model on multiple downstream tasks. We achieve a $3 9 . 2 \\%$ absolute success rate improvement over the base policy and $1 1 . 6 \\%$ improvement from training with the generated synthetic rollouts. Videos can be found at this anonymous website: https://sites. google.com/view/vlaw-arxiv. ",
+        "bbox": [
+            120,
+            262,
+            442,
+            684
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "1. Introduction ",
+        "text_level": 1,
+        "bbox": [
+            89,
+            712,
+            215,
+            728
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Vision-language-action (VLA) models have achieved great success in robot manipulation by training on large-scale demonstration data (Intelligence et al., 2025b; Kim et al., 2024; Shi et al., 2025; Guo et al., 2025b; Zhang et al., 2024; Chen et al., 2025). Recent studies further show that VLA models can benefit substantially from post-training on online interaction rollous (Intelligence et al., 2025a). However, in real-world robotic settings, collecting online policy rollout trajectories requires significant human labor, such as resetting the environment and monitoring robot execution, which is expensive and time-consuming (Atreya et al., 2025; Jain et al., 2025). As a result, the number of online rollouts available for VLA models is often limited, restricting the effectiveness and scalability of post-training. ",
+        "bbox": [
+            89,
+            738,
+            473,
+            843
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "image",
+        "img_path": "images/1a0b6496130bf42cbf9395cfa1b9bd88a87f16bb485a255a1ea5b855941ee029.jpg",
+        "image_caption": [
+            "Figure 1. VLA model roll-outs in the real world are timeconsuming and unscalable. In VLAW, we first learn an actionconditioned world model using limited real-world online rollouts, which in turn generates large-scale synthetic data in imagination. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            504,
+            239,
+            882,
+            522
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            501,
+            611,
+            885,
+            717
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Instead of relying solely on real-world policy rollouts, learning an action-conditioned world model to generate synthetic rollouts in imagination offers a promising alternative (Team et al., 2025; Li et al., 2024; Team, 2025b). However, we find that existing world models lack the physical fidelity required for effective policy improvement. As noted in prior works, these models tend to be overly optimistic about predicted trajectories, as they are trained predominantly on demonstration datasets that lack coverage of diverse physical interactions, especially failure cases (Quevedo et al., 2025). Moreover, they struggle to accurately model small yet critical physical details in contact-rich manipulation and can produce blurry visual predictions (Guo et al., 2025a). Consequently, existing action-conditioned world models have largely focused on relatively simple pick-and-place motions and often fail to generate reliable synthetic data for complex tasks involving frequent collisions or deformable objects. ",
+        "bbox": [
+            501,
+            724,
+            885,
+            905
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "\\*Core contributors 1Stanford University 2Tsinghua University. Correspondence to: Yanjiang Guo <yjguo@stanford.edu>. ",
+        "bbox": [
+            88,
+            853,
+            473,
+            880
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            24,
+            273,
+            62,
+            719
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "Preprint. February 17, 2026. ",
+        "bbox": [
+            88,
+            892,
+            258,
+            905
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            482,
+            922,
+            490,
+            934
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            89,
+            85,
+            473,
+            175
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "In this paper, we propose a simple yet scalable framework, VLAW, that iteratively improves VLA models via worldmodel rollouts, as shown in Figure 2. We first learn a physically-grounded world model by finetuning on online rollout data, which includes many failure cases. We find that after training on online rollout data, the world model learns to capture the complex dynamics encountered during policy execution, substantially improving its ability to model both success and failure cases. The improved world model is subsequently used to generate large-scale, high-fidelity synthetic trajectories, which are automatically annotated using a vision–language reward model (Lee et al., 2026). During policy optimization, we only use stable supervised learning objectives that can easily scale to large expressive models (e.g., flow-matching policies with intractable action probabilities (Intelligence et al., 2025b)), as opposed to dynamic programming/bootstrapping or policy gradients. ",
+        "bbox": [
+            89,
+            183,
+            473,
+            439
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "The core contribution of this paper is a simple and scalable world-model-based reinforcement learning framework for improving state-of-the-art VLA policies in the real world. In our experiments, we use the widely used real-robot platform DROID (Khazatsky et al., 2024). We start from a pretrained VLA policy, $\\pi _ { 0 . 5 }$ (Intelligence et al., 2025b) and an action-conditioned world model, Ctrl-World (Guo et al., 2025a). We first verify that, using policy online rollout data, we learn a physically grounded generative world model that can accurately model both success and failure trajectories, which is essential for generating useful synthetic data. In addition, to obtain a reward model for robot tasks, we fine-tune Qwen3-VL (Team, 2025a; Lee et al., 2026) on real-robot rollout data. Finally, using the synthetic data generated by the world model, we improve the pretrained $\\pi _ { 0 . 5 }$ across many downstream contact-rich manipulation tasks that involve deformable objects in a multi-task setup, outperforming baseline with $1 1 . 6 \\%$ . ",
+        "bbox": [
+            89,
+            446,
+            473,
+            718
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "2. Related Works ",
+        "text_level": 1,
+        "bbox": [
+            88,
+            738,
+            233,
+            755
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "2.1. Post-training Vision-Language-Action Models ",
+        "text_level": 1,
+        "bbox": [
+            89,
+            763,
+            437,
+            780
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Vision–language–action (VLA) models have achieved remarkable success in robotic manipulation tasks (Intelligence et al., 2025b; Pertsch et al., 2025; Liu et al., 2025a; Cui et al., 2025; Hu et al., 2024; Guo et al., 2024; Zhang et al., 2026). A common approach is to train the VLA on largescale data and then perform supervised fine-tuning on target tasks (Zhang et al., 2025a; Black et al., 2024; Zhang et al., ",
+        "bbox": [
+            88,
+            787,
+            473,
+            893
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "image",
+        "img_path": "images/070ac6acefcb65430e2abb56f6111926f4a3411c0d30e91fe02d6869d3377a90.jpg",
+        "image_caption": [
+            "Figure 2. Policy online rollout data can help ground the pretrained world model in downstream tasks. Once the world model is grounded, we can generate massive data for policy learning. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            509,
+            82,
+            882,
+            190
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "2025b). Beyond supervised fine-tuning, improving VLA policies using online rollout data has emerged as a promising direction (Intelligence et al., $2 0 2 5 \\mathrm { a }$ ; Guo et al., 2025b; Lu et al., 2025; Zang et al., 2025; Huang et al., 2024; Cheng et al., 2025). Some prior works adopt on-policy reinforcement learning methods, such as PPO (Schulman et al., 2017) or GRPO (Shao et al., 2024), to improve VLA policies. ",
+        "bbox": [
+            501,
+            247,
+            885,
+            352
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "However, standard on-policy reinforcement learning typically requires a large number of rollouts and is therefore primarily validated in simulation environments (Li et al., 2025b;a; Liu et al., 2025b). Moreover, state-of-theart VLA models are often trained with flow-matching objectives, which do not provide explicit policy likelihoods, making conventional policy-gradient methods difficult to apply. To enable policy learning in real-world settings, $\\pi _ { 0 . 6 } ^ { * }$ (Intelligence et al., 2025a) instead adopts an offline or batch reinforcement learning formulation with an advantageconditioned supervised learning objective. Similarly, in our setting, we perform iterative policy improvement using batches of real-world rollout data together with worldmodel–generated synthetic data, and update the policy exclusively through stable supervised fine-tuning objectives. ",
+        "bbox": [
+            501,
+            361,
+            885,
+            585
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "2.2. World Models for Decision Making ",
+        "text_level": 1,
+        "bbox": [
+            503,
+            602,
+            774,
+            617
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Action-conditioned world models predict future outcomes given current observations and actions, and are also referred to as forward dynamics models. Many works leverage such models for model-based reinforcement learning (Hafner et al., 2020; Hansen et al., 2022; Oh et al., 2015; Wu et al., 2024) and visual planning (Finn & Levine, 2017; Ebert et al., 2018; Xie et al., 2019; Dasari et al., 2019; Yang et al., 2023). Among these, the most closely related approaches to ours are DayDreamer (Wu et al., 2023), SOLAR (Zhang et al., 2019) and World4rl (Jiang et al., 2025), which also operate in realworld visual model-based reinforcement learning settings. However, due to limited model capacity and data scale, these earlier methods often learned task-specific dynamics models. ",
+        "bbox": [
+            501,
+            626,
+            885,
+            837
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "With recent advances in video diffusion models (Ren et al., 2025; Ball et al., 2025; Mei et al., 2026), it has become feasible to train multi-task action-conditioned world models that can generate realistic future visual observations (Chen et al., ",
+        "bbox": [
+            500,
+            845,
+            885,
+            905
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "discarded",
+        "text": "VLAW ",
+        "bbox": [
+            462,
+            58,
+            506,
+            68
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            482,
+            922,
+            491,
+            934
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "image",
+        "img_path": "images/4c94b6400adfaca4ef97e0ccaa83e70632d70a670bdc9b7a7e9be76efe32bbd3.jpg",
+        "image_caption": [
+            "Figure 3. Detailed pipeline for VLAW: (1) We first roll out the policy in the real world to collect a small set of online trajectories. (2) We then fine-tune a pretrained action-conditioned world model on these policy rollout data, grounding the world model in the target tasks and improving its predictive fidelity. (3) Using the resulting world model, we generate large-scale synthetic trajectories through closed-loop interactions between the policy and the world model. (4) Finally, we optimize the VLA policy using both real-world and synthetic data, with reward automatically assessed by a vision–language reward model. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            96,
+            83,
+            880,
+            244
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "2024; Gao et al., 2025; Zhu et al., 2024; 2025; Sharma et al., 2026). Despite this progress, accurately modeling complex physical dynamics remains a fundamental challenge, as widely observed in prior world-model literature (Guo et al., 2025a), likely because these models are trained on offline robotics datasets usually consisting primarily of demonstrations. To address this challenge, we leverage online policy rollout data to ground a pretrained world model in new environments, thereby improving its accuracy around the policy’s state–action distribution. ",
+        "bbox": [
+            88,
+            329,
+            473,
+            479
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "3. Preliminaries ",
+        "text_level": 1,
+        "bbox": [
+            89,
+            500,
+            222,
+            516
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Problem Setting. We study a multi-task robotic manipulation problem, where each task is specified by a language instruction $I$ and is modeled as a Markov decision process (MDP) $\\mathcal { M } _ { I } = ( \\mathcal { S } , \\mathcal { A } , P , R _ { I } , \\gamma )$ . Here, $s$ denotes the state space, $\\mathcal { A }$ the action space, $P ( s _ { t + 1 } \\mid s _ { t } , a _ { t } )$ the transition dynamics, $R _ { I }$ the task-dependent reward function, and $\\gamma$ the discount factor. At the beginning of training, we are given a pretrained vision–language–action (VLA) policy $\\pi _ { \\theta }$ and an action-conditioned world model $M _ { \\phi }$ . The policy maps the current state and instruction to an action distribution, $a _ { t } \\sim \\pi _ { \\theta } ( \\cdot \\mid s _ { t } , I )$ , while the world model predicts the next state conditioned on the current state and action, $\\hat { s } _ { t + 1 } \\sim M _ { \\phi } ( \\cdot \\mid s _ { t } , a _ { t } )$ , where $\\hat { s } _ { t + 1 }$ denotes the predicted next state. ",
+        "bbox": [
+            88,
+            526,
+            473,
+            737
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "The policy is allowed to collect online roll-outs in the real environment, resulting in trajectories $\\tau _ { \\mathrm { r e a l } } ^ { i } ~ =$ $\\left\\{ s _ { 0 } , a _ { 0 } , \\dots , a _ { T - 1 } , s _ { T } \\right\\}$ . Each trajectory is labeled with a task-level reward $r _ { i }$ indicating success or failure. Our goal is to leverage online interaction to iteratively improve the policy so that it performs well across all tasks. ",
+        "bbox": [
+            89,
+            744,
+            473,
+            835
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "World Model Generated Trajectories. In addition to real-world interaction, we can roll out the policy inside the world model. Starting from an initial state $s _ { 0 }$ sampled from a real trajectory, the policy and world model interact in a closed loop via $\\begin{array} { r } { \\boldsymbol { a } _ { t } { \\bf \\Pi } \\sim \\pi _ { \\boldsymbol { \\theta } } ( { \\bf \\cdot } { \\bf \\Pi } | { \\bf \\hat { \\sigma } } _ { } \\hat { s } _ { t } , I ) } \\end{array}$ and $\\hat { s } _ { t + 1 } \\sim M _ { \\phi } ( \\cdot \\ | \\hat { s } _ { t } , a _ { t } )$ . By iterating this process, we auto-regressively generate a complete imagined trajectory $\\tau _ { \\mathrm { s y n } } ^ { j } = \\{ s _ { 0 } , a _ { 0 } , \\hat { s } _ { 1 } , a _ { 1 } , \\dotsc , a _ { T - 1 } , \\hat { s } _ { T } \\}$ . ",
+        "bbox": [
+            88,
+            861,
+            473,
+            905
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            500,
+            330,
+            885,
+            406
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "4. Co-Improvement of VLA and World Model ",
+        "text_level": 1,
+        "bbox": [
+            500,
+            424,
+            883,
+            440
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "In this section, we describe the details of our method. The overall pipeline consists of the following steps: ",
+        "bbox": [
+            500,
+            450,
+            883,
+            479
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "1. World model post-training (Sec. 4.1): We finetune the world model $M$ using real-world rollout data $\\mathcal { D } _ { \\mathrm { r e a l } }$ , jointly training it with the original DROID dataset $\\mathcal { D } _ { \\mathrm { { D R O I D } } }$ to maintain broad coverage. In addition, we finetune the vision-language reward model $R$ on $\\mathcal { D } _ { \\mathrm { r e a l } }$ to improve reward accuracy.   \n2. VLA policy post-training (Sec. 4.2): Using the updated world model, we generate a synthetic dataset $\\mathcal { D } _ { \\mathrm { s y n } }$ and apply the reward model $R$ to identify successful trajectories, yielding a filtered dataset $\\mathcal { D } _ { \\mathrm { s y n } } ^ { + }$ . This dataset is then used to finetune the VLA policy.   \n3. We alternate between Steps 1 and 2, iteratively improving both the world model and the policy. ",
+        "bbox": [
+            511,
+            489,
+            887,
+            689
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "The overall pipeline is summarized in Algorithm 1 and Figure 3. In Sec. 4.3, we provide a detailed analysis showing that our update procedure can be interpreted as an approximation to policy optimization under a regularized reinforcement learning framework. ",
+        "bbox": [
+            500,
+            699,
+            885,
+            775
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "4.1. World Model Learning with Real Roll-outs ",
+        "text_level": 1,
+        "bbox": [
+            501,
+            791,
+            830,
+            806
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Real World Policy Roll-outs. Previous work has identified two major challenges in learning effective world models: (1) over-optimism, as training data is dominated by successful demonstrations; and (2) limited physical fidelity, particularly when modeling complex dynamics involving frequent contacts or deformable objects. ",
+        "bbox": [
+            501,
+            815,
+            885,
+            905
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "discarded",
+        "text": "VLAW ",
+        "bbox": [
+            462,
+            58,
+            506,
+            68
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            482,
+            922,
+            491,
+            934
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "To address these issues, we get $K$ trajectories by rolling out the policy in the real world, forming a dataset $\\mathcal { D } _ { \\mathrm { r e a l } } =$ $\\{ \\tau _ { \\mathrm { r e a l } } ^ { 1 } , . . . , \\tau _ { \\mathrm { r e a l } } ^ { K } \\}$ , we also assign a sparse reward $r _ { \\tau } \\in \\{ 0 , 1 \\}$ to each trajectory to indicate success or not every time we reset robot. ",
+        "bbox": [
+            88,
+            85,
+            473,
+            160
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Training Objective. $\\mathcal { D } _ { \\mathrm { r e a l } }$ captures diverse physical interactions encountered during execution, including both success and failure cases, and is used to finetune a pretrained world model. Specifically, we initialize from the pretrained CtrlWorld model (Guo et al., 2025a), a strong diffusion-based world model trained on the full DROID dataset $\\mathcal { D } _ { \\mathrm { { D R O I D } } }$ Finetuning on the online rollout dataset $\\mathcal { D } _ { \\mathrm { r e a l } }$ follows the original diffusion objective (Blattmann et al., 2023): ",
+        "bbox": [
+            88,
+            167,
+            473,
+            289
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "img_path": "images/c1f0585474eb5dd70005d73d582e16780e93a5cf0b425e1f2cf9d66f3dd92442.jpg",
+        "text": "$$\n\\mathcal { L } _ { \\mathcal { D } _ { \\mathrm { r e a l } } } = \\mathbb { E } _ { x _ { 0 } , \\epsilon , t ^ { \\prime } } \\left\\| \\hat { x } _ { 0 } ( x _ { t ^ { \\prime } } , t ^ { \\prime } , c ) - x _ { 0 } \\right\\| ^ { 2 } ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            145,
+            296,
+            415,
+            318
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "where the prediction target $x _ { 0 } = o _ { t + 1 : t + H }$ is sampled from $\\mathcal { D } _ { \\mathrm { r e a l } }$ , $x _ { t ^ { \\prime } } = \\sqrt { \\bar { \\alpha } _ { t ^ { \\prime } } } x _ { 0 } + \\sqrt { 1 - \\bar { \\alpha } _ { t ^ { \\prime } } } \\epsilon _ { t ^ { \\prime } }$ denotes the noised future at diffusion step $t ^ { \\prime } \\in [ 0 , T ^ { \\prime } ]$ under the noise schedule $\\bar { \\alpha } _ { t ^ { \\prime } }$ , and $c$ represents all conditioning inputs, including the action chunk $a _ { t : t + H }$ and the current observation $o _ { t }$ . ",
+        "bbox": [
+            88,
+            327,
+            473,
+            401
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Progressively Growing Dataset and Co-training. During successive iterations, we continuously append newly collected real-world trajectories into the dataset: $\\mathcal { D } _ { \\mathrm { r e a l } } =$ $\\mathcal { D } _ { \\mathrm { r e a l } } \\cup \\tau _ { \\mathrm { r e a l } } ^ { i }$ . To prevent overfitting to the limited online rollout data, we also co-train with the original DROID dataset $\\mathcal { D } _ { \\mathrm { { D R O I D } } }$ for regularization. The final training objective is: ",
+        "bbox": [
+            88,
+            410,
+            473,
+            500
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "img_path": "images/49c8a59a61297b2806a4581b098fbf0f7eccd421c7fd45126bdd2bc9a528a595.jpg",
+        "text": "$$\n\\mathcal { L } = \\mathcal { L } _ { \\mathcal { D } _ { \\mathrm { r e a l } } } + \\lambda \\mathcal { L } _ { \\mathcal { D } _ { \\mathrm { D R O I D } } }\n$$",
+        "text_format": "latex",
+        "bbox": [
+            196,
+            510,
+            364,
+            527
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "where $\\lambda$ controls the strength of the regularization. ",
+        "bbox": [
+            88,
+            536,
+            419,
+            551
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Finetuning Reward Model. To keep our pipeline simple and scalable, we leverage a general-purpose vision-language model, Qwen3-VL-4B-Instruct (Team, 2025a; Lee et al., 2026), to assess whether a trajectory succeeds or not. However, we find that the zero-shot VLM is not accurate enough, so in the first iteration, we fine-tune the VLM with the success labels $r _ { \\tau }$ in $\\mathcal { D } _ { \\mathrm { r e a l } }$ . ",
+        "bbox": [
+            88,
+            559,
+            473,
+            665
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "In implementation, the reward model takes as input a trajectory video $\\tau _ { \\mathrm { r e a l } } ^ { i }$ together with a query asking whether the task instruction $I ^ { i }$ is successfully completed. We classify a trajectory as successful if the probability assigned to the $\\cdot _ { \\mathrm { y e s ^ { \\prime } } }$ token exceeds a threshold $\\alpha$ . By adjusting $\\alpha$ , we can make the reward model more or less conservative. ",
+        "bbox": [
+            88,
+            672,
+            473,
+            762
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "img_path": "images/d0c8311a3bfa7c5dedd22a52dc3e212751cd73a7d5ca5c6889393f73ae09a36f.jpg",
+        "text": "$$\nR ( \\tau ^ { i } ) = \\mathbf { 1 } \\big [ P ( \\textsf { \\mathfrak { v } } _ { \\mathtt { Y } \\ominus { \\cal S } } , \\ | \\ \\tau ^ { i } , I ^ { i } ) > \\alpha \\big ] ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            150,
+            770,
+            410,
+            791
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "4.2. Iterative Improvement for VLA Policy ",
+        "text_level": 1,
+        "bbox": [
+            89,
+            806,
+            385,
+            821
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Scalable Training Pipeline. Once we have a good learned world model and reward model, then we can use it to cheaply generate a large amount of synthetic data. In principle, many different algorithms could be used to leverage this data, including a variety of sophisticated reinforcement learning ",
+        "bbox": [
+            88,
+            829,
+            473,
+            905
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Algorithm 1 VLAW ",
+        "text_level": 1,
+        "bbox": [
+            500,
+            85,
+            637,
+            99
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Require: Pretrained VLA policy $\\pi _ { \\theta }$ ; pretrained world model $M _ { \\phi }$ ; reward model $R$ ; real-world rollout budget $K$ ; synthetic rollout budget $N$ ; iterations $K _ { \\mathrm { i t e r } }$ ; reward threshold $\\alpha$   \nOutput: Post-trained policy $\\pi _ { \\theta }$ and world model $M _ { \\phi }$   \n1: Initialize real-world dataset $\\mathcal { D } _ { \\mathrm { r e a l } }  \\emptyset$ 2: for $i = 1$ to $K _ { \\mathrm { i t e r } }$ do   \n3: (1) Real-world rollouts   \n4: Roll out $\\pi _ { \\theta }$ in the real world to collect $\\tau _ { \\mathrm { r e a l } } ^ { 1 } , \\ldots , \\tau _ { \\mathrm { r e a l } } ^ { K }$   \n5: Append collected trajectories to $\\mathcal { D } _ { \\mathrm { r e a l } }$ , success trajectories in D+   \n6: (2) World model and reward model post-training   \n7: Update $M _ { \\phi }$ using $\\mathcal { D } _ { \\mathrm { r e a l } }$ and $\\mathcal { D } _ { \\mathrm { { D R O I D } } }$ according to Eq. (1) and Eq. (2)   \n8: (3) Synthetic rollout generation with reward label   \n9: Roll out πθ in Mϕ to generate Dsyn = τ 1syn, . . . , τ Nsyn   \n10: Apply reward model $R$ with threshold $\\alpha$ (Eq. (3)) to obtain $\\mathcal { D } _ { \\mathrm { s y n } } ^ { + }$   \n11: (4) Policy post-training   \n12: Update $\\pi _ { \\theta }$ on $\\mathcal { D } _ { \\mathrm { r e a l } } ^ { + } \\cup \\mathcal { D } _ { \\mathrm { s y n } } ^ { + }$ using the flow-matching objective in Eq. (4)   \n13: end for   \n14: return $\\pi _ { \\theta }$ , $M _ { \\phi }$ ",
+        "bbox": [
+            501,
+            102,
+            887,
+            457
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "methods. Because we want to easily scale to large, flowmatching based VLA policies, we choose to use the one of the simplest possible methods for incorporating this synthetic data. ",
+        "bbox": [
+            500,
+            483,
+            885,
+            542
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Specifically, we generate $N$ trajectories by rolling out the policy in imagination: $\\mathcal { D } _ { \\mathrm { s y n } } = \\{ \\tau _ { s y n } ^ { 1 } , . . . , \\tau _ { s y n } ^ { N } \\}$ ., τ Nsyn}. We then apply the finetuned reward model to identify successful trajectories and construct a filtered dataset containing only success cases: $\\mathcal { D } _ { \\mathrm { s y n } } ^ { + } = \\{ \\tau _ { s y n } ^ { i _ { 1 } } , . . . , \\tau _ { s y n } ^ { i _ { n } } \\}$ , where $i _ { 1 } , . . . , i _ { n }$ is the index of success trajectory. ",
+        "bbox": [
+            500,
+            551,
+            885,
+            642
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Policy Learning Objective. We update the $\\pi _ { 0 . 5 }$ policy using a weighted flow-matching objective over both realworld rollouts and world-model–generated data. After filtering for successful trajectories, we assign a binary weight $w ( o , a ) = 1$ to transitions from successful trajectories and $w ( o , a ) = 0$ to transitions from failed trajectories: ",
+        "bbox": [
+            500,
+            650,
+            885,
+            739
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "img_path": "images/ff48781635dbbe9114a593450316ef0f6e2c3100773ed8bac53d5341db9eda7e.jpg",
+        "text": "$$\n\\begin{array} { r l } & { \\mathcal { L } = \\mathbb { E } _ { ( o , a ) \\sim \\mathcal { D } _ { \\mathrm { s y n } } \\cup \\mathcal { D } _ { \\mathrm { r e a l } } } w ( o , a ) \\mathcal { L } _ { \\mathrm { F M } } ( \\theta ; o , a ) } \\\\ & { \\quad = \\mathbb { E } _ { ( o , a ) \\sim \\mathcal { D } _ { \\mathrm { s y n } } ^ { + } \\cup \\mathcal { D } _ { \\mathrm { r e a l } } ^ { + } } \\mathcal { L } _ { \\mathrm { F M } } ( \\theta ; o , a ) , } \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            545,
+            751,
+            838,
+            795
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "where $\\mathcal { L } _ { \\mathrm { F M } } ( \\theta ; o , a )$ denotes the flow-matching loss for an observation–action pair $( o , a )$ . ",
+        "bbox": [
+            500,
+            805,
+            885,
+            835
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "4.3. Relation to Regularized Reinforcement Learning ",
+        "text_level": 1,
+        "bbox": [
+            500,
+            852,
+            870,
+            867
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "In this subsection, we show that the policy update in Eq. 4 can be view as policy optimization under a regularized reinforcement learning (RL) framework (Peng et al., 2019) with certain approximations. ",
+        "bbox": [
+            500,
+            876,
+            885,
+            905
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "discarded",
+        "text": "VLAW ",
+        "bbox": [
+            462,
+            58,
+            506,
+            69
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            480,
+            924,
+            490,
+            934
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "image",
+        "img_path": "images/ee5005add94ba4b0a500ca49033d84c0c4cd88908db1ca32baea4da9d3a925d8.jpg",
+        "image_caption": [
+            "Figure 4. Our experiments are conducted on the DROID platform and cover five task categories, as illustrated in the figure. These tasks involve complex physical interactions, including frequent contact and deformable objects, which are challenging to model in traditional simulations. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            91,
+            85,
+            882,
+            217
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            89,
+            291,
+            473,
+            320
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Under the regularized RL setting, we constrains the learned policy to remain close to a reference policy $\\pi _ { \\mathrm { r e f } }$ while optimizing reward. This yields the following regularized objective: ",
+        "bbox": [
+            88,
+            329,
+            475,
+            388
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "img_path": "images/cebe63e9823125b088b120d161e75da31f69c2d2a7a458b60b610de14fb31e08.jpg",
+        "text": "$$\nJ ( \\theta ) = \\mathbb { E } _ { \\tau \\sim \\rho _ { \\pi _ { \\theta } } } [ R ( \\tau ) ] - \\beta \\mathbb { E } _ { o \\sim \\rho _ { \\pi _ { \\theta } } } [ D ( \\pi _ { \\theta } ( \\cdot \\vert o ) \\Vert \\pi _ { \\mathrm { r e f } } ( \\cdot \\vert o ) ) ]\n$$",
+        "text_format": "latex",
+        "bbox": [
+            86,
+            396,
+            491,
+            416
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "where $D ( \\cdot \\| \\cdot )$ denotes a KL divergence measure and $\\beta > 0$ controls the strength of the regularization. The optimal improved policy admits a closed-form solution given by: ",
+        "bbox": [
+            88,
+            429,
+            475,
+            473
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "img_path": "images/bedb2b4980f6ad947a909ba1a4956b5f1ded4936a5186b2502686ac248368490.jpg",
+        "text": "$$\n\\pi ^ { \\star } ( a \\mid o ) \\propto w ( o , a ) \\pi _ { \\mathrm { r e f } } ( a \\mid o ) , w ( o , a ) = \\exp \\left( \\frac { A ^ { \\pi _ { \\mathrm { r e f } } } ( o , a ) } { \\beta } \\right)\n$$",
+        "text_format": "latex",
+        "bbox": [
+            88,
+            479,
+            491,
+            515
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "where $\\pi _ { \\mathrm { r e f } }$ denotes a reference policy, and $A ^ { \\pi _ { \\mathrm { r e f } } } \\left( o , a \\right)$ is the corresponding advantage function, and $\\beta$ is a temperature parameter controlling the strength of the regularization. We can define a surrogate divergence which measures how well $\\pi _ { \\theta }$ matches samples drawn from $\\pi ^ { \\star }$ under the flow-matching loss: ",
+        "bbox": [
+            88,
+            520,
+            473,
+            609
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "img_path": "images/9a5546ba327fbec1814b2143d979db99e666db5036de3ac4b24a7aa9a3f7ee95.jpg",
+        "text": "$$\nD _ { \\mathrm { F M } } ( \\pi ^ { \\star } ( \\cdot \\mid o ) , \\pi _ { \\theta } ( \\cdot \\mid o ) ) \\triangleq \\mathbb { E } _ { a \\sim \\pi ^ { \\star } ( \\cdot \\mid o ) } \\big [ \\mathcal { L } _ { \\mathrm { F M } } ( \\theta ; o , a ) \\big ] ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            94,
+            616,
+            465,
+            637
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Using this divergence, we can project policy to the optimal solution with : ",
+        "bbox": [
+            86,
+            650,
+            472,
+            679
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "img_path": "images/f16301710b395282c90eb32745995cf030f48a4171707a7b43af059a0fbdab80.jpg",
+        "text": "$$\n\\theta ^ { \\star } = \\arg \\operatorname* { m i n } _ { \\theta } \\ \\mathbb { E } _ { ( o , a ) \\sim \\mathcal { D } } \\Big [ w \\big ( o , a \\big ) \\mathcal { L } _ { \\mathrm { F M } } \\big ( \\theta ; o , a \\big ) \\Big ] ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            104,
+            683,
+            421,
+            710
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "which is the weighted regression objective used in our policy update equation 4. More detailed derivations are provided in Appendix A. ",
+        "bbox": [
+            88,
+            717,
+            473,
+            762
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "5. Experiments ",
+        "text_level": 1,
+        "bbox": [
+            88,
+            781,
+            217,
+            799
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "In this section, we conduct extensive experiments on complex real-world tasks involving frequent collisions and deformable objects. Our experiments are designed to answer the following questions: ",
+        "bbox": [
+            88,
+            808,
+            473,
+            867
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "1. Can we learn a high-fidelity action-conditioned world model for contact-rich and deformable-object tasks ",
+        "bbox": [
+            101,
+            876,
+            472,
+            905
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "that accurately models both successful and failed trajectories?   \n2. Can the synthetic data generated by the world model improve VLA policy performance?   \n3. Can the policy and world model be continuously improved through an iterative training process in a multitask setting? ",
+        "bbox": [
+            511,
+            292,
+            887,
+            402
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "5.1. Experimental Settings ",
+        "text_level": 1,
+        "bbox": [
+            500,
+            412,
+            684,
+            428
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Setups and Tasks. We conduct experiments on the DROID platform (Khazatsky et al., 2024). In the DROID setup, a Franka Panda arm is equipped with a Robotiq gripper. Observations are captured using two third-person cameras and one wrist-mounted camera, as illustrated in Figure 4. We evaluate our method on five categories of contact-rich tasks, described below. More task details can be found in Appendix B. ",
+        "bbox": [
+            500,
+            436,
+            885,
+            556
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "• Stacking: Four colored blocks are randomly placed on the table at the beginning of each episode. The robot receives the instruction: “stack block $A$ on block $B$ ,” where $A , B \\in$ {red, green, blue, yellow}.   \n• Open Book: A book is randomly placed on the table at the start of each episode. We evaluate performance across four different books. The robot is instructed to “open the book cover.”   \n• Erase Marks: One to three marker drawings are randomly drawn on a whiteboard. The robot receives the instruction: “erase all marks using a tissue.”   \n• Scooping: The robot uses a scoop to transfer snacks into a bowl. Both the scoop and the bowl are randomly placed within the workspace. The instruction is: “transfer some $A$ to the bowl,” where $A \\ \\in$ {peanuts, candies, almonds}.   \n• Drawing: The robot is instructed to draw a complete circle on a whiteboard using a marker. ",
+        "bbox": [
+            517,
+            560,
+            885,
+            843
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Base Models and Hyperparameters. We use $\\pi _ { 0 . 5 }$ (Intelligence et al., 2025b) as the base vision–language–action (VLA) model and Ctrl-World (Guo et al., 2025a) as the base world model. For each task category, we collect 25 expert demonstrations and finetune $\\pi _ { 0 . 5 }$ on this data to warm-start the policy, which serves as our base policy. The reward model is initialized from Qwen3-VL-4B-Instruct (Team, 2025a). ",
+        "bbox": [
+            500,
+            845,
+            885,
+            905
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "discarded",
+        "text": "VLAW ",
+        "bbox": [
+            462,
+            58,
+            506,
+            68
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            482,
+            922,
+            491,
+            934
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "image",
+        "img_path": "images/9cf345b746d1a60bcd9612769422fb840ff896444b084da6acbe652a37e78daa.jpg",
+        "image_caption": [
+            "Figure 5. Examples of long-horizon policy-in-the-loop rollouts within the world model starting from the initial observation. The policy $\\pi _ { 0 . 5 }$ is rolled out for 20 iterations (20 seconds). The post-trained world model accurately captures contact-rich physical dynamics. Top: scooping peanuts into a new bowl. Bottom: erasing marker drawings with a tissue. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            94,
+            79,
+            879,
+            277
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "table",
+        "img_path": "images/bf098ebf747368f62082f1eea7043122a82edb01b39da780802b3220117822b3.jpg",
+        "table_caption": [
+            "Table 1. We replay recorded action sequences in the world model. (1) We evaluate video quality metrics on 256 replayed clips, each 5 seconds long. All metrics are computed using the wrist-view camera, as this viewpoint best captures object interactions during manipulation. (2) The interaction phase is the primary source of errors. Therefore, we report an event-level confusion matrix on 50 clips involving physical interactions. For each clip, we label the interaction outcome (success or failure) and compare the model predictions against real-world outcomes. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td rowspan=\"2\">Method</td><td colspan=\"5\">(1) Video Quality Metrics</td><td colspan=\"4\">(2) Event Confusion Matrix</td></tr><tr><td>PSNR ↑</td><td>SSIM↑</td><td>LPIPS ↓</td><td>FID ↓</td><td>FVD ↓</td><td>TP ↑</td><td>FN↓</td><td>TN ↑</td><td>FP↓</td></tr><tr><td>Pretrained Ctrl-world</td><td>16.32</td><td>0.634</td><td>0.347</td><td>41.03</td><td>225.13</td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr><td>Pretrained Ctrl-world + Expert Rollout</td><td>19.87</td><td>0.748</td><td>0.189</td><td>12.76</td><td>99.98</td><td>28</td><td>2</td><td>9</td><td>11</td></tr><tr><td>Pretrained Ctrl-world + Expert Rollout + Online Rollout</td><td>21.77</td><td>0.784</td><td>0.136</td><td>9.58</td><td>64.12</td><td>26</td><td>4</td><td>19</td><td>1</td></tr></table>",
+        "bbox": [
+            129,
+            340,
+            841,
+            462
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            88,
+            546,
+            473,
+            606
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "In each iteration, we roll out 50 trajectories per task category in the real world. We finetune the world model for 50K training steps using these rollout trajectories. We then generate 500 synthetic trajectories per task using the updated world model to form the synthetic dataset. The reward model is additionally finetuned using rollout data from the first iteration to improve reward accuracy. The policy is updated with 2k steps with batch size 256. We perform a total of two iterations of this procedure. ",
+        "bbox": [
+            89,
+            614,
+            473,
+            748
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "5.2. Can we learn an accurate action-conditioned world model for contact-rich tasks? ",
+        "text_level": 1,
+        "bbox": [
+            88,
+            767,
+            472,
+            795
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Action replay inside the world model. We evaluate the fidelity of the learned world model and study the contribution of online rollout data by replaying real-world action sequences inside the world model. Specifically, we randomly select a starting frame from a real-world trajectory and auto-regressively feed a 5-second sequence of recorded action chunks to the world model, starting from the same frame. We compare our post-trained world model against two baselines: the original pretrained world model and a model finetuned only on expert demonstration data. ",
+        "bbox": [
+            89,
+            805,
+            473,
+            895
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            501,
+            546,
+            883,
+            606
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "We use two categories of metrics to quantitatively evaluate video prediction quality: ",
+        "bbox": [
+            500,
+            614,
+            883,
+            645
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "• (1) Video distance metrics: These include pixel-level metrics (PSNR (Hore & Ziou, 2010) and SSIM (Wang et al., 2004)) as well as learned perceptual and distributional metrics (LPIPS (Zhang et al., 2018), FID (Heusel et al., 2017), and FVD (Unterthiner et al., 2018)). ",
+        "bbox": [
+            517,
+            646,
+            885,
+            719
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "• (2) Interaction event confusion matrix: Correctly predicting the outcome of object interactions is the most challenging aspect of action-conditioned world modeling. We filter replayed clips that involve object interactions and classify each interaction as success or failure. We then evaluate whether the predicted outcome aligns with the real-world result. ",
+        "bbox": [
+            517,
+            723,
+            885,
+            828
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Quantitative results are reported in Table 1. Finetuning with online rollout data is crucial for world model performance: all video quality metrics improve substantially compared to both baselines. Moreover, by training on mixed success and failure trajectories, the world model largely eliminates the over-optimistic bias observed when training only on expert demonstrations. In particular, false-positive interaction predictions are significantly reduced. We provide qualitative visualizations of interaction replay in Figure 6. ",
+        "bbox": [
+            501,
+            830,
+            885,
+            905
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "discarded",
+        "text": "VLAW ",
+        "bbox": [
+            462,
+            58,
+            506,
+            69
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "discarded",
+        "text": "6 ",
+        "bbox": [
+            482,
+            924,
+            491,
+            934
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "image",
+        "img_path": "images/0955c0e8c1ef4c7b0c277fa69f2e1c44064559c34ea5ec4a64a38ec4748fd4cf.jpg",
+        "image_caption": [
+            "Figure 6. Conditioned on the same initial frame and identical action sequences (five chunks), we roll out trajectories inside different world models. The pretrained Ctrl-World model is insufficiently accurate for these contact-rich tasks. World models fine-tuned only on expert trajectories tend to be overly optimistic. In contrast, the world model fine-tuned on policy online rollout data accurately captures the underlying physical dynamics and is well aligned with real-world outcomes. Only the wrist-view camera is shown due to space limitations. Zoom in for better comparisons. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            133,
+            83,
+            843,
+            318
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "image",
+        "img_path": "images/813495cee0fb547bbf46ded051c7535bc120010d10f3a4d7cf50c91e05ed6361.jpg",
+        "image_caption": [
+            "Figure 7. Success Rate Improvement Comparison with Baselines. We perform two rounds of iterative training. “Ours-1” denotes the VLAW method after the first round of online rollouts. Overall, VLAW consistently outperforms both the filtered BC and DSRL baselines in the multi-task setting. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            125,
+            406,
+            849,
+            534
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            88,
+            590,
+            473,
+            650
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Policy-in-the-loop rollout. We further evaluate the world model by rolling out the policy directly inside the learned model. Although evaluated tasks involve complex, contactrich interactions, and we find that the post-trained world model maintains high visual fidelity and physical plausibility even for long-horizon rollouts of up to 20 seconds. Example rollouts are shown in Figure 5. This long-horizon stability enables effective search for successful trajectories within the world model, which we subsequently leverage for policy improvement. ",
+        "bbox": [
+            89,
+            659,
+            473,
+            809
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "5.3. Can world model generated data improve VLA policy performance? ",
+        "text_level": 1,
+        "bbox": [
+            88,
+            825,
+            446,
+            856
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Baselines. Our goal is to leverage real-world online interaction data to improve the VLA policy while minimizing physical rollouts. Under this setting, we compare our method against two baselines that do not utilize a world model: ",
+        "bbox": [
+            88,
+            864,
+            473,
+            895
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            500,
+            590,
+            885,
+            619
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "• (1) Filtered BC, which filters successful trajectories from real-world rollouts and performs supervised finetuning on these trajectories. We control the real world rollout number the same as our method for fair comparison (50 rollouts for each category of tasks). • (2) DSRL (Wagenmaker et al., 2025), which improves the $\\pi _ { 0 . 5 }$ policy by optimizing its noise space through online exploration, we control the online rollout number the same as other methods. ",
+        "bbox": [
+            517,
+            632,
+            887,
+            772
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Large-scale rollout visualizations. We visualize parallel rollouts generated by the world model in Figure 8. Starting from an initial frame recorded in the real world (GT), we search for successful trajectories entirely within the world model. These successful imagined trajectories provide additional supervision for policy learning, enabling the policy to progressively overcome failure cases and improve task performance. ",
+        "bbox": [
+            501,
+            785,
+            885,
+            905
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "discarded",
+        "text": "VLAW ",
+        "bbox": [
+            462,
+            58,
+            506,
+            68
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            482,
+            922,
+            490,
+            934
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "image",
+        "img_path": "images/6e36a1a4d16192047bb3511e5ad694fbbf558f4d9bc6591bd7a0f2b142bb90ab.jpg",
+        "image_caption": [
+            "Figure 8. GT denotes the real-world rollout, while $0 \\sim 1 4$ denotes diverse trajectories imagined by the world model, all rollouts from the same GT initial frame with $\\pi _ { 0 . 5 }$ . In the real-world rollout, the robot fails to grasp the scoop (left, GT) and fails to draw a complete circle (right, GT). With the help of a world model, we can search successful trajectories for failure cases, which can be useful for policy learning. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            111,
+            83,
+            864,
+            319
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Reward model analysis. We use a learned reward model to filter successful trajectories from world model–generated rollouts. As described in the method section, a trajectory is considered successful only if the probability assigned to the $\\setminus _ { \\mathrm { y e s ^ { \\prime } } }$ token exceeds a predefined threshold. This thresholding strategy substantially reduces false-positive trajectories. Additional details and analyses of the reward model are provided in Appendix C. ",
+        "bbox": [
+            89,
+            392,
+            473,
+            512
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Results. The success rate improvements are shown in Figure 7. DSRL achieves limited gains in our multi-task setting. We hypothesize that this is because reinforcement learning becomes significantly harder to optimize across diverse tasks, and because DSRL constrains optimization to the noise space of the $\\pi _ { 0 . 5 }$ policy rather than updating the model parameters directly, which limits the expressive capacity of the policy. Filtered BC improves performance over two iterations by leveraging successful real-world trajectories. In contrast, by generating large-scale synthetic rollouts and selectively filtering successful trajectories, VLAW achieves substantially larger performance gains across all tasks. ",
+        "bbox": [
+            89,
+            520,
+            473,
+            700
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Ablations. We conduct ablation studies on (1) the number of world model rollouts and (2) whether real-world rollout data is included during policy finetuning. We evaluate these ablations on the most challenging drawing task, with results shown in Figure 9. Reducing the amount of synthetic rollout data leads to noticeable performance degradation, and removing real-world success trajectories during finetuning further harms performance, highlighting the importance of both components. ",
+        "bbox": [
+            88,
+            709,
+            473,
+            844
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "image",
+        "img_path": "images/b33f632f37b7d3500d5dff97058e4a69d7cbe69a41823d686dd69932546d32ed.jpg",
+        "image_caption": [
+            "Figure 9. We conduct ablation studies on (1) the amount of synthetic data used for policy fine-tuning (reducing from 500 to 250 trajectories) and (2) whether real-world rollout data (50 trajectories) is included during fine-tuning. We observe that either decreasing the number of synthetic trajectories or removing the real-world dataset leads to a performance degradation. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            501,
+            387,
+            887,
+            518
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "6. Conclusions and discussions ",
+        "text_level": 1,
+        "bbox": [
+            501,
+            612,
+            754,
+            628
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "In this paper, we propose VLAW, an iterative improvement pipeline that jointly enhances both the vision–language–action (VLA) policy and the actionconditioned world model. We demonstrate that VLAW consistently improves performance across multiple contactrich manipulation tasks. Although the learned world model achieves high fidelity on the downstream tasks from which online data are collected, our current evaluation is limited to five task categories. Scaling online rollout data to a broader and more diverse set of tasks is a promising direction for future work. We believe that, as base video models continue to advance and large-scale robot interaction data become increasingly available, world-model-based training will provide a powerful new paradigm for learning generalist robotic policies. ",
+        "bbox": [
+            501,
+            638,
+            885,
+            864
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "discarded",
+        "text": "VLAW ",
+        "bbox": [
+            462,
+            58,
+            506,
+            68
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "discarded",
+        "text": "8 ",
+        "bbox": [
+            482,
+            922,
+            491,
+            934
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Impact Statement ",
+        "text_level": 1,
+        "bbox": [
+            89,
+            83,
+            238,
+            99
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "This paper presents work whose goal is to advance the field of Machine Learning. There are many potential societal consequences of our work, none which we feel must be specifically highlighted here. ",
+        "bbox": [
+            88,
+            109,
+            472,
+            169
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Acknowledgment ",
+        "text_level": 1,
+        "bbox": [
+            89,
+            189,
+            235,
+            205
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "This work was supported by The Robotics and AI Institute and ONR grant N00014-22-1-2621. ",
+        "bbox": [
+            88,
+            215,
+            472,
+            244
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "References ",
+        "text_level": 1,
+        "bbox": [
+            89,
+            265,
+            181,
+            281
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Atreya, P., Pertsch, K., Lee, T., Kim, M. J., Jain, A., Kuramshin, A., Eppner, C., Neary, C., Hu, E., Ramos, F., et al. Roboarena: Distributed real-world evaluation of generalist robot policies. arXiv preprint arXiv:2506.18123, 2025. ",
+        "bbox": [
+            88,
+            289,
+            475,
+            363
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Ball, P. J., Bauer, J., Belletti, F., Brownfield, B., Ephrat, A., Fruchter, S., Gupta, A., Holsheimer, K., Holynski, A., Hron, J., Kaplanis, C., Limont, M., McGill, M., Oliveira, Y., Parker-Holder, J., Perbet, F., Scully, G., Shar, J., Spencer, S., Tov, O., Villegas, R., Wang, E., Yung, J., Baetu, C., Berbel, J., Bridson, D., Bruce, J., Buttimore, G., Chakera, S., Chandra, B., Collins, P., Cullum, A., Damoc, B., Dasagi, V., Gazeau, M., Gbadamosi, C., Han, W., Hirst, E., Kachra, A., Kerley, L., Kjems, K., Knoepfel, E., Koriakin, V., Lo, J., Lu, C., Mehring, Z., Moufarek, A., Nandwani, H., Oliveira, V., Pardo, F., Park, J., Pierson, A., Poole, B., Ran, H., Salimans, T., Sanchez, M., Saprykin, I., Shen, A., Sidhwani, S., Smith, D., Stanton, J., Tomlinson, H., Vijaykumar, D., Wang, L., Wingfield, P., Wong, N., Xu, K., Yew, C., Young, N., Zubov, V., Eck, D., Erhan, D., Kavukcuoglu, K., Hassabis, D., Gharamani, Z., Hadsell, R., van den Oord, A., Mosseri, I., Bolton, A., Singh, S., and Rocktaschel, T. Genie 3: A¨ new frontier for world models. 2025. ",
+        "bbox": [
+            86,
+            329,
+            477,
+            665
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Black, K., Brown, N., Driess, D., Esmail, A., Equi, M., Finn, C., Fusai, N., Groom, L., Hausman, K., Ichter, B., et al. $\\pi _ { 0 }$ : A vision-language-action flow model for general robot control. arXiv preprint arXiv:2410.24164, 2024. ",
+        "bbox": [
+            89,
+            680,
+            475,
+            755
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Blattmann, A., Dockhorn, T., Kulal, S., Mendelevitch, D., Kilian, M., Lorenz, D., Levi, Y., English, Z., Voleti, V., Letts, A., et al. Stable video diffusion: Scaling latent video diffusion models to large datasets. arXiv preprint arXiv:2311.15127, 2023. ",
+        "bbox": [
+            88,
+            770,
+            473,
+            844
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Chen, B., Mart´ı Monso, D., Du, Y., Simchowitz, M., ´ Tedrake, R., and Sitzmann, V. Diffusion forcing: Nexttoken prediction meets full-sequence diffusion. Advances in Neural Information Processing Systems, 37:24081– 24125, 2024. ",
+        "bbox": [
+            88,
+            861,
+            475,
+            905
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            514,
+            85,
+            887,
+            114
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Chen, X., Wei, H., Zhang, P., Zhang, C., Wang, K., Guo, Y., Yang, R., Wang, Y., Xiao, X., Zhao, L., et al. Villax: enhancing latent action modeling in vision-languageaction models. arXiv preprint arXiv:2507.23682, 2025. ",
+        "bbox": [
+            500,
+            127,
+            885,
+            185
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Cheng, B., Liang, T., Huang, S., Shao, M., Zhang, F., Xu, B., Xue, Z., and Xu, H. Moe-dp: An moe-enhanced diffusion policy for robust long-horizon robotic manipulation with skill decomposition and failure recovery. arXiv preprint arXiv:2511.05007, 2025. ",
+        "bbox": [
+            500,
+            199,
+            885,
+            273
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Cui, C., Ding, P., Song, W., Bai, S., Tong, X., Ge, Z., Suo, R., Zhou, W., Liu, Y., Jia, B., et al. Openhelix: A short survey, empirical analysis, and open-source dualsystem vla model for robotic manipulation. arXiv preprint arXiv:2505.03912, 2025. ",
+        "bbox": [
+            500,
+            285,
+            885,
+            359
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Dasari, S., Ebert, F., Tian, S., Nair, S., Bucher, B., Schmeckpeper, K., Singh, S., Levine, S., and Finn, C. Robonet: Large-scale multi-robot learning. arXiv preprint arXiv:1910.11215, 2019. ",
+        "bbox": [
+            500,
+            372,
+            885,
+            433
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Ebert, F., Finn, C., Dasari, S., Xie, A., Lee, A., and Levine, S. Visual foresight: Model-based deep reinforcement learning for vision-based robotic control. arXiv preprint arXiv:1812.00568, 2018. ",
+        "bbox": [
+            498,
+            444,
+            885,
+            503
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Finn, C. and Levine, S. Deep visual foresight for planning robot motion. In 2017 IEEE international conference on robotics and automation (ICRA), pp. 2786–2793. IEEE, 2017. ",
+        "bbox": [
+            500,
+            516,
+            885,
+            575
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Gao, S., Zhou, S., Du, Y., Zhang, J., and Gan, C. Adaworld: Learning adaptable world models with latent actions. arXiv preprint arXiv:2503.18938, 2025. ",
+        "bbox": [
+            500,
+            588,
+            885,
+            632
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Guo, Y., Hu, Y., Zhang, J., Wang, Y.-J., Chen, X., Lu, C., and Chen, J. Prediction with action: Visual policy learning via joint denoising process. Advances in Neural Information Processing Systems, 37:112386–112410, 2024. ",
+        "bbox": [
+            500,
+            645,
+            885,
+            718
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Guo, Y., Shi, L. X., Chen, J., and Finn, C. Ctrl-world: A controllable generative world model for robot manipulation. arXiv preprint arXiv:2510.10125, 2025a. ",
+        "bbox": [
+            500,
+            732,
+            887,
+            776
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Guo, Y., Zhang, J., Chen, X., Ji, X., Wang, Y.-J., Hu, Y., and Chen, J. Improving vision-language-action model with online reinforcement learning. arXiv preprint arXiv:2501.16664, 2025b. ",
+        "bbox": [
+            500,
+            789,
+            885,
+            848
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Hafner, D., Lillicrap, T., Norouzi, M., and Ba, J. Mastering atari with discrete world models. arXiv preprint arXiv:2010.02193, 2020. ",
+        "bbox": [
+            500,
+            861,
+            885,
+            905
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "discarded",
+        "text": "VLAW ",
+        "bbox": [
+            462,
+            58,
+            506,
+            69
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "discarded",
+        "text": "9 ",
+        "bbox": [
+            480,
+            922,
+            491,
+            934
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Hansen, N., Wang, X., and Su, H. Temporal difference learning for model predictive control. arXiv preprint arXiv:2203.04955, 2022. ",
+        "bbox": [
+            88,
+            85,
+            473,
+            128
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Heusel, M., Ramsauer, H., Unterthiner, T., Nessler, B., and Hochreiter, S. Gans trained by a two time-scale update rule converge to a local nash equilibrium. Advances in neural information processing systems, 30, 2017. ",
+        "bbox": [
+            86,
+            142,
+            473,
+            203
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Hore, A. and Ziou, D. Image quality metrics: Psnr vs. ssim. In 2010 20th international conference on pattern recognition, pp. 2366–2369. IEEE, 2010. ",
+        "bbox": [
+            88,
+            215,
+            475,
+            261
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Hu, Y., Guo, Y., Wang, P., Chen, X., Wang, Y.-J., Zhang, J., Sreenath, K., Lu, C., and Chen, J. Video prediction policy: A generalist robot policy with predictive visual representations. arXiv preprint arXiv:2412.14803, 2024. ",
+        "bbox": [
+            86,
+            273,
+            475,
+            334
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Huang, S., Zhang, Z., Liang, T., Xu, Y., Kou, Z., Lu, C., Xu, G., Xue, Z., and Xu, H. Mentor: Mixture-of-experts network with task-oriented perturbation for visual reinforcement learning. arXiv preprint arXiv:2410.14972, 2024. ",
+        "bbox": [
+            88,
+            347,
+            475,
+            420
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Intelligence, P., Amin, A., Aniceto, R., Balakrishna, A., Black, K., Conley, K., Connors, G., Darpinian, J., Dhabalia, K., DiCarlo, J., et al. $\\pi _ { 0 . 6 } ^ { * }$ : a vla that learns from experience. arXiv preprint arXiv:2511.14759, 2025a. ",
+        "bbox": [
+            88,
+            435,
+            475,
+            496
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Intelligence, P., Black, K., Brown, N., Darpinian, J., Dhabalia, K., Driess, D., Esmail, A., Equi, M., Finn, C., Fusai, N., et al. $\\pi _ { 0 . 5 }$ : a vision-language-action model with openworld generalization. arXiv preprint arXiv:2504.16054, 2025b. ",
+        "bbox": [
+            88,
+            508,
+            475,
+            582
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Jain, A., Zhang, M., Arora, K., Chen, W., Torne, M., Irshad, M. Z., Zakharov, S., Wang, Y., Levine, S., Finn, C., et al. Polaris: Scalable real-to-sim evaluations for generalist robot policies. arXiv preprint arXiv:2512.16881, 2025. ",
+        "bbox": [
+            86,
+            595,
+            475,
+            656
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Jiang, Z., Liu, K., Qin, Y., Tian, S., Zheng, Y., Zhou, M., Yu, C., Li, H., and Zhao, D. World4rl: Diffusion world models for policy refinement with reinforcement learning for robotic manipulation. arXiv preprint arXiv:2509.19080, 2025. ",
+        "bbox": [
+            88,
+            669,
+            475,
+            743
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Khazatsky, A., Pertsch, K., Nair, S., Balakrishna, A., Dasari, S., Karamcheti, S., Nasiriany, S., Srirama, M. K., Chen, L. Y., Ellis, K., et al. Droid: A large-scale in-the-wild robot manipulation dataset. arXiv preprint arXiv:2403.12945, 2024. ",
+        "bbox": [
+            88,
+            757,
+            475,
+            832
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Kim, M. J., Pertsch, K., Karamcheti, S., Xiao, T., Balakrishna, A., Nair, S., Rafailov, R., Foster, E., Lam, G., Sanketi, P., et al. Openvla: An open-source vision-languageaction model. arXiv preprint arXiv:2406.09246, 2024. ",
+        "bbox": [
+            86,
+            845,
+            475,
+            905
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Lee, T., Wagenmaker, A., Pertsch, K., Liang, P., Levine, S., and Finn, C. Roboreward: General-purpose visionlanguage reward models for robotics. arXiv preprint arXiv:2601.00675, 2026. ",
+        "bbox": [
+            498,
+            85,
+            885,
+            145
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Li, H., Ding, P., Suo, R., Wang, Y., Ge, Z., Zang, D., Yu, K., Sun, M., Zhang, H., Wang, D., et al. Vla-rft: Vision-language-action reinforcement fine-tuning with verified rewards in world simulators. arXiv preprint arXiv:2510.00406, 2025a. ",
+        "bbox": [
+            500,
+            159,
+            887,
+            232
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Li, H., Zuo, Y., Yu, J., Zhang, Y., Yang, Z., Zhang, K., Zhu, X., Zhang, Y., Chen, T., Cui, G., et al. Simplevla-rl: Scaling vla training via reinforcement learning. arXiv preprint arXiv:2509.09674, 2025b. ",
+        "bbox": [
+            498,
+            246,
+            885,
+            306
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Li, X., Hsu, K., Gu, J., Pertsch, K., Mees, O., Walke, H. R., Fu, C., Lunawat, I., Sieh, I., Kirmani, S., et al. Evaluating real-world robot manipulation policies in simulation. arXiv preprint arXiv:2405.05941, 2024. ",
+        "bbox": [
+            498,
+            319,
+            887,
+            380
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Liu, J., Chen, H., An, P., Liu, Z., Zhang, R., Gu, C., Li, X., Guo, Z., Chen, S., Liu, M., et al. Hybridvla: Collaborative diffusion and autoregression in a unified vision-languageaction model. arXiv preprint arXiv:2503.10631, 2025a. ",
+        "bbox": [
+            498,
+            392,
+            885,
+            452
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Liu, J., Gao, F., Wei, B., Chen, X., Liao, Q., Wu, Y., Yu, C., and Wang, Y. What can rl bring to vla generalization? an empirical study. arXiv preprint arXiv:2505.19789, 2025b. ",
+        "bbox": [
+            498,
+            465,
+            887,
+            523
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Lu, G., Guo, W., Zhang, C., Zhou, Y., Jiang, H., Gao, Z., Tang, Y., and Wang, Z. Vla-rl: Towards masterful and general robotic manipulation with scalable reinforcement learning. arXiv preprint arXiv:2505.18719, 2025. ",
+        "bbox": [
+            500,
+            537,
+            885,
+            598
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Mei, Z., Yin, T., Shorinwa, O., Badithela, A., Zheng, Z., Bruno, J., Bland, M., Zha, L., Hancock, A., Fisac, J. F., et al. Video generation models in robotics-applications, research challenges, future directions. arXiv preprint arXiv:2601.07823, 2026. ",
+        "bbox": [
+            498,
+            611,
+            885,
+            685
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Oh, J., Guo, X., Lee, H., Lewis, R. L., and Singh, S. Actionconditional video prediction using deep networks in atari games. Advances in neural information processing systems, 28, 2015. ",
+        "bbox": [
+            498,
+            699,
+            885,
+            758
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Peng, X. B., Kumar, A., Zhang, G., and Levine, S. Advantage-weighted regression: Simple and scalable off-policy reinforcement learning. arXiv preprint arXiv:1910.00177, 2019. ",
+        "bbox": [
+            500,
+            772,
+            885,
+            832
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Pertsch, K., Stachowicz, K., Ichter, B., Driess, D., Nair, S., Vuong, Q., Mees, O., Finn, C., and Levine, S. Fast: Efficient action tokenization for vision-language-action models. arXiv preprint arXiv:2501.09747, 2025. ",
+        "bbox": [
+            500,
+            845,
+            885,
+            905
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            478,
+            922,
+            495,
+            934
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "discarded",
+        "text": "VLAW ",
+        "bbox": [
+            462,
+            58,
+            506,
+            69
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Quevedo, J., Liang, P., and Yang, S. Evaluating robot policies in a world model. arXiv preprint arXiv:2506.00613, 2025. ",
+        "bbox": [
+            88,
+            85,
+            475,
+            128
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Ren, X., Lu, Y., Cao, T., Gao, R., Huang, S., Sabour, A., Shen, T., Pfaff, T., Wu, J. Z., Chen, R., et al. Cosmosdrive-dreams: Scalable synthetic driving data generation with world foundation models. arXiv preprint arXiv:2506.09042, 2025. ",
+        "bbox": [
+            88,
+            143,
+            475,
+            218
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Schulman, J., Levine, S., Abbeel, P., Jordan, M., and Moritz, P. Trust region policy optimization. In International conference on machine learning, pp. 1889–1897. PMLR, 2015. ",
+        "bbox": [
+            86,
+            231,
+            475,
+            291
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Schulman, J., Wolski, F., Dhariwal, P., Radford, A., and Klimov, O. Proximal policy optimization algorithms. arXiv preprint arXiv:1707.06347, 2017. ",
+        "bbox": [
+            88,
+            304,
+            475,
+            349
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Shao, Z., Wang, P., Zhu, Q., Xu, R., Song, J., Bi, X., Zhang, H., Zhang, M., Li, Y., Wu, Y., et al. Deepseekmath: Pushing the limits of mathematical reasoning in open language models. arXiv preprint arXiv:2402.03300, 2024. ",
+        "bbox": [
+            86,
+            363,
+            475,
+            422
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Sharma, A. K., Sun, Y., Lu, N., Zhang, Y., Liu, J., and Yang, S. World-gymnast: Training robots with reinforcement learning in a world model. arXiv preprint arXiv:2602.02454, 2026. ",
+        "bbox": [
+            88,
+            435,
+            473,
+            496
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Shi, L. X., Ichter, B., Equi, M., Ke, L., Pertsch, K., Vuong, Q., Tanner, J., Walling, A., Wang, H., Fusai, N., et al. Hi robot: Open-ended instruction following with hierarchical vision-language-action models. arXiv preprint arXiv:2502.19417, 2025. ",
+        "bbox": [
+            88,
+            508,
+            475,
+            584
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Team, G. R., Devin, C., Du, Y., Dwibedi, D., Gao, R., Jindal, A., Kipf, T., Kirmani, S., Liu, F., Majumdar, A., et al. Evaluating gemini robotics policies in a veo world simulator. arXiv preprint arXiv:2512.10675, 2025. ",
+        "bbox": [
+            88,
+            598,
+            475,
+            657
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Team, Q. Qwen3-vl: Sharper vision, deeper thought, broader action. Qwen Blog. Accessed, pp. 10–04, 2025a. ",
+        "bbox": [
+            88,
+            671,
+            475,
+            700
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Team, X. W. M. 1x world model: Evaluating bits, not atoms. 2025b. URL https://www.1x.tech/ 1x-world-model.pdf. ",
+        "bbox": [
+            88,
+            714,
+            473,
+            758
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Unterthiner, T., Van Steenkiste, S., Kurach, K., Marinier, R., Michalski, M., and Gelly, S. Towards accurate generative models of video: A new metric & challenges. arXiv preprint arXiv:1812.01717, 2018. ",
+        "bbox": [
+            88,
+            772,
+            473,
+            832
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Wagenmaker, A., Nakamoto, M., Zhang, Y., Park, S., Yagoub, W., Nagabandi, A., Gupta, A., and Levine, S. Steering your diffusion policy with latent space reinforcement learning. arXiv preprint arXiv:2506.15799, 2025. ",
+        "bbox": [
+            88,
+            845,
+            475,
+            905
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Wang, Z., Bovik, A. C., Sheikh, H. R., and Simoncelli, E. P. Image quality assessment: from error visibility to structural similarity. IEEE transactions on image processing, 13(4):600–612, 2004. ",
+        "bbox": [
+            500,
+            85,
+            885,
+            145
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Wu, J., Yin, S., Feng, N., He, X., Li, D., Hao, J., and Long, M. ivideogpt: Interactive videogpts are scalable world models. Advances in Neural Information Processing Systems, 37:68082–68119, 2024. ",
+        "bbox": [
+            500,
+            155,
+            885,
+            215
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Wu, P., Escontrela, A., Hafner, D., Abbeel, P., and Goldberg, K. Daydreamer: World models for physical robot learning. In Conference on robot learning, pp. 2226–2240. PMLR, 2023. ",
+        "bbox": [
+            500,
+            226,
+            887,
+            285
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Xie, A., Ebert, F., Levine, S., and Finn, C. Improvisation through physical understanding: Using novel objects as tools with visual foresight. arXiv preprint arXiv:1904.05538, 2019. ",
+        "bbox": [
+            500,
+            296,
+            885,
+            356
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Yang, M., Du, Y., Ghasemipour, K., Tompson, J., Schuurmans, D., and Abbeel, P. Learning interactive realworld simulators. arXiv preprint arXiv:2310.06114, 1(2): 6, 2023. ",
+        "bbox": [
+            500,
+            367,
+            885,
+            426
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Zang, H., Wei, M., Xu, S., Wu, Y., Guo, Z., Wang, Y., Lin, H., Shi, L., Xie, Y., Xu, Z., et al. Rlinf-vla: A unified and efficient framework for vla+ rl training. arXiv preprint arXiv:2510.06710, 2025. ",
+        "bbox": [
+            498,
+            438,
+            885,
+            497
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Zhang, J., Guo, Y., Chen, X., Wang, Y.-J., Hu, Y., Shi, C., and Chen, J. Hirt: Enhancing robotic control with hierarchical robot transformers. arXiv preprint arXiv:2410.05273, 2024. ",
+        "bbox": [
+            498,
+            507,
+            885,
+            568
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Zhang, J., Guo, Y., Hu, Y., Chen, X., Zhu, X., and Chen, J. Up-vla: A unified understanding and prediction model for embodied agent. arXiv preprint arXiv:2501.18867, 2025a. ",
+        "bbox": [
+            500,
+            579,
+            885,
+            637
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Zhang, J., Hu, Y., Guo, Y., Chen, X., Liu, Y., Chen, W., Lu, C., and Chen, J. Unicod: Enhancing robot policy via unified continuous and discrete representation learning. arXiv preprint arXiv:2510.10642, 2025b. ",
+        "bbox": [
+            498,
+            648,
+            885,
+            708
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Zhang, J., Chen, X., Wang, Q., Li, M., Guo, Y., Hu, Y., Zhang, J., Bai, S., Lin, J., and Chen, J. Vlm4vla: Revisiting vision-language-models in vision-language-action models. arXiv preprint arXiv:2601.03309, 2026. ",
+        "bbox": [
+            500,
+            719,
+            885,
+            780
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Zhang, M., Vikram, S., Smith, L., Abbeel, P., Johnson, M., and Levine, S. Solar: Deep structured representations for model-based reinforcement learning. In International conference on machine learning, pp. 7444–7453. PMLR, 2019. ",
+        "bbox": [
+            500,
+            790,
+            885,
+            864
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Zhang, R., Isola, P., Efros, A. A., Shechtman, E., and Wang, O. The unreasonable effectiveness of deep features as a perceptual metric. In Proceedings of the IEEE conference on computer vision and pattern recognition, pp. 586–595, 2018. ",
+        "bbox": [
+            500,
+            876,
+            887,
+            905
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            478,
+            922,
+            493,
+            935
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "discarded",
+        "text": "VLAW ",
+        "bbox": [
+            462,
+            58,
+            506,
+            69
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            102,
+            85,
+            475,
+            128
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Zhu, F., Wu, H., Guo, S., Liu, Y., Cheang, C., and Kong, T. Irasim: Learning interactive real-robot action simulators. arXiv preprint arXiv:2406.14540, 2024. ",
+        "bbox": [
+            88,
+            140,
+            475,
+            184
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Zhu, F., Yan, Z., Hong, Z., Shou, Q., Ma, X., and Guo, S. Wmpo: World model-based policy optimization for vision-language-action models. arXiv preprint arXiv:2511.09515, 2025. ",
+        "bbox": [
+            86,
+            195,
+            475,
+            255
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            478,
+            922,
+            495,
+            934
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "discarded",
+        "text": "VLAW ",
+        "bbox": [
+            462,
+            58,
+            506,
+            69
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "A. Relation to Regularized Reinforcement Learning. ",
+        "text_level": 1,
+        "bbox": [
+            89,
+            82,
+            526,
+            101
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "In this part, we relate the policy update in Eq. 4 to policy optimization under a regularized reinforcement learning (RL) framework with certain approximations. Our VLA policy is trained with a flow-matching objective and does not provide a tractable action log-likelihood, so standard KL-based derivations do not apply directly. Under the regularized RL setting, the optimal improved policy admits a closed-form solution given by: ",
+        "bbox": [
+            88,
+            108,
+            885,
+            170
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "equation",
+        "img_path": "images/3d40644bf190df0696ffd39f6456d91b7ba7043863bfd118d5886335e561daaf.jpg",
+        "text": "$$\n\\pi ^ { \\star } ( a \\mid o ) \\propto \\pi _ { \\mathrm { r e f } } ( a \\mid o ) \\exp \\left( \\frac { A ^ { \\pi _ { \\mathrm { r e f } } } ( o , a ) } { \\beta } \\right) ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            334,
+            188,
+            635,
+            223
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "where $\\pi _ { \\mathrm { r e f } }$ denotes a reference policy, $A ^ { \\pi _ { \\mathrm { r e f } } } \\left( o , a \\right)$ is the corresponding advantage function, and $\\beta$ is a temperature parameter controlling the strength of the regularization. ",
+        "bbox": [
+            93,
+            228,
+            887,
+            258
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Since the target distribution $\\pi ^ { \\star }$ is generally not representable within a finite parametric policy class, policy improvement is typically performed via a projection step, which fits a parametric policy $\\pi _ { \\theta }$ to $\\pi ^ { \\star }$ by minimizing a divergence $D$ : ",
+        "bbox": [
+            93,
+            265,
+            888,
+            296
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "equation",
+        "img_path": "images/25082b679954cba0d1ba7628804b027fa13ca16e9bef82ec2151cb1a8eb17b67.jpg",
+        "text": "$$\n\\displaystyle \\theta ^ { \\star } = \\arg \\operatorname* { m i n } _ { \\theta } ~ \\mathbb { E } _ { o \\sim \\mathcal { D } } \\Big [ D ( \\pi ^ { \\star } ( \\cdot \\mid o ) , \\pi _ { \\theta } ( \\cdot \\mid o ) ) \\Big ] .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            331,
+            306,
+            640,
+            334
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "AWR for flow-matching policies. In standard Advantage-Weighted Regression (AWR) (Peng et al., 2019), the divergence $D$ is chosen to be the KL divergence, which results in a weighted log-likelihood objective. However, because our VLA policy is trained using a flow-matching objective $\\mathcal { L } _ { \\mathrm { F M } } ( \\theta ; o , a )$ and does not provide explicit action likelihoods, this formulation is not directly applicable. ",
+        "bbox": [
+            88,
+            352,
+            887,
+            412
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Instead, we define a projection operator that is compatible with flow matching by introducing the following surrogate divergence: ",
+        "bbox": [
+            91,
+            420,
+            883,
+            449
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "equation",
+        "img_path": "images/99a1ccf4e9ebab08c7793d1d81f11b56049722178d1dcab6ba80fd74061b3410.jpg",
+        "text": "$$\nD _ { \\mathrm { F M } } ( \\pi ^ { \\star } ( \\cdot \\mid o ) , \\pi _ { \\theta } ( \\cdot \\mid o ) ) \\triangleq \\mathbb { E } _ { a \\sim \\pi ^ { \\star } ( \\cdot \\mid o ) } \\big [ \\mathcal { L } _ { \\mathrm { F M } } ( \\theta ; o , a ) \\big ] ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            300,
+            448,
+            671,
+            469
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "which measures how well $\\pi _ { \\theta }$ matches samples drawn from $\\pi ^ { \\star }$ under the flow-matching loss. ",
+        "bbox": [
+            86,
+            474,
+            691,
+            491
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Using this divergence, the projection step becomes: ",
+        "bbox": [
+            88,
+            497,
+            426,
+            512
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "equation",
+        "img_path": "images/db0936861badd6ace8ac2180442952278a28092aa39c172dc25886be07508ba4.jpg",
+        "text": "$$\n\\begin{array} { r l r } & { } & { \\theta ^ { \\star } = \\arg \\operatorname* { m i n } _ { \\theta } ~ \\mathbb { E } _ { o \\sim \\mathcal { D } } ~ \\mathbb { E } _ { a \\sim \\pi ^ { \\star } ( \\cdot | o ) } \\left[ \\mathcal { L } _ { \\mathrm { F M } } ( \\theta ; o , a ) \\right] } \\\\ & { } & { \\approx \\arg \\operatorname* { m i n } _ { \\theta } ~ \\mathbb { E } _ { ( o , a ) \\sim \\mathcal { D } } \\left[ w ( o , a ) \\mathcal { L } _ { \\mathrm { F M } } ( \\theta ; o , a ) \\right] , } \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            326,
+            521,
+            643,
+            577
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "where the approximation follows a standard offline RL practice that replaces sampling from $\\pi ^ { \\star }$ with weighted samples aset (Schulman et al., 2015). The weights are proportional to the exponential advantage: . $w ( o , a ) \\quad \\propto \\quad$ $\\mathrm { e x p } \\left( { \\frac { A ^ { \\pi } \\mathrm { r e f } \\left( o , a \\right) } { \\beta } } \\right)$ ",
+        "bbox": [
+            86,
+            585,
+            888,
+            640
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Then, by setting the discount factor $\\gamma  1$ and assigning a large negative reward to failure trajectories, Eq. 11 reduces to Eq. 4, which is the objective used in our policy update. ",
+        "bbox": [
+            91,
+            645,
+            883,
+            676
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "B. Task Details ",
+        "text_level": 1,
+        "bbox": [
+            88,
+            695,
+            215,
+            712
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Success Criteria. We define task success using simple, outcome-based criteria that can be reliably judged from the final state (or a short post-action observation window): ",
+        "bbox": [
+            91,
+            720,
+            887,
+            752
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "• Stacking: Success if block $A$ is stably placed on top of block $B$ (with $A$ supported by $B$ , not the table) and the stack remains upright for a short holding period.   \n• Open Book: Success if the front cover is opened beyond a predefined angle (e.g., clearly separated from the pages and lying open) and remains open at the end of the episode.   \n• Erase Marks: Success if all visible marker strokes are removed from the whiteboard area (i.e., no clearly detectable marks remain) at the end of the episode.   \n• Scooping: Success if at least a minimum amount of the target object $A$ is transferred into the bowl (with non-trivial contents remaining in the bowl at the end), while the majority of the transferred items are inside the bowl rather than spilled outside. ",
+        "bbox": [
+            104,
+            761,
+            887,
+            910
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "discarded",
+        "text": "VLAW ",
+        "bbox": [
+            460,
+            56,
+            506,
+            69
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            478,
+            922,
+            495,
+            934
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "• Drawing: Success if the robot produces a single closed curve that forms a visually complete circle (i.e., endpoints meet with small gap tolerance) on the whiteboard within the designated drawing region. ",
+        "bbox": [
+            102,
+            84,
+            885,
+            114
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Detailed success rate improvement All task is evaluated 50 times since we collect 50 online rollouts in each iteration.   \nDSRL baseline is evaluated with 10 times since it’s too time-consuming to evaluate too many rollouts during online update. ",
+        "bbox": [
+            88,
+            125,
+            887,
+            156
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "table",
+        "img_path": "images/68ac491ce46f8b0d5fee2995906ad48e2e484f3ba0e0b85d3dda3316c179ee3d.jpg",
+        "table_caption": [],
+        "table_footnote": [
+            "Table 2. Detailed Success rates across 5 manipulation tasks. "
+        ],
+        "table_body": "<table><tr><td>Method</td><td>Stacking</td><td>Wiping</td><td>Open Book</td><td>Scooping</td><td>Drawing</td><td>Mean</td></tr><tr><td>Base model</td><td>0.62</td><td>0.46</td><td>0.56</td><td>0.44</td><td>0.22</td><td>0.460</td></tr><tr><td>DSRL</td><td>0.70</td><td>0.40</td><td>0.50</td><td>0.60</td><td>0.30</td><td>0.500</td></tr><tr><td>Filtered BC-1</td><td>0.80</td><td>0.62</td><td>0.72</td><td>0.64</td><td>0.46</td><td>0.648</td></tr><tr><td>Filtered BC-2</td><td>0.88</td><td>0.76</td><td>0.82</td><td>0.74</td><td>0.56</td><td>0.752</td></tr><tr><td>Ours-1</td><td>0.80</td><td>0.72</td><td>0.80</td><td>0.72</td><td>0.68</td><td>0.744</td></tr><tr><td>Ours-2</td><td>0.92</td><td>0.86</td><td>0.86</td><td>0.92</td><td>0.78</td><td>0.868</td></tr></table>",
+        "bbox": [
+            223,
+            167,
+            748,
+            271
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "C. Reward Model Details ",
+        "text_level": 1,
+        "bbox": [
+            89,
+            321,
+            302,
+            339
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "We use the Qwen3-VL-4B-Instruct model (Team, 2025a) as the vision–language reward model. Each trajectory is temporally downsampled into a 16-frame video before being fed to the model. We fintune the Qwen3-VL-4B-Instruct model for 200 steps with batch size 128. ",
+        "bbox": [
+            88,
+            348,
+            887,
+            393
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "We observe that directly prompting the reward model to output a binary yes/no decision can be overly optimistic, leading to a non-negligible number of false positives. To mitigate this issue, we instead examine the model-assigned probability of the $\\because y \\in s ^ { \\prime } ^ { \\prime }$ token and only label a trajectory as successful when this probability exceeds a threshold of 0.8, with this threshold, model is more conservative on generate success label. ",
+        "bbox": [
+            88,
+            401,
+            885,
+            462
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "We compare this threshold-based criterion with the naive approach of directly querying the model for a binary answer. Empirically, using a higher confidence threshold substantially reduces the number of false-positive trajectories, resulting in more reliable supervision for downstream policy learning. ",
+        "bbox": [
+            88,
+            469,
+            887,
+            515
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Table 3. Confusion matrices comparing the original reward model decision and our threshold-based criterion. We manually label a subset of 40 trajectories and compare the predictions of each method against human-annotated ground-truth labels. The false-positive number significantly dropped. ",
+        "bbox": [
+            88,
+            526,
+            885,
+            565
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "table",
+        "img_path": "images/56916df7e088da33676b625c6c4cb6b2561a3fb17e1e9bb8f248a196450a60e4.jpg",
+        "table_caption": [],
+        "table_footnote": [],
+        "table_body": "<table><tr><td colspan=\"4\">Original Method (Direct Yes/No Output)</td></tr><tr><td>Success</td><td></td><td colspan=\"2\">Predicted</td></tr><tr><td rowspan=\"2\">GT</td><td>Success</td><td>15</td><td>Failure 7</td></tr><tr><td>Failure</td><td>8</td><td>10</td></tr><tr><td>Ours (Probability Threshold p(yes) &gt; 0.8)</td><td></td><td></td><td></td></tr><tr><td rowspan=\"3\"></td><td></td><td></td><td>Predicted</td></tr><tr><td></td><td>Success</td><td>Failure</td></tr><tr><td>Success</td><td>10</td><td>12</td></tr><tr><td rowspan=\"2\">GT</td><td>Failure</td><td>2</td><td>16</td></tr><tr><td></td><td></td><td></td></tr></table>",
+        "bbox": [
+            321,
+            574,
+            650,
+            770
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            478,
+            922,
+            495,
+            934
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "discarded",
+        "text": "VLAW ",
+        "bbox": [
+            462,
+            58,
+            506,
+            69
+        ],
+        "page_idx": 13
+    }
+]
