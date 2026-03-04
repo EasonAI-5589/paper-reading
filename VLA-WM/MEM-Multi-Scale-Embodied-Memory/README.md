@@ -90,6 +90,7 @@
 | [03-Method.md](notes/03-Method.md) | MEM 架构详解 (核心) |
 | [04-Experiments.md](notes/04-Experiments.md) | 实验结果与分析 |
 | [05-Conclusion.md](notes/05-Conclusion.md) | 总结与未来方向 |
+| [06-Appendix.md](notes/06-Appendix.md) | 附录：作者分工 + 13个任务详细描述 + Video Encoder 数学推导 |
 
 ---
 
