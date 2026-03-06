@@ -9,6 +9,10 @@ https://pi.website/research/memory
 
 Abstract—Conventionally, memory in end-to-end robotic learning involves inputting a sequence of past observations into the learned policy. However, in complex multi-stage real-world tasks, the robot's memory must represent past events at multiple levels of granularity: from long-term memory that captures abstracted semantic concepts (e.g., a robot cooking dinner should remember which stages of the recipe are already done) to short-term memory that captures recent events and compensates for occlusions (e.g., a robot remembering the object it wants to pick up once its arm occludes it). In this work, our main insight is that an effective memory architecture for long-horizon robotic control should combine multiple modalities to capture these different levels of abstraction. We introduce Multi-Scale Embodied Memory (MEM), an approach for mixed-modal long-horizon memory in robot policies. MEM combines video-based short-horizon memory, compressed via a video encoder, with text-based long-horizon memory. Together, they enable robot policies to perform tasks that span up to fifteen minutes, like cleaning up a kitchen, or preparing a grilled cheese sandwich. Additionally, we find that memory enables MEM policies to intelligently adapt manipulation strategies in-context.
 
+> 📝 **中文翻译**（"In this work..." 段）：
+>
+> 在这项工作中，我们的核心洞察是：一个有效的长时域机器人控制记忆架构，应当结合多种模态来捕捉这些不同层次的抽象信息。我们提出了多尺度具身记忆（MEM），这是一种用于机器人策略的混合模态长时域记忆方法。MEM 将基于视频的短时域记忆（通过视频编码器压缩）与基于文本的长时域记忆相结合。两者协同，使机器人策略能够完成跨越长达十五分钟的任务，例如整理厨房或制作烤奶酪三明治。此外，我们发现记忆机制还使 MEM 策略能够在执行过程中智能地进行操作策略的上下文自适应调整。
+
 > 💡 **核心洞察**：这篇论文的关键 insight 是——机器人的记忆需要**多尺度、多模态**。短时记忆用视频（处理遮挡、动态），长时记忆用语言（语义压缩、追踪任务进度）。这比之前"一种模态打天下"的方案更合理。
 >
 > 💡 **来自 Physical Intelligence**：这是 π₀ / π₀.₅ 团队的后续工作。作者阵容豪华：Chelsea Finn, Sergey Levine, Danny Driess, Karl Pertsch 等都是 VLA 领域的核心人物。
