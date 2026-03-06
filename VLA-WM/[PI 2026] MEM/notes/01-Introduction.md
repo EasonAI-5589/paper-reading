@@ -6,7 +6,7 @@ Efficiently and effectively endowing robotic policies with memory requires multi
 
 > 📝 **为什么长任务很难——计算量爆炸问题**：
 >
-> 把 9000 张图塞进模型里是不可能的——显存爆炸、推理太慢。所以之前的方法只能二选一：
+> 之前的方法只能二选一：
 > - **"非常短的序列"**：只看最近几秒的帧，长期记忆直接丢掉 ❌
 > - **"重要的子采样"**（subsampling）：9000 帧里每 100 帧取 1 帧，但这样精细动作的信息（比如手滑了）就看不到了 ❌
 >
