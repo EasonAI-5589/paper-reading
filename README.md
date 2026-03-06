@@ -50,12 +50,13 @@ Eason 的文献阅读仓库，按课题组织。每篇论文都有「批读格�
 
 | 论文 | 会议 | 方法特点 |
 |------|------|----------|
-| [RoboBrain](./VLA/%5BCVPR%202025%5D%20RoboBrain/) | CVPR 2025 | LLaVA + A-LoRA/T-LoRA, ShareRobot 数据集 |
-| [RoboBrain 2.0](./VLA/%5BArxiv%202507.02029%5D%20RoboBrain-2.0/) | arXiv 2507.02029 | Qwen2.5-VL base, 统一空间+时间推理 |
-| [RoboBrain 2.5](./VLA/%5BArxiv%202601.14352%5D%20RoboBrain-2.5/) | arXiv 2601.14352 | 精确 3D 空间推理 + 密集时间价值估计 |
-| [π0](./VLA/%5BCoRL%202025%5D%20pi0/) | CoRL 2025 | Flow matching policy |
-| [π0.5](./VLA/%5BCoRL%202025%5D%20pi0.5/) | CoRL 2025 Oral | VLM-based robot policy |
-| [π0.6-RECAP](./VLA/%5BICLR%202026%5D%20Pi0.6-RECAP/) | ICLR 2026 | CoT reasoning robot policy |
+| [RoboBrain](./VLA-WM/%5BCVPR%202025%5D%20RoboBrain/) | CVPR 2025 | LLaVA + A-LoRA/T-LoRA, ShareRobot 数据集 |
+| [RoboBrain 2.0](./VLA-WM/%5BArxiv%202507.02029%5D%20RoboBrain-2.0/) | arXiv 2507.02029 | Qwen2.5-VL base, 统一空间+时间推理 |
+| [RoboBrain 2.5](./VLA-WM/%5BArxiv%202601.14352%5D%20RoboBrain-2.5/) | arXiv 2601.14352 | 精确 3D 空间推理 + 密集时间价值估计 |
+| [π0](./VLA-WM/%5BCoRL%202025%5D%20pi0/) | CoRL 2025 | Flow matching policy |
+| [π0.5](./VLA-WM/%5BCoRL%202025%5D%20pi0.5/) | CoRL 2025 Oral | VLM-based robot policy |
+| [π0.6-RECAP](./VLA-WM/%5BICLR%202026%5D%20Pi0.6-RECAP/) | ICLR 2026 | CoT reasoning robot policy |
+| ⭐ [π0.6-MEM](./VLA-WM/%5BPI%202026%5D%20MEM/) | PI 2026-03 | **多尺度具身记忆** - 短时视频记忆(ViT空时注意力)+长时语言记忆，支持15分钟长任务，in-context 自适应 |
 
 ---
 
@@ -64,8 +65,8 @@ Eason 的文献阅读仓库，按课题组织。每篇论文都有「批读格�
 
 | 论文 | 来源 | 方法特点 |
 |------|------|----------|
-| [VLAW](./robot-learning/%5BarXiv%202602.12063%5D%20Iterative%20Co-Improvement%20of%20VLA%20Policy%20and%20World%20Model/) | arXiv 2602.12063 | 迭代修正世界模型过度乐观偏差 + 合成数据提升 VLA，DROID 5任务 +39.2% |
-| [WoVR](./robot-learning/%5BarXiv%202602.13977%5D%20WoVR%20World%20Models%20as%20Reliable%20Simulators%20for%20VLA%20RL/) | arXiv 2602.13977 | Hallucination-aware RL框架：KIR + PACE + Wan 5B World Model，LIBERO +29.3pp，真实机器人 +30pp |
+| [VLAW](./VLA-WM/%5BarXiv%202602.12063%5D%20Iterative%20Co-Improvement%20of%20VLA%20Policy%20and%20World%20Model/) | arXiv 2602.12063 | 迭代修正世界模型过度乐观偏差 + 合成数据提升 VLA，DROID 5任务 +39.2% |
+| [WoVR](./VLA-WM/%5BarXiv%202602.13977%5D%20WoVR%20World%20Models%20as%20Reliable%20Simulators%20for%20VLA%20RL/) | arXiv 2602.13977 | Hallucination-aware RL框架：KIR + PACE + Wan 5B World Model，LIBERO +29.3pp，真实机器人 +30pp |
 
 ---
 
@@ -134,13 +135,16 @@ paper-reading/
 │   ├── [arXiv 2025] ARC-Chapter/
 │   └── README.md
 │
-├── VLA/                             # Vision-Language-Action (6 篇)
+├── VLA-WM/                          # VLA + 世界模型 (9 篇)
 │   ├── [CVPR 2025] RoboBrain/
 │   ├── [Arxiv 2507.02029] RoboBrain-2.0/
 │   ├── [Arxiv 2601.14352] RoboBrain-2.5/
 │   ├── [CoRL 2025] pi0/
 │   ├── [CoRL 2025] pi0.5/
-│   └── [ICLR 2026] Pi0.6-RECAP/
+│   ├── [ICLR 2026] Pi0.6-RECAP/
+│   ├── [PI 2026] MEM/               ← ⭐ 新加
+│   ├── [arXiv 2602.12063] Iterative Co-Improvement of VLA Policy and World Model/
+│   └── [arXiv 2602.13977] WoVR World Models as Reliable Simulators for VLA RL/
 │
 ├── Agent-Memory/                    # Agent 记忆机制 (12 篇)
 │   ├── [Arxiv 2512.13564] Memory in the Age of AI Agents/
@@ -160,9 +164,7 @@ paper-reading/
 ├── [ICLR 2026] Context-Clues/
 ├── [NeurIPS 2023] EHRSHOT/
 │
-├── world-model/                     # 世界模型 (1 篇)
-│   └── [arXiv 2026] VLAW/
-│
+
 ├── RLHF/                           # 强化学习人类反馈 (1 篇)
 │   └── [ICML 2025] MM-RLHF/
 │
@@ -205,4 +207,4 @@ paper-reading/
 
 ---
 
-*由 3号机 协助整理 📚 | 更新: 2026-03-01 | 共 39 篇论文*
+*由 3号机 协助整理 📚 | 更新: 2026-03-06 | 共 40 篇论文*
