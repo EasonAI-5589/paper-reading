@@ -14,7 +14,7 @@ Reinforcement learning (RL) promises to unlock capabilities beyond imitation lea
 >
 > **与 VLAW 的对比**：
 > - VLAW：World Model 训练数据分布问题（缺 failure case）→ 用 online rollout fine-tune
-> - WoVR：World Model 推理时的 hallucination 问题（闭环误差积累）→ 设计三层 hallucination-aware 机制
+> - WoVR：World Model 推理时的 hallucination 问题（闭环误差积累）→ 设计三层 hallucination-aware 机制 123
 
 We propose WoVR, a reliable world-model-based reinforcement learning framework for post-training VLA policies. Instead of assuming a faithful world model, WoVR explicitly regulates how RL interacts with imperfect imagined dynamics. It improves rollout stability through a controllable action-conditioned video world model, reshapes imagined interaction to reduce effective error depth via Keyframe-Initialized Rollouts, and maintains policy–simulator alignment through World Model-Policy co-evolution.
 
