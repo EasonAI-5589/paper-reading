@@ -4,6 +4,14 @@ Efficiently and effectively endowing robotic policies with memory requires multi
 
 > 💡 **问题定义精准**：作者用一个非常直觉的例子说明了问题——记住"手臂遮挡前看到的物体"需要高保真的图像记忆（几秒内），而记住"已经加过盐了"只需要语义级别的信息（可以跨越几分钟）。这两种记忆本质上需要不同的表征。
 
+> 📝 **为什么长任务很难——计算量爆炸问题**：
+>
+> 把 9000 张图塞进模型里是不可能的——显存爆炸、推理太慢。所以之前的方法只能二选一：
+> - **"非常短的序列"**：只看最近几秒的帧，长期记忆直接丢掉 ❌
+> - **"重要的子采样"**（subsampling）：9000 帧里每 100 帧取 1 帧，但这样精细动作的信息（比如手滑了）就看不到了 ❌
+>
+> 两种方法都是妥协。MEM 的做法是：**用视频编码器压缩短时帧**（保留细节），**用语言记录长期语义**（极度压缩但不丢重要信息），绕开这个两难困境。
+
 An effective memory architecture for robot policies should use multiple modalities to represent memories at these different levels of abstraction. For short-horizon memory, dense image-based memory is well-suited to resolve occlusions and allows the robot to quickly adapt its manipulation strategy, e.g., by changing the grasp after failing to pick up an object. For long-horizon memory, we often only need to keep track of events at a semantic level, such as which ingredient has already been added to a dish. In this case, a language-based representation provides much better compression than raw observations, and allows us to store high-level memories over long time periods.
 
 > 💡 **设计哲学**：短时记忆 = 视频（稠密、高保真），长时记忆 = 语言（压缩、语义级）。这个 factorization 非常合理，而且与人类记忆系统有一定类比——我们也不会记住过去一小时的每一帧画面，而是记住"做了什么"。
