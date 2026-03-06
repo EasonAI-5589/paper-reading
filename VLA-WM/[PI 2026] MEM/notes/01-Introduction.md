@@ -18,11 +18,21 @@ An effective memory architecture for robot policies should use multiple modaliti
 
 Based on these observations, we introduce Multi-Scale Embodied Memory (MEM), a system for equipping policies with multi-modal, long-horizon memory. MEM combines two key ingredients to make long-horizon memory tractable. First, we use a video encoder architecture to effectively encode multiple seconds of dense image-based memory into a compact representation. Second, we introduce a language-based memory mechanism in which the policy keeps track of semantic events in a compressed language format. This memory system can not only accommodate very long horizon tasks, but also enables a variety of new capabilities by leveraging the short-term memory, such as in-context adaptation to correct mistakes, and resilience to partial observability and self-occlusion.
 
-> 💡 **两个关键组件**：
-> 1. **Video Encoder**：把多秒的图像序列压缩成紧凑表示（短时记忆）
-> 2. **Language Memory**：用自然语言追踪语义事件（长时记忆）
+> 💡 **两个核心组件：**
 >
-> 这样设计的好处是两者各司其职，不会互相拖累。
+> **① Video Encoder（短时记忆）**
+> - 把"过去几秒的图像序列"压缩成一个紧凑的向量
+> - 不是简单截断，而是真正把时间信息编码进去
+> - 解决遮挡、动态调整这类需要"刚刚发生了什么"的问题
+>
+> **② Language Memory（长时记忆）**
+> - 模型自己维护一段文字总结，记录任务进展
+> - 比如："土豆已取出，牛奶还在冰箱，黄油已放好"
+> - 极度压缩，但语义完整
+>
+> **额外带来的能力：**
+> - **In-context adaptation**：看到"之前抓失败了"就换策略，而不是反复犯同样的错——这是一个**涌现能力**，设计时没专门为它做，但记忆让它自然出现了
+> - **Partial observability**：东西被遮住了也没关系，短时记忆里有它出现时的样子
 
 To evaluate MEM, we integrate it into the π₀.₆ model [34], a generalist VLA trained on a diverse mixture of robot, vision-language, and video data. We show that the resulting policy achieves state-of-the-art performance across a wide range of complex manipulation tasks. We also show that MEM enables our policy to solve long-horizon tasks like cleaning up a whole kitchen or preparing a grilled cheese sandwich, which require keeping track of memories for up to fifteen minutes.
 
