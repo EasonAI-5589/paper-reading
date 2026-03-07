@@ -73,3 +73,59 @@ $$J_{\mathrm{WM}}(\pi_\theta) = \mathbb{E}_{\tau \sim \pi_\theta, \hat{P}_\phi} 
 1. WoVR 用真正的 policy gradient（GRPO），需要 log π(a|o)，所以 base model 必须是 autoregressive 的（OpenVLA-OFT），而非 flow-matching（这是与 VLAW 的关键差异）
 2. Reward = binary classifier（learned），稀疏信号对 hallucination 最敏感——world model 一旦给出虚假 success，RL 就往错误方向优化
 3. WM-MDP 的形式化为三层 hallucination 控制提供了理论基础
+
+---
+
+## 🔍 延伸解读：Dual-Channel Action Injection
+
+> 本节是对 Section 4.1 中核心组件的前置解读，配合 Figure 2 中"action-responsive simulator"理解。
+
+### 问题背景
+
+WM-MDP 成立的前提是 $\hat{P}_\phi(o_{t+1} \mid o_t, a_t)$ 真的对 $a_t$ **有响应且可控**。如果 world model 只是视频续帧（忽略动作输入），RL 采样到的轨迹就与 policy 脱钩，整个优化无意义。
+
+Wan2.2-TI2V 原版是图文生成视频的模型，本身不接受 action 作为条件输入。WoVR 需要将其改造为 **action-conditioned generator**，而 Dual-Channel Action Injection 就是改造的核心设计。
+
+---
+
+### 两个 Channel 的具体机制
+
+**Channel 1：AdaLN-Zero-style Modulation（局部调制）**
+
+$$\text{action embedding} \xrightarrow{\text{fuse}} \text{diffusion timestep embedding} \xrightarrow{\text{AdaLN-Zero}} \text{每层 DiT block 的 scale/shift}$$
+
+- Action embedding 与 diffusion timestep embedding **融合后**，通过 AdaLN-Zero 调制每层的特征分布
+- 本质：用 action 来控制"去噪方向"——同一个噪声输入，不同的 action 会引导模型去噪到不同的下一帧
+- **作用范围**：帧级（frame-level），精细局部控制
+
+**Channel 2：Cross-Attention（全局上下文）**
+
+$$\text{action embedding} \xrightarrow{\text{替换 text embedding}} \text{原有 cross-attention operator}$$
+
+- 将 Wan 原来接受 text prompt 的 cross-attention 入口**替换**为 action embedding
+- Action 信息通过 cross-attention 在所有层之间传播，形成全局感知
+- **作用范围**：全局（global），跨层 action 感知
+
+### 为何需要双通道？
+
+| 单通道方案 | 问题 |
+|-----------|------|
+| 只用 AdaLN | 只影响局部特征分布，缺乏全局一致性；长 rollout 中 action 影响衰减 |
+| 只用 cross-attention | 缺乏帧级精细控制；复杂动作（如机械臂多关节）的细节难以表达 |
+| **双通道（AdaLN + cross-attention）** | 局部精细 + 全局一致，互补覆盖不同层级的 action 影响 |
+
+> 💡 **类比语言模型**：AdaLN 类似 prefix tuning（调制 token 表示），cross-attention 类似 condition token（每层都关注）。两者叠加是将外部控制信号注入 transformer 的成熟范式，WoVR 在视频扩散模型上做了同样的事。
+
+### 与 WM-MDP 的关联
+
+在 3.2 节的 WM-MDP 公式中：
+
+$$\tilde{o}_{t+1} \sim \hat{P}_\phi(\cdot \mid o_t, a_t)$$
+
+Dual-Channel Injection 就是让这个条件概率**真正依赖** $a_t$ 的工程实现。没有它，$\hat{P}_\phi$ 实际上退化为 $\hat{P}_\phi(\cdot \mid o_t)$，RL 就成了在无动作控制的视频中优化——与 WM-MDP 的形式化脱节。
+
+### 关键数字
+
+- **Backbone**：Wan2.2-TI2V-5B（5B 参数，5步扩散）
+- **生成速度**：23 FPS（对比 OpenSora 1.3B 的 7 FPS）——速度是 RL 采样效率的关键
+- **参数改动最小**：保留原始 DiT 结构，只在每个 DiT block 中增加 action injection，避免破坏预训练的视觉先验
