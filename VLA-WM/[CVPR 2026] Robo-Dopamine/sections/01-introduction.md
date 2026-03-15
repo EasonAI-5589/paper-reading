@@ -50,14 +50,50 @@ To address these, we introduce Dopamine-Reward, a novel dense reward modeling me
 > - **Multi-Perspective Fusion**: 融合 incremental + forward + backward 三个视角
 > - 数据规模：3,400h / 100K trajectories / 350+ tasks / 三种来源（真实机器人 + 仿真 + 人类自我视角视频）
 
+💡 **Hop-based 详解——为什么不直接预测"完成了百分之几"？**
+
+假设机器人正在做一个"把杯子放到盘子上"的任务，当前完成了 60%。
+
+**Naive 方法**（直接回归绝对进度）：模型预测"当前进度 = 0.60"，下一步"进度 = 0.65"。问题是：每次预测都有误差（比如 ±0.03），连续预测 20 步后误差累积，可能算出进度 = 1.2（超出 [0,1]）或者 -0.1（不合理）。
+
+**Hop-based 方法**（预测相对比例）：不问"你到了哪里"，而是问"你完成了**剩余路程的多少比例**"。比如当前 60%，模型预测"前进了剩余 40% 中的 12.5%"（hop = 0.125）。数学上可以证明，不管怎么迭代，重建出的进度**永远在 [0, 1] 内**。
+
+用一个例子说明：
+- 当前进度 60%，剩余 40%
+- GRM 预测 hop = 0.125（前进了剩余的 12.5%）
+- 新进度 = 60% + 40% × 0.125 = 65%（保证不超过 100%）
+- 即使 hop 预测有误差（比如 0.15），新进度 = 60% + 40% × 0.15 = 66%，仍然合理
+
+这就是 hop-based 的核心优势：**误差被"剩余距离"自然压缩**，越接近目标，同样的 hop 误差对绝对进度的影响越小。
+
 ---
 
 Building upon GRM via Dopamine-Reward, we propose a robust and unified policy learning framework Dopamine-RL to resolve the second limitation. Dopamine-RL employs a theoretically-sound Policy-Invariant Reward Shaping method, which enables the agent to leverage the dense rewards from our GRM for highly efficient self-improvement without altering the underlying optimal policy, thereby fundamentally avoiding the semantic trap.
 
 > 💡 **Dopamine-RL 方案**:
-> - Policy-Invariant Reward Shaping: $`r_{GRM} = r_{gold} + \gamma\Phi^*(s_{t+1}) - \Phi^*(s_t)`$
-> - 这是 PBRS 框架的直接应用，数学上保证 $`\arg\max_a Q^*_{GRM}(s,a) = \arg\max_a Q^*_{gold}(s,a)`$
+> - Policy-Invariant Reward Shaping: $`r_{GRM} = r_{gold} + \gamma\Phi^{*}(s_{t+1}) - \Phi^{*}(s_t)`$
+> - 这是 PBRS 框架的直接应用，数学上保证 $`\arg\max_a Q^{*}_{GRM}(s,a) = \arg\max_a Q^{*}_{gold}(s,a)`$
 > - 与 RL 算法无关：兼容 PPO、Cal-QL、ReinFlow 等
+
+💡 **Policy-Invariant Reward Shaping 详解——为什么不能直接用进度差当奖励？**
+
+**问题：Semantic Trap（语义陷阱）**
+
+最直觉的 dense reward 是进度差：$`r = \Phi(s_{t+1}) - \Phi(s_t)`$。看起来很合理——前进就奖励，后退就惩罚。但 RL 优化的是**折扣累积回报** $`J(\pi) = \sum \gamma^t r_t`$。展开这个求和后会发现，agent 实际上在最大化的是**所有状态进度值的加权和**，而不是"完成任务"。
+
+这会导致一个荒诞的最优策略：agent 快速到达 90% 进度，然后**永远停在那里不动**。因为每待一个时间步，它都在"享受"高进度状态带来的折扣回报。完成任务反而意味着 episode 结束、不再获得回报。
+
+**解法：加一个 $`\gamma`$ 系数**
+
+PBRS 的修复非常优雅：把 $`\Phi(s_{t+1}) - \Phi(s_t)`$ 改成 $`\gamma\Phi(s_{t+1}) - \Phi(s_t)`$。就多了一个折扣因子 $`\gamma`$（通常 0.99）。
+
+为什么这就解决了问题？因为这个形式构成了 **telescoping sum**（望远镜求和）：
+
+$`\sum_{t=0}^{\infty} \gamma^t [\gamma\Phi(s_{t+1}) - \Phi(s_t)] = -\Phi(s_0)`$
+
+所有中间项相消，只剩初始状态的常数！这意味着无论 agent 采取什么策略，PBRS 项的累积贡献都是同一个常数。因此 agent 的最优策略完全由 $`r_{gold}`$（稀疏的任务完成奖励）决定，PBRS 只是加速了探索，不会改变目标。
+
+**一句话总结**：dense reward 让 agent 知道方向（加速学习），PBRS 保证 agent 不会被方向误导（保持正确目标）。
 
 ---
 
