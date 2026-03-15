@@ -9,10 +9,9 @@ Introduction 分四层递进：IL 的根本局限 → RL 奖励难题 → 现有
 
 While large-scale imitation learning (IL) has substantially advanced embodied intelligence [1, 4, 5, 15, 21, 25], its reliance on static, expert-curated datasets imposes fundamental limitations [7, 24, 43, 52, 64, 65], which exhibits sub-optimal sample efficiency, poor generalization to out-of-distribution (OOD) scenarios, and also struggles to acquire precise and contact-rich manipulation skills [23, 63]. In contrast, reinforcement learning (RL) offers a compelling alternative [11, 29, 33, 35, 56, 58, 60]. Through continuous environmental interaction, RL enables agents to transcend the limitations of static expert data, facilitating superior generalization and the mastery of high-precision tasks.
 
-> 💡 **IL vs RL 的根本矛盾**:
-> - IL 三大局限：样本效率差、OOD 泛化差、精细操作学不好
-> - RL 的优势：通过持续交互突破静态数据限制
-> - 这里引用了一大批 VLA 工作（pi0, GR00T, Helix 等），说明 IL 已经到了瓶颈
+> 💡 **IL 受限于静态数据，所以需要 RL**:
+> - IL 依赖专家数据集，有三大硬伤：样本效率差、OOD 泛化差、精细操作（如接触丰富的灵巧操作）学不好
+> - RL 通过和环境持续交互来学习，不受静态数据限制，能获得更好的泛化能力和高精度操作技能
 
 ---
 
