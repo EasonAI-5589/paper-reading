@@ -13,12 +13,17 @@ Reinforcement Learning (RL) has demonstrated the potential to create policies th
 
 > 💡 **RL for Robotics 两个研究方向**:
 >
-> | 方向 | 代表工作 | 关键词 |
-> |------|---------|--------|
-> | **优化策略** | Offline RL [20,34,35], Online RL [13,29,31], Mixed [11,28,38] | PPO, Cal-QL, GRPO |
-> | **模型架构** | FC [35,38], Autoregressive [11,33,56], Diffusion/Flow [31,58,62] | VLA, pi0, ReinFlow |
+> **方向一：优化策略** — 研究用什么方式训练 policy
+> - Offline RL [20,34,35]：从离线数据集学习
+> - Online RL [13,29,31,32,58]：和环境实时交互学习
+> - Mixed [11,28,38]：先离线预训练再在线微调
 >
-> 关键论点：**无论选哪种算法或架构，奖励函数设计才是更根本的瓶颈**。这为本文的 GRM 方案提供了动机——与算法/架构解耦的通用奖励模型。
+> **方向二：模型架构** — 研究用什么网络结构表示 policy
+> - 全连接网络 [35,38]：简单但表达力有限
+> - Autoregressive [11,33,56]：VLA 类，逐步生成动作
+> - Diffusion/Flow [31,58,62]：用扩散/流模型生成动作
+>
+> **共同问题：无论选哪种算法或架构，reward 设计才是更根本的瓶颈。** 这两个方向都假设有一个好的 reward function，但现实中 reward 很难设计。这引出了从人工 reward 转向 learned reward model 的趋势，也是本文 GRM 的动机。
 
 ---
 
