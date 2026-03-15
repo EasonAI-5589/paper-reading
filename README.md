@@ -57,7 +57,7 @@ Eason 的文献阅读仓库，按课题组织。每篇论文都有「批读格�
 | [π0.5](./VLA-WM/%5BCoRL%202025%5D%20pi0.5/) | CoRL 2025 Oral | VLM-based robot policy |
 | [π0.6-RECAP](./VLA-WM/%5BICLR%202026%5D%20Pi0.6-RECAP/) | ICLR 2026 | CoT reasoning robot policy |
 | ⭐ [π0.6-MEM](./VLA-WM/%5BPI%202026%5D%20MEM/) | PI 2026-03 | **多尺度具身记忆** - 短时视频记忆(ViT空时注意力)+长时语言记忆，支持15分钟长任务，in-context 自适应 |
-| [Cosmos Policy](./VLA/%5BArxiv%202601.16163%5D%20Cosmos-Policy/) | arXiv 2601.16163 | **Video Model → Policy**, Latent Frame Injection, 零架构修改, LIBERO 98.5% / RoboCasa 67.1% / ALOHA 93.6% SOTA |
+| [Cosmos Policy](./VLA-WM/%5BArxiv%202601.16163%5D%20Cosmos-Policy/) | arXiv 2601.16163 | **Video Model → Policy**, Latent Frame Injection, 零架构修改, LIBERO 98.5% / RoboCasa 67.1% / ALOHA 93.6% SOTA |
 | [VLAW](./VLA-WM/%5BarXiv%202602.12063%5D%20Iterative%20Co-Improvement%20of%20VLA%20Policy%20and%20World%20Model/) | arXiv 2602.12063 | 迭代修正世界模型过度乐观偏差 + 合成数据提升 VLA，DROID 5任务 +39.2% |
 | [WoVR](./VLA-WM/%5BarXiv%202602.13977%5D%20WoVR%20World%20Models%20as%20Reliable%20Simulators%20for%20VLA%20RL/) | arXiv 2602.13977 | Hallucination-aware RL框架：KIR + PACE + Wan 5B World Model，LIBERO +29.3pp，真实机器人 +30pp |
 | ⭐ [Robo-Dopamine](./VLA-WM/%5BCVPR%202026%5D%20Robo-Dopamine/) | CVPR 2026 | **通用过程奖励模型 GRM** - hop-based 相对进度 + 多视角融合 + PBRS policy-invariant shaping, 150 rollouts → 95% SR |
