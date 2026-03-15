@@ -44,10 +44,18 @@ Despite their promise, current PRMs are hindered by two fundamental limitations.
 
 To address these, we introduce Dopamine-Reward, a novel dense reward modeling method for learning a general-purpose, step-aware process reward from multi-view inputs. Dopamine-Reward directly tackles the first limitation by leveraging two key techniques: Hop-based Step-wise General Reward Model (GRM) Construction for a fine-grained, structural understanding of task progression from various viewpoints, and Multi-Perspective Reward Fusion via GRM to integrate bidirectional global reward and state-wise incremental reward for more precise reward estimation, which are made possible by a meticulous annotation pipeline encompassing over 3,400 hours of data, 100K trajectories, and more than 350 daily tasks, offering broad coverage, fine-grained labels, and well-balanced distributions across real robots, simulations, and egocentric human videos.
 
-> 💡 **Dopamine-Reward 方案**:
-> - **Hop-based GRM**: 不直接回归绝对进度，而是预测相对进度 "hop"——归一化到 [-1, 1] 的相对变化
-> - **Multi-Perspective Fusion**: 融合 incremental + forward + backward 三个视角
-> - 数据规模：3,400h / 100K trajectories / 350+ tasks / 三种来源（真实机器人 + 仿真 + 人类自我视角视频）
+> 💡 **Dopamine-Reward 解决的是缺陷 1（奖励模型评不准）**，通过两个核心机制：
+>
+> **机制 1: Hop-based GRM Construction** — 解决 task-specific + uniform reward 问题
+> - 不直接回归绝对进度，而是预测相对进度 "hop"（完成了剩余路程的多少比例），归一化到 [-1, 1]
+> - hop-based 天然 step-aware：每一步的 hop 值不同，关键步骤的 hop 更大，自动区分步骤重要性
+> - 基于 VLM 微调的通用模型，不需要每个任务单独训练
+>
+> **机制 2: Multi-Perspective Reward Fusion** — 解决单视角遮挡问题
+> - 从三个视角分别计算 hop（incremental / forward-anchored / backward-anchored），融合得到更鲁棒的进度估计
+> - 多视角输入（外部相机 + 腕部相机），遮挡时仍能准确评估
+>
+> 数据基础：3,400h / 100K 轨迹 / 350+ 任务 / 三种来源（真实机器人 + 仿真 + 人类自我视角视频）
 
 💡 **Hop-based 详解——为什么不直接预测"完成了百分之几"？**
 
