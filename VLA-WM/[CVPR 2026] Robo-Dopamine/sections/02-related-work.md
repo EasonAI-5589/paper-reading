@@ -38,7 +38,7 @@ While several methods introduce additional structure by decomposing tasks into s
 > - 问题 2：uniform reward 分配，忽略关键步骤的重要性差异（GVL [37], VLAC [59]）
 > - 问题 3：依赖单视角，遮挡时失效（几乎所有现有 PRM）
 >
-> 本文的 GRM 属于 PRM，但同时解决了上述三个问题。
+> 本文的 GRM 属于 PRM，针对上述三个问题分别给出对策：general-purpose（通用，解决 task-specific）、step-aware（步级感知，解决 uniform reward）、multi-view fusion（多视角融合，解决单视角遮挡），实现更鲁棒、更细粒度的奖励估计。
 
 > 💡 **从 ORM 到 PRM 的演进**:
 >
