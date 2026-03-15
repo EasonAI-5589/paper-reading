@@ -37,7 +37,7 @@ Despite their promise, current PRMs are hindered by two fundamental limitations.
 > - 单视角 → 遮挡时失效（几乎所有现有工作）
 >
 > **缺陷 2 — 奖励塑形理论有漏洞**:
-> - naive dense reward ($r = \Phi(s_{t+1}) - \Phi(s_t)$) 会改变最优策略
+> - naive dense reward ($`r = \Phi(s_{t+1}) - \Phi(s_t)`$) 会改变最优策略
 > - 产生 "semantic trap"：agent 学会到达高 reward 状态后**原地不动**
 > - 引用 Ng et al. 1999 [41] 的经典工作
 
@@ -55,8 +55,8 @@ To address these, we introduce Dopamine-Reward, a novel dense reward modeling me
 Building upon GRM via Dopamine-Reward, we propose a robust and unified policy learning framework Dopamine-RL to resolve the second limitation. Dopamine-RL employs a theoretically-sound Policy-Invariant Reward Shaping method, which enables the agent to leverage the dense rewards from our GRM for highly efficient self-improvement without altering the underlying optimal policy, thereby fundamentally avoiding the semantic trap.
 
 > 💡 **Dopamine-RL 方案**:
-> - Policy-Invariant Reward Shaping: $r_{GRM} = r_{gold} + \gamma\Phi^*(s_{t+1}) - \Phi^*(s_t)$
-> - 这是 PBRS 框架的直接应用，数学上保证 $\arg\max_a Q^*_{GRM}(s,a) = \arg\max_a Q^*_{gold}(s,a)$
+> - Policy-Invariant Reward Shaping: $`r_{GRM} = r_{gold} + \gamma\Phi^*(s_{t+1}) - \Phi^*(s_t)`$
+> - 这是 PBRS 框架的直接应用，数学上保证 $`\arg\max_a Q^*_{GRM}(s,a) = \arg\max_a Q^*_{gold}(s,a)`$
 > - 与 RL 算法无关：兼容 PPO、Cal-QL、ReinFlow 等
 
 ---

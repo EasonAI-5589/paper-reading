@@ -86,12 +86,12 @@ To assess the GRM's ability to make high-level judgments about task outcomes, we
 
 ## 4.2. Performance, Efficiency, Generalization (RQ2)
 
-We now evaluate the Dopamine-RL framework across 10 simulation tasks (from LIBERO [30] and RoboTwin2.0 [9]) and 8 real-world tasks, whose task setups and hardware platform are illustrated in Figure 4. In our simulation experiments, Dopamine-RL is evaluated under two distinct configurations: one leveraging the PPO [46] algorithm alongside the OpenVLA-OFT [26] model, and the other integrating the ReinFlow [61] algorithm with the $\pi_0$ [6] model. For real-world implementations, we pair Dopamine-RL with Cal-QL [39] and we employ a Human-in-the-Loop setup where we use just one single human demonstrations to adapt the GRM.
+We now evaluate the Dopamine-RL framework across 10 simulation tasks (from LIBERO [30] and RoboTwin2.0 [9]) and 8 real-world tasks, whose task setups and hardware platform are illustrated in Figure 4. In our simulation experiments, Dopamine-RL is evaluated under two distinct configurations: one leveraging the PPO [46] algorithm alongside the OpenVLA-OFT [26] model, and the other integrating the ReinFlow [61] algorithm with the $`\pi_0`$ [6] model. For real-world implementations, we pair Dopamine-RL with Cal-QL [39] and we employ a Human-in-the-Loop setup where we use just one single human demonstrations to adapt the GRM.
 
 > 💡 **实验设置**:
 > | 环境 | 任务数 | RL 算法 | Policy 架构 |
 > |------|--------|---------|------------|
-> | 仿真 (LIBERO + RoboTwin2.0) | 10 | PPO / ReinFlow | OpenVLA-OFT / $\pi_0$ |
+> | 仿真 (LIBERO + RoboTwin2.0) | 10 | PPO / ReinFlow | OpenVLA-OFT / $`\pi_0`$ |
 > | 真实世界 | 8 | Cal-QL | — |
 >
 > Baselines: BC (50 demos), PPO+Sparse, ConRFT
