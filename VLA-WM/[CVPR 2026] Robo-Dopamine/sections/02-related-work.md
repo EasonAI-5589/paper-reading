@@ -24,7 +24,21 @@ Reinforcement Learning (RL) has demonstrated the potential to create policies th
 
 ## 2.2 Learned Process Reward Models
 
-In real-world RL, a common practice is to train a success classifier as Outcome Reward Models (ORMs) to provide a binary reward signal [11, 35], which renders exploration prohibitively difficult in complex, long-horizon tasks. To mitigate sparsity, recent work leverages vision-language models (VLMs) as Process Reward Models (PRMs) [2, 8, 36, 37, 59], providing denser feedback by, for example, predicting progress deltas between paired observations [59] or assigning per-frame progress scores with respect to a language goal [37]. While several methods introduce additional structure by decomposing tasks into steps [8, 18], some open challenges remain (Section 1). First, task-specific designs may limit generalization across diverse activities [8, 18]. Second, many approaches adopt nearly uniform reward allocations, which may underweight the salience of critical sub-steps [37, 59]. In addition, current PRMs typically rely on single-view observations [2, 8, 36, 37, 59], which can impede multi-perspective state estimation and increase sensitivity to occlusions. In contrast, our method, Dopamine-Reward, aims to address these issues by learning a general-purpose, step-aware reward model that explicitly fuses multi-view inputs, enabling a more robust and fine-grained reward estimation.
+In real-world RL, a common practice is to train a success classifier as Outcome Reward Models (ORMs) to provide a binary reward signal [11, 35], which renders exploration prohibitively difficult in complex, long-horizon tasks. To mitigate sparsity, recent work leverages vision-language models (VLMs) as Process Reward Models (PRMs) [2, 8, 36, 37, 59], providing denser feedback by, for example, predicting progress deltas between paired observations [59] or assigning per-frame progress scores with respect to a language goal [37].
+
+While several methods introduce additional structure by decomposing tasks into steps [8, 18], some open challenges remain (Section 1). First, task-specific designs may limit generalization across diverse activities [8, 18]. Second, many approaches adopt nearly uniform reward allocations, which may underweight the salience of critical sub-steps [37, 59]. In addition, current PRMs typically rely on single-view observations [2, 8, 36, 37, 59], which can impede multi-perspective state estimation and increase sensitivity to occlusions. In contrast, our method, Dopamine-Reward, aims to address these issues by learning a general-purpose, step-aware reward model that explicitly fuses multi-view inputs, enabling a more robust and fine-grained reward estimation.
+
+> 💡 **Learned Reward Model 主要分为两类**:
+>
+> **ORM (Outcome Reward Model)** — 只看最终结果的二分类信号（成功/失败）
+> - 问题：信号太稀疏，长步骤任务中 agent 几乎得不到反馈，探索极其困难
+>
+> **PRM (Process Reward Model)** — 关注过程，给每一步打分，信号更密集
+> - 问题 1：task-specific 设计，泛化差（SARM [8]）
+> - 问题 2：uniform reward 分配，忽略关键步骤的重要性差异（GVL [37], VLAC [59]）
+> - 问题 3：依赖单视角，遮挡时失效（几乎所有现有 PRM）
+>
+> 本文的 GRM 属于 PRM，但同时解决了上述三个问题。
 
 > 💡 **从 ORM 到 PRM 的演进**:
 >
