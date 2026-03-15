@@ -143,3 +143,59 @@ An overview of Dopamine-Reward and Dopamine-RL, together with our empirical gain
 1. IL → RL 的转变是必然趋势，但奖励设计是核心瓶颈
 2. 现有 PRM 的两大问题高度互补：模型能力 + 理论正确性缺一不可
 3. Dopamine 的命名寓意：多巴胺 = 奖励信号，无论在人脑还是机器人中
+
+---
+
+## 📚 RL 基础知识补充
+
+> 以下内容帮助没有 RL 背景的读者理解本文的核心概念。
+
+### 核心符号
+
+| 符号 | 含义 | 直觉理解 |
+|------|------|----------|
+| $`s_t`$ | 时刻 t 的状态 (state) | 机器人当前姿态、物体位置等 |
+| $`a_t`$ | 时刻 t 的动作 (action) | 机器人执行的操作（如移动手臂） |
+| $`r_t`$ | 时刻 t 的奖励 (reward) | 这一步做得好不好的标量分数 |
+| $`\pi(a \mid s)`$ | 策略 (policy) | 在状态 s 下选择动作 a 的概率分布 |
+| $`\Phi(s)`$ | 势函数 (potential function) | 对状态的"打分"，如离目标越近分越高 |
+| $`\gamma`$ | 折扣因子 (discount factor) | 通常 0.99，表示未来奖励没当前值钱 |
+| $`R`$ | 累积回报 (return) | 整个 episode 所有 reward 的加权总和 |
+
+### Reward vs Policy
+
+- **Reward** = 评分标准（人类设计的）：告诉 agent "什么是好的"
+- **Policy** = 行为策略（agent 学出来的）：在每个状态下该怎么做
+
+RL 的目标：找到让累积回报 R 最大的 policy $`\pi^* = \arg\max_\pi \mathbb{E}[\sum \gamma^t r_t]`$
+
+**reward 的设计直接决定了 agent 学出什么样的 policy**：reward 设计对了 → 正确行为；reward 有 bug → agent 钻空子。这也是为什么本文花大力气解决 reward 设计问题。
+
+### 为什么 naive dense reward 会改变最优策略？
+
+如果直接用 $`r_t = \Phi(s_{t+1}) - \Phi(s_t)`$ 作为奖励，累加整个 episode：
+
+$$R = [\Phi(s_1) - \Phi(s_0)] + [\Phi(s_2) - \Phi(s_1)] + \cdots = \Phi(s_T) - \Phi(s_0)$$
+
+中间项全部消掉（telescoping），agent 的总收益只取决于最终状态的 Φ 值。于是 agent 会找到 Φ 最高的状态然后**停着不动**（semantic trap），因为离开会让 Φ 变小、reward 变负。
+
+**正确做法（Ng et al. 1999）**：加上折扣因子 γ，$`r_{shaped} = r_{orig} + \gamma\Phi(s_{t+1}) - \Phi(s_t)`$。γ 的存在打破了完美 telescoping，保证最优策略不变。本文的 Dopamine-RL 正是基于此理论。
+
+### Online RL vs Offline RL
+
+| | Online RL | Offline RL |
+|--|-----------|------------|
+| 数据来源 | agent 实时和环境交互产生 | 使用预先收集好的数据集 |
+| 类比 | 自己下棋，输了总结经验 | 看别人的棋谱学 |
+| 优点 | 能持续探索、发现新策略 | 安全、省成本 |
+| 缺点 | 机器人试错成本高 | 数据没覆盖的情况学不到 |
+
+### On-policy vs Off-policy
+
+| | On-policy | Off-policy |
+|--|-----------|------------|
+| 数据使用 | 只用**当前 policy** 产生的数据 | 可用**任何 policy** 的数据 |
+| 代表算法 | PPO, A2C | SAC, DQN, TD3 |
+| 优点 | 稳定 | 样本利用率高 |
+
+本文的 Dopamine-RL 使用 **Online RL**（agent 和环境持续交互），且兼容 PPO（on-policy）和 Cal-QL（off-policy）等多种算法。reward 设计得越好 → agent 学得越快 → 需要的交互次数越少（本文实现了 150 rollouts ≈ 1 小时达到 95% 成功率）。
