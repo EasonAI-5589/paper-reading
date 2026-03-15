@@ -199,3 +199,29 @@ $$R = [\Phi(s_1) - \Phi(s_0)] + [\Phi(s_2) - \Phi(s_1)] + \cdots = \Phi(s_T) - \
 | 优点 | 稳定 | 样本利用率高 |
 
 本文的 Dopamine-RL 使用 **Online RL**（agent 和环境持续交互），且兼容 PPO（on-policy）和 Cal-QL（off-policy）等多种算法。reward 设计得越好 → agent 学得越快 → 需要的交互次数越少（本文实现了 150 rollouts ≈ 1 小时达到 95% 成功率）。
+
+### Naive Dense Reward → PBRS → Dopamine-RL 的演进
+
+| | Naive Dense Reward | PBRS (Ng 1999) | Dopamine-RL (本文) |
+|--|-------------------|----------------|-------------------|
+| 公式 | $`r = \Phi(s_{t+1}) - \Phi(s_t)`$ | $`r = r_{orig} + \gamma\Phi(s_{t+1}) - \Phi(s_t)`$ | $`r = r_{gold} + \gamma\Phi^*(s_{t+1}) - \Phi^*(s_t)`$ |
+| 原始奖励 | ❌ 直接替换掉了 | ✅ 保留 $`r_{orig}`$ | ✅ 保留 $`r_{gold}`$（稀疏的任务完成奖励） |
+| 折扣因子 γ | ❌ 没有 | ✅ 有 | ✅ 有 |
+| Φ 来源 | 人工设计 | 人工设计 | **GRM 学出来的** $`\Phi^*`$ |
+| 最优策略 | ❌ 被改变（semantic trap） | ✅ 不变 | ✅ 不变 |
+| 可扩展性 | - | ❌ 每个任务要手写 Φ | ✅ GRM 自动泛化 |
+
+Naive → PBRS 有**两个关键修复**（不只是加了 γ）：
+
+1. **加回了原始奖励 $`r_{orig}`$** — shaping 是补充引导信号，不是替代原始目标
+2. **加了折扣因子 γ** — 打破 telescoping 求和，保证最优策略不变
+
+Dopamine-RL 相比经典 PBRS 的进步在于 **Φ 不再是人工设计的，而是用 GRM（一个 VLM）学出来的**。GRM 看多视角图片，预测 hop-based 的相对进度作为 $`\Phi^*`$，所以能泛化到不同任务，不需要每个任务手写势函数。
+
+一句话总结演进路线：
+
+```
+Naive:       Φ 手工设计，直接替代原始奖励        → 策略错误
+PBRS:        Φ 手工设计，补充原始奖励 + γ        → 策略正确，但不 scalable
+Dopamine-RL: Φ 由 GRM 学出，补充原始奖励 + γ    → 策略正确 + scalable
+```
