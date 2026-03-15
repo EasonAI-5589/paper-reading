@@ -38,8 +38,7 @@ Despite their promise, current PRMs are hindered by two fundamental limitations.
 > **缺陷 2 — 奖励塑形（reward shaping）理论有漏洞**：
 > - 即使 PRM 评得准，把 dense reward 直接喂给 RL 也会出问题
 > - naive 做法 $`r = \Phi(s_{t+1}) - \Phi(s_t)`$ 会改变最优策略（参见 RL 基础知识补充中的 telescoping 解释）
-> - 产生 semantic trap：agent 跑到高进度状态后原地不动，不去完成真正的任务
-> - 这是 Ng et al. 1999 [41] 就指出的经典问题，但现有 PRM 工作普遍忽视了这一点
+> - 产生 semantic trap：agent 跑到高进度状态后原地不动，不去完成真正的任务（Ng et al. 1999 [41]）
 
 ---
 
