@@ -225,3 +225,48 @@ Naive:       Φ 手工设计，直接替代原始奖励        → 策略错误
 PBRS:        Φ 手工设计，补充原始奖励 + γ        → 策略正确，但不 scalable
 Dopamine-RL: Φ 由 GRM 学出，补充原始奖励 + γ    → 策略正确 + scalable
 ```
+
+### Robo-Dopamine 完整流程：GRM → Φ → Reward → Policy
+
+**GRM、Φ、Reward、Policy 四者关系**：
+
+- **GRM 是"眼睛"** — 一个 VLM，看多视角图片判断任务进度
+- **Φ 是"进度条"** — GRM 输出的 hop 值累积而成，表示"当前完成了多少"
+- **PBRS 是"安全转换器"** — 把进度条变成不会误导 agent 的 reward
+- **Policy 是"大脑"** — 根据 reward 学会在每个状态下怎么行动
+
+**GRM vs 传统 RM 的核心区别**：传统 RM（如 RLHF 中的 Reward Model）直接输出绝对分数当 reward 用；GRM 输出的是**相对进度 hop**，不直接当 reward，而是经过 PBRS 公式转换后才变成 reward，多了一层"保护壳"保证不改变最优策略。
+
+**什么是 hop？** hop = "跳一步"，指完成了**剩余进度的多少比例**，归一化到 [-1, 1]。比如当前完成 60%，hop = 0.125 表示前进了剩余 40% 的 12.5%，新进度 = 65%。因为每次跳的是剩余比例，进度**永远不会越界 [0, 1]**。
+
+**GRM 的三视角融合（Multi-Perspective Progress Fusion）**：
+
+| 视角 | BEFORE 设为 | 衡量的是 |
+|------|-----------|---------|
+| **Incremental** | 上一步状态 | 相邻两步的进步量 |
+| **Forward-Anchored** | 初始状态 | 从起点到现在走了多远 |
+| **Backward-Anchored** | 目标状态 | 离终点还有多远 |
+
+三个 hop 融合成最终的 $`\Phi^*`$，比单一视角更鲁棒。
+
+**完整流程**：
+
+```
+Step 1: GRM 训练（离线，一次性）
+        在 3400h / 100K 轨迹上训练 VLM，学会看图判断进度
+                    ↓
+Step 2: One-Shot GRM Adaption
+        给 GRM 看一条新任务的示范轨迹，它就能评估该任务的进度
+                    ↓
+Step 3: GRM 推理 → 输出 hop → 累积成 Φ*(s)
+        输入：STATE_INIT + STATE_GOAL + BEFORE + AFTER 四帧图片
+        输出：hop 值（相对进度变化）→ 累积得到 Φ*(s)
+                    ↓
+Step 4: Policy-Invariant Reward Shaping
+        r = r_gold + γΦ*(s') - Φ*(s)
+        r_gold = 稀疏奖励（完成任务 +1），γΦ* 部分 = 密集引导信号
+                    ↓
+Step 5: RL 训练 → 学出 Policy
+        用构造好的 reward 训练 agent（兼容 PPO / Cal-QL / ReinFlow）
+        150 rollouts ≈ 1 小时 → 95% 成功率
+```
