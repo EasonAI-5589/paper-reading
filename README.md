@@ -57,6 +57,7 @@ Eason 的文献阅读仓库，按课题组织。每篇论文都有「批读格�
 | [π0.5](./VLA-WM/%5BCoRL%202025%5D%20pi0.5/) | CoRL 2025 Oral | VLM-based robot policy |
 | [π0.6-RECAP](./VLA-WM/%5BICLR%202026%5D%20Pi0.6-RECAP/) | ICLR 2026 | CoT reasoning robot policy |
 | ⭐ [π0.6-MEM](./VLA-WM/%5BPI%202026%5D%20MEM/) | PI 2026-03 | **多尺度具身记忆** - 短时视频记忆(ViT空时注意力)+长时语言记忆，支持15分钟长任务，in-context 自适应 |
+| [Cosmos Policy](./VLA/%5BArxiv%202601.16163%5D%20Cosmos-Policy/) | arXiv 2601.16163 | **Video Model → Policy**, Latent Frame Injection, 零架构修改, LIBERO 98.5% / RoboCasa 67.1% / ALOHA 93.6% SOTA |
 
 ---
 
