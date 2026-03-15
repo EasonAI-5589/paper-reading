@@ -17,12 +17,12 @@ While large-scale imitation learning (IL) has substantially advanced embodied in
 
 However, the primary obstacle for applying RL to real-world robotics is the design of effective reward functions. Conventional approaches falter at two extremes: sparse, binary outcome rewards [11, 33, 35, 56, 60] make exploration in long-horizon, contact-rich tasks prohibitively difficult, while handcrafted dense rewards [16, 44, 54, 55] require significant domain expertise, limiting scalability and general applicability. This dichotomy has motivated the shift towards learning-based Process Reward Models (PRMs) [2, 8, 36, 37, 59].
 
-> 💡 **奖励函数的两难困境**:
-> | 类型 | 优点 | 缺点 |
-> |------|------|------|
-> | Sparse (binary) | 简单、无偏 | 长horizon探索困难 |
-> | Handcrafted dense | 信号丰富 | 需要领域知识，不可扩展 |
-> | **Learned PRM** | 可学习、可扩展 | **本文要解决的问题** |
+> 💡 **RL 应用到机器人的最大挑战是 reward function 的设计**。传统方法走向两个极端：
+>
+> - **Sparse (binary) reward**：只在任务完成时给 +1，信号太稀疏，长步骤、接触丰富的任务中 agent 几乎无法探索
+> - **Handcrafted dense reward**：人工为每一步设计奖励规则，信号丰富但需要大量领域知识，每换一个任务就得重新写，无法扩展
+>
+> 两者都不理想，因此目前趋势是转向 **learning-based Process Reward Model (PRM)**——让模型自己学会评估每一步的进度，既有密集信号又可扩展。
 
 ---
 
