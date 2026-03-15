@@ -61,6 +61,7 @@ Eason 的文献阅读仓库，按课题组织。每篇论文都有「批读格�
 | [VLAW](./VLA-WM/%5BarXiv%202602.12063%5D%20Iterative%20Co-Improvement%20of%20VLA%20Policy%20and%20World%20Model/) | arXiv 2602.12063 | 迭代修正世界模型过度乐观偏差 + 合成数据提升 VLA，DROID 5任务 +39.2% |
 | [WoVR](./VLA-WM/%5BarXiv%202602.13977%5D%20WoVR%20World%20Models%20as%20Reliable%20Simulators%20for%20VLA%20RL/) | arXiv 2602.13977 | Hallucination-aware RL框架：KIR + PACE + Wan 5B World Model，LIBERO +29.3pp，真实机器人 +30pp |
 | ⭐ [Robo-Dopamine](./VLA-WM/%5BCVPR%202026%5D%20Robo-Dopamine/) | CVPR 2026 | **通用过程奖励模型 GRM** - hop-based 相对进度 + 多视角融合 + PBRS policy-invariant shaping, 150 rollouts → 95% SR |
+| [RLinf](./VLA-WM/%5BarXiv%202509.15965%5D%20RLinf/) | arXiv 2509.15965 | **RL 训练系统** - M2Flow 宏微流变换, 弹性流水线+上下文切换+自动调度, Embodied RL 2.43x加速, LIBERO 97.83% SR |
 
 ---
 
