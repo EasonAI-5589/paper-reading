@@ -37,7 +37,7 @@ Building upon Dopamine-Reward, we propose Dopamine-RL, a robust policy learning 
 
 &emsp;&emsp;**Sparse reward（稀疏奖励）**：只在任务完成时给 1，其他时刻都是 0。比如机器人把杯子放到盘子上，只有最后放好了才给奖励。问题是 agent 在漫长的操作过程中完全没有反馈，不知道自己是在靠近目标还是远离目标，探索极其困难。
 
-&emsp;&emsp;**Dense reward（密集奖励）**：**每一步都给奖励信号**。比如 GRM 估计当前进度 $\Phi^*(s_t)$，然后每步计算 $r = \Phi^*(s_{t+1}) - \Phi^*(s_t)$——靠近目标就是正奖励，远离就是负奖励。这样 agent 每一步都有方向指引，学习效率大幅提升。
+&emsp;&emsp;**Dense reward（密集奖励）**：**每一步都给奖励信号**。比如 GRM 估计当前进度 $\Phi^{\ast}(s_t)$，然后每步计算 $r = \Phi^*(s_{t+1}) - \Phi^*(s_t)$——靠近目标就是正奖励，远离就是负奖励。这样 agent 每一步都有方向指引，学习效率大幅提升。
 
 &emsp;&emsp;本文的 dense reward 就是 GRM 提供的**逐步进度信号**。但 naive 的 dense reward 会导致 semantic trap（agent 停在高进度处不动），所以需要 PBRS 来保证理论正确性。
 
