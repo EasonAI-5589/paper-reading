@@ -28,17 +28,18 @@ However, the primary obstacle for applying RL to real-world robotics is the desi
 
 Despite their promise, current PRMs are hindered by two fundamental limitations. First, the underlying reward models often exhibit critical deficiencies: their task-specific design [8, 18] inherently limits generalization; uniform reward distributions [37, 59] fail to capture the varying salience of crucial sub-steps; and a reliance on single-view observations [2, 8, 36, 37, 59] fails in manipulation scenes where occlusions obscure fine-grained progress only visible from wrist-level views. Second, the reward shaping algorithms utilizing these dense signals are often theoretically flawed. Naively incorporating dense rewards can induce a semantic trap [41] that misguides policy optimization by inadvertently altering the optimal policy, causing the agent to prioritize high proxy rewards from intermediate steps over the true task objective.
 
-> 💡 **PRM 两大根本缺陷（核心 motivation）**:
+> 💡 **虽然 PRM 是趋势，但现有 PRM 存在两大根本缺陷（本文核心 motivation）**：
 >
-> **缺陷 1 — 奖励模型能力不足**:
-> - task-specific 设计 → 泛化差（SARM [8]）
-> - uniform reward 分配 → 忽略关键子步骤的重要性差异（GVL [37], VLAC [59]）
-> - 单视角 → 遮挡时失效（几乎所有现有工作）
+> **缺陷 1 — 奖励模型本身评不准**：
+> - task-specific 设计：每个任务单独训练，换任务就废了，泛化差（SARM [8]）
+> - uniform reward 分配：给每个步骤打相同权重，忽略了"抓住物体"比"移动手臂"重要得多（GVL [37], VLAC [59]）
+> - 单视角观测：手遮挡了物体就看不见进展，在操作场景中经常失效（几乎所有现有 PRM）
 >
-> **缺陷 2 — 奖励塑形理论有漏洞**:
-> - naive dense reward ($`r = \Phi(s_{t+1}) - \Phi(s_t)`$) 会改变最优策略
-> - 产生 "semantic trap"：agent 学会到达高 reward 状态后**原地不动**
-> - 引用 Ng et al. 1999 [41] 的经典工作
+> **缺陷 2 — 奖励塑形（reward shaping）理论有漏洞**：
+> - 即使 PRM 评得准，把 dense reward 直接喂给 RL 也会出问题
+> - naive 做法 $`r = \Phi(s_{t+1}) - \Phi(s_t)`$ 会改变最优策略（参见 RL 基础知识补充中的 telescoping 解释）
+> - 产生 semantic trap：agent 跑到高进度状态后原地不动，不去完成真正的任务
+> - 这是 Ng et al. 1999 [41] 就指出的经典问题，但现有 PRM 工作普遍忽视了这一点
 
 ---
 
