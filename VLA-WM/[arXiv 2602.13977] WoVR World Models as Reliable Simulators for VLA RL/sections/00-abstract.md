@@ -10,11 +10,19 @@ WoVR 的核心问题：用 World Model 做 VLA 的 RL post-training 时，closed
 
 Reinforcement learning (RL) promises to unlock capabilities beyond imitation learning for Vision–Language–Action (VLA) models, but its requirement for massive real-world interaction prevents direct deployment on physical robots. Recent work attempts to use learned world models as simulators for policy optimization, yet closed-loop imagined rollouts inevitably suffer from hallucination and long-horizon error accumulation. Such errors do not merely degrade visual fidelity—they corrupt the optimization signal, encouraging policies to exploit model inaccuracies rather than genuine task progress.
 
-> 💡 **核心问题定位**：这一段把 WoVR 的 motivation 说得很准——World Model 做 RL 的问题不是"视觉质量差"，而是"hallucination 腐蚀 optimization signal"。这是一个比 VLAW 更深入的问题认识：VLAW 关注 over-optimism（世界模型预测结果太乐观），WoVR 关注 hallucination（世界模型的闭环误差积累导致 policy 学到错误的技巧）。
+> 💡 **第一段：问题是什么——三句话层层递进**
 >
-> **与 VLAW 的对比**：
-> - VLAW：World Model 训练数据分布问题（缺 failure case）→ 用 online rollout fine-tune
-> - WoVR：World Model 推理时的 hallucination 问题（闭环误差积累）→ 设计三层 hallucination-aware 机制 123
+> **① RL 对 VLA 有用，但需要大量真实交互。** 真实机器人太慢太贵，不现实。
+>
+> **② 用 world model 做模拟器是个方案，但有幻觉问题。** 视频生成模型会出错，误差随时间步积累（closed-loop error accumulation）。
+>
+> **③ 关键洞察：幻觉的危害不是"画面不好看"，而是"RL 学歪了"。** 当 world model 在第 N 步幻觉时（比如杯子突然消失），RL 会**exploit（利用）world model 的 bug**，学到的是"怎么触发幻觉拿奖励"而不是真正的技能。这就是 "corruption of optimization signal"——优化信号被污染了。
+>
+> **与 VLAW 的视角对比**（两者互补，不矛盾）：
+> | | WoVR | VLAW |
+> |---|------|------|
+> | **认为问题是什么** | 闭环 rollout 的幻觉（推理时误差积累） | WM 训练数据分布偏差（缺 failure case → over-optimism） |
+> | **解决思路** | 三层机制让 RL 跟不完美 WM 共处 | 用在线数据微调 WM + filtered BC |
 
 We propose WoVR, a reliable world-model-based reinforcement learning framework for post-training VLA policies. Instead of assuming a faithful world model, WoVR explicitly regulates how RL interacts with imperfect imagined dynamics. It improves rollout stability through a controllable action-conditioned video world model, reshapes imagined interaction to reduce effective error depth via Keyframe-Initialized Rollouts, and maintains policy–simulator alignment through World Model-Policy co-evolution.
 
