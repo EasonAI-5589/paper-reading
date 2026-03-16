@@ -32,7 +32,7 @@ Our approach is designed to address the core challenges in real-world robotic le
 
 The core of our modeling method is to build the GRM, a vision-language model designed to estimate precise task progress. To ensure the model generalizes across diverse embodiments and tasks, we construct a large-scale dataset structured around relative temporal transitions. This section details the three-stage GRM training data construction pipeline, from raw video segmentation to a scientifically rigorous hop-based labeling strategy as follows:
 
-> 💡 **3.1.1 要点预览**: GRM 数据构建的三阶段流水线：
+> 💡 **GRM 本质是一个基于 VLM 微调的 Reward Model**，输入多视角图片，输出任务进度估计。这里讲的是如何构建 GRM 的训练数据，分三个阶段：
 > 1. Step-wise task progress discretization（任务进度离散化）
 > 2. Hop-based relative progress normalization（相对进度归一化）
 > 3. Sampling strategy and data balancing（采样与平衡）
