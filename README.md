@@ -85,6 +85,15 @@ Agent 记忆机制
 
 ---
 
+### 🏥 Medical VQA Benchmark
+医学视觉问答基准
+
+| 论文 | 会议 | 方法特点 |
+|------|------|----------|
+| *待添加* | | |
+
+---
+
 ### 🏥 Medical AI (未分组)
 
 | 论文 | 会议 | 方法特点 |
@@ -92,6 +101,15 @@ Agent 记忆机制
 | [MedFrameQA](./%5BICLR%202026%20Rejected%5D%20MedFrameQA/) | ICLR 2026 Rejected | **Benchmark** - 多帧医学 VQA, 2851 QA, MLLM 跨图推理 < 55% |
 | [Context Clues](./%5BICLR%202026%5D%20Context-Clues/) | ICLR 2026 | 长上下文 EHR FM, Mamba-16k EHRSHOT 9/14 SOTA, EHR 三属性分析 |
 | [EHRSHOT](./%5BNeurIPS%202023%5D%20EHRSHOT/) | NeurIPS 2023 | EHR benchmark + CLMBR-T-base FM, 6739 patients, 15 few-shot tasks |
+
+---
+
+### 🧠 Parametric Memory
+参数化记忆机制
+
+| 论文 | 会议 | 方法特点 |
+|------|------|----------|
+| *待添加* | | |
 
 ---
 
@@ -155,11 +173,14 @@ paper-reading/
 │   ├── [Arxiv 2602.03036] LatentMem/
 │   └── [ICLR 2026] MemGen/
 │
+├── Medical VQA Benchmark/           # 医学视觉问答基准 (0 篇)
+│
 ├── [ICLR 2026 Rejected] MedFrameQA/ # Medical AI (未分组, 3 篇)
 ├── [ICLR 2026] Context-Clues/
 ├── [NeurIPS 2023] EHRSHOT/
 │
-
+├── Parametric Memory/               # 参数化记忆机制 (0 篇)
+│
 ├── RLHF/                           # 强化学习人类反馈 (1 篇)
 │   └── [ICML 2025] MM-RLHF/
 │
