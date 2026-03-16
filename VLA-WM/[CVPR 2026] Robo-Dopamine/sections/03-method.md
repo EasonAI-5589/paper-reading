@@ -61,6 +61,8 @@ $$
 
 This yields a sequence of states $`\mathcal{S} = \{s_0, s_1, \ldots, s_M\}`$ where each state $`s_i`$ is a set of synchronous multi-view visual observations. We then define the ground-truth global progress as $`\Phi(s_i) = i/M`$.
 
+> 💡 **进度函数 Φ(s)**：这里的 Φ 就是后文 PBRS 公式中的势函数（potential function）。在这一步它是 ground-truth 标签（Φ(s_i) = i/M，线性分配）；后续 GRM 训练好后，GRM 的输出 Φ*(s) 就是对这个进度的预测值。Φ 的含义始终是"任务完成了多少"，从 0（开始）到 1（完成）。
+
 ---
 
 **Hop-based relative progress normalization.** A naive choice is to regress the progress gain $`\Phi_\delta(s_p, s_q) = \Phi(s_q) - \Phi(s_p)`$ between two states, but iterating such predictions accumulates error and can push the reconstructed $`\Phi^{\star}(s)`$ outside $`[0, 1]`$. Instead, we introduce a hop-based formulation that learns relative-relative progress. Each training sample is a tuple $`\mathcal{D}`$ containing a task description $`d_{task}`$, the initial state $`s_0`$, the goal state $`s_M`$, a "BEFORE" state $`s_p`$, an "AFTER" state $`s_q`$, and a hop label $`\mathcal{H}(s_p, s_q)`$ that normalizes the progress from $`s_p`$ to $`s_q`$ relative to the full task span from $`s_0`$ to $`s_M`$. Given $`\Phi(s_p)`$ and $`\Phi(s_q)`$, we define:
