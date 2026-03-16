@@ -131,6 +131,12 @@ $$
 \Delta\Phi_{t-1,t}^{\star} = \begin{cases} [1 - \Phi^{\star}(s_{t-1})] \cdot \mathcal{H}^{\star} & \text{if } \mathcal{H}^{\star} \geq 0 \\ \Phi^{\star}(s_{t-1}) \cdot \mathcal{H}^{\star} & \text{if } \mathcal{H}^{\star} < 0 \end{cases}
 $$
 
+> 💡 **增量公式解读**：这个公式就是把 3.1.1 的 hop 定义**反过来解**。训练时 hop = 进度差 ÷ 可用空间，推理时反过来：进度差 = 可用空间 × hop。
+> - **前进**（hop ≥ 0）：可用空间 = 1 - 当前进度（剩余空间），hop 表示"用掉了剩余空间的百分之几"
+> - **后退**（hop < 0）：可用空间 = 当前进度（已完成空间），hop 表示"退掉了已完成空间的百分之几"
+>
+> 例：当前进度 0.6，hop = 0.5 → 剩余空间 0.4 × 0.5 = 0.2，增量 = 0.2
+
 The incremental progress is then calculated as follow:
 
 $$
@@ -187,7 +193,7 @@ This fusion yields a more accurate and drift-resistant signal, which is critical
 
 ### 3.1.3. Progress Consistency Checking (Optional)
 
-While the multi-perspective fusion via averaging (Equation (8)) serves as a baseline, its naive application in online RL faces the risk of Out-of-Distribution (OOD) hallucination. Due to the inherent limitations of data coverage, it is impossible for the training set to encompass every corner of the state space. During RL, the policy inevitably explores unseen regions where the reward model may yield spurious high signals, leading to "reward hacking." To address these, we propose a bi-directional consistency checking strategy that leverages consistency as a proxy for reliability, which is motivated by the observation that forward $`\Phi_F^{*}`$ and backward $`\Phi_B^{*}`$ predictions tend to exhibit significant divergence in OOD scenarios or observations, whereas they remain consistent in familiar states.
+While the multi-perspective fusion via averaging (Equation (8)) serves as a baseline, its naive application in online RL faces the risk of Out-of-Distribution (OOD) hallucination. Due to the inherent limitations of data coverage, it is impossible for the training set to encompass every corner of the state space. During RL, the policy inevitably explores unseen regions where the reward model may yield spurious high signals, leading to "reward hacking." To address these, we propose a bi-directional consistency checking strategy that leverages consistency as a proxy for reliability, which is motivated by the observation that forward $\Phi_F^{*}$ and backward $\Phi_B^{*}$ predictions tend to exhibit significant divergence in OOD scenarios or observations, whereas they remain consistent in familiar states.
 
 > 💡 **问题**：RL 训练中 agent 会探索到训练数据没覆盖过的状态（OOD），此时 GRM 可能给出虚假的高分 → agent 被骗去重复这些状态（reward hacking）。
 >
@@ -195,37 +201,49 @@ While the multi-perspective fusion via averaging (Equation (8)) serves as a base
 
 ---
 
-**Consistency-Aware Weighting.** We first define the mean estimated progress $`\bar{\Phi}^{\ast}(s_t) = (\Phi_F^{\ast}(s_t) + \Phi_B^{\ast}(s_t)) / 2`$. To quantify uncertainty, we calculate a normalized discrepancy metric:
+**Consistency-Aware Weighting.** We first define the mean estimated progress $\bar{\Phi}^{*}(s_t) = (\Phi_F^{*}(s_t) + \Phi_B^{*}(s_t)) / 2$. To quantify uncertainty, we calculate a normalized discrepancy metric:
 
 $$
-\Delta_{norm}(s_t) = \frac{|\Phi_B^{\ast}(s_t) - \Phi_F^{\ast}(s_t)|}{\bar{\Phi}^{\ast}(s_t) + \epsilon},
+\Delta_{norm}(s_t) = \frac{|\Phi_B^{*}(s_t) - \Phi_F^{*}(s_t)|}{\bar{\Phi}^{*}(s_t) + \epsilon},
 $$
 
-where $`\epsilon`$ is a small constant for numerical stability. Normalization by $`\bar{\Phi}^{*}`$ ensures that discrepancies are penalized more heavily during the early stages (where $`\Phi`$ is small), as precise guidance is critical initially. We then derive a confidence weight $`w_t \in (0, 1]`$ using a Gaussian kernel with sensitivity $`\alpha`$:
+where $\epsilon$ is a small constant for numerical stability. Normalization by $\bar{\Phi}^{*}$ ensures that discrepancies are penalized more heavily during the early stages (where $\Phi$ is small), as precise guidance is critical initially. We then derive a confidence weight $w_t \in (0,1]$ using a Gaussian kernel with sensitivity $\alpha$:
 
 $$
 w_t = \exp\left(-\alpha \cdot (\Delta_{norm}(s_t))^2\right).
 $$
 
 > 💡 **一致性权重**：
-> - Forward 和 Backward 预测差异越大 → $`\Delta_{norm}`$ 越大 → $`w_t`$ 越接近 0（不信这个预测）
-> - 两者一致 → $`\Delta_{norm}`$ 小 → $`w_t`$ 接近 1（信任这个预测）
-> - 除以 $`\bar{\Phi}`$ 的作用：在任务早期 Φ 值小，同样的绝对差异对应更大的 $`\Delta_{norm}`$，即早期对不一致的惩罚更重（因为早期的引导方向很关键）
+> - Forward 和 Backward 预测差异越大 → $\Delta_{norm}$ 越大 → $w_t$ 越接近 0（不信这个预测）
+> - 两者一致 → $\Delta_{norm}$ 小 → $w_t$ 接近 1（信任这个预测）
+> - 除以 $\bar{\Phi}$ 的作用：在任务早期 $\Phi$ 值小，同样的绝对差异对应更大的 $\Delta_{norm}$，即早期对不一致的惩罚更重（因为早期的引导方向很关键）
 
 ---
 
-**Conservative State Update.** To prevent the policy from exploiting erroneous estimates in OOD scenarios, we employ a conservative update rule for the maintained progress state $`\Phi^{*}(s_t)`$ instead of Equation (8):
+**Conservative State Update.** To prevent the policy from exploiting erroneous estimates in OOD scenarios, we employ a conservative update rule for the maintained progress state $\Phi^{*}(s_t)$ instead of Equation (8):
 
 $$
-\Phi^{*}(s_t) = \Phi^{*}(s_{t-1}) + \frac{w_t}{2} \cdot \left(\bar{\Phi}^{*}(s_t) - \Phi^{*}(s_{t-1}) + \Delta\Phi_{t-1,t}^{\star}\right).
+\Phi^{*}(s_t) = \Phi^{*}(s_{t-1}) + \frac{w_t}{2} \cdot \left(\bar{\Phi}^{*}(s_t) - \Phi^{*}(s_{t-1}) + \Delta\Phi_{t-1,t}^{*}\right).
 $$
 
-This mechanism acts as a semantic filter: it ignores uncertain updates when $`w_t \to 0`$ (retaining $`\Phi^{*}(s_{t-1})`$) and fully trusts the estimate when consistency is high $`w_t \to 1`$).
+This mechanism acts as a semantic filter: it ignores uncertain updates when $w_t \to 0$ (retaining $\Phi^{*}(s_{t-1})$) and fully trusts the estimate when consistency is high ($w_t \to 1$).
 
-> 💡 **保守更新**：
-> - $`w_t`$ 接近 0（不可信）→ 进度保持上一步不变，宁可不更新也不要被错误的 reward 带偏
-> - $`w_t`$ 接近 1（可信）→ 正常更新进度
-> - 本质是一个**软门控**：只在有把握的时候更新，不确定就保守。这个模块是 optional 的，在 OOD 场景下能显著提升稳定性
+> 💡 **保守更新——3.1.3 的完整逻辑链**：
+>
+> 3.1.2 用三视角简单平均得到进度，但 online RL 中 agent 会跑到 OOD 状态，GRM 在这些状态上不可信。3.1.3 的解决方案分三步：
+>
+> **Step 1: 定义均值进度 $\bar{\Phi}^{*}$**：只取 Forward 和 Backward 的均值（不含 Incremental），因为这两个方向是独立预测，适合互相校验。
+>
+> **Step 2: 用 $\bar{\Phi}^{*}$ 算置信度 $w_t$**：Forward 和 Backward 差异越大 → $\Delta_{norm}$ 越大 → $w_t$ 越接近 0。本质是：两个独立视角对同一个状态的判断不一致，说明 GRM 在这个状态上"没见过"，不可信。
+>
+> **Step 3: $w_t$ 门控进度更新**：括号里有三项，拆开看：
+> - $\bar{\Phi}^{*}(s_t)$：Forward 和 Backward 的均值，代表"全局视角认为当前进度是多少"
+> - $\Phi^{*}(s_{t-1})$：上一步的进度（被减掉了，所以 $\bar{\Phi}^{*}(s_t) - \Phi^{*}(s_{t-1})$ 就是"全局视角认为这一步该更新多少"）
+> - $\Delta\Phi_{t-1,t}^{*}$：Incremental 算出的局部增量，代表"局部视角认为这一步该更新多少"
+>
+> 三项合起来 = 全局更新量 + 局部更新量，然后整体乘以 $w_t/2$ 做门控。
+>
+> **为什么好**：不需要额外的 OOD 检测器，直接利用已有的 Forward 和 Backward 的"一致性"作为免费的可信度信号，在不可信时自动刹车，避免 reward hacking。
 
 ---
 
@@ -233,10 +251,10 @@ This mechanism acts as a semantic filter: it ignores uncertain updates when $`w_
 
 Building upon Dopamine-Reward with GRM, we further introduce the Dopamine-RL framework, a reinforcement learning pipeline producing high-performance policy stimulated by Dopamine-Reward, featuring three key critical attributes: minimal downstream task effort for rapid progress alignment (Section 3.2.1), fast convergence with policy-invariant guarantees (Section 3.2.2) and seamless integration with diverse RL paradigms (Section 3.2.3).
 
-> 💡 **Dopamine-RL 是把 GRM 的进度估计转化为 RL 可用的 reward 的框架**，三个子模块：
-> 1. **One-Shot Adaptation (3.2.1)**：只需 1 条示教就能让 GRM 适配新任务
-> 2. **Policy-Invariant Reward Shaping (3.2.2)**：用 PBRS 公式安全地把 $`\Phi^*`$ 变成 reward，不改变最优策略
-> 3. **Universal Compatibility (3.2.3)**：只改 reward 不改算法，兼容任意 RL 方法
+> 💡 **Dopamine-RL 是把 GRM 的进度估计转化为 RL 可用的 reward 的框架**。原文强调三个关键属性（three key critical attributes）：
+> 1. **Minimal downstream task effort（3.2.1）**：适配新任务的成本极低，只需 1 条人类示教做 SFT 微调，不需要重新训练 GRM
+> 2. **Fast convergence with policy-invariant guarantees（3.2.2）**：用 PBRS 理论保证加了 dense reward 后最优策略不变，同时加速收敛
+> 3. **Seamless integration with diverse RL paradigms（3.2.3）**：只替换 reward 信号，不改 RL 算法本身，所以兼容 SAC、PPO、RLPD 等任意方法
 
 ---
 
