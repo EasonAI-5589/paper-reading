@@ -62,6 +62,7 @@ Eason 的文献阅读仓库，按课题组织。每篇论文都有「批读格�
 | [WoVR](./VLA-WM/%5BarXiv%202602.13977%5D%20WoVR%20World%20Models%20as%20Reliable%20Simulators%20for%20VLA%20RL/) | arXiv 2602.13977 | Hallucination-aware RL框架：KIR + PACE + Wan 5B World Model，LIBERO +29.3pp，真实机器人 +30pp |
 | ⭐ [Robo-Dopamine](./VLA-WM/%5BCVPR%202026%5D%20Robo-Dopamine/) | CVPR 2026 | **通用过程奖励模型 GRM** - hop-based 相对进度 + 多视角融合 + PBRS policy-invariant shaping, 150 rollouts → 95% SR |
 | [RLinf](./VLA-WM/%5BarXiv%202509.15965%5D%20RLinf/) | arXiv 2509.15965 | **RL 训练系统** - M2Flow 宏微流变换, 弹性流水线+上下文切换+自动调度, Embodied RL 2.43x加速, LIBERO 97.83% SR |
+| ⭐ [Motus](./VLA-WM/%5BArxiv%202512.13030%5D%20Motus/) | arXiv 2512.13030 | **统一 Latent Action World Model** - MoT(Wan5B+Qwen3-VL-2B+Action)三专家共享注意力, 光流latent action跨embodiment, +45% over π0.5 |
 
 ---
 
@@ -152,7 +153,7 @@ paper-reading/
 │   ├── [arXiv 2025] ARC-Chapter/
 │   └── README.md
 │
-├── VLA-WM/                          # VLA + 世界模型 (9 篇)
+├── VLA-WM/                          # VLA + 世界模型 (10 篇)
 │   ├── [CVPR 2025] RoboBrain/
 │   ├── [Arxiv 2507.02029] RoboBrain-2.0/
 │   ├── [Arxiv 2601.14352] RoboBrain-2.5/
@@ -161,7 +162,8 @@ paper-reading/
 │   ├── [ICLR 2026] Pi0.6-RECAP/
 │   ├── [PI 2026] MEM/               ← ⭐ 新加
 │   ├── [arXiv 2602.12063] Iterative Co-Improvement of VLA Policy and World Model/
-│   └── [arXiv 2602.13977] WoVR World Models as Reliable Simulators for VLA RL/
+│   ├── [arXiv 2602.13977] WoVR World Models as Reliable Simulators for VLA RL/
+│   └── [Arxiv 2512.13030] Motus/     ← ⭐ 新加
 │
 ├── Agent-Memory/                    # Agent 记忆机制 (12 篇)
 │   ├── [Arxiv 2512.13564] Memory in the Age of AI Agents/
@@ -232,4 +234,27 @@ paper-reading/
 
 ---
 
-*由 3号机 协助整理 📚 | 更新: 2026-03-06 | 共 40 篇论文*
+---
+
+## 📋 待读清单
+
+### Video Generation / World Model 基座
+
+| 论文 | arXiv | 日期 | 关键词 | 课题 |
+|------|-------|------|--------|------|
+| **Wan** | [2503.20314](https://arxiv.org/abs/2503.20314) | 2025-03 | 阿里通义，1.3B/14B DiT 视频基座，开源 SOTA | VLA-WM |
+| **VACE** | [2503.07598](https://arxiv.org/abs/2503.07598) | 2025-03 | All-in-One 视频创作与编辑，Video Condition Unit | VLA-WM |
+| **Wan-S2V** | [2508.18621](https://arxiv.org/abs/2508.18621) | 2025-08 | 音频驱动电影级视频生成 (Wan2.2) | VLA-WM |
+| **Wan-Move** | [2512.08765](https://arxiv.org/abs/2512.08765) | 2025-12 | 运动可控，Latent Trajectory Guidance | VLA-WM |
+| **Motus** | [2512.13030](https://arxiv.org/abs/2512.13030) | 2025-12 | 清华，统一 latent action WM，MoT 架构，+45% over Pi0.5 | VLA-WM |
+| **Open-Sora** | [2412.20404](https://arxiv.org/abs/2412.20404) | 2024-12 | HPC-AI Tech，STDiT 架构，15s/720p 开源 | VLA-WM |
+| **Open-Sora 2.0** | [2503.09642](https://arxiv.org/abs/2503.09642) | 2025-03 | $200k 训练成本，对标 HunyuanVideo / Runway Gen-3 | VLA-WM |
+| **Open-Sora Plan** | [2412.00131](https://arxiv.org/abs/2412.00131) | 2024-11 | 北大，Wavelet-Flow VAE + Skiparse Denoiser | VLA-WM |
+| **LDA-1B** | [2602.12215](https://arxiv.org/abs/2602.12215) | 2026-02 | 北大 EPIC，DINO latent space 建模 dynamics+action，3万小时异构数据，跨本体 scale up | VLA-WM |
+| **Interactive World Sim** | [2603.08546](https://arxiv.org/abs/2603.08546) | 2026-03 | Columbia+TRI，action-conditioned video WM，10min@15FPS 单卡4090，policy训练+评估 | VLA-WM |
+| **ConRFT** | [2502.05450](https://arxiv.org/abs/2502.05450) | 2025-02 | VLA 一致性策略强化微调，8个真实任务 96.3% SR，比 SFT +144% | VLA-WM |
+| **OpenVLA-OFT** | [2502.19645](https://arxiv.org/abs/2502.19645) | 2025-02 | VLA 微调最佳实践（并行解码+action chunking+L1），LIBERO 76.5%→97.1%，26x 加速 | VLA-WM |
+
+---
+
+*由 3号机 协助整理 📚 | 更新: 2026-03-16 | 共 41 篇论文 + 12 篇待读*

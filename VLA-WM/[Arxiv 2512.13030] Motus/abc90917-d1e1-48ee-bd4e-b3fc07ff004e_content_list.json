@@ -1,0 +1,2346 @@
+[
+    {
+        "type": "text",
+        "text": "Motus: A Unified Latent Action World Model ",
+        "text_level": 1,
+        "bbox": [
+            267,
+            130,
+            730,
+            151
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Hongzhe $\\mathrm { B i ^ { 1 * \\dagger } }$ , Hengkai $\\mathrm { T a n ^ { 1 * \\dagger } }$ , Shenghao $\\mathrm { X i e ^ { 2 , 1 * } }$ , Zeyuan Wang1∗, Shuhe Huang1∗, Haitian Liu1∗, Ruowen Zhao1, Yao Feng1, Chendong Xiang1, Yinze Rong1, Hongyan Zhao1, Hanyu Liu2, Zhizhong $\\mathrm { S u ^ { 3 } }$ , Lei $\\mathrm { { M a ^ { 2 } } }$ , Hang $\\mathrm { S u ^ { 1 } }$ , Jun Zhu1 ",
+        "bbox": [
+            112,
+            179,
+            887,
+            233
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "1Dept. of Comp. Sci. and Tech., Institute for AI, BNRist Center, THBI Lab, Tsinghua-Bosch Joint ML Center, Tsinghua University 2Peking University 3Horizon Robotics ∗Joint first authors †Joint project lead ",
+        "bbox": [
+            202,
+            239,
+            802,
+            313
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "{bhz24, thj23}@mails.tsinghua.edu.cn, dcszj@tsinghua.edu.cn ",
+        "bbox": [
+            233,
+            320,
+            761,
+            333
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Project Page: https://motus-robotics.github.io/motus ",
+        "bbox": [
+            225,
+            338,
+            776,
+            353
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Abstract ",
+        "text_level": 1,
+        "bbox": [
+            251,
+            388,
+            323,
+            405
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "While a general embodied agent must function as a unified system, current methods are built on isolated models for understanding, world modeling, and control. This fragmentation prevents unifying multimodal generative capabilities and hinders learning from large-scale, heterogeneous data. In this paper, we propose Motus, a unified latent action world model that leverages existing general pretrained models and rich, sharable motion information. Motus introduces a Mixture-of-Transformer (MoT) architecture to integrate three experts (i.e., understanding, video generation, and action) and adopts a UniDiffuser-style scheduler to enable flexible switching between different modeling modes (i.e., world models, vision-language-action models, inverse dynamics models, video generation models, and video-action joint prediction models). Motus further leverages the optical flow to learn latent actions and adopts a recipe with three-phase training pipeline and six-layer data pyramid, thereby extracting pixel-level “delta action” and enabling large-scale action pretraining. Experiments show that Motus achieves superior performance against state-of-the-art methods in both simulation $a + I S \\%$ improvement over $X \\cdot$ -VLA and $a + 4 5 \\%$ improvement over $\\pi _ { 0 . 5 }$ ) and real-world scenarios(improved by $+ I I { \\sim } 4 8 \\%$ ), demonstrating unified modeling of all functionalities and priors significantly benefits downstream robotic tasks. ",
+        "bbox": [
+            93,
+            422,
+            482,
+            797
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "1. Introduction ",
+        "text_level": 1,
+        "bbox": [
+            94,
+            829,
+            220,
+            845
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "A unified model is essential for embodied agents to integrate a spectrum of cognitive functions—from understanding scenes and instructions, imagining possible futures, to predicting consequences and generating actions—into a unified whole. However, existing methods model these capabilities in isolation: some rely on vision-languageaction models (VLAs) [5, 8, 11, 26, 31, 36, 60, 65] to learn static policies from vision and language; others use world models or generative approaches built on predicted futures [4, 7, 19, 21, 25, 28, 39, 41, 53, 56, 62]; and $\\mathcal { F } _ { 1 }$ [32] combines VLAs and inverse dynamics models (IDMs) by explicitly imagining future visual observations, but it excludes world models or video generation models (VGMs), resulting in incomplete unification. These approaches fragment what should be a unified system into 5 separate modeling tasks: ",
+        "bbox": [
+            93,
+            856,
+            482,
+            900
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            516,
+            391,
+            905,
+            571
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "• VLA: $p ( \\pmb { a } _ { t + 1 : t + k } \\mid \\pmb { o } _ { t } , \\ell )$ . • WM: $p \\big ( \\pmb { o } _ { t + 1 : t + k } \\mid \\pmb { o } _ { t } , \\pmb { a } _ { t + 1 : t + k } \\big ) .$ • IDM: $p ( \\pmb { a } _ { t + 1 : t + k } \\mid \\pmb { o } _ { t : t + k } )$ . • VGM: $p ( \\pmb { o } _ { t + 1 : t + k } \\mid \\pmb { o } _ { t } , \\ell )$ . • Video-Action Joint Prediction Model: $p ( \\pmb { o } _ { t + 1 : t + k } , \\pmb { a } _ { t + 1 : t + k } \\mid \\pmb { o } _ { t } , \\ell ) .$ ",
+        "bbox": [
+            514,
+            575,
+            777,
+            667
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Two fundamental challenges (detailed in Sec. 3) hinder the integration of these capabilities. First, unifying such multimodal generative capabilities within one framework is nontrivial. While unified world models (UWMs) [64] offer a theoretical prototype, they are typically trained from scratch or with limited priors, lacking either robust vision-language understanding from vision-language models (VLMs) or rich physical interaction knowledge from VGMs. Second, embodied intelligence demands the ability to learn from largescale heterogeneous data—including internet videos, egocentric human demonstrations, and multi-robot trajectories— but action spaces vary widely across embodiments, and most video data lack action labels, making it difficult to pretrain action experts with general motion and interaction priors. ",
+        "bbox": [
+            516,
+            671,
+            905,
+            881
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "To address these challenges, we propose Motus, a unified latent action world model that integrates pretrained experts within a Mixture-of-Transformers (MoT) architecture. Our approach unifies the 5 key distributions by connecting a video generator (generative expert), an action expert, and a vision-language understanding expert via shared multihead self-attention layers—a design we term Tri-model Joint Attention—which preserves specialized functionalities while enabling cross-modal knowledge fusion. To further coordinate multimodal generation, Motus incorporates a UniDiffuser-like scheduler, allocating distinct timesteps and noise scales to each modality (e.g., videos and actions). This enables a unified manner for simultaneous modeling marginal, conditional, and joint distributions, as well as adaptive switching among different inference modes (e.g., VLA, WM, IDM, VGM, Video-Action Joint Prediction Model). ",
+        "bbox": [
+            535,
+            886,
+            905,
+            900
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "1 ",
+        "bbox": [
+            493,
+            925,
+            503,
+            935
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "arXiv:2512.13030v2 [cs.CV] 25 Dec 2025 ",
+        "bbox": [
+            22,
+            275,
+            60,
+            723
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "image",
+        "img_path": "images/055663917d2dd1ccfa8195052de90e53c125c4438f3f4259402d5c772dc27db6.jpg",
+        "image_caption": [
+            "Figure 1. Motus Architecture. Here, $a _ { t } \\ldots a _ { t + k }$ are actions, $z _ { t } \\ldots z _ { t + k }$ are latent actions, and $\\tau _ { v }$ and $\\tau _ { a }$ are the rectified flow timesteps for the video generation model and the action expert, respectively. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            223,
+            97,
+            774,
+            486
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            93,
+            545,
+            483,
+            771
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Additionally, to leverage heterogeneous data at scale, we introduce latent actions, which encode motion patterns from optical flow as a pixel-level “delta action”. This representation bridges visual dynamics with control signals, enabling the action expert to be pretrained on diverse unlabeled videos and robot trajectories. Specifically, a pretrained deep compression autoencoder (DC-AE) with additional lightweight downsampling modules is used to reconstruct optical flow, whereas its encoded low-dimensional latents are supervised with a few action labels, both task-related and task-agnostic, thus steering the focus towards patterns associated with robotic activities. ",
+        "bbox": [
+            93,
+            780,
+            482,
+            900
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            516,
+            546,
+            905,
+            604
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Subsequently, Motus undergoes a three-phase pretraining–finetuning pipeline (i.e., video pretraining, latent action pretraining, and embodiment-specific action finetuning) on a six-layer data pyramid spanning web-scale, egocentric human, simulation, task-agnostic, multi-robotic, and targetrobotic data. This recipe aligns behaviors across different embodiments within the motion space described by optical flows and shares such interaction knowledge with target embodiments to enhance the generalization in downstream tasks, thereby providing the action expert with pretraining like other experts. ",
+        "bbox": [
+            516,
+            608,
+            905,
+            773
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Overall, our contributions can be summarized as follows: • A unified embodied foundation model that integrates five mainstream paradigms (i.e., WMs, IDMs, VLAs, VGMs, and Video-Action Joint Prediction Models) without compromising general multimodal priors. • A scalable robotic recipe with a three-phase training pipeline and six-layer data pyramid that leverages optical flow-based latent action to learn cross-embodiment transferable motion knowledge. ",
+        "bbox": [
+            514,
+            777,
+            906,
+            900
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            493,
+            924,
+            504,
+            935
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            102,
+            92,
+            315,
+            106
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "• Extensive experiments show that Motus significantly outperforms state-of-the-art approaches in both simulation (a $+ 1 5 \\%$ improvement over X-VLA [60] and a $+ 4 5 \\%$ improvement over $\\pi _ { 0 . 5 }$ [8]) and real-world scenarios (improved by $+ 1 1 { \\sim } 4 8 \\%$ ), demonstrating that large-scale general and domain-specific priors can be effectively fused to enhance the generalization of policy learning. ",
+        "bbox": [
+            93,
+            107,
+            482,
+            212
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "2. Related Works ",
+        "text_level": 1,
+        "bbox": [
+            93,
+            227,
+            238,
+            244
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "2.1. Unified Multimodal Models ",
+        "text_level": 1,
+        "bbox": [
+            93,
+            253,
+            338,
+            270
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Unified multimodal models jointly model various modalities and tasks within a single generative framework [29, 40, 45, 47, 49, 52], showing broad applications across several domains [35, 54, 63]. In particular, Bagel [18] achieves unification via MoT [30], sharing the multi-head self-attention layers between understanding experts and generation experts. In contrast, existing embodied foundation models are developed independently, spawning multiple disparate paradigms: some leverage the text-image understanding capabilities of VLMs to learn action prediction [6, 8, 27], while others utilize VGMs to generate video sequences and infer actions from consecutive frames [19, 21, 62]. Recently, $\\mathcal { F } _ { 1 }$ [32] extends VLAs to explicitly imagine future visual states and output actions by IDMs, thereby merging both models. Furthermore, UWM [64] unifies WMs, VLAs, IDMs, VGMs, and Video-Action Joint Prediction Models within a single diffusion backbone, making an initial exploration of complete robotic models. Unlike UWM, our method goes beyond unified modeling by further incorporating internet-scale general multimodal priors and specialized priors from massive robotic trajectories. ",
+        "bbox": [
+            93,
+            276,
+            483,
+            593
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "2.2. Latent Action Models ",
+        "text_level": 1,
+        "bbox": [
+            94,
+            606,
+            292,
+            621
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Latent actions mitigate the scarcity of action labels by capturing visual dynamics, and are typically derived by coupling IDMs with forward dynamics models (FDMs) to reconstruct the next frame conditioned on the previous one [9, 10, 20, 37]. Initially, RGB images are used for supervision, but this introduces task-irrelevant appearance information [58]. To remove such interference, a common approach is restricting autoencoder’s capacity to encode lowdimensional latents [15, 38, 55], thereby reducing the inclusion of redundancy. AdaWorld [22] attempts to decouple the representations, such as $\\beta$ -VAE [23], in order to retain only the useful factors. Other approaches explore alternative reconstruction objectives, e.g., DINOv2 features [11, 15, 50], object keypoints [17, 51, 57], and language instructions [16], which carries rich semantic and spatial features. Moreover, LAOM [34] employs a few action labels to encourage the model to focus on robotic activities. Building on these advances and inspired by optical flow as a universal motion expression [12, 46, 61], we use it to align cross-embodiment behaviors and learn latent actions to facilitate large-scale pretraining. ",
+        "bbox": [
+            93,
+            628,
+            482,
+            900
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            516,
+            92,
+            905,
+            136
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "3. Problem Formulation and Challenges ",
+        "text_level": 1,
+        "bbox": [
+            516,
+            148,
+            852,
+            165
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Embodied Policies We consider the task of languageconditioned robotic manipulation. For each embodiment, the task defines an action $\\mathbf { \\pmb { a } } \\in \\mathcal { A }$ , an observation $\\mathbf { \\sigma } _ { o \\mathrm { ~ \\in ~ } \\mathcal { O } }$ (visual input), a language instruction $\\ell \\in \\mathcal L$ , and the proprioception of the robot $\\pmb { p }$ , where $\\mathcal { A }$ , $\\mathcal { O }$ and $\\mathcal { L }$ denote the action space, the observation space, and the language instruction space respectively. The task typically provides an expert dataset ${ \\cal D } _ { \\mathrm { e x p e r t } } = \\{ \\{ \\ell , p _ { 1 } , o _ { 1 } , a _ { 1 } , \\ldots , p _ { N } , o _ { N } , a _ { N } \\} \\}$ , which contains robot proprioception, visual observations, and actions collected by an expert over $N$ timesteps, along with corresponding language annotations for each trajectory. We train a policy parameterized by $\\theta$ on $D _ { \\mathrm { e x p e r t } }$ . At each timestep $t$ , the policy predicts the next $k$ actions (action chunking [59]) based on the current observation and proprioception, modeling the distribution $p _ { \\theta } ( \\pmb { a } _ { t + 1 : t + k } \\mid \\pmb { o } _ { t } , \\pmb { p } _ { t } , \\ell )$ or $p _ { \\theta } ( \\pmb { a } _ { t + 1 : t + k } \\mid \\pmb { o } _ { t } , \\ell )$ . The policy $p _ { \\theta }$ is trained to maximize the likelihood objective: ",
+        "bbox": [
+            516,
+            175,
+            906,
+            430
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "img_path": "images/203609e25d0335599d01cbd442d08f2f6725739b2b2026d38165fd7c73851ab2.jpg",
+        "text": "$$\n\\operatorname* { m a x } _ { \\theta } \\ \\mathbb { E } _ { ( o _ { t } , p _ { t } , a _ { t + 1 : t + k } , \\ell ) \\sim D _ { \\mathrm { e x p e r t } } } \\log p _ { \\theta } ( a _ { t + 1 : t + k } \\mid o _ { t } , p _ { t } , \\ell ) .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            517,
+            439,
+            900,
+            462
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Furthermore, based on the symbolic definitions above, we can derive the probability distributions for the 5 modeling types of embodied intelligence, which can be integrated into a single model for training: ",
+        "bbox": [
+            516,
+            476,
+            905,
+            535
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "• VLA: $p ( \\pmb { a } _ { t + 1 : t + k } \\mid \\pmb { o } _ { t } , \\ell )$ . • WM: $p \\big ( \\pmb { o } _ { t + 1 : t + k } \\mid \\pmb { o } _ { t } , \\pmb { a } _ { t + 1 : t + k } \\big ) .$ • IDM: $p ( \\pmb { a } _ { t + 1 : t + k } \\mid \\pmb { o } _ { t : t + k } )$ . • VGM: $p ( \\pmb { o } _ { t + 1 : t + k } \\mid \\pmb { o } _ { t } , \\ell )$ . • Video-Action Joint Prediction Model: $p ( \\pmb { o } _ { t + 1 : t + k } , \\pmb { a } _ { t + 1 : t + k } \\mid \\pmb { o } _ { t } , \\ell ) .$ ",
+        "bbox": [
+            516,
+            535,
+            777,
+            627
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Challenge 1: Unifying Multimodal Generative Capabilities. A capable embodied agent must integrate a spectrum of cognitive functions—from understanding scenes and instructions, imagining possible futures, to predicting consequences and generating actions—to possess a human-like capacity, as a unified whole. Current models, however, are fragmented and fail to capture the full set of necessary capabilities within one system. This presents a challenge: how to unify the modeling of five key distributions—VLA, World Model, IDM, Video Generation Model, and Video-Action Joint Prediction Model—within a single framework. While prior work, such as UWMs [64], has made some progress, a critical limitation persists: these approaches are either trained from scratch, built upon smaller base models, or— even when incorporating some priors—invariably lack the full spectrum of knowledge, missing either visual understanding priors from VLMs or physical interaction priors from VGMs. Consequently, they lack the comprehensive world knowledge required for robust and generalizable embodied intelligence. Therefore, the nontrivial challenge of jointly modeling various distributions of vision, language, and action within a unified framework remains unaddressed, which is precisely the gap our work fills. ",
+        "bbox": [
+            516,
+            643,
+            906,
+            900
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "discarded",
+        "text": "3 ",
+        "bbox": [
+            493,
+            924,
+            504,
+            935
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            93,
+            90,
+            483,
+            181
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Challenge 2: Utilization of Heterogeneous Data. A central challenge in embodied intelligence is how to make effective use of large scale heterogeneous data. Action spaces vary widely between embodiments in dimension, range, and semantics, and robots differ in morphology, actuation, and sensing. As a result, control signals are not directly reusable and policies struggle to learn universal priors that transfer across embodiments. Existing approaches, including [8, 31, 43, 60], try to address this by using a general backbone with embodiment-specific information injection, or constructing high-dimensional action vectors that forcibly unify different embodiments However, they still depend primarily on labeled robotic trajectories and cannot integrate these datasets with large-scale internet videos or egocentric human videos, which lack action annotations but contain abundant motion and physical interaction cues. This limitation prevents large-scale pretraining of the action expert and reduces the ability to learn general motion priors. ",
+        "bbox": [
+            93,
+            203,
+            482,
+            474
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "4. Methodology ",
+        "text_level": 1,
+        "bbox": [
+            93,
+            489,
+            223,
+            507
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "4.1. Motus ",
+        "text_level": 1,
+        "bbox": [
+            93,
+            515,
+            176,
+            531
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Model Architecture. To address the challenges of unifying multimodal generative capabilities outlined in Sec . 3, we propose Motus, a unified latent action world model. First, Motus is designed as a general generative model that jointly learns on heterogeneous multimodal data, thereby integrating the diverse capabilities (e.g., modeling 5 distributions) of a general-purpose system within a single network. Second, to circumvent the need for impractical amounts of aligned multimodal data, Motus leverages the rich, pretrained priors of existing foundation models. It integrates a pretrained VGM (generative expert), an understanding expert with pretrained VLM, and an action expert within a Mixture-of-Transformers (MoT) architecture (as shown in Fig. 1), effectively fusing their complementary strengths— encompassing scenes understanding, instructions interpreting, consequences prediction, future video imagination, and action planning—without requiring full end-to-end training from scratch. Unlike Unified World Models (UWMs) [64], which simply concatenate observation tokens and action tokens and process them through a single series of $N$ UWM blocks (containing self-attention and feed-forward network (FFN) layers), our approach leverages pretrained VLMs and VGMs by adopting a MoT structure. In our model, each expert maintains an individual Transformer module, while the multi-head self-attention layers are concatenated, i.e., Tri-model Joint Attention. This not only preserves distinct function roles across experts without causing task interference but also enables effective cross-modal feature fusion, encouraging diverse pretrained knowledge to complement one another. During training, Motus jointly predicts chunks of videos and actions with rectified flow-based objectives: ",
+        "bbox": [
+            93,
+            539,
+            483,
+            900
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            516,
+            90,
+            906,
+            196
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "img_path": "images/87e0b1bdf4c2415fb435d9653e19889ac356ed41cc98a0d502c1d274a7721e9d.jpg",
+        "text": "$$\nl _ { \\mathrm { a c t i o n } } ^ { \\theta } = \\mathbb { E } _ { ( o _ { t : t + k } , a _ { t + 1 : t + k } , \\ell ) \\sim \\mathcal { D } } \\big \\| v _ { a } ^ { \\theta } - ( \\epsilon _ { a } - \\pmb { a } _ { t + 1 : t + k } ) \\big \\| _ { 2 } ^ { 2 } ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            522,
+            207,
+            895,
+            250
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "img_path": "images/76ca688ba14f9481008ea2cf71141848c08ad6cd81c8ce674ddef0de3c00cf62.jpg",
+        "text": "$$\n\\begin{array} { r l } & { l _ { \\mathrm { o b s } } ^ { \\theta } = \\mathbb { E } _ { ( o _ { t : t + k } , a _ { t + 1 : t + k } , \\ell ) \\sim \\mathcal { D } } \\big \\| v _ { o } ^ { \\theta } - \\big ( \\epsilon _ { o } - o _ { t + 1 : t + k } \\big ) \\big \\| _ { 2 } ^ { 2 } , } \\\\ & { \\quad \\quad \\quad \\quad \\tau _ { o } \\sim \\mathcal { U } ( 0 , T _ { \\tau } ) } \\\\ & { \\quad \\quad \\quad \\quad \\epsilon _ { o } \\sim \\mathcal { N } ( \\mathbf { 0 } , I ) } \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            529,
+            273,
+            890,
+            316
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "img_path": "images/c9fe718d812134fc40db4ec8101ecf55dd47ead1ba021ea2aa7de60d4f7a5475.jpg",
+        "text": "$$\nl ^ { \\theta } = l _ { \\mathrm { a c t i o n } } ^ { \\theta } + l _ { \\mathrm { o b s } } ^ { \\theta } .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            651,
+            329,
+            769,
+            349
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "where $\\mathbf { } _ { o _ { t } }$ is the condition frame, $\\pmb { O } _ { t + 1 : t + k } , \\pmb { a } _ { t + 1 : t + k }$ are subtimesteps, are velocit are the sampled predicted by our $\\tau _ { a }$ aussified $\\tau _ { o }$ noises, ,odel, and   \n$\\epsilon _ { a }$ $\\epsilon _ { o }$ $v _ { a } ^ { \\bar { \\theta } } , v _ { o } ^ { \\theta }$ $l _ { a c t i o n } ^ { \\theta }$ $l _ { o b s } ^ { \\theta }$ are loss of observations and actions. By allocating different timesteps and noise scales to videos and actions, respectively, Motus establishes a UniDiffuser-like scheduler to capture heterogeneous data distributions and adaptively switch between various embodied foundation models during inference (e.g., VLA, World Model, IDM, VGM, Joint Prediction). The resulting model understands scenes, follows instructions, predicts outcomes, imagines futures, and outputs actions—all within a unified multimodal architecture. ",
+        "bbox": [
+            516,
+            354,
+            906,
+            550
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "image",
+        "img_path": "images/4e38b1180f4beccd9e7a6dec408131a1c969928d013118dec321abe0bb3906fd.jpg",
+        "image_caption": [
+            "Figure 2. Action-Dense Video-Sparse Prediction. The sampling rates for video frames and actions differ. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            537,
+            568,
+            877,
+            651
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Action-Dense Video-Sparse Prediction. Since our model builds upon the widely cited action-chunking technique, Motus needs to predict a chunk of future video and action sequences $\\pmb { O } _ { t + 1 : t + k } , \\pmb { a } _ { t + 1 : t + k }$ . This leads to several issues: (1) low training and inference efficiency, (2) redundant video frame predictions, and (3) an imbalance in the Tri-modal Joint Attention mechanism—where the number of video tokens significantly exceeds that of action tokens. This imbalance causes the model to overfit to video prediction, thereby weakening its action prediction capability. To address these problems, we propose an Action-Dense Video-Sparse Prediction strategy, as shown in Fig. 2. During both training and inference, we downsample the video frames so that the number of video tokens and action tokens remains balanced—for example, by setting the video frame rate to one-sixth of the action frame rate. ",
+        "bbox": [
+            516,
+            719,
+            905,
+            900
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            493,
+            925,
+            503,
+            935
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            93,
+            92,
+            482,
+            150
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Experts Details. For the generative expert, we employ Wan 2.2 5B [42] as the video foundation model for its accessibility and ease of use. We extend its self-attention context to create a cross-modal Tri-model Joint Attention mechanism. For the action expert, we construct a Transformer block of the same depth as Wan. Each block comprises AdaLN for injecting rectified flow timesteps, a Feed-Forward Network (FFN), and the Tri-model Joint Attention for crossexpert interaction. We select Qwen3-VL-2B [2, 3, 44] for our understanding expert due to its inherent capabilities in 3D grounding, spatial understanding, and precise object localization, which are crucial for robotic manipulation. The input to this expert is taken from the last-layer corresponding tokens of the VLM. The understanding expert itself consists of several Transformer blocks, each containing Layer Normalization, an FFN, and the Tri-model Joint Attention. ",
+        "bbox": [
+            93,
+            169,
+            482,
+            410
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "4.2. Latent Actions ",
+        "text_level": 1,
+        "bbox": [
+            93,
+            420,
+            240,
+            435
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "We further address Challenge 2 to leverage large-scale heterogeneous data by learning generalizable action patterns directly from visual dynamics. Specifically, we introduce latent actions that encode the motion learned directly from pixels. These latent actions allow the model to absorb motion knowledge from various sources such as internet videos, egocentric human demonstrations, and multi-robot trajectories, thereby strengthening the pretraining of action expert even on data without explicit action labels. ",
+        "bbox": [
+            93,
+            441,
+            482,
+            577
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Optical Flow Based Representation. We adopt optical flow as a natural representation of motion, which captures pixel-level displacements between consecutive frames. Specifically, optical flows are computed by DPFlow [33] and then converted into RGB images. To compress this high-dimensional representation into a control-level space, we employ a deep convolutional variational autoencoder (DC-AE [13]) that reconstructs the flow while encoding it into four 512-dimensional tokens. A lightweight encoder then projects these concatenated $4 \\times 5 1 2$ features into a 14- dimensional vector, roughly matching the scale of typical robot action spaces. The overall architecture is shown in Figure 3. This dimensional correspondence ensures that the latent representation can align naturally with real robotic controls and act as a bridge between perception and action. ",
+        "bbox": [
+            93,
+            595,
+            482,
+            821
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Training and Distribution Alignment. To help align the latent space to realistic action space, we incorporate taskagnostic data following AnyPos [39]. Specifically, taskagnostic data uses Curobo to collect image-action pairs by randomly sampling the target robot’s action space in a taskagnostic manner. This data provides additional real action supervision, helping the VAE learn an embedding that reflects feasible motor behaviors and anchors the latent actions to the true control distribution. ",
+        "bbox": [
+            93,
+            840,
+            482,
+            900
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            516,
+            92,
+            906,
+            165
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "During training, we mix $90 \\%$ unlabeled data for selfsupervised reconstruction with $10 \\%$ labeled trajectories for weak action supervision, where the labeled portion includes both task-agnostic data and standard robot demonstrations. Dimensional correspondence and weak action supervision jointly drive the latent-action distribution to align with the real action distribution, allowing motion priors learned from videos to naturally map to executable controls. ",
+        "bbox": [
+            516,
+            166,
+            905,
+            287
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "The total loss combines reconstruction, alignment, and KL regularization: ",
+        "bbox": [
+            516,
+            289,
+            905,
+            318
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "img_path": "images/2e6d8d7000d91478305d01c15cde193fe226449086c345f678c5fa1562f04b43.jpg",
+        "text": "$$\n\\mathcal { L } = \\mathcal { L } _ { \\mathrm { r e c o n } } + \\lambda _ { a } | | a _ { \\mathrm { r e a l } } - a _ { \\mathrm { p r e d } } | | ^ { 2 } + \\beta \\mathcal { L } _ { \\mathrm { K L } } ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            571,
+            332,
+            846,
+            351
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "where $L _ { \\mathrm { r e c o n } }$ minimizes flow-reconstruction error, the second term aligns latent and real actions, $L _ { \\mathrm { K L } }$ regularizes the latent space; $\\lambda _ { a }$ and $\\beta$ are hyperparameters. ",
+        "bbox": [
+            516,
+            357,
+            905,
+            402
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "image",
+        "img_path": "images/67676beeb827d1533ce6573609733ed9c14df6a2536bc926a60f5ba0f01ebbb1.jpg",
+        "image_caption": [
+            "Figure 3. The Latent Action VAE. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            619,
+            420,
+            807,
+            712
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "4.3. Model Training and Data ",
+        "text_level": 1,
+        "bbox": [
+            516,
+            757,
+            745,
+            773
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Motus Training. Motus is trained in three structured stages (Tab. 1) to progressively integrate physical interaction priors from diverse datasets into a policy transferable to a target robot. Each stage addresses a key challenge: ",
+        "bbox": [
+            516,
+            780,
+            905,
+            839
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "• Stage 1: Learning Visual Dynamics. To anchor the model in realistic physical interactions, we first adapt the Video Generation Model (VGM) using multi-robot trajectories and human videos. This enables the VGM to generate plausible future video sequences of tasks from a language instruction and an initial image. ",
+        "bbox": [
+            516,
+            840,
+            905,
+            900
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            493,
+            924,
+            503,
+            935
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            106,
+            92,
+            482,
+            121
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "• Stage 2: Learning Action Representations. To bridge visual forecasts with control, we pretrain the entire Motus model (VLM frozen) on videos, language, and latent actions. This stage initializes the action expert by embedding knowledge of motion and interaction into the latent action space. ",
+        "bbox": [
+            93,
+            122,
+            482,
+            210
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "• Stage 3: Specializing for the Target Robot. We finalize the model by fine-tuning it on target-robot data, ensuring that the acquired priors are fully adapted to the specific embodiment’s dynamics and kinematics. ",
+        "bbox": [
+            93,
+            213,
+            480,
+            271
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "table",
+        "img_path": "images/0f8d0750cad0b329ff706286758cf0d881fba54acd408e15aea62627ea5fc800.jpg",
+        "table_caption": [
+            "Table 1. Motus Training. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Stage</td><td>Data</td><td>Training</td></tr><tr><td>Pretrained Foundation Models (Off-the-shelf)</td><td>Level 1: Web Data</td><td>VGM and VLM</td></tr><tr><td>Stage 1 (Video Generation)</td><td>Level 2: Egocentric Human Videos Level 3: Synthetic Data Level 5: Multi-Robot Task Trajectory Data</td><td>Only VGM</td></tr><tr><td>Stage 2 (Unified Training with Latent Actions)</td><td>Level 2: Egocentric Human Videos Level 3: Synthetic Data Level 4: Task-agnostic Data Level 5: Multi-Robot Task Trajectory Data</td><td>Motus (all 3 experts, with latent actions)</td></tr><tr><td>Stage 3 (SFT)</td><td>Level 6: Target-Robot Task Trajectory Data</td><td>Motus (all 3 experts, with actions)</td></tr></table>",
+        "bbox": [
+            93,
+            309,
+            482,
+            635
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Data. To equip robots with generalizable manipulation skills, we leverage large-scale multimodal data that encapsulates rich prior knowledge—from semantic understanding and physical reasoning to spatiotemporal dynamics and decision-making. As outlined in Section 3, embodied data inherently spans multiple modalities: language $\\ell .$ , image $^ o$ and action $\\mathbf { \\delta } _ { \\mathbf { \\alpha } \\mathbf { \\alpha } \\mathbf { \\alpha } \\mathbf { \\alpha } } ^ { a 1 }$ . By considering the presence or absence of each modality, we systematically identify all meaningful data types2: ",
+        "bbox": [
+            93,
+            657,
+            482,
+            792
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "• Language $^ +$ Im ${ \\mathfrak { s e } } + \\mathbf { A } \\mathbf { c } { \\mathfrak { z } }$ tion: robot trajectories (e.g., used in VLAs), $\\left\\{ \\ell , \\pmb { o } _ { 1 } , \\pmb { a } _ { 1 } , \\ldots , \\pmb { o } _ { N } , \\pmb { a } _ { N } \\right\\}$ . • Language $^ +$ Image: video sequences $\\{ \\ell , o _ { 1 } , \\ldots , o _ { N } \\}$ or image-text pairs $\\{ ( o , \\ell ) \\}$ . ",
+        "bbox": [
+            93,
+            795,
+            482,
+            856
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "• Image $^ +$ Action: task-agnostic interaction data $\\left\\{ \\left( \\pmb { o } _ { 1 } , \\pmb { a } _ { 1 } , \\dots , \\pmb { o } _ { i } , \\pmb { a } _ { i } \\right) \\right\\}$ . ",
+        "bbox": [
+            516,
+            92,
+            905,
+            121
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "• Language-only: textual corpora $\\{ \\ell \\}$ ",
+        "bbox": [
+            516,
+            122,
+            772,
+            136
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "We exclude data lacking visual modality (e.g., language $^ +$ action) as it is unsuitable for visuomotor policy learning. The remaining types form the complete spectrum of useful sources for embodied policy acquisition. To structure this diversity, we introduce the embodied data pyramid (Fig. 4), which organizes data types hierarchically by richness and policy relevance. ",
+        "bbox": [
+            516,
+            138,
+            905,
+            243
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Our framework effectively integrates and aligns all six data levels—from large-scale but indirect web sources to targeted robot demonstrations—across tailored training stages (Tab. 1), unifying heterogeneous datasets [1, 14, 24, 31, 48] within a single, cohesive model architecture. ",
+        "bbox": [
+            516,
+            244,
+            905,
+            319
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "image",
+        "img_path": "images/b5902615d28c45968bdd675624132af04bd2c30dd11d46815bb0ecd26e2a43ee.jpg",
+        "image_caption": [
+            "Figure 4. The Embodied Data Pyramid categorizes data into six levels, from Level 1 at the base to Level 6 at the top. Data quantity decreases from bottom to top, while data quality increases. The order of Levels 3 and 4 may sometimes vary. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            527,
+            327,
+            901,
+            536
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "5. Experiments ",
+        "text_level": 1,
+        "bbox": [
+            516,
+            632,
+            643,
+            650
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "We conduct extensive experiments to assess the effectiveness of Motus in both simulated and real-world environments. ",
+        "bbox": [
+            516,
+            659,
+            905,
+            689
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "5.1. Baselines ",
+        "text_level": 1,
+        "bbox": [
+            516,
+            696,
+            620,
+            712
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "We compare Motus against several state-of-the-art methods: $\\pi _ { 0 . 5 }$ [8] and X-VLA [60]. We evaluate all the models in simulation environments and further assess the performance of the baseline model $\\pi _ { 0 . 5 }$ in real-world tasks. We also compared both the from-scratch and Stage-1-only trained models against our own model. ",
+        "bbox": [
+            516,
+            719,
+            905,
+            810
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "5.2. Evaluation in Simulation Environment ",
+        "text_level": 1,
+        "bbox": [
+            516,
+            818,
+            846,
+            833
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "We evaluated single-task performance on 50 representative manipulation tasks from the RoboTwin 2.0 tasks in randomized scenes. To probe the general ability of our method, we carry out multi-task training: Motus and all baselines are trained on 2500 demonstrations collected in clean scenes (50 per task) plus 25000 demonstrations gathered in heavily randomized scenes (500 per task). The randomization includes random backgrounds, a cluttered table, table-height perturbations, and randomized lighting. All models are finetuned for 40k steps on the RoboTwin dataset starting from their pretrained checkpoints, and we evaluate performance by measuring the success rate of each task over 100 execution trials. ",
+        "bbox": [
+            516,
+            840,
+            905,
+            900
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "discarded",
+        "text": "1In joint position control, proprioception and action share the same representation space. 2Language can be annotated post-hoc to support task-oriented learning. ",
+        "bbox": [
+            91,
+            863,
+            482,
+            900
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            493,
+            925,
+            504,
+            935
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "table",
+        "img_path": "images/029d8235716d8cd88a9d02ddb5edcd2bcb807683ec82745074cbff5467fc887a.jpg",
+        "table_caption": [
+            "Table 2. Evaluation on RoboTwin 2.0 Simulation (Clean vs Randomized, ${ \\mathfrak { s o } } +$ tasks). "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Simulation Task</td><td colspan=\"2\">π0.5</td><td colspan=\"2\">X-VLA</td><td colspan=\"2\">w/o Pretrain</td><td colspan=\"2\">Stagel</td><td colspan=\"2\">Motus</td></tr><tr><td></td><td>Clean</td><td>Rand.</td><td>Clean</td><td>Rand.</td><td>Clean</td><td>Rand.</td><td>Clean</td><td>Rand.</td><td>Clean</td><td>Rand.</td></tr><tr><td>Place Dual Shoes</td><td>12%</td><td>7%</td><td>79%</td><td>88%</td><td>78%</td><td>80%</td><td>94%</td><td>94%</td><td>93%</td><td>87%</td></tr><tr><td>Move Stapler Pad</td><td>16%</td><td>18%</td><td>78%</td><td>73%</td><td>49%</td><td>37%</td><td>75%</td><td>68%</td><td>83%</td><td>85%</td></tr><tr><td>Stack Blocks Two</td><td>48%</td><td>56%</td><td>92%</td><td>87%</td><td>96%</td><td>94%</td><td>99%</td><td>99%</td><td>100%</td><td>98%</td></tr><tr><td>Scan Object</td><td>42%</td><td>38%</td><td>14%</td><td>36%</td><td>42%</td><td>50%</td><td>56%</td><td>69%</td><td>67 %</td><td>66%</td></tr><tr><td>Place Object Stand</td><td>74%</td><td>65%</td><td>86%</td><td>88%</td><td>91%</td><td>93%</td><td>93%</td><td>96%</td><td>98%</td><td>97%</td></tr><tr><td>Place Fan</td><td>25%</td><td>36%</td><td>80%</td><td>75%</td><td>77%</td><td>85%</td><td>77%</td><td>85%</td><td>91%</td><td>87%</td></tr><tr><td>Move Pillbottle Pad</td><td>33%</td><td>29%</td><td>73%</td><td>71%</td><td>83%</td><td>83%</td><td>96%</td><td>90%</td><td>93%</td><td>96%</td></tr><tr><td>Pick Dual Bottles</td><td>10%</td><td>6%</td><td>47%</td><td>36%</td><td>58%</td><td>68%</td><td>7%</td><td>17%</td><td>96%</td><td>90%</td></tr><tr><td>Blocks Ranking Rgb ...50 tasks)</td><td>43%</td><td>35%</td><td>83%</td><td>83%</td><td>92%</td><td>88%</td><td>97%</td><td>98%</td><td>99%</td><td>97%</td></tr><tr><td>Turn Switch</td><td>5%</td><td>6%</td><td>40%</td><td>61%</td><td>69%</td><td>60%</td><td>59%</td><td>64%</td><td>84%</td><td>78%</td></tr><tr><td>Pick Diverse Bottles</td><td>5%</td><td>3%</td><td>58%</td><td>36%</td><td>53%</td><td>62%</td><td>18%</td><td>18%</td><td>90%</td><td>91%</td></tr><tr><td>Place Bread Basket</td><td>48%</td><td>56%</td><td>81%</td><td>71%</td><td>73%</td><td>83%</td><td>89%</td><td>87%</td><td>91%</td><td>94%</td></tr><tr><td>Stack Blocks Three</td><td>15%</td><td>16%</td><td>6%</td><td>10%</td><td>71%</td><td>76%</td><td>99%</td><td>95%</td><td>91%</td><td>95%</td></tr><tr><td>Put Bottles Dustbin</td><td>12%</td><td>9%</td><td>74%</td><td>77%</td><td>36%</td><td>33%</td><td>34%</td><td>24%</td><td>81%</td><td>79%</td></tr><tr><td>Place Can Basket</td><td>19%</td><td>25%</td><td>49%</td><td>52%</td><td>46%</td><td>62%</td><td>66%</td><td>55%</td><td>81%</td><td>76%</td></tr><tr><td>Stamp Seal</td><td>36%</td><td>23%</td><td>76%</td><td>82%</td><td>80%</td><td>88%</td><td>93%</td><td>95%</td><td>93%</td><td>92%</td></tr><tr><td>Hanging Mug</td><td>3%</td><td>3%</td><td>23%</td><td>27%</td><td>14%</td><td>10%</td><td>37%</td><td>25%</td><td>38%</td><td>38%</td></tr><tr><td>Handover Block</td><td>18%</td><td>19%</td><td>73%</td><td>37%</td><td>34%</td><td>15%</td><td>55%</td><td>55%</td><td>86%</td><td>73%</td></tr><tr><td>Stack Bowls Three</td><td>33%</td><td>35%</td><td>76%</td><td>86%</td><td>90%</td><td>74%</td><td>86%</td><td>83%</td><td>79%</td><td>87%</td></tr><tr><td></td><td>43%</td><td>36%</td><td>44%</td><td>39%</td><td>74%</td><td>75%</td><td>76%</td><td>80%</td><td>81%</td><td>87%</td></tr><tr><td>Place Object Basket Open Microwave</td><td>35%</td><td>37%</td><td>79%</td><td>71%</td><td>83%</td><td>82%</td><td>82%</td><td>84%</td><td>95%</td><td>91%</td></tr><tr><td>Average (%)</td><td>42.98</td><td>43.84</td><td>72.80</td><td>72.84</td><td>72.8</td><td>77.00</td><td>82.86</td><td>81.86</td><td>88.66</td><td>87.02</td></tr></table>",
+        "bbox": [
+            187,
+            114,
+            807,
+            435
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            93,
+            450,
+            482,
+            585
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "This benchmark is particularly challenging and informative because it contains a large variety of task scenes and randomized instructions, testing a model’s ability to handle various manipulation settings. Its strong background and environmental variability further evaluate the generalization under distribution shift. Moreover, all models are allowed only 40k finetuning steps on top of their pretrained checkpoints, providing a strict and fair assessment of the effectiveness of different pretraining strategies. ",
+        "bbox": [
+            93,
+            593,
+            482,
+            728
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "As shown in Tab. 2, Motus achieves state-of-the-art performance on the RoboTwin 2.0 randomized multi-task setting, delivering over a $45 \\%$ absolute improvement compared with the $\\pi _ { 0 . 5 }$ model. By using a unified MoT model, Motus successfully integrates vision, language, and action generation, solving Challenge 1. In Challenge 2, the introduction of latent actions enables Motus to effectively leverage both labeled and large-scale unlabeled data, improving generalization across embodiments and capturing rich motion priors. This combination of techniques allows Motus to overcome the limitations of previous approaches and achieve superior ",
+        "bbox": [
+            93,
+            734,
+            482,
+            900
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "performance. ",
+        "bbox": [
+            516,
+            452,
+            602,
+            465
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "5.3. Real-World Experiments ",
+        "text_level": 1,
+        "bbox": [
+            516,
+            479,
+            740,
+            496
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "We evaluate Motus across two distinct real-world dual-arm robotic platforms, AC-One and Agilex-Aloha-2 under a comprehensive set of non-trivial tasks that span various dimensions of policy capabilities including: (1) Spatial Understanding (2) Deformable Objects Manipulation (3) Precision Fluid Control (4) Visual understanding (5) Long-Horizon Planning, such as fold towel, brew coffee using drip coffee machine and grind coffee beans with grinder. ",
+        "bbox": [
+            516,
+            503,
+            906,
+            625
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "For each task, we employed 100 trajectories for training. Consistent with the simulator, a multi-task joint training scheme was adopted: all tasks on each robotic platform were trained collectively within a single model, which was subsequently evaluated on every individual task. This approach provides a comprehensive and rigorous assessment of the model’s robustness and generalization capabilities. ",
+        "bbox": [
+            516,
+            626,
+            905,
+            731
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "We choose $\\pi _ { 0 . 5 }$ as our baseline. Since most tasks involve long-horizon reasoning and are decomposable, we employed the partial success rate for evaluation. This metric quantifies performance by decomposing a task into subtasks, where the model earns partial scores for achieving specific subgoals and a full score only for overall success, thereby offering a more compelling demonstration of its capability. Examples are shown in Table 6 and Table 5. ",
+        "bbox": [
+            516,
+            733,
+            905,
+            853
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "The results are reported in Table 3. Our results demonstrate that Motus significantly outperforms the baseline $\\pi _ { 0 . 5 }$ across all tasks on both robotic arms. Visualizations are ",
+        "bbox": [
+            516,
+            856,
+            905,
+            900
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            495,
+            924,
+            504,
+            935
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "image",
+        "img_path": "images/88c683e4987bf4a6b555bc947a8e56f028f4e969088d07c8c818fa918ddd7fbf.jpg",
+        "image_caption": [
+            "Figure 5. Task Definitions and Visualizations. For each task, we describe its language instruction and definitions of each sub-task. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            111,
+            99,
+            464,
+            340
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "table",
+        "img_path": "images/b1e5e2f6bde3639f56904648fcce65e3a16e16c7452bcca007a90200b7d0cc86.jpg",
+        "table_caption": [
+            "Table 3. Robotic Manipulation Tasks Performance Across Platforms (Partial Success Rate $\\%$ ). ",
+            "provided in Figure 5 "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Task Description</td><td>π0.5</td><td>w/o Pretrain</td><td>Motus</td></tr><tr><td colspan=\"4\">AC-One</td></tr><tr><td>Fold Towel</td><td>4</td><td>1</td><td>14.5</td></tr><tr><td>Brew Coffee using Coffee Maker</td><td>0</td><td>0</td><td>62</td></tr><tr><td>Get Water from Water Dispenser</td><td>30</td><td>8</td><td>36</td></tr><tr><td>Place Cube into Plate</td><td>46</td><td>60</td><td>100</td></tr><tr><td>Place Cube into Plate(OOD)</td><td>28.125</td><td>18.75</td><td>75</td></tr><tr><td>Grind Coffee Beans with Grinder</td><td>8</td><td>0</td><td>92</td></tr><tr><td>Pour Water from Kettle to Flowers</td><td>5</td><td>5</td><td>65</td></tr><tr><td>Touch Instructed Keyboard</td><td>0</td><td>100</td><td>82.5</td></tr><tr><td>Put Bread into Oven</td><td>12</td><td>40</td><td>42</td></tr><tr><td>Average</td><td>14.79</td><td>25.86</td><td>63.22</td></tr><tr><td colspan=\"4\">Agilex-Aloha-2</td></tr><tr><td>Fold Towel</td><td>27.5</td><td>0</td><td>39</td></tr><tr><td>Get Water from Water Dispenser</td><td>62</td><td>8</td><td>96</td></tr><tr><td>Pour Water from Kettle to Flowers</td><td>45</td><td>40</td><td>47.5</td></tr><tr><td>Touch Instructed Keyboard</td><td>72.5</td><td>85</td><td>80</td></tr><tr><td>Put Bread into Oven</td><td>36</td><td>0</td><td>34</td></tr><tr><td>Average</td><td>48.60</td><td>26.60</td><td>59.30</td></tr></table>",
+        "bbox": [
+            91,
+            445,
+            495,
+            708
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "5.4. Ablation Study ",
+        "text_level": 1,
+        "bbox": [
+            93,
+            771,
+            243,
+            787
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "We performed ablation studies to demonstrate the contribution of each training stage. This involved benchmarking models without pretraining and only Stage 1 pretraining. Evaluations were carried out in the RoboTwin 2.0 simulator to measure accuracy. In real-world deployments we compare Motus against its from-scratch counterpart. The results in simulator are summarized in Fig 6, and results in real-world experiments are shown in Table 3. ",
+        "bbox": [
+            93,
+            795,
+            482,
+            900
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "table",
+        "img_path": "images/e23bd07792ac6794446bd31ed993dc3ebc0382291834859b06c38c22c81b7c75.jpg",
+        "table_caption": [
+            "Table 4. Put Bread into Oven Task on AC-One Platform with a Detailed Subtask Breakdown. The number preceding each subtask indicates the score assigned to its successful completion. ",
+            "Table 5. Get Water from Water Dispenser Task on Agilex-Aloha-2 Platform with a Detailed Subtask Breakdown. The number preceding each subtask indicates the score assigned to its successful completion. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Subgoal</td><td>π0.5</td><td>w/o Pretrain</td><td>Motus</td></tr><tr><td>0.0: Complete Failure</td><td>6</td><td>4</td><td>5</td></tr><tr><td>0.2: Open the Oven</td><td>3</td><td>0</td><td>0</td></tr><tr><td>0.4: Grab the Bread</td><td>0</td><td>2</td><td>1</td></tr><tr><td>0.6: Put the Bread into the Oven</td><td>1</td><td>1</td><td>0</td></tr><tr><td>0.8: Close the Oven</td><td>0</td><td>2</td><td>1</td></tr><tr><td>1.0: Spin the Button</td><td>0</td><td>1</td><td>3</td></tr><tr><td>Partial Success Rate</td><td>12%</td><td>40%</td><td>42%</td></tr></table>",
+        "bbox": [
+            529,
+            142,
+            885,
+            255
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "table",
+        "img_path": "images/0cfdc67dff949c315de6efcd8f8aa2e2aee9cca754dba57fe47ff1b6ec394795.jpg",
+        "table_caption": [],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Subgoal</td><td>π0.5</td><td>w/o Pretrain</td><td>Motus</td></tr><tr><td>0.0: Complete Failure</td><td>0</td><td>8</td><td>0</td></tr><tr><td>0.4: Grab the cup</td><td>5</td><td>2</td><td>0</td></tr><tr><td>0.8: Fill the cup with water</td><td>4</td><td>0</td><td>2</td></tr><tr><td>1.0: Complete Success</td><td>1</td><td>0</td><td>8</td></tr><tr><td>Partial Success Rate</td><td>62%</td><td>8%</td><td>96%</td></tr></table>",
+        "bbox": [
+            542,
+            324,
+            870,
+            412
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "image",
+        "img_path": "images/4a04b7ba5d2007ec9ffb1d00d284bc5b270db2e61efbf517342b007d0fbb8cfc.jpg",
+        "image_caption": [
+            "Figure 6. Ablation in RoboTwin 2.0 Randomized Multi-task Setting. The figure presents the total success rates $( \\% )$ of the original Motus (Stage 2 Pretrain) and its two variants: Without Pretrain and Stage 1 Pretrain. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            516,
+            431,
+            900,
+            611
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            517,
+            695,
+            738,
+            709
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "6. Conclusion and Limitations ",
+        "text_level": 1,
+        "bbox": [
+            517,
+            723,
+            769,
+            741
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "In this work, we present Motus, a unified latent-action world model that integrates mainstream capabilities of embodied foundation models into a single generative framework, i.e., vision-language understanding, video generation, inverse dynamics, world modeling, and video-action joint prediction. By connecting pretrained experts through MoT, coordinating multimodal modeling with a UniDiffuser-style scheduler, and introducing latent actions as a pixel-level “delta action” and motion representation, Motus effectively learns from large-scale heterogeneous data and inherits both general multimodal priors and rich physical interaction knowledge. Extensive experiments across simulation and realworld environments demonstrate that Motus consistently outperforms existing state-of-the-art embodied models (improved by $+ 1 5 { \\sim } 4 5 \\%$ in simulation and $+ 1 1 { \\sim } 4 8 \\%$ in realworld scenarios), validating the importance of unifying multimodal generative capabilities and shared motion priors. We hope Motus inspires future research on unified architectures, motion-centric representation learning, and large-scale embodied pretraining. ",
+        "bbox": [
+            516,
+            750,
+            906,
+            900
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "discarded",
+        "text": "8 ",
+        "bbox": [
+            493,
+            924,
+            503,
+            935
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            93,
+            92,
+            483,
+            241
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "In the future, we will continue to explore more advanced unified model architectures, pursue more universal motion priors, and learn latent actions from internet-scale general videos for embodied intelligence. ",
+        "bbox": [
+            93,
+            243,
+            480,
+            301
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "References ",
+        "text_level": 1,
+        "bbox": [
+            93,
+            315,
+            186,
+            332
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "[1] AgiBot-World-Contributors, Qingwen Bu, Jisong Cai, Li Chen, Xiuqi Cui, Yan Ding, Siyuan Feng, Shenyuan Gao, Xindong He, Xuan Hu, Xu Huang, Shu Jiang, Yuxin Jiang, Cheng Jing, Hongyang Li, Jialu Li, Chiming Liu, Yi Liu, Yuxiang Lu, Jianlan Luo, Ping Luo, Yao Mu, Yuehan Niu, Yixuan Pan, Jiangmiao Pang, Yu Qiao, Guanghui Ren, Cheng Ruan, Jiaqi Shan, Yongjian Shen, Chengshi Shi, Mingkang Shi, Modi Shi, Chonghao Sima, Jianheng Song, Huijie Wang, Wenhao Wang, Dafeng Wei, Chengen Xie, Guo Xu, Junchi Yan, Cunbiao Yang, Lei Yang, Shukai Yang, Maoqing Yao, Jia Zeng, Chi Zhang, Qinglin Zhang, Bin Zhao, Chengyue Zhao, Jiaqi Zhao, and Jianchao Zhu. Agibot world colosseo: A large-scale manipulation platform for scalable and intelligent embodied systems. arXiv preprint arXiv:2503.06669,   \n2025. 6, 5 [2] Jinze Bai, Shuai Bai, Shusheng Yang, Shijie Wang, Sinan Tan, Peng Wang, Junyang Lin, Chang Zhou, and Jingren Zhou. Qwen-vl: A versatile vision-language model for understanding, localization, text reading, and beyond. arXiv preprint arXiv:2308.12966, 2023. 5 [3] Shuai Bai, Keqin Chen, Xuejing Liu, Jialin Wang, Wenbin Ge, Sibo Song, Kai Dang, Peng Wang, Shijie Wang, Jun Tang, Humen Zhong, Yuanzhi Zhu, Mingkun Yang, Zhaohai Li, Jianqiang Wan, Pengfei Wang, Wei Ding, Zheren Fu, Yiheng Xu, Jiabo Ye, Xi Zhang, Tianbao Xie, Zesen Cheng, Hang Zhang, Zhibo Yang, Haiyang Xu, and Junyang Lin. Qwen2.5- vl technical report. arXiv preprint arXiv:2502.13923, 2025.   \n5 [4] Homanga Bharadhwaj, Debidatta Dwibedi, Abhinav Gupta, Shubham Tulsiani, Carl Doersch, Ted Xiao, Dhruv Shah, Fei Xia, Dorsa Sadigh, and Sean Kirmani. Gen2act: Human video generation in novel scenarios enables generalizable robot manipulation. CoRR, abs/2409.16283, 2024. 1 [5] Hongzhe Bi, Lingxuan Wu, Tianwei Lin, Hengkai Tan, Zhizhong Su, Hang Su, and Jun Zhu. H-rdt: Human manipulation enhanced bimanual robotic manipulation, 2025.   \n1 [6] Johan Bjorck, Fernando Castañeda, Nikita Cherniadev, Xingye Da, Runyu Ding, Linxi Fan, Yu Fang, Dieter Fox, Fengyuan Hu, Spencer Huang, et al. Gr00t n1: An open foundation model for generalist humanoid robots. arXiv preprint arXiv:2503.14734, 2025. 3 [7] Kevin Black, Mitsuhiko Nakamoto, Pranav Atreya, Homer Walke, Chelsea Finn, Aviral Kumar, and Sergey Levine. Zeroshot robotic manipulation with pretrained image-editing diffusion models. CoRR, abs/2310.10639, 2023. 1 [8] Kevin Black, Noah Brown, James Darpinian, Karan Dhabalia, Danny Driess, Adnan Esmail, Michael Robert Equi, Chelsea Finn, Niccolo Fusai, Manuel Y Galliker, et al. $\\backslash \\pi _ { 0 . 5 }$ : a visionlanguage-action model with open-world generalization. In 9th Annual Conference on Robot Learning, 2025. 1, 3, 4, 6 [9] Jake Bruce, Michael D Dennis, Ashley Edwards, Jack Parker-Holder, Yuge Shi, Edward Hughes, Matthew Lai, Aditi Mavalankar, Richie Steigerwald, Chris Apps, Yusuf Aytar, Sarah Maria Elisabeth Bechtle, Feryal Behbahani, Stephanie C.Y. Chan, Nicolas Heess, Lucy Gonzalez, Simon Osindero, Sherjil Ozair, Scott Reed, Jingwei Zhang, Konrad Zolna, Jeff Clune, Nando de Freitas, Satinder Singh, and Tim Rocktäschel. Genie: Generative interactive environments. In Forty-first International Conference on Machine Learning, 2024. 3   \n[10] Qingwen Bu, Jisong Cai, Li Chen, Xiuqi Cui, Yan Ding, Siyuan Feng, Shenyuan Gao, Xindong He, Xuan Hu, Xu Huang, et al. Agibot world colosseo: A large-scale manipulation platform for scalable and intelligent embodied systems. arXiv preprint arXiv:2503.06669, 2025. 3   \n[11] Qingwen Bu, Yanting Yang, Jisong Cai, Shenyuan Gao, Guanghui Ren, Maoqing Yao, Ping Luo, and Hongyang Li. Univla: Learning to act anywhere with task-centric latent actions. arXiv preprint arXiv:2505.06111, 2025. 1, 3   \n[12] Hila Chefer, Uriel Singer, Amit Zohar, Yuval Kirstain, Adam Polyak, Yaniv Taigman, Lior Wolf, and Shelly Sheynin. Videojam: Joint appearance-motion representations for enhanced motion generation in video models. arXiv preprint arXiv:2502.02492, 2025. 3   \n[13] Junyu Chen, Han Cai, Junsong Chen, Enze Xie, Shang Yang, Haotian Tang, Muyang Li, and Song Han. Deep compression autoencoder for efficient high-resolution diffusion models. In The Thirteenth International Conference on Learning Representations, ICLR 2025, Singapore, April 24-28, 2025. OpenReview.net, 2025. 5   \n[14] Tianxing Chen, Zanxin Chen, Baijun Chen, Zijian Cai, Yibin Liu, Zixuan Li, Qiwei Liang, Xianliang Lin, Yiheng Ge, Zhenyu Gu, et al. Robotwin 2.0: A scalable data generator and benchmark with strong domain randomization for robust bimanual robotic manipulation. arXiv preprint arXiv:2506.18088, 2025. 6, 5   \n[15] Yi Chen, Yuying Ge, Weiliang Tang, Yizhuo Li, Yixiao Ge, Mingyu Ding, Ying Shan, and Xihui Liu. Moto: Latent motion token as the bridging language for learning robot manipulation from videos. arXiv preprint arXiv:2412.04445, 2024. 3   \n[16] Jaden Clark, Suvir Mirchandani, Dorsa Sadigh, and Suneel Belkhale. Action-free reasoning for policy generalization. In ICRA 2025 Workshop on Foundation Models and Neuro-Symbolic AI for Robotics, 2025. 3   \n[17] Jeremy A Collins, Loránd Cheng, Kunal Aneja, Albert Wilcox, Benjamin Joffe, and Animesh Garg. Amplify: Actionless motion priors for robot learning from videos. arXiv preprint arXiv:2506.14198, 2025. 3 [18] Chaorui Deng, Deyao Zhu, Kunchang Li, Chenhui Gou, Feng Li, Zeyu Wang, Shu Zhong, Weihao Yu, Xiaonan Nie, Ziang Song, et al. Emerging properties in unified multimodal pretraining. arXiv preprint arXiv:2505.14683, 2025. 3 [19] Yilun Du, Sherry Yang, Bo Dai, Hanjun Dai, Ofir Nachum, Josh Tenenbaum, Dale Schuurmans, and Pieter Abbeel. Learning universal policies via text-guided video generation. Advances in neural information processing systems, 36:9156–   \n9172, 2023. 1, 3 [20] Ashley Edwards, Himanshu Sahni, Yannick Schroecker, and Charles Isbell. Imitating latent policies from observation. In International conference on machine learning, pages 1755–   \n1763. PMLR, 2019. 3 [21] Yao Feng, Hengkai Tan, Xinyi Mao, Chendong Xiang, Guodong Liu, Shuhe Huang, Hang Su, and Jun Zhu. Vidar: Embodied video diffusion model for generalist manipulation. arXiv preprint arXiv:2507.12898, 2025. 1, 3 [22] Shenyuan Gao, Siyuan Zhou, Yilun Du, Jun Zhang, and Chuang Gan. Adaworld: Learning adaptable world models with latent actions. In Forty-second International Conference on Machine Learning, 2025. 3 [23] Irina Higgins, Loic Matthey, Arka Pal, Christopher Burgess, Xavier Glorot, Matthew Botvinick, Shakir Mohamed, and Alexander Lerchner. beta-VAE: Learning basic visual concepts with a constrained variational framework. In International Conference on Learning Representations, 2017. 3 [24] Ryan Hoque, Peide Huang, David J Yoon, Mouli Sivapurapu, and Jian Zhang. Egodex: Learning dexterous manipulation from large-scale egocentric video. arXiv preprint arXiv:2505.11709, 2025. 6, 5 [25] Yucheng Hu, Yanjiang Guo, Pengchao Wang, Xiaoyu Chen, Yen-Jen Wang, Jianke Zhang, Koushil Sreenath, Chaochao Lu, and Jianyu Chen. Video prediction policy: A generalist robot policy with predictive visual representations. CoRR, abs/2412.14803, 2024. 1 [26] Moo Jin Kim, Karl Pertsch, Siddharth Karamcheti, Ted Xiao, Ashwin Balakrishna, Suraj Nair, Rafael Rafailov, Ethan P Foster, Pannag R Sanketi, Quan Vuong, et al. Openvla: An open-source vision-language-action model. In 8th Annual Conference on Robot Learning. 1 [27] Moo Jin Kim, Karl Pertsch, Siddharth Karamcheti, Ted Xiao, Ashwin Balakrishna, Suraj Nair, Rafael Rafailov, Ethan P Foster, Pannag R Sanketi, Quan Vuong, Thomas Kollar, Benjamin Burchfiel, Russ Tedrake, Dorsa Sadigh, Sergey Levine, Percy Liang, and Chelsea Finn. OpenVLA: An open-source vision-language-action model. In 8th Annual Conference on Robot Learning, 2024. 3 [28] Shuang Li, Yihuai Gao, Dorsa Sadigh, and Shuran Song. Unified video action model. CoRR, abs/2503.00200, 2025. 1 [29] Zijie Li, Henry Li, Yichun Shi, Amir Barati Farimani, Yuval Kluger, Linjie Yang, and Peng Wang. Dual diffusion for unified image generation and understanding. In Proceedings of the Computer Vision and Pattern Recognition Conference, pages 2779–2790, 2025. 3 [30] Weixin Liang, LILI YU, Liang Luo, Srini Iyer, Ning Dong, Chunting Zhou, Gargi Ghosh, Mike Lewis, Wen tau Yih, Luke Zettlemoyer, and Xi Victoria Lin. Mixture-of-transformers: A sparse and scalable architecture for multi-modal foundation models. In ICLR 2025 Workshop on World Models: Understanding, Modelling and Scaling, 2025. 3   \n[31] Songming Liu, Lingxuan Wu, Bangguo Li, Hengkai Tan, Huayu Chen, Zhengyi Wang, Ke Xu, Hang Su, and Jun Zhu. Rdt-1b: a diffusion foundation model for bimanual manipulation. In The Thirteenth International Conference on Learning Representations. 1, 4, 6, 5   \n[32] Qi Lv, Weijie Kong, Hao Li, Jia Zeng, Zherui Qiu, Delin Qu, Haoming Song, Qizhi Chen, Xiang Deng, and Jiangmiao Pang. F1: A vision-language-action model bridging understanding and generation to actions. arXiv preprint arXiv:2509.06951, 2025. 1, 3   \n[33] Henrique Morimitsu, Xiaobin Zhu, Roberto M. Cesar, Xiangyang Ji, and $\\mathrm { X u }$ -Cheng Yin. Dpflow: Adaptive optical flow estimation with a dual-pyramid framework. In IEEE/CVF Conference on Computer Vision and Pattern Recognition, CVPR 2025, Nashville, TN, USA, June 11-15, 2025, pages 17810–17820. Computer Vision Foundation / IEEE, 2025. 5   \n[34] Alexander Nikulin, Ilya Zisman, Denis Tarasov, Nikita Lyubaykin, Andrei Polubarov, Igor Kiselev, and Vladislav Kurenkov. Latent action learning requires supervision in the presence of distractors. arXiv preprint arXiv:2502.00379, 2025. 3   \n[35] Junzhi Ning, Wei Li, Cheng Tang, Jiashi Lin, Chenglong Ma, Chaoyang Zhang, Jiyao Liu, Ying Chen, Shujian Gao, Lihao Liu, Yuandong Pu, Huihui Xu, Chenhui Gou, Ziyan Huang, Yi Xin, Qi Qin, Zhongying Deng, Diping Song, Bin Fu, Guang Yang, Yuanfeng Ji, Tianbin Li, Yanzhou Su, Jin Ye, Shixiang Tang, Ming Hu, and Junjun He. Unimedvl: Unifying medical multimodal understanding and generation through observation-knowledge-analysis, 2025. 3   \n[36] Abby O’Neill, Abdul Rehman, Abhiram Maddukuri, Abhishek Gupta, Abhishek Padalkar, Abraham Lee, Acorn Pooley, Agrim Gupta, Ajay Mandlekar, Ajinkya Jain, Albert Tung, Alex Bewley, Alexander Herzog, Alex Irpan, Alexander Khazatsky, Anant Rai, Anchit Gupta, Andrew E. Wang, Anikait Singh, Animesh Garg, Aniruddha Kembhavi, Annie Xie, Anthony Brohan, Antonin Raffin, Archit Sharma, Arefeh Yavary, Arhan Jain, Ashwin Balakrishna, Ayzaan Wahid, Ben Burgess-Limerick, Beomjoon Kim, Bernhard Schölkopf, Blake Wulfe, Brian Ichter, Cewu Lu, Charles Xu, Charlotte Le, Chelsea Finn, Chen Wang, Chenfeng Xu, Cheng Chi, Chenguang Huang, Christine Chan, Christopher Agia, Chuer Pan, Chuyuan Fu, Coline Devin, Danfei Xu, Daniel Morton, Danny Driess, Daphne Chen, Deepak Pathak, Dhruv Shah, Dieter Büchler, Dinesh Jayaraman, Dmitry Kalashnikov, Dorsa Sadigh, Edward Johns, Ethan Paul Foster, Fangchen Liu, Federico Ceola, Fei Xia, Feiyu Zhao, Freek Stulp, Gaoyue Zhou, Gaurav S. Sukhatme, Gautam Salhotra, Ge Yan, Gilbert Feng, Giulio Schiavi, Glen Berseth, Gregory Kahn, Guanzhi Wang, Hao Su, Haoshu Fang, Haochen Shi, Henghui Bao, Heni Ben Amor, Henrik I. Christensen, Hiroki Furuta, Homer Walke, Hongjie Fang, Huy Ha, Igor Mordatch, Ilija Radosavovic, Isabel Leal, Jacky Liang, Jad Abou-Chakra, Jaehyung Kim, Jaimyn Drake, Jan Peters, Jan Schneider, Jasmine Hsu, Jeannette Bohg, Jeffrey Bingham, Jeffrey Wu, Jensen Gao, Jiaheng Hu, Jiajun Wu, Jialin Wu, Jiankai Sun, Jianlan Luo, Jiayuan Gu, Jie Tan, Jihoon Oh, Jimmy Wu, Jingpei Lu, Jingyun Yang, Jitendra Malik, João Silvério, Joey Hejna, Jonathan Booher, Jonathan Tompson, Jonathan Yang, Jordi Salvador, Joseph J. Lim, Junhyek Han, Kaiyuan Wang, Kanishka Rao, Karl Pertsch, Karol Hausman, Keegan Go, Keerthana Gopalakrishnan, Ken Goldberg, Kendra Byrne, Kenneth Oslund, Kento Kawaharazuka, Kevin Black, Kevin Lin, Kevin Zhang, Kiana Ehsani, Kiran Lekkala, Kirsty Ellis, Krishan Rana, Krishnan Srinivasan, Kuan Fang, Kunal Pratap Singh, Kuo-Hao Zeng, Kyle Hatch, Kyle Hsu, Laurent Itti, Lawrence Yunliang Chen, Lerrel Pinto, Li Fei-Fei, Liam Tan, Linxi Jim Fan, Lionel Ott, Lisa Lee, Luca Weihs, Magnum Chen, Marion Lepert, Marius Memmel, Masayoshi Tomizuka, Masha Itkina, Mateo Guaman Castro, Max Spero, Maximilian Du, Michael Ahn, Michael C. Yip, Mingtong Zhang, Mingyu Ding, Minho Heo, Mohan Kumar Srirama, Mohit Sharma, Moo Jin Kim, Naoaki Kanazawa, Nicklas Hansen, Nicolas Heess, Nikhil J. Joshi, Niko Sünderhauf, Ning Liu, Norman Di Palo, Nur Muhammad (Mahi) Shafiullah, Oier Mees, Oliver Kroemer, Osbert Bastani, Pannag R. Sanketi, Patrick Tree Miller, Patrick Yin, Paul Wohlhart, Peng Xu, Peter David Fagan, Peter Mitrano, Pierre Sermanet, Pieter Abbeel, Priya Sundaresan, Qiuyu Chen, Quan Vuong, Rafael Rafailov, Ran Tian, Ria Doshi, Roberto Martín-Martín, Rohan Baijal, Rosario Scalise, Rose Hendrix, Roy Lin, Runjia Qian, Ruohan Zhang, Russell Mendonca, Rutav Shah, Ryan Hoque, Ryan Julian, Samuel Bustamante, Sean Kirmani, Sergey Levine, Shan Lin, Sherry Moore, Shikhar Bahl, Shivin Dass, Shubham D. Sonawani, Shuran Song, Sichun Xu, Siddhant Haldar, Siddharth Karamcheti, Simeon Adebola, Simon Guist, Soroush Nasiriany, Stefan Schaal, Stefan Welker, Stephen Tian, Subramanian Ramamoorthy, Sudeep Dasari, Suneel Belkhale, Sungjae Park, Suraj Nair, Suvir Mirchandani, Takayuki Osa, Tanmay Gupta, Tatsuya Harada, Tatsuya Matsushima, Ted Xiao, Thomas Kollar, Tianhe Yu, Tianli Ding, Todor Davchev, Tony Z. Zhao, Travis Armstrong, Trevor Darrell, Trinity Chung, Vidhi Jain, Vincent Vanhoucke, Wei Zhan, Wenxuan Zhou, Wolfram Burgard, Xi Chen, Xiaolong Wang, Xinghao Zhu, Xinyang Geng, Xiyuan Liu, Liangwei Xu, Xuanlin Li, Yao Lu, Yecheng Jason Ma, Yejin Kim, Yevgen Chebotar, Yifan Zhou, Yifeng Zhu, Yilin Wu, Ying Xu, Yixuan Wang, Yonatan Bisk, Yoonyoung Cho, Youngwoon Lee, Yuchen Cui, Yue Cao, Yueh-Hua Wu, Yujin Tang, Yuke Zhu, Yunchu Zhang, Yunfan Jiang, Yunshuang Li, Yunzhu Li, Yusuke Iwasawa, Yutaka Matsuo, Zehan Ma, Zhuo Xu, Zichen Jeff Cui, Zichen Zhang, and Zipeng Lin. Open x-embodiment: Robotic learning datasets and RT-X models : Open x-embodiment collaboration. In IEEE International Conference on Robotics and Automation, ICRA 2024, Yokohama, Japan, May 13-17, 2024, pages 6892–6903. IEEE, 2024. 1   \nOleh Rybkin, Karl Pertsch, Andrew Jaegle, Konstantinos G. Derpanis, and Kostas Daniilidis. Learning what you can do before doing anything. In International Conference on Learning Representations, 2019. 3   \nDominik Schmidt and Minqi Jiang. Learning to act without actions. In The Twelfth International Conference on Learning Representations, 2024. 3   \n[39] Hengkai Tan, Yao Feng, Xinyi Mao, Shuhe Huang, Guodong Liu, Zhongkai Hao, Hang Su, and Jun Zhu. Anypos: Automated task-agnostic actions for bimanual manipulation, 2025. 1, 5   \n[40] Chameleon Team. Chameleon: Mixed-modal early-fusion foundation models. arXiv preprint arXiv:2405.09818, 2024. 3   \n[41] Yang Tian, Sizhe Yang, Jia Zeng, Ping Wang, Dahua Lin, Hao Dong, and Jiangmiao Pang. Predictive inverse dynamics models are scalable learners for robotic manipulation. CoRR, abs/2412.15109, 2024. 1   \n[42] Team Wan, Ang Wang, Baole Ai, Bin Wen, Chaojie Mao, Chen-Wei Xie, Di Chen, Feiwu Yu, Haiming Zhao, Jianxiao Yang, Jianyuan Zeng, Jiayu Wang, Jingfeng Zhang, Jingren Zhou, Jinkai Wang, Jixuan Chen, Kai Zhu, Kang Zhao, Keyu Yan, Lianghua Huang, Mengyang Feng, Ningyi Zhang, Pandeng Li, Pingyu Wu, Ruihang Chu, Ruili Feng, Shiwei Zhang, Siyang Sun, Tao Fang, Tianxing Wang, Tianyi Gui, Tingyu Weng, Tong Shen, Wei Lin, Wei Wang, Wei Wang, Wenmeng Zhou, Wente Wang, Wenting Shen, Wenyuan Yu, Xianzhong Shi, Xiaoming Huang, Xin Xu, Yan Kou, Yangyu Lv, Yifei Li, Yijing Liu, Yiming Wang, Yingya Zhang, Yitong Huang, Yong Li, You Wu, Yu Liu, Yulin Pan, Yun Zheng, Yuntao Hong, Yupeng Shi, Yutong Feng, Zeyinzi Jiang, Zhen Han, Zhi-Fan Wu, and Ziyu Liu. Wan: Open and advanced large-scale video generative models. arXiv preprint arXiv:2503.20314, 2025. 5   \n[43] Lirui Wang, Xinlei Chen, Jialiang Zhao, and Kaiming He. Scaling proprioceptive-visual learning with heterogeneous pre-trained transformers. In Advances in Neural Information Processing Systems 38: Annual Conference on Neural Information Processing Systems 2024, NeurIPS 2024, Vancouver, BC, Canada, December 10 - 15, 2024, 2024. 4   \n[44] Peng Wang, Shuai Bai, Sinan Tan, Shijie Wang, Zhihao Fan, Jinze Bai, Keqin Chen, Xuejing Liu, Jialin Wang, Wenbin Ge, Yang Fan, Kai Dang, Mengfei Du, Xuancheng Ren, Rui Men, Dayiheng Liu, Chang Zhou, Jingren Zhou, and Junyang Lin. Qwen2-vl: Enhancing vision-language model’s perception of the world at any resolution. arXiv preprint arXiv:2409.12191, 2024. 5   \n[45] Xinlong Wang, Xiaosong Zhang, Zhengxiong Luo, Quan Sun, Yufeng Cui, Jinsheng Wang, Fan Zhang, Yueze Wang, Zhen Li, Qiying Yu, et al. Emu3: Next-token prediction is all you need. arXiv preprint arXiv:2409.18869, 2024. 3   \n[46] Yiqi Wang, Mrinal Verghese, and Jeff Schneider. Latent policy steering with embodiment-agnostic pretrained world models. arXiv preprint arXiv:2507.13340, 2025. 3   \n[47] Chengyue Wu, Xiaokang Chen, Zhiyu Wu, Yiyang Ma, Xingchao Liu, Zizheng Pan, Wen Liu, Zhenda Xie, Xingkai Yu, Chong Ruan, et al. Janus: Decoupling visual encoding for unified multimodal understanding and generation. In Proceedings of the Computer Vision and Pattern Recognition Conference, pages 12966–12977, 2025. 3   \n[48] Kun Wu, Chengkai Hou, Jiaming Liu, Zhengping Che, Xiaozhu Ju, Zhuqin Yang, Meng Li, Yinuo Zhao, Zhiyuan Xu, Guang Yang, et al. Robomind: Benchmark on multiembodiment intelligence normative data for robot manipulation. arXiv preprint arXiv:2412.13877, 2024. 6, 5   \n[49] Jinheng Xie, Zhenheng Yang, and Mike Zheng Shou. Showo2: Improved native unified multimodal models. arXiv preprint arXiv:2506.15564, 2025. 3   \n[50] Jiange Yang, Yansong Shi, Haoyi Zhu, Mingyu Liu, Kaijing Ma, Yating Wang, Gangshan Wu, Tong He, and Limin Wang. Como: Learning continuous latent motion from internet videos for scalable robot learning. arXiv preprint arXiv:2505.17006, 2025. 3   \n[51] Jiange Yang, Haoyi Zhu, Yating Wang, Gangshan Wu, Tong He, and Limin Wang. Tra-moe: Learning trajectory prediction model from multiple domains for adaptive policy conditioning. In Proceedings of the Computer Vision and Pattern Recognition Conference, pages 6960–6970, 2025. 3   \n[52] Ling Yang, Ye Tian, Bowen Li, Xinchen Zhang, Ke Shen, Yunhai Tong, and Mengdi Wang. Mmada: Multimodal large diffusion language models. arXiv preprint arXiv:2505.15809, 2025. 3   \n[53] Sherry Yang, Yilun Du, Seyed Kamyar Seyed Ghasemipour, Jonathan Tompson, Leslie Pack Kaelbling, Dale Schuurmans, and Pieter Abbeel. Learning interactive real-world simulators. In The Twelfth International Conference on Learning Representations, ICLR 2024, Vienna, Austria, May 7-11, 2024. OpenReview.net, 2024. 1   \n[54] Junliang Ye, Zhengyi Wang, Ruowen Zhao, Shenghao Xie, and Jun Zhu. Shapellm-omni: A native multimodal llm for 3d generation and understanding. arXiv preprint arXiv:2506.01853, 2025. 3   \n[55] Seonghyeon Ye, Joel Jang, Byeongguk Jeon, Se June Joo, Jianwei Yang, Baolin Peng, Ajay Mandlekar, Reuben Tan, Yu-Wei Chao, Bill Yuchen Lin, Lars Liden, Kimin Lee, Jianfeng Gao, Luke Zettlemoyer, Dieter Fox, and Minjoon Seo. Latent action pretraining from videos. In The Thirteenth International Conference on Learning Representations, 2025. 3   \n[56] Weirui Ye, Fangchen Liu, Zheng Ding, Yang Gao, Oleh Rybkin, and Pieter Abbeel. Video2policy: Scaling up manipulation tasks in simulation through internet videos. CoRR, abs/2502.09886, 2025. 1   \n[57] Chengbo Yuan, Rui Zhou, Mengzhen Liu, Yingdong Hu, Shengjie Wang, Li Yi, Shanghang Zhang, Chuan Wen, and Yang Gao. Motiontrans: Human VR data enable motionlevel learning for robotic manipulation policies. In Human to Robot: Workshop on Sensorizing, Modeling, and Learning from Humans, 2025. 3   \n[58] Chuheng Zhang, Tim Pearce, Pushi Zhang, Kaixin Wang, Xiaoyu Chen, Wei Shen, Li Zhao, and Jiang Bian. What do latent action models actually learn? arXiv preprint arXiv:2506.15691, 2025. 3   \n[59] Tony Z. Zhao, Vikash Kumar, Sergey Levine, and Chelsea Finn. Learning fine-grained bimanual manipulation with lowcost hardware. In Robotics: Science and Systems XIX, Daegu, Republic of Korea, July 10-14, 2023, 2023. 3   \n[60] Jinliang Zheng, Jianxiong Li, Zhihao Wang, Dongxiu Liu, Xirui Kang, Yuchun Feng, Yinan Zheng, Jiayin Zou, Yilun Chen, Jia Zeng, et al. X-vla: Soft-prompted transformer as scalable cross-embodiment vision-language-action model. arXiv preprint arXiv:2510.10274, 2025. 1, 3, 4, 6   \n[61] Zhide Zhong, Haodong Yan, Junfeng Li, Xiangchen Liu, Xin Gong, Tianran Zhang, Wenxuan Song, Jiayi Chen, Xinhu Zheng, Hesheng Wang, et al. Flowvla: Visual chain of thought-based motion reasoning for vision-language-action models. arXiv preprint arXiv:2508.18269, 2025. 3   \n[62] Siyuan Zhou, Yilun Du, Jiaben Chen, Yandong Li, Dit-Yan Yeung, and Chuang Gan. Robodreamer: Learning compositional world models for robot imagination. In International Conference on Machine Learning, pages 61885–61896. PMLR, 2024. 1, 3   \n[63] Xin Zhou, Dingkang Liang, Sifan Tu, Xiwu Chen, Yikang Ding, Dingyuan Zhang, Feiyang Tan, Hengshuang Zhao, and Xiang Bai. Hermes: A unified self-driving world model for simultaneous 3d scene understanding and generation. arXiv preprint arXiv:2501.14729, 2025. 3   \n[64] Chuning Zhu, Raymond Yu, Siyuan Feng, Benjamin Burchfiel, Paarth Shah, and Abhishek Gupta. Unified world models: Coupling video and action diffusion for pretraining on large robotic datasets. arXiv preprint arXiv:2504.02792, 2025. 1, 3, 4   \n[65] Brianna Zitkovich, Tianhe Yu, Sichun Xu, Peng Xu, Ted Xiao, Fei Xia, Jialin Wu, Paul Wohlhart, Stefan Welker, Ayzaan Wahid, et al. Rt-2: Vision-language-action models transfer web knowledge to robotic control. In Conference on Robot Learning, pages 2165–2183. PMLR, 2023. 1 ",
+        "bbox": [
+            99,
+            340,
+            483,
+            905
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            514,
+            95,
+            906,
+            901
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "discarded",
+        "text": "9 ",
+        "bbox": [
+            493,
+            924,
+            504,
+            935
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            91,
+            90,
+            485,
+            902
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            514,
+            82,
+            906,
+            900
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "discarded",
+        "text": "10 ",
+        "bbox": [
+            490,
+            924,
+            508,
+            935
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            125,
+            99,
+            485,
+            901
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            514,
+            79,
+            906,
+            900
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "discarded",
+        "text": "11 ",
+        "bbox": [
+            490,
+            924,
+            506,
+            936
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            91,
+            61,
+            485,
+            902
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            514,
+            93,
+            906,
+            486
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "discarded",
+        "text": "12 ",
+        "bbox": [
+            490,
+            924,
+            508,
+            935
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "Motus: A Unified Latent Action World Model ",
+        "text_level": 1,
+        "bbox": [
+            267,
+            85,
+            730,
+            107
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Supplementary Material ",
+        "bbox": [
+            383,
+            118,
+            614,
+            138
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "7. Training and Inference of the Unified Model ",
+        "text_level": 1,
+        "bbox": [
+            93,
+            155,
+            482,
+            172
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "In this section, we analyze the training and inference procedures of the unified model, from both theoretical and experimental perspectives. ",
+        "bbox": [
+            93,
+            193,
+            482,
+            238
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "7.1. Theorectical Analysis ",
+        "text_level": 1,
+        "bbox": [
+            94,
+            281,
+            290,
+            297
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "During each training iteration, given $o _ { t : t + k } ^ { 0 }$ and $a _ { t : t + k } ^ { 0 }$ , Motus samples different timesteps , $\\tau _ { a }$ and noise $\\epsilon _ { o }$ , $\\epsilon _ { a }$ for them respectively, construct the interpolated trajectories $o _ { t + 1 : t + k } ^ { \\tau _ { o } }$ , $a _ { t + 1 : t + k } ^ { \\tau _ { a } }$ based on rectified flow, and compute the loss between the predicted velocity field $v _ { o } ^ { \\theta }$ , $v _ { a } ^ { \\theta }$ and its ground truth $v _ { o } , v _ { a }$ obtained by path differentiation with $t$ . ",
+        "bbox": [
+            93,
+            314,
+            483,
+            407
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Algorithm 1 Training ",
+        "text_level": 1,
+        "bbox": [
+            93,
+            446,
+            238,
+            462
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "1: repeat   \n2: $o _ { t : t + k } ^ { 0 } , a _ { t + 1 : t + k } ^ { 0 } , \\ell \\sim D _ { e x p e r t }$   \n3: $\\tau _ { o } , \\tau _ { a } \\sim \\mathrm { U n i f o r m } ( \\{ 1 , 2 , \\dots , T _ { \\tau } \\} )$   \n4: $\\epsilon _ { o } , \\epsilon _ { a } \\sim \\mathcal { N } ( \\mathbf { 0 } , I )$   \n5: $o _ { t + 1 : t + k } ^ { \\tau _ { o } } = ( 1 - \\tau _ { o } ) o _ { t + 1 : t + k } ^ { \\cup } + \\tau _ { o } \\epsilon _ { o }$   \n6: 7: $a _ { t + 1 : t + k } ^ { \\prime a } = ( 1 - \\tau _ { a } ) a _ { t + 1 : t + k } ^ { \\cup } + \\tau _ { a } \\epsilon _ { a }$   \n8: $l _ { \\mathrm { a c t i o n } } ^ { \\theta } = \\lVert v _ { a } ^ { \\theta } - ( \\epsilon _ { a } - a _ { t + 1 : t + k } ^ { 0 } ) \\rVert _ { 2 } ^ { 2 }$ $v _ { o } ^ { \\theta } , v _ { a } ^ { \\theta } = \\mathbf { M o d e l } _ { \\theta } ( o _ { t } ^ { 0 } , o _ { t + 1 : t + k } ^ { \\tau _ { o } } , a _ { t + 1 : t + k } ^ { \\tau _ { a } } , \\tau _ { o } , \\tau _ { a } , \\ell )$ +   \n10: 9: obs   o   l θ = l θacti on + l θob s $l _ { \\mathrm { o b s } } ^ { \\theta } = \\| v _ { o } ^ { \\theta } - ( \\epsilon _ { o } - o _ { t + 1 : t + k } ^ { 0 } ) \\| _ { 2 } ^ { 2 }$   \n11: θ ← θ − η∇θlθ   \n12: until converged ",
+        "bbox": [
+            96,
+            467,
+            455,
+            654
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "During inference, Motus can switch between the following five different modes. ",
+        "bbox": [
+            91,
+            710,
+            482,
+            741
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "VGM. To enable VGM $p ( o _ { t + 1 : t + k } ^ { 0 } \\mid o _ { t } ^ { 0 } , \\ell )$ , given $o _ { t } ^ { 0 }$ and $\\ell$ as conditions, we set the starting timesteps for both the observations and actions to $T _ { \\tau }$ , randomly sample $\\epsilon _ { a } , \\epsilon _ { o } \\sim$ $\\mathcal { N } ( \\mathbf { 0 } , \\pmb { I } )$ , then apply Alg. 2 to gradually infer $o _ { t + 1 : t + k } ^ { 0 }$ from $\\epsilon _ { o }$ , while keeping $a _ { t + 1 : t + k } ^ { T _ { \\tau } }$ consistently noisy as $\\epsilon _ { a }$ . ",
+        "bbox": [
+            93,
+            821,
+            482,
+            901
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Algorithm 2 VGM ",
+        "text_level": 1,
+        "bbox": [
+            516,
+            156,
+            645,
+            171
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Require: $o _ { t } ^ { 0 } , \\ell , \\theta$ ",
+        "text_level": 1,
+        "bbox": [
+            516,
+            178,
+            642,
+            193
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "1: ϵo, ϵa ∼ N (0, I)   \n2: oTτt+1:t+k ← ϵo   \n3: $a _ { t + 1 : t + k } ^ { T _ { \\tau } } \\gets \\epsilon _ { a }$   \n4: for $\\tau = T _ { \\tau } \\dots 1$ do   \n5: $v _ { o } , v _ { a } = \\mathbf { M o d e l } _ { \\theta } ( o _ { t } ^ { 0 } , o _ { t + 1 : t + k } ^ { \\tau } , a _ { t + 1 : t + k } ^ { T _ { \\tau } } , \\tau , T _ { \\tau } , \\ell )$   \n6: $o _ { t + 1 : t + k } ^ { \\tau - 1 } = o _ { t + 1 : t + k } ^ { \\tau } + v _ { o } d \\tau$   \n8: return end for $o _ { t + 1 : t + k } ^ { 0 }$ ",
+        "bbox": [
+            519,
+            190,
+            875,
+            323
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "World Model. To enable world model $p ( o _ { t + 1 : t + k } ^ { 0 } |$ $o _ { t } ^ { 0 } , a _ { t + 1 : t + k } ^ { 0 } )$ , given $o _ { t } ^ { 0 }$ and $a _ { t + 1 : t + k } ^ { 0 }$ as conditions, we set the starting timesteps for the observations and actions to $T _ { \\tau }$ ply Alg. 3 to gradually infer and 0 respectively, randomly sample $a _ { t + 1 : t + k } ^ { 0 }$ always clean. $o _ { t + 1 : t + k } ^ { 0 }$ $\\epsilon _ { o } \\sim \\mathcal { N } ( \\mathbf { 0 } , I )$ o from $\\epsilon _ { o }$ , while keeping , then ap-",
+        "bbox": [
+            516,
+            356,
+            905,
+            448
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Algorithm 3 World Model ",
+        "text_level": 1,
+        "bbox": [
+            516,
+            468,
+            692,
+            483
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Require: $o _ { t } ^ { 0 } , a _ { t + 1 : t + k } ^ { 0 } , \\ell , \\theta$   \n1: $\\epsilon _ { o } \\sim \\mathcal { N } ( \\mathbf { 0 } , I )$   \n2: $o _ { t + 1 : t + k } ^ { T _ { \\tau } }  \\epsilon _ { o }$   \n3: f4: $\\tau = T _ { \\tau } \\dots 1$ $\\boldsymbol { v } _ { o } , \\boldsymbol { v } _ { a } = \\mathbf { M o d e l } _ { \\boldsymbol { \\theta } } ( o _ { t } ^ { 0 } , o _ { t + 1 : t + k } ^ { \\tau } , a _ { t + 1 : t + k } ^ { 0 } , \\tau , 0 , \\ell )$   \n5: $o _ { t + 1 : t + k } ^ { \\tau - 1 } = o _ { t + 1 : t + k } ^ { \\tau } + v _ { o } d \\tau$   \n6: end for   \n7: return o0t+1:t+k ",
+        "bbox": [
+            517,
+            488,
+            864,
+            617
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "IDM. To enable IDM $p ( a _ { t + 1 : t + k } ^ { 0 } \\mid o _ { t : t + k } ^ { 0 } )$ , given $o _ { t : t + k } ^ { 0 }$ as conditions, we set the starting timesteps for the observations ons to 0 and , then apply $T _ { \\tau }$ respectively, randomlg. 4 to gradually infer $\\epsilon _ { a } \\sim$ $\\mathcal { N } ( \\mathbf { 0 } , \\pmb { I } )$ $a _ { t + 1 : t + k } ^ { 0 }$ $\\epsilon _ { a }$ , while keeping $o _ { t : t + k } ^ { 0 }$ always clean. ",
+        "bbox": [
+            514,
+            648,
+            905,
+            727
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Algorithm 4 IDM ",
+        "text_level": 1,
+        "bbox": [
+            516,
+            747,
+            638,
+            761
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "table",
+        "img_path": "images/ade088dcecd75ee3df5bccf25bacb96d8b5976059f6ed945c9114d19aa5178b8.jpg",
+        "table_caption": [],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Require:</td><td>ot:t+k, l, θ</td></tr><tr><td></td><td> ∼ N (0, I)</td></tr><tr><td>2:</td><td>Tτ at+1:t+k ← a</td></tr><tr><td>3:</td><td>for τ = Tτ . . . 1 do</td></tr><tr><td>4:</td><td>vo, va = Modelθ(o0t+k, at+1:t+k, 0, τ, )</td></tr><tr><td>5:</td><td>= at+1:t+k + vadτ</td></tr><tr><td>6:</td><td>end for</td></tr><tr><td></td><td>7: return a0+1:t+k</td></tr></table>",
+        "bbox": [
+            517,
+            766,
+            825,
+            895
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "discarded",
+        "text": "1 ",
+        "bbox": [
+            493,
+            924,
+            503,
+            935
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "VLA. To enable VLA $p ( a _ { t + 1 : t + k } ^ { 0 } \\mid o _ { t } ^ { 0 } , \\ell )$ , given $o _ { t } ^ { 0 }$ and $\\ell$ as conditions, we set the starting timesteps for both the ions and, then appe keeping $T _ { \\tau }$ , randomly saradually infer sistently noisy $\\epsilon _ { a } , \\epsilon _ { o } \\sim$ $\\mathcal { N } ( \\mathbf { 0 } , \\pmb { I } )$ $a _ { t + 1 : t + k } ^ { 0 }$ $\\epsilon _ { a }$ $o _ { t + 1 : t + k } ^ { T _ { \\tau } }$ $\\epsilon _ { o }$ ",
+        "bbox": [
+            93,
+            90,
+            482,
+            170
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Algorithm 5 VLA ",
+        "text_level": 1,
+        "bbox": [
+            93,
+            188,
+            217,
+            203
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Require: $o _ { t } ^ { 0 } , \\ell , \\theta$   \n1: ϵo $, \\epsilon _ { a } \\sim \\mathcal { N } ( \\mathbf { 0 } , I )$   \n2: $o _ { t + 1 : t + k } ^ { T _ { \\tau } }  \\epsilon _ { o }$   \n3: $a _ { t + 1 : t + k } ^ { T _ { \\tau } } \\gets \\epsilon _ { a }$   \n4: for $\\tau = T _ { \\tau } \\dots 1$ do   \n5: $v _ { o } , v _ { a } = \\mathbf { M o d e l } _ { \\theta } ( o _ { t } ^ { 0 } , o _ { t + 1 : t + k } ^ { T _ { \\tau } } , a _ { t + 1 : t + k } ^ { \\tau } , T _ { \\tau } , \\tau , \\ell )$   \n6: $a _ { t + 1 : t + k } ^ { \\tau - 1 } = a _ { t + 1 : t + k } ^ { \\tau } + v _ { a } d \\tau$   \n8: return 7: end for $a _ { t + 1 : t + k } ^ { 0 }$ ",
+        "bbox": [
+            93,
+            208,
+            452,
+            356
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Video-Action Joint Prediction Model. To enable videoaction joint prediction model $p ( o _ { t + 1 : t + k } ^ { 0 } , a _ { t + 1 : t + k } ^ { 0 } \\mid o _ { t } ^ { 0 } , \\ell )$ given $o _ { t }$ and $\\ell$ as conditions, we set the starting timesteps for both the observations and actions to $T _ { \\tau }$ , randomly sam-$a _ { t + 1 : t + k } ^ { 0 }$ $\\epsilon _ { a } , \\epsilon _ { o } \\sim \\mathcal { N } ( \\mathbf { 0 } , I )$ $\\epsilon _ { a }$ $o _ { t + 1 : t + k } ^ { 0 }$ ply Afrom $\\epsilon _ { o }$ 2 to gradually infer. ",
+        "bbox": [
+            93,
+            397,
+            483,
+            489
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Algorithm 6 Video-Action Joint Prediction Model ",
+        "text_level": 1,
+        "bbox": [
+            93,
+            508,
+            426,
+            523
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Require: $o _ { t } ^ { 0 } , \\ell , \\theta$   \n1: $\\boldsymbol { \\mathfrak { z } } _ { o } , \\epsilon _ { a } \\sim \\mathcal { N } ( \\mathbf { 0 } , I )$   \n2: $o _ { t + 1 : t + k } ^ { T _ { \\tau } }  \\epsilon _ { o }$   \n3: $a _ { t + 1 : t + k } ^ { T _ { \\tau } } \\gets \\epsilon _ { a }$   \n4: for $\\tau = T _ { \\tau } \\dots 1$ do   \n5: $\\boldsymbol { v } _ { o } , \\boldsymbol { v } _ { a } = \\mathbf { M o d e l } _ { \\theta } ( o _ { t } ^ { 0 } , o _ { t + 1 : t + k } ^ { \\tau } , a _ { t + 1 : t + k } ^ { \\tau } , \\tau , \\tau , \\ell )$   \n6: $o _ { t + 1 : t + k } ^ { \\tau - 1 } = o _ { t + 1 : t + k } ^ { \\tau } + v _ { o } d \\tau$   \n7: $a _ { t + 1 : t + k } ^ { \\tau - 1 } = a _ { t + 1 : t + k } ^ { \\tau } + v _ { a } d \\tau$   \n8: end for9: return $o _ { t + 1 : t + k } ^ { 0 } , a _ { t + 1 : t + k } ^ { 0 }$ ",
+        "bbox": [
+            93,
+            529,
+            442,
+            693
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "7.2. Experimental Results ",
+        "text_level": 1,
+        "bbox": [
+            94,
+            715,
+            292,
+            731
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "VGM. As shown in Fig. 7 and Fig. 9, when Motus performs in VGM mode, it shows high-quality visualization results across both Agilex-Aloha-2 and AC-One embodiments, demonstrating the strong video generation capabilities. ",
+        "bbox": [
+            93,
+            739,
+            482,
+            799
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "World Model. As shown in Fig. 11, Fig. 10 and Tab. 6, when Motus performs in world model mode, it shows highquality video generation results across two embodiments on real-world robot data, demonstrating strong future prediction capabilities. ",
+        "bbox": [
+            93,
+            824,
+            482,
+            900
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "table",
+        "img_path": "images/f341dc7485f3bcf6a31228e0bbc2ed52e6c35634b30a1cd8b95f665880e1d81c.jpg",
+        "table_caption": [
+            "Table 6. Generative Quality of Motus in World Model Mode. The metrics were evaluated on real-world robot data across two robotic platform. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Platform</td><td>FID↓</td><td>FVD↓</td><td>SSIM↑</td><td>LPIPS↓</td><td>PSNR↑</td></tr><tr><td>Agilex-Aloha-2</td><td>9.4571</td><td>49.2848</td><td>0.88618</td><td>0.05449</td><td>26.1021</td></tr><tr><td>AC-One</td><td>12.9609</td><td>73.1325</td><td>0.84605</td><td>0.07280</td><td>24.0379</td></tr><tr><td>Avg.</td><td>11.209</td><td>61.20865</td><td>0.8661</td><td>0.063645</td><td>25.0700</td></tr></table>",
+        "bbox": [
+            516,
+            142,
+            905,
+            207
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "IDM. To validate the effectiveness of our model as an IDM, we trained two baseline IDMs for comparison: one based on a pretrained ResNet-18 backbone followed by an MLP layer, and another using DINOv2 features with an MLP head. Both models were trained on the RobotWin 2.0 randomized dataset using the Agilex-Aloha-2 robotic platform. Each model takes the current observation as input and predicts a sequence of future actions with an action chunk size of 16, which is consistent with the configuration used by Motus in RobotTwin. The training objective was to minimize the Mean Squared Error (MSE) between predicted and groundtruth actions. ",
+        "bbox": [
+            516,
+            232,
+            905,
+            414
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "As shown in Table 7, when Motus performs in IDM mode, it achieves a lower action MSE than the specifically trained IDM baselines. This indicates that our model not only serves as an effective policy but also excels at inverse dynamics modeling, even outperforming models explicitly trained for that purpose. ",
+        "bbox": [
+            516,
+            420,
+            905,
+            511
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "table",
+        "img_path": "images/9d0ed9953fe5e44fcbe93b3021aaf3000960d6408d88836be7d9b17b66419020.jpg",
+        "table_caption": [
+            "Table 7. Action MSE of IDM. The models are tested on 100 samples of RoboTwin 2.0 randomized data. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>ResNet18+MLP</td><td>DINOv2+MLP</td><td>Motus</td></tr><tr><td>0.044</td><td>0.122</td><td>0.014</td></tr></table>",
+        "bbox": [
+            580,
+            573,
+            833,
+            614
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "VLA. As shown in Tab. 8, when Motus performs in the VLA mode, it also demonstrates competitive performance on RoboTwin 2.0 randomized data compared to the videoaction joint prediction mode. ",
+        "bbox": [
+            514,
+            628,
+            905,
+            689
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "table",
+        "img_path": "images/669c838ff7ff322302711e523159cd78ff35ab0fee65e03da753d0db31ce0f19.jpg",
+        "table_caption": [
+            "Table 8. Average Success Rate on RoboTwin 2.0 Randomized Data of VLA. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td colspan=\"2\">Motus (VLA) Motus (Joint)</td></tr><tr><td>83.90</td><td>87.02</td></tr></table>",
+        "bbox": [
+            616,
+            760,
+            797,
+            801
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Video-Action Joint Prediction Model. As shown in Fig. 12, when Motus performs in the video-action joint prediction model mode, it demonstrates strong capabilities in generating both videos and precise actions simultaneously. ",
+        "bbox": [
+            516,
+            840,
+            905,
+            900
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            493,
+            924,
+            504,
+            935
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "image",
+        "img_path": "images/2d8b3ac3ca248ff3fca5734cf8a0ae20d0375a32e33e647c215f549527cb397f.jpg",
+        "image_caption": [],
+        "image_footnote": [],
+        "bbox": [
+            133,
+            90,
+            862,
+            521
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "8. More Experiments Results ",
+        "text_level": 1,
+        "bbox": [
+            93,
+            563,
+            338,
+            579
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "8.1. Overall Comparison on RoboTwin 2.0 Simulation Data with More Baselines ",
+        "text_level": 1,
+        "bbox": [
+            93,
+            593,
+            480,
+            623
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "Tab. 14 shows the evaluation results on RoboTwin 2.0 Simulation, presenting the performance of Motus and other baselines on all 50 tasks under both clean scenes and randomized scenes. ",
+        "bbox": [
+            93,
+            636,
+            482,
+            695
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "8.2. Other Benchmarks ",
+        "text_level": 1,
+        "bbox": [
+            93,
+            722,
+            272,
+            737
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "LIBERO-Long. LIBERO-Long is the long-horizon subset of the LIBERO benchmark, comprising 10 languageconditioned manipulation tasks from LIBERO-100 that require multi-stage decision making, diverse manipulation skills, and robust knowledge transfer across objects and scenes. Under the standard LIBERO-Long evaluation protocol, our method achieves an average success score of 97.6, matching the best reported performance of X-VLA and thereby reaching state-of-the-art results on this benchmark. ",
+        "bbox": [
+            93,
+            750,
+            482,
+            898
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "table",
+        "img_path": "images/658e44d15373aae921e400d9e1acfe19906b1dba8c821d2418b0c8a738eea470.jpg",
+        "table_caption": [
+            "Figure 7. Visualization of Motus’s VGM mode on Agilex-Aloha-2. ",
+            "Table 9. Evaluation on LIBERO-Long Benchmark "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>π0</td><td>GR00T-N1</td><td>UniVLA</td><td>OpenVLA-OFT</td><td>X-VLA</td><td>Motus</td></tr><tr><td>85.2</td><td>90.6</td><td>94.0</td><td>94.5</td><td>97.6</td><td>97.6</td></tr></table>",
+        "bbox": [
+            514,
+            561,
+            931,
+            602
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "VLABench. VLAbench is an open-source benchmark for evaluating universal language-conditioned manipulation task learning, covering multiple dimensions such as manipulation skills, vision understanding, semantic comprehension, common sense, and reasoning. A single Motus model was finetuned on multiple tasks and subsequently evaluated based on its success rate across 3 tasks on 2 tracks provided by VLAbench: In Distribution and Cross Category. The result is shown in Tab. 10. The evaluation result of $\\pi _ { 0 . 5 }$ is sourced from its official implementation. ",
+        "bbox": [
+            516,
+            655,
+            905,
+            805
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "8.3. More Real-World Results ",
+        "text_level": 1,
+        "bbox": [
+            516,
+            816,
+            745,
+            833
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "Fig. 8 illustrates the visualization of the Motus execution for each task presented in Tab. 3. The detailed results containing subtask breakdown of the real-world tasks on the AC-One and Agilex-Aloha-2 platforms are presented in Tab. 15 and ",
+        "bbox": [
+            516,
+            840,
+            903,
+            900
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "discarded",
+        "text": "3 ",
+        "bbox": [
+            493,
+            924,
+            504,
+            935
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "table",
+        "img_path": "images/03fb2063affc389543b941650c89c78131aff697796d59d66cec73c246e3ccf6.jpg",
+        "table_caption": [
+            "Table 10. Evaluation of Success Rate on VLABench "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Model</td><td>Add Condiment</td><td>Select Toy</td><td>Select Fruit</td><td>Avg.</td></tr><tr><td colspan=\"5\">In Distribution</td></tr><tr><td>π0.5</td><td>0.56</td><td>0.3</td><td>0.42</td><td>0.43</td></tr><tr><td>Motus</td><td>0.63</td><td>0.47</td><td>0.33</td><td>0.48</td></tr><tr><td colspan=\"5\">Cross Category</td></tr><tr><td>π0.5</td><td>0.06</td><td>0.24</td><td>0.36</td><td>0.22</td></tr><tr><td>Motus</td><td>0.14</td><td>0.40</td><td>0.20</td><td>0.25</td></tr></table>",
+        "bbox": [
+            107,
+            88,
+            467,
+            208
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "table",
+        "img_path": "images/b44d48c6334b9410b9810bb1278daf3822462f44ae8aac13c0703013e300be01.jpg",
+        "table_caption": [
+            "Table 11. Motus architecture hyperparameters and key configuration settings. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td></td><td rowspan=1 colspan=4>Component</td><td rowspan=1 colspan=1>Configuration</td></tr><tr><td></td><td rowspan=1 colspan=4>Action ExpertHidden SizeLayersAttention HeadsLayer Norm EpsilonActivation Function</td><td rowspan=1 colspan=1>102430241e-5GELU</td></tr><tr><td></td><td rowspan=1 colspan=4>Understand ExpertHidden SizeLayersAttention HeadsLayer Norm EpsilonActivation Function</td><td rowspan=1 colspan=1>51230241e-5GELU</td></tr><tr><td></td><td rowspan=1 colspan=4>Latent Action VAEλa (Action Alignment)β (KL Regularization)</td><td rowspan=1 colspan=1>1.01× 10−6</td></tr><tr><td></td><td rowspan=1 colspan=4>Sampling RateVideo FramesAction Chunk</td><td rowspan=1 colspan=1>8 @ 5Hz48 @ 30Hz</td></tr><tr><td></td><td rowspan=1 colspan=4>Flow MatchingInference StepsSampling Strategy</td><td rowspan=1 colspan=1>10Logit Normal</td></tr><tr><td></td><td rowspan=1 colspan=4>Model Scale</td><td rowspan=4 colspan=1>5.00B2.13B641.5M253.5M8B</td></tr><tr><td></td><td rowspan=1 colspan=4>VGM</td></tr><tr><td></td><td rowspan=1 colspan=2>VLM</td><td rowspan=1 colspan=3></td></tr><tr><td rowspan=1 colspan=5>Act. ExpertUnd. ExpertTotal</td><td rowspan=1 colspan=1>Act. Expert</td></tr></table>",
+        "bbox": [
+            153,
+            250,
+            421,
+            642
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "Tab. 16. The number preceding each subtask indicates the score assigned to its successful completion. For the towelfolding task, we evaluate each towel type four times. For the grab-cube task, we evaluate each cube type five times for both the in-domain and out-of-domain settings. ",
+        "bbox": [
+            93,
+            710,
+            482,
+            786
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "9. Implementation Details ",
+        "text_level": 1,
+        "bbox": [
+            93,
+            820,
+            312,
+            837
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "9.1. Model Architecture ",
+        "text_level": 1,
+        "bbox": [
+            93,
+            847,
+            276,
+            862
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "Tab. 11 provides the key hyperparameter settings for the Motus model architecture. ",
+        "bbox": [
+            93,
+            871,
+            480,
+            900
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "image",
+        "img_path": "images/84f5a8f14915a07c7f46d298fbe63ce4c13cc7f72f3e71ecc394dab03d301724.jpg",
+        "image_caption": [
+            "Figure 8. Demonstrations of Motus for real-world tasks execution featuring 2 robots and 9 tasks. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            529,
+            108,
+            887,
+            651
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "9.2. Datasets ",
+        "text_level": 1,
+        "bbox": [
+            516,
+            731,
+            614,
+            746
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "Tab. 12 shows the training data of Motus. ",
+        "bbox": [
+            517,
+            753,
+            785,
+            768
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "9.3. Training Configuration ",
+        "text_level": 1,
+        "bbox": [
+            516,
+            777,
+            728,
+            794
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "text",
+        "text": "Tab. 13 provides the detailed training configuration for the three stages of Motus. ",
+        "bbox": [
+            516,
+            800,
+            903,
+            829
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            493,
+            925,
+            503,
+            935
+        ],
+        "page_idx": 15
+    },
+    {
+        "type": "table",
+        "img_path": "images/7806434728c97202f09e140dc05226ff55cdfc67ffb6e2cd817302cb61d56ff8.jpg",
+        "table_caption": [
+            "Table 12. Detailed information about pre-training and fine-tuning datasets. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Dataset</td><td>Size</td><td>Embodiment</td><td>Data Level in the Pyramid</td></tr><tr><td>Egodex [24]</td><td>230,949</td><td>Human</td><td>Level 2: Egocentric Human Videos</td></tr><tr><td>Agibot [1]</td><td>728,209</td><td>Genie-1 Robot</td><td>Level 5: Multi-Robot Task Trajectory Data</td></tr><tr><td>RDT [31]</td><td>6,083</td><td>Aloha Robot</td><td>Level 5: Multi-Robot Task Trajectory Data</td></tr><tr><td>RoboMind Franka [48]</td><td>9,589</td><td>Franka Robot</td><td>Level 5: Multi-Robot Task Trajectory Data</td></tr><tr><td>RoboMind Aloha [48]</td><td>7,272</td><td>Aloha Robot</td><td>Level 5: Multi-Robot Task Trajectory Data</td></tr><tr><td>RoboTwin [14]</td><td>27,500</td><td>Aloha Robot</td><td>Level 3: Synthetic Data</td></tr><tr><td>Task-Agnostic Data [39]</td><td>1,000</td><td>Aloha Robot</td><td>Level 4: Task-Agnostic Data</td></tr><tr><td>In-house Data</td><td>2,000</td><td>Aloha Robot</td><td>Level 6: Target-Robot Task Trajectory Data</td></tr></table>",
+        "bbox": [
+            161,
+            121,
+            834,
+            273
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "table",
+        "img_path": "images/e5f44932ca572bf03973ffc7707542b7ed4636fb6601286a30da3d778c2e1ce4.jpg",
+        "table_caption": [
+            "Table 13. Training Configuration across Three Stages. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Stages</td><td>Stage 1</td><td>Stage 2</td><td>Stage 3</td></tr><tr><td>Batch Size</td><td>256</td><td>256</td><td>256</td></tr><tr><td>Learning Rate</td><td>8 × 10−5</td><td>5 × 10−5</td><td>1 ∼ 5 × 10−5</td></tr><tr><td>Optimizer</td><td>AdamW</td><td>AdamW</td><td>AdamW</td></tr><tr><td>Weight Decay</td><td>0.01</td><td>0.01</td><td>0.01</td></tr><tr><td>GPU Hours</td><td>~8000</td><td>~10000</td><td>~400</td></tr></table>",
+        "bbox": [
+            323,
+            321,
+            673,
+            417
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "image",
+        "img_path": "images/1e8ca8147235a5db3202cbf4716d7d0e8b6a014250647c0265ce5ba977ec7a2b.jpg",
+        "image_caption": [
+            "Figure 9. Visualization of Motus’s VGM mode on AC-One. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            135,
+            443,
+            862,
+            873
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            493,
+            924,
+            503,
+            935
+        ],
+        "page_idx": 16
+    },
+    {
+        "type": "table",
+        "img_path": "images/d7f24f4543b6c30c3bfadc0a37370394a1c19387c9b79d6e89ecd97ea3d2b5d6.jpg",
+        "table_caption": [
+            "Table 14. Evaluation on RoboTwin 2.0 Simulation (Clean vs Randomized, $^ { 5 0 + }$ tasks). "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td rowspan=1 colspan=26>Simulation Task           GO-1            π0.5           X-VLA       w/o Pretrain       Stage1          MotusClean  Rand.  Clean  Rand.  Clean  Rand.  Clean  Rand.  Clean  Rand.  Clean  Rand.</td></tr><tr><td rowspan=1 colspan=26>Adjust Bottle        49%   62%   79%   83%   100%  99%   99%   97%   98%   94%   89%   93%</td></tr><tr><td rowspan=1 colspan=26>Beat Block Hammer     6%    10%   63%   50%   92%   88%   88%   90%   88%   82%   95%   88%</td></tr><tr><td rowspan=1 colspan=26>Blocks Ranking Rgb      7%    3%    43%   35%   83%    83%   92%   88%   97%   98%   99%   97%</td></tr><tr><td rowspan=1 colspan=26>Blocks Ranking Size     2%    2%    8%    14%   67%   74%   38%   50%   73%   68%   75%   63%</td></tr><tr><td rowspan=1 colspan=26>Click Alarmclock      95%    90%   97%   93%   99%   99%   100%   99%   100%  100%  100%  100%</td></tr><tr><td rowspan=1 colspan=26>Click Bell         98%   95%   75%   76%   100%  100%  100%  100%  100%  100%  100%  100%</td></tr><tr><td rowspan=1 colspan=16>Dump Bin Bigbin      57%   45%   30%   42%   79%   77%   94%</td><td rowspan=1 colspan=10>96%   98%   96%   95%   91%</td></tr><tr><td rowspan=1 colspan=16>Grab Roller        99%   99%   90%   89%   100%  100%  100%</td><td rowspan=1 colspan=10>100%  100%  100%  100%  100%</td></tr><tr><td rowspan=1 colspan=26>Handover Block       9%    12%   18%   19%   73%   37%   34%   15%   55%   55%   86%   73%</td></tr><tr><td rowspan=1 colspan=5>Handover Mic       12%    8%</td><td rowspan=1 colspan=10>28%    18%   0%    0%</td><td rowspan=1 colspan=11>98%   95%   80%    88%   78%   63%</td></tr><tr><td rowspan=1 colspan=3>Hanging Mug        0%</td><td rowspan=1 colspan=2>0%</td><td rowspan=1 colspan=7>3%    3%    23%</td><td rowspan=1 colspan=3>27%</td><td rowspan=1 colspan=1>14%</td><td rowspan=1 colspan=2>10%</td><td rowspan=1 colspan=3>37%</td><td rowspan=1 colspan=5>25%   38%   38%</td></tr><tr><td rowspan=1 colspan=3>ift Pot          92%</td><td rowspan=1 colspan=9>92%    0%     0%    99%</td><td rowspan=1 colspan=3>100%</td><td rowspan=1 colspan=1>90%</td><td rowspan=1 colspan=2>87%</td><td rowspan=1 colspan=3>87%</td><td rowspan=1 colspan=5>84%   96%   99%</td></tr><tr><td rowspan=1 colspan=3>Move Can Pot       16%</td><td rowspan=1 colspan=9>4%    29%   27%   89%</td><td rowspan=1 colspan=3>86%</td><td rowspan=1 colspan=1>43%</td><td rowspan=1 colspan=2>53%</td><td rowspan=1 colspan=8>56%   65%   34%   74%</td></tr><tr><td rowspan=1 colspan=3>Move Pillbottle Pad     9%</td><td rowspan=1 colspan=9>11%   33%   29%   73%</td><td rowspan=1 colspan=3>71%</td><td rowspan=1 colspan=1>83%</td><td rowspan=1 colspan=2>83%</td><td rowspan=1 colspan=8>96%   90%   93%   96%</td></tr><tr><td rowspan=1 colspan=3>Move Playingcard Away   37%</td><td rowspan=1 colspan=9>24%   59%   67%   93%</td><td rowspan=1 colspan=3>98%</td><td rowspan=1 colspan=1>50%</td><td rowspan=1 colspan=2>47%</td><td rowspan=1 colspan=8>77%   84%   100%   96%</td></tr><tr><td rowspan=1 colspan=3>Move Stapler Pad      3%</td><td rowspan=1 colspan=13>4%    16%   18%   78%   73%   49%</td><td rowspan=1 colspan=6>37%   75%   68%</td><td rowspan=1 colspan=4>83%   85%</td></tr><tr><td rowspan=1 colspan=3>Open Laptop        65%</td><td rowspan=1 colspan=9>60%    19%   35%   93%</td><td rowspan=1 colspan=3>100%</td><td rowspan=1 colspan=1>89%</td><td rowspan=1 colspan=6>89%   91%   96%</td><td rowspan=1 colspan=4>95%   91%</td></tr><tr><td rowspan=1 colspan=12>Open Microwave      12%   14%   35%   37%   79%</td><td></td><td rowspan=1 colspan=2>71%</td><td rowspan=1 colspan=1>83%</td><td rowspan=1 colspan=2>82%</td><td rowspan=1 colspan=4>82%   84%</td><td rowspan=1 colspan=4>95%   91%</td></tr><tr><td rowspan=1 colspan=1></td><td rowspan=1 colspan=7>Pick Diverse Bottles     61%   56%   5%</td><td rowspan=1 colspan=4>3%    58%</td><td></td><td rowspan=1 colspan=3>36%   53%</td><td rowspan=1 colspan=2>62%</td><td rowspan=1 colspan=2>18%</td><td rowspan=1 colspan=2>18%</td><td rowspan=1 colspan=4>90%   91%</td></tr><tr><td rowspan=1 colspan=1></td><td rowspan=1 colspan=2>Pick Dual Bottles      81%</td><td rowspan=1 colspan=4>74%   10%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>6%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>47%</td><td rowspan=1 colspan=1></td><td></td><td rowspan=1 colspan=3>36%   58%</td><td rowspan=1 colspan=2>68%</td><td rowspan=1 colspan=2>7%</td><td rowspan=1 colspan=2>17%</td><td rowspan=1 colspan=3>96%</td><td rowspan=1 colspan=1>90%</td></tr><tr><td rowspan=1 colspan=1></td><td rowspan=1 colspan=2>Place A2b Left       33%</td><td rowspan=1 colspan=4>36%   62%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>60%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>48%</td><td rowspan=1 colspan=1></td><td></td><td rowspan=1 colspan=2>49%</td><td rowspan=1 colspan=1>78%</td><td rowspan=1 colspan=2>79%</td><td rowspan=1 colspan=2>93%</td><td rowspan=1 colspan=2>82%</td><td rowspan=1 colspan=3>88%</td><td rowspan=1 colspan=1>79%</td></tr><tr><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>Place A2b Right</td><td rowspan=1 colspan=1>31%</td><td rowspan=1 colspan=4>22%   62%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>57%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>36%</td><td rowspan=1 colspan=1></td><td></td><td rowspan=1 colspan=2>36%</td><td rowspan=1 colspan=1>86%</td><td rowspan=1 colspan=2>83%</td><td rowspan=1 colspan=2>94%</td><td rowspan=1 colspan=2>90%</td><td rowspan=1 colspan=3>91%</td><td rowspan=1 colspan=1>87%</td></tr><tr><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>Place Bread Basket</td><td rowspan=1 colspan=1>47%</td><td rowspan=1 colspan=3>52%</td><td rowspan=1 colspan=1>48%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>56%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>81%</td><td rowspan=1 colspan=1></td><td></td><td rowspan=1 colspan=2>71%</td><td rowspan=1 colspan=1>73%</td><td rowspan=1 colspan=1>83%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=2>89%</td><td rowspan=1 colspan=2>87%</td><td rowspan=1 colspan=2>91%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>94%</td></tr><tr><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>Place Bread Skillet</td><td rowspan=1 colspan=1>2%</td><td rowspan=1 colspan=3>1%</td><td rowspan=1 colspan=1>38%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=2>46%</td><td rowspan=1 colspan=1>77%</td><td rowspan=1 colspan=2></td><td rowspan=1 colspan=2>67%</td><td rowspan=1 colspan=1>71%</td><td rowspan=1 colspan=1>71%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=2>86%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>87%</td><td rowspan=1 colspan=2>86%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>83%</td></tr><tr><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>Place Burger Fries</td><td rowspan=1 colspan=1>88%</td><td rowspan=1 colspan=3>92%</td><td rowspan=1 colspan=1>66%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=2>70%</td><td rowspan=1 colspan=1>94%</td><td rowspan=1 colspan=2></td><td rowspan=1 colspan=1>94%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>95%</td><td rowspan=1 colspan=1>90%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=2>97%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>99%</td><td rowspan=1 colspan=2>98%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>98%</td></tr><tr><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>Place Can Basket</td><td rowspan=1 colspan=1>29%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=2>37%</td><td rowspan=1 colspan=1>19%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=2>25%</td><td rowspan=1 colspan=1>49%</td><td rowspan=1 colspan=2></td><td rowspan=1 colspan=1>52%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>46%</td><td rowspan=1 colspan=1>62%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=2>66%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>55%</td><td rowspan=1 colspan=2>81%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>76%</td></tr><tr><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>Place Cans Plasticbox</td><td rowspan=1 colspan=1>68%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=2>77%</td><td rowspan=1 colspan=1>40%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>47%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>97%</td><td rowspan=1 colspan=2></td><td rowspan=1 colspan=1>98%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>96%</td><td rowspan=1 colspan=1>99%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=2>97%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>100%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>98%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>94%</td></tr><tr><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>Place Container Plate</td><td rowspan=1 colspan=1>73%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=2>70%</td><td rowspan=1 colspan=1>71%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>78%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>97%</td><td rowspan=1 colspan=2></td><td rowspan=1 colspan=1>95%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>97%</td><td rowspan=1 colspan=1>100%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=2>98%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>98%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>98%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>99%</td></tr><tr><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>Place Dual Shoes</td><td rowspan=1 colspan=1>6%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=2>10%</td><td rowspan=1 colspan=1>12%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>7%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>79%</td><td rowspan=1 colspan=2></td><td rowspan=1 colspan=1>88%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>78%</td><td rowspan=1 colspan=1>80%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>94%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>94%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=2>93%</td><td rowspan=1 colspan=1>87%</td></tr><tr><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>Place Empty Cup</td><td rowspan=1 colspan=1>44%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=3>39%   75%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>86%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>100%</td><td rowspan=1 colspan=2></td><td rowspan=1 colspan=2>98%</td><td rowspan=1 colspan=1>97%</td><td rowspan=1 colspan=1>97%</td><td rowspan=1 colspan=2></td><td rowspan=1 colspan=1>96%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>97%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>99%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>98%</td></tr><tr><td rowspan=1 colspan=2>Place Fan</td><td rowspan=1 colspan=1>1%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=3>0%    25%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>36%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>80%</td><td rowspan=1 colspan=2></td><td rowspan=1 colspan=2>75%</td><td rowspan=1 colspan=1>77%</td><td rowspan=1 colspan=1>85%</td><td rowspan=1 colspan=2></td><td rowspan=1 colspan=1>77%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>85%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>91%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>87%</td></tr><tr><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>Place Mouse Pad</td><td rowspan=1 colspan=1>15%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=4>10%   21%</td><td rowspan=1 colspan=1>26%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>70%</td><td rowspan=1 colspan=2></td><td rowspan=1 colspan=2>70%</td><td rowspan=1 colspan=1>62%</td><td rowspan=1 colspan=1>68%</td><td rowspan=1 colspan=2></td><td rowspan=1 colspan=1>72%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>69%</td><td rowspan=1 colspan=2>66%</td><td rowspan=1 colspan=2>68%</td></tr><tr><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>Place Object Basket</td><td rowspan=1 colspan=1>48%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=4>49%   43%</td><td rowspan=1 colspan=2>36%</td><td rowspan=1 colspan=1>44%</td><td rowspan=1 colspan=2></td><td rowspan=1 colspan=2>39%</td><td rowspan=1 colspan=1>74%</td><td rowspan=1 colspan=1>75%</td><td rowspan=1 colspan=3>76%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>80%</td><td rowspan=1 colspan=4>81%   87%</td></tr><tr><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>Place Object Scale</td><td rowspan=1 colspan=1>26%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=3>27%   40%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>49%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>52%</td><td rowspan=1 colspan=2></td><td rowspan=1 colspan=2>74%</td><td rowspan=1 colspan=1>84%</td><td rowspan=1 colspan=1>83%</td><td rowspan=1 colspan=3>88%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>93%</td><td rowspan=1 colspan=2>88%</td><td rowspan=1 colspan=2>85%</td></tr><tr><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>Place Object Stand</td><td rowspan=1 colspan=1>56%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=3>63%   74%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>65%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>86%</td><td rowspan=1 colspan=2></td><td rowspan=1 colspan=1>88%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>91%</td><td rowspan=1 colspan=1>93%</td><td rowspan=1 colspan=3>93%</td><td rowspan=1 colspan=2>96%</td><td rowspan=1 colspan=2>98%</td><td rowspan=1 colspan=2>97%</td></tr><tr><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>Place Phone Stand</td><td rowspan=1 colspan=1>30%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=3>37%   49%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>53%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>88%</td><td rowspan=1 colspan=2></td><td rowspan=1 colspan=1>87%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>80%</td><td rowspan=1 colspan=1>78%</td><td rowspan=1 colspan=3>76%</td><td rowspan=1 colspan=2>86%</td><td rowspan=1 colspan=4>87%   86%</td></tr><tr><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>Place Shoe</td><td rowspan=1 colspan=1>15%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=3>13%   57%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=2>61%</td><td rowspan=1 colspan=1>96%</td><td rowspan=1 colspan=2></td><td rowspan=1 colspan=2>95%</td><td rowspan=1 colspan=1>95%</td><td rowspan=1 colspan=1>92%</td><td rowspan=1 colspan=3>100%</td><td rowspan=1 colspan=2>99%</td><td rowspan=1 colspan=4>99%   97%</td></tr><tr><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>Press Stapler</td><td rowspan=1 colspan=1>66%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=3>51%   80%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=2>70%</td><td rowspan=1 colspan=1>92%</td><td rowspan=1 colspan=2></td><td rowspan=1 colspan=2>98%</td><td rowspan=1 colspan=1>97%</td><td rowspan=1 colspan=1>94%</td><td rowspan=1 colspan=3>96%</td><td rowspan=1 colspan=2>98%</td><td rowspan=1 colspan=4>93%   98%</td></tr><tr><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>Put Bottles Dustbin</td><td rowspan=1 colspan=1>7%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=3>4%    12%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=2>9%</td><td rowspan=1 colspan=1>74%</td><td rowspan=1 colspan=2></td><td rowspan=1 colspan=2>77%</td><td rowspan=1 colspan=1>36%</td><td rowspan=1 colspan=4>33%   34%</td><td rowspan=1 colspan=2>24%</td><td rowspan=1 colspan=4>81%   79%</td></tr><tr><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>Put Object Cabinet</td><td rowspan=1 colspan=1>60%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=2>43%</td><td rowspan=1 colspan=1>24%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=2>15%</td><td rowspan=1 colspan=1>46%</td><td rowspan=1 colspan=2></td><td rowspan=1 colspan=2>48%</td><td rowspan=1 colspan=1>84%</td><td rowspan=1 colspan=4>64%   97%</td><td rowspan=1 colspan=2>87%</td><td rowspan=1 colspan=4>88%   71%</td></tr><tr><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>Rotate Qrcode</td><td rowspan=1 colspan=1>22%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=2>9%</td><td rowspan=1 colspan=1>47%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=2>56%</td><td rowspan=1 colspan=1>34%</td><td rowspan=1 colspan=2></td><td rowspan=1 colspan=1>33%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>80%</td><td rowspan=1 colspan=4>60%   91%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>79%</td><td rowspan=1 colspan=4>89%   73%</td></tr><tr><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>Scan Object</td><td rowspan=1 colspan=1>1%</td><td rowspan=1 colspan=4>2%    42%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=2>38%</td><td rowspan=1 colspan=1>14%</td><td rowspan=1 colspan=2></td><td rowspan=1 colspan=1>36%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>42%</td><td rowspan=1 colspan=4>50%   56%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>69%</td><td rowspan=1 colspan=4>67%   66%</td></tr><tr><td rowspan=1 colspan=1>Sh</td><td rowspan=1 colspan=1>Shake Bottle Horizontally</td><td rowspan=1 colspan=1>97%</td><td rowspan=1 colspan=5>92%   96%</td><td rowspan=1 colspan=2>10 0%</td><td rowspan=1 colspan=1>100%</td><td rowspan=1 colspan=2></td><td rowspan=1 colspan=1>100%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>100%</td><td rowspan=1 colspan=4>97%  100%</td><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>96%</td><td rowspan=1 colspan=4>100%   98%</td></tr><tr><td rowspan=1 colspan=2>Shake Bottle</td><td rowspan=1 colspan=1>97%</td><td rowspan=1 colspan=3>93%</td><td rowspan=1 colspan=2>91%</td><td rowspan=1 colspan=2>100 %</td><td rowspan=1 colspan=5>99%   100%</td><td rowspan=1 colspan=7>100%   96%   99%   97%</td><td rowspan=1 colspan=4>100%   97%</td></tr><tr><td rowspan=1 colspan=2>Stack Blocks Three</td><td rowspan=1 colspan=1>1%</td><td rowspan=1 colspan=3>1%</td><td rowspan=1 colspan=2>15%</td><td rowspan=1 colspan=2>16%</td><td rowspan=1 colspan=3>6%</td><td rowspan=1 colspan=2>10%</td><td rowspan=1 colspan=7>71%   76%   99%   95%</td><td rowspan=1 colspan=4>91%   95%</td></tr><tr><td rowspan=1 colspan=2>Stack Blocks Two</td><td rowspan=1 colspan=1>12%</td><td rowspan=1 colspan=3>22%</td><td rowspan=1 colspan=2>48%</td><td rowspan=1 colspan=2>56%</td><td rowspan=1 colspan=3>92%</td><td rowspan=1 colspan=2>87%</td><td rowspan=1 colspan=7>96%   94%   99%   99%</td><td rowspan=1 colspan=4>100%   98%</td></tr><tr><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>Stack Bowls Three</td><td rowspan=1 colspan=1>4%</td><td rowspan=1 colspan=3>7%</td><td rowspan=1 colspan=2>33%</td><td rowspan=1 colspan=2>35%</td><td rowspan=1 colspan=3>76%</td><td rowspan=1 colspan=2>86%</td><td rowspan=1 colspan=7>90%   74%   86%   83%</td><td rowspan=1 colspan=4>79%   87%</td></tr><tr><td rowspan=1 colspan=1></td><td rowspan=1 colspan=1>Stack Bowls Two</td><td rowspan=1 colspan=1>51%</td><td rowspan=1 colspan=5>45%   78%</td><td rowspan=1 colspan=2>66%</td><td rowspan=1 colspan=3>96%</td><td rowspan=1 colspan=9>93%   98%   98%   97%   98%</td><td rowspan=1 colspan=4>98%   98%</td></tr><tr><td rowspan=1 colspan=2>Stamp Seal</td><td rowspan=1 colspan=24>19%   13%   36%   23%   76%   82%   80%   88%   93%   95%   93%   92%</td></tr><tr><td rowspan=1 colspan=26>Turn Switch         34%   30%   5%    6%    40%   61%   69%   60%   59%   64%   84%   78%</td></tr><tr><td rowspan=1 colspan=26>Average (%)        37.8   36.24  42.98  43.84   72.8   72.84  77.56  77.00  82.26  81.86  88.66  87.02</td></tr></table>",
+        "bbox": [
+            104,
+            176,
+            905,
+            848
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "discarded",
+        "text": "",
+        "bbox": [
+            493,
+            925,
+            504,
+            935
+        ],
+        "page_idx": 17
+    },
+    {
+        "type": "table",
+        "img_path": "images/2d302c35d5a56b46c18d41b6b98f7614a72d258a95b15d006830864fb476af82.jpg",
+        "table_caption": [
+            "Table 15. Real-World Tasks on AC-One Platform with a Detailed Subtask Breakdown. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Subgoal</td><td>π0.5</td><td>w/o Pretrain Motus</td><td></td></tr><tr><td colspan=\"4\">Fold Towel Types: bear-pattern/blue-yellow/purple/red-blue/pink</td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td>0.0: Complete Failure</td><td>16</td><td>19</td><td>13</td></tr><tr><td>0.2: Grab both sides</td><td>4</td><td>1</td><td>3</td></tr><tr><td>0.5: One fold complete</td><td>-</td><td>-</td><td>3</td></tr><tr><td>0.8: Grab the right side</td><td></td><td>-</td><td>1</td></tr><tr><td>1.0: Two folds complete</td><td>-</td><td>-</td><td>-</td></tr><tr><td>Partial Success Rate</td><td>4%</td><td>1%</td><td>14.5%</td></tr><tr><td colspan=\"4\">Grab Cube Types: red/orange/green/yellow</td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td>0.0: Complete Failure</td><td>7</td><td>8</td><td>-</td></tr><tr><td>0.5: Grab cube</td><td>3</td><td>-</td><td>-</td></tr><tr><td>1.0: Put cube into plate Partial Success Rate</td><td>10 57.5%</td><td>12</td><td>20</td></tr><tr><td></td><td></td><td>60%</td><td>100%</td></tr><tr><td colspan=\"4\">Grab Cube OOD setting: cube placed outside training space</td></tr><tr><td></td><td></td><td></td><td></td></tr><tr><td>0.0: Complete Failure</td><td>11</td><td>13</td><td>4</td></tr><tr><td>0.5: Grab cube 1.0: Put cube into plate</td><td>1</td><td>- 3</td><td>- 12</td></tr><tr><td>Partial Success Rate</td><td>4 28.125%</td><td>18.75%</td><td>75%</td></tr><tr><td colspan=\"4\">Brew Coffee using Drip Coffee Machine</td></tr><tr><td></td><td>10</td><td></td><td></td></tr><tr><td>0.0: Complete Failure</td><td></td><td>10</td><td>2 1</td></tr><tr><td>0.2: Grab the blue cup</td><td>-</td><td>-</td><td>-</td></tr><tr><td>0.5: Pour coffee grounds</td><td>-</td><td>-</td><td>5</td></tr><tr><td>0.8: Close the lid 1.0: Turn on the switch</td><td>- -</td><td>-</td><td>2</td></tr><tr><td>Partial Success Rate</td><td>0%</td><td>0%</td><td>62%</td></tr><tr><td colspan=\"4\">Get Water from Water Dispenser</td></tr><tr><td></td><td></td><td></td><td>4</td></tr><tr><td>0.0: Complete Failure</td><td>4</td><td>9</td><td>4</td></tr><tr><td>0.4: Grab the orange cup</td><td>5</td><td>- 1</td><td>-</td></tr><tr><td>0.8: Fill the cup with water 1.0: Put down the cup</td><td>- 1</td><td>-</td><td>2</td></tr><tr><td>Partial Success Rate</td><td>30%</td><td>8%</td><td>36%</td></tr><tr><td colspan=\"4\">Grind Coffee Beans with Grinder</td></tr><tr><td>0.0: Complete Failure</td><td>9</td><td>10</td><td></td></tr><tr><td>0.3: Grab the metal cup</td><td>-</td><td>-</td><td>- -</td></tr><tr><td>0.8: Pour the coffee beans</td><td>1</td><td>-</td><td>4</td></tr><tr><td>1.0: Press the button</td><td>-</td><td>-</td><td>6</td></tr><tr><td>Partial Success Rate</td><td>8%</td><td>0%</td><td>92%</td></tr><tr><td colspan=\"4\">Pour Water from Kettle to Flowers</td></tr><tr><td>0.0: Complete Failure</td><td>18</td><td>18</td><td></td></tr><tr><td>0.5: Grab the black cup</td><td>2</td><td>2</td><td>4 6</td></tr><tr><td>1.0: Pour water</td><td>-</td><td>-</td><td>10</td></tr><tr><td>Partial Success Rate</td><td>5%</td><td>5%</td><td>65%</td></tr><tr><td colspan=\"4\">Touch Keyboard with Hand for Multiple Choice Questions</td></tr><tr><td>0.0: Complete Failure</td><td>20</td><td></td><td>3</td></tr><tr><td>0.5: Use the correct arm</td><td>-</td><td></td><td>1</td></tr><tr><td>1.0: Press the right key</td><td>-</td><td>20</td><td>16</td></tr><tr><td>Partial Success Rate</td><td>0%</td><td>100%</td><td>82.5%</td></tr></table>",
+        "bbox": [
+            112,
+            148,
+            460,
+            869
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "table",
+        "img_path": "images/28a2b6eaf7602c352bd1601dfafb4925e987734847af016e9213affba37ad83a.jpg",
+        "table_caption": [
+            "Table 16. Real-World Tasks on Agilex-Aloha-2 Platform with a Detailed Subtask Breakdown. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Subgoal</td><td>π0.5</td><td>w/o Pretrain</td><td>Motus</td></tr><tr><td colspan=\"4\">Fold Towel</td></tr><tr><td>Types: bear-pattern/blue-yellow/purple/red-blue/pink</td><td></td><td></td><td></td></tr><tr><td>0.0: Complete Failure</td><td>4</td><td>20</td><td>5</td></tr><tr><td>0.2: Grab both sides</td><td>11</td><td>-</td><td>1</td></tr><tr><td>0.5: One fold complete</td><td>3</td><td></td><td>12</td></tr><tr><td>0.8: Grab the right side</td><td>1</td><td>-</td><td>2</td></tr><tr><td>1.0: Two folds complete</td><td>1</td><td>-</td><td>-</td></tr><tr><td>Partial Success Rate</td><td>27.5%</td><td>0%</td><td>39%</td></tr><tr><td colspan=\"4\">Grab Cube Types: red/orange/green/yellow</td></tr><tr><td>0.0: Complete Failure</td><td></td><td></td><td></td></tr><tr><td>0.5: Grab cube</td><td>2</td><td>8</td><td></td></tr><tr><td>1.0: Put cube into plate</td><td>1 17</td><td>8 4</td><td>- 20</td></tr><tr><td>Partial Success Rate</td><td>87.5%</td><td>40%</td><td>100%</td></tr><tr><td colspan=\"4\">Grab Cube</td></tr><tr><td>OOD setting: cube placed outside training space</td><td></td><td></td><td></td></tr><tr><td colspan=\"4\">0.0: Complete Failure</td></tr><tr><td>0.5: Grab cube</td><td>5 -</td><td>13 -</td><td>11 -</td></tr><tr><td>1.0: Put cube into plate</td><td>11</td><td>3</td><td>5</td></tr><tr><td>Partial Success Rate</td><td>68.75%</td><td>18.75%</td><td>31.25%</td></tr><tr><td colspan=\"4\">Put Bread into Oven</td></tr><tr><td>0.0: Complete Failure</td><td>5</td><td>10</td><td>5</td></tr><tr><td>0.2: Open the oven</td><td></td><td>-</td><td>-</td></tr><tr><td>0.4: Grab the bread</td><td>1</td><td></td><td>-</td></tr><tr><td>0.6: Put the bread into the oven</td><td>-</td><td></td><td>3</td></tr><tr><td>0.8: Close the oven</td><td>4</td><td>-</td><td>2</td></tr><tr><td>1.0: Spin the button</td><td>-</td><td>-</td><td>-</td></tr><tr><td>Partial Success Rate</td><td>36%</td><td>0%</td><td>34%</td></tr><tr><td colspan=\"4\">Pour Water from Kettle to Flowers</td></tr><tr><td>0.0: Complete Failure</td><td>2</td><td>4</td><td>3</td></tr><tr><td>0.5: Grab the black cup</td><td>18</td><td>16</td><td>15</td></tr><tr><td>1.0: Pour water</td><td>-</td><td>-</td><td>2</td></tr><tr><td>Partial Success Rate</td><td>45%</td><td>40%</td><td>47.5%</td></tr><tr><td colspan=\"4\">Touch Keyboard with Hand for Multiple Choice Questions</td></tr><tr><td>0.0: Complete Failure</td><td>5</td><td>-</td><td>-</td></tr><tr><td>0.5: Use the correct arm</td><td>1</td><td>6</td><td>8</td></tr><tr><td>1.0: Press the right key</td><td>14</td><td>14</td><td>12</td></tr><tr><td>Partial Success Rate</td><td>72.5%</td><td>85%</td><td>80%</td></tr></table>",
+        "bbox": [
+            524,
+            227,
+            893,
+            785
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "discarded",
+        "text": "7 ",
+        "bbox": [
+            493,
+            924,
+            504,
+            935
+        ],
+        "page_idx": 18
+    },
+    {
+        "type": "image",
+        "img_path": "images/d555581db305ddd05f09dae02807005648d701a68dc655a19c2fe19c95ad8cb4.jpg",
+        "image_caption": [
+            "Figure 10. Visualization of Motus’s World Model Mode on Agilex-Aloha-2 Dataset. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            189,
+            107,
+            808,
+            877
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "discarded",
+        "text": "8 ",
+        "bbox": [
+            493,
+            924,
+            504,
+            935
+        ],
+        "page_idx": 19
+    },
+    {
+        "type": "image",
+        "img_path": "images/a8d3ec8796f9015755c151d71213fc264af67b89368cfaefba658d82bbb0effb.jpg",
+        "image_caption": [
+            "Figure 11. Visualization of Motus’s World Model Mode on AC-One Dataset. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            189,
+            108,
+            808,
+            877
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "discarded",
+        "text": "9 ",
+        "bbox": [
+            493,
+            924,
+            504,
+            935
+        ],
+        "page_idx": 20
+    },
+    {
+        "type": "image",
+        "img_path": "images/85ec0ec9a9bcee7c4fd4a2f2787cf609bf98c7860e862c7eb5cf7d7da69b9f84.jpg",
+        "image_caption": [
+            "Figure 12. Visualization of Motus’s Video-Action Joint Prediction Model mode during Real-World Inference. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            135,
+            290,
+            862,
+            683
+        ],
+        "page_idx": 21
+    },
+    {
+        "type": "discarded",
+        "text": "10 ",
+        "bbox": [
+            490,
+            924,
+            508,
+            935
+        ],
+        "page_idx": 21
+    }
+]
