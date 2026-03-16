@@ -8,7 +8,7 @@
 ---
 
 ## 一句话总结
-
+用 world model（视频生成模型）替代物理模拟器，给 VLA 做 RL 后训练。核心问题是 world model 会 hallucinate（幻觉），WoVR 用三层机制解决。
 World model 做 VLA RL 的根本障碍是 hallucination（闭环误差积累腐蚀优化信号），WoVR 用三层机制显式控制：① 稳定的 action-conditioned world model（Wan 5B + dual-channel + first-frame anchoring）；② KIR 缩短有效误差深度；③ PACE 维持 policy-model 分布对齐。LIBERO 平均 +29.3 pp，真实机器人 +30.0 pp。
 
 ---
