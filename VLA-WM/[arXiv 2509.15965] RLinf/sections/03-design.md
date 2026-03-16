@@ -14,12 +14,15 @@ In pursuit of efficient, flexible, and intuitive RL systems, we propose a new de
 ![Figure 4](../images/53354ee4edab854608d4884e5ec12a828f69bd0af9168909b1ce2cc0531e2e60.jpg)
 *Figure 4. The architecture of RLinf.*
 
-> 💡 **Figure 4 批读 — RLinf 架构**:
-> - **上层**: Workflow Construction Interface（用户编程层）
-> - **中层**: Worker Abstraction（封装 RL 组件，支持 onload/offload）
-> - **下层**: Scheduler（Profiler + 调度策略）+ Controller（分配 worker 到 GPU、调度执行）
-> - **底层**: Adaptive Communication（P2P、Data Channel、设备锁）
-> - **关键**: 用户只接触上层，系统自动处理中下层
+> 💡 **Figure 4 批读 — RLinf 架构（五层）**:
+> - **第一层（最上）**: Procedural Programming Interface — 用户编程层，用过程式 Python 定义 RL 工作流
+> - **第二层（核心）**: Worker/WorkerGroup + Scheduler + Controller **三个并列模块**，协作关系：
+>   - Worker 被 Profiler 采集运行数据 → 送给 Scheduler 的 Policy 做调度决策 → 决策交给 Controller 执行（分配 GPU、管理连接、调度执行流）
+>   - Workflow 逻辑同时输入给 Scheduler 和 Controller
+> - **第三层**: M2Flow Transformation & Scheduling — Elastic Pipelining（空间）+ Context Switch（时间）的实际执行
+> - **第四层**: Data Plane: Adaptive Communication（P2P、Data Channel、自动选后端）
+> - **第五层（最下）**: Launcher (Ray) — 集群管理和远程 worker 进程启动
+> - **关键**: 用户只接触第一层，系统自动处理第二至五层
 
 ---
 
