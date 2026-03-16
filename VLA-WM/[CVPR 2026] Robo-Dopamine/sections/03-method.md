@@ -77,9 +77,11 @@ $$
 >
 > 问题：每步预测都有误差（如 ±0.03），连续迭代 20 步后误差累加，重建的进度可能超出 [0,1]
 >
-> **Hop 做法（相对比例）**：$`\mathcal{H}(s_p, s_q) = \dfrac{\Phi(s_q) - \Phi(s_p)}{\Phi(s_M) - \Phi(s_p)}`$（前进时，分母是剩余距离）
+> **Hop 做法（相对比例）**：
+> - **前进** (q ≥ p)：$`\mathcal{H} = \dfrac{\Phi(s_q) - \Phi(s_p)}{\Phi(s_M) - \Phi(s_p)}`$，分母是**剩余距离**，预测"完成了剩余路程的多少比例"
+> - **后退** (q < p)：$`\mathcal{H} = \dfrac{\Phi(s_q) - \Phi(s_p)}{\Phi(s_p) - \Phi(s_0)}`$，分母是**已走距离**，预测"倒退了已走路程的多少比例"
 >
-> hop 预测的是"完成了剩余路程的多少比例"，不是绝对值。因为分母随着接近目标而缩小，同样的 hop 误差对绝对进度的影响也越来越小，重建的 Φ* 数学上保证永远在 [0, 1] 内（Appendix A.1）。
+> 因为分母会随进度自动缩放（越接近目标剩余距离越小），同样的 hop 误差对绝对进度的影响也越来越小，重建的 Φ* 数学上保证永远在 [0, 1] 内（Appendix A.1）。
 
 This dynamically scales the supervision into $`[-1, 1]`$: for forward progress, the change is normalized by the remaining distance to the goal; for regression, by the distance already covered from the initial state. A key theoretical advantage is that, when global progress is reconstructed by iteratively applying predicted hops, the resulting $`\Phi^{\star}(s)`$ is guaranteed to remain strictly within [0, 1]. A detailed proof is provided in Appendix A.1.
 
