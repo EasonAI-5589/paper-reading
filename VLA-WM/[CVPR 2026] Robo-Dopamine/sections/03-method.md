@@ -95,10 +95,15 @@ $$
 
 > 💡 **Stage 3 — 数据平衡：防止训练数据偏向某类样本**
 >
-> 如果随机采样状态对，大部分样本的 hop 值会集中在某个小范围，导致 GRM 对其他情况预测不准。
-> - **双重分箱**：先按 hop 值大小分 $`N_{hop}`$ 个 bin，再按 before/after 的时间距离分 $`N_{dis}`$ 个 bin，保证大跳/小跳、远距离/近距离的样本都有覆盖
-> - **零 hop 样本**：额外加入 α 比例的"无变化"样本（两个状态进度差 < ε），防止模型偏向总是预测"有进展"
-> - **最终规模**：35M 训练样本，来自 3,400 小时视频、100K+ 轨迹
+> 如果随机采样状态对，大部分样本的 hop 值会集中在某个小范围，导致 GRM 对其他情况预测不准。通过三个操作解决：
+>
+> **操作 1 — Hop 分箱（$`N_{hop}`$ 个 bin）**：把连续的 hop 值离散化成 $`N_{hop}`$ 个区间。比如分成"微小进步 0~0.1"、"中等进步 0.1~0.3"、"大步前进 0.3~1.0"等，保证每种进步幅度的样本数量均衡，GRM 不会只擅长预测小变化。
+>
+> **操作 2 — 时间距离分箱（$`N_{dis}`$ 个 bin）**：在每个 hop bin 内，再按 before 状态 $`s_p`$ 和 after 状态 $`s_q`$ 之间的时间间隔分箱。比如"相隔 1 步"、"相隔 5 步"、"相隔 20 步"等。这样同样是 hop=0.2，GRM 既见过"1 步内跳了 0.2"也见过"20 步内跳了 0.2"，总共产生 $`N_{hop} \times N_{dis}`$ 种组合。
+>
+> **操作 3 — 零 hop 样本**：额外加入 α 比例的"无变化"样本（$`|\Phi(s_q) - \Phi(s_p)| \leq \epsilon`$）。这是因为实际操作中经常有"手在动但任务没进展"的情况，如果训练数据里没有这类样本，GRM 会偏向总是预测"有进展"。
+>
+> **最终规模**：35M 训练样本，来自 3,400 小时视频、100K+ 轨迹
 
 Applying this three-stage pipeline yields a dataset of 35M samples from about 3,400 hours of video and over 100K trajectories (see Appendix B). We train the GRM on this corpus to estimate hop-based relative progress between arbitrary state pairs, conditioned on the initial state, goal state, and task description.
 
