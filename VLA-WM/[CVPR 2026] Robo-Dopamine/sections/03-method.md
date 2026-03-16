@@ -71,15 +71,15 @@ $$
 \mathcal{H}(s_p, s_q) = \begin{cases} \dfrac{\Phi(s_q) - \Phi(s_p)}{\Phi(s_M) - \Phi(s_p)} & \text{if } q \geq p \text{ (PROGRESS)} \\ \dfrac{\Phi(s_q) - \Phi(s_p)}{\Phi(s_p) - \Phi(s_0)} & \text{if } q < p \text{ (REGRESS)} \end{cases}
 $$
 
-> 💡 **Stage 2 — Hop-based 归一化：为什么不直接让 GRM 预测绝对进度差？**
+> 💡 **Stage 2 — Hop-based 归一化**
 >
-> **问题**：如果让 GRM 预测 Φ(s_q) - Φ(s_p)（绝对进度差），连续迭代时每步的误差会累加，最终重建出的进度可能超出 [0,1]（比如算出 1.2 或 -0.1）。
+> **传统做法（绝对进度差）**：$`r = \Phi(s_q) - \Phi(s_p)`$
 >
-> **解法**：改为预测 hop——"完成了剩余/已走路程的多少比例"，归一化到 [-1, 1]。
-> - **前进 (q ≥ p)**：hop = 进度变化 / 剩余距离。例：当前 60%，走到 65%，hop = 5% / 40% = 0.125，意思是"完成了剩余 40% 中的 12.5%"
-> - **后退 (q < p)**：hop = 进度变化 / 已走距离。例：从 60% 退到 54%，hop = -6% / 60% = -0.1
+> 问题：每步预测都有误差（如 ±0.03），连续迭代 20 步后误差累加，重建的进度可能超出 [0,1]
 >
-> **核心优势**：因为每次跳的是剩余/已走距离的比例，通过 hop 重建出的进度 Φ* 数学上保证永远在 [0, 1] 内（Appendix A.1 有归纳法证明）。越接近目标，同样的 hop 误差对绝对进度的影响越小——误差被"剩余距离"自然压缩。
+> **Hop 做法（相对比例）**：$`\mathcal{H}(s_p, s_q) = \dfrac{\Phi(s_q) - \Phi(s_p)}{\Phi(s_M) - \Phi(s_p)}`$（前进时，分母是剩余距离）
+>
+> hop 预测的是"完成了剩余路程的多少比例"，不是绝对值。因为分母随着接近目标而缩小，同样的 hop 误差对绝对进度的影响也越来越小，重建的 Φ* 数学上保证永远在 [0, 1] 内（Appendix A.1）。
 
 This dynamically scales the supervision into $`[-1, 1]`$: for forward progress, the change is normalized by the remaining distance to the goal; for regression, by the distance already covered from the initial state. A key theoretical advantage is that, when global progress is reconstructed by iteratively applying predicted hops, the resulting $`\Phi^{\star}(s)`$ is guaranteed to remain strictly within [0, 1]. A detailed proof is provided in Appendix A.1.
 
