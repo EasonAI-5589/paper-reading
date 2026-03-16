@@ -105,11 +105,15 @@ Agent 记忆机制
 ---
 
 ### 🧠 Parametric Memory
-参数化记忆机制
+参数化记忆机制 - 将知识/经验编码到模型参数中
 
 | 论文 | 会议 | 方法特点 |
 |------|------|----------|
-| *待添加* | | |
+| [MemoryLLM](./Parametric%20Memory/%5BICML%202024%5D%20MemoryLLM/) | ICML 2024 | Transformer 隐空间 memory pool (1B params), self-update 无需反向传播, 百万次更新无退化 |
+| [M+](./Parametric%20Memory/%5BICML%202025%5D%20M-Plus/) | ICML 2025 | MemoryLLM + CPU 端 Long-Term Memory + co-trained retriever, 知识保留 20k→160k+ |
+| [Titans](./Parametric%20Memory/%5BArxiv%202501.00663%5D%20Titans/) | arXiv 2501.00663 | Neural long-term memory (surprise metric + momentum + weight decay), MAC/MAG/MAL 三变体, 2M+ context |
+| [Nested Learning](./Parametric%20Memory/%5BNeurIPS%202025%5D%20Nested-Learning/) | NeurIPS 2025 | 嵌套优化范式, 优化器=联想记忆, Continuum Memory System + Hope 架构 |
+| [ParamMem](./Parametric%20Memory/%5BArxiv%202602.23320%5D%20ParamMem/) | arXiv 2602.23320 | 参数化 reflection 记忆, LoRA 编码跨样本反思模式, ~500 样本即有效 |
 
 ---
 
@@ -179,7 +183,12 @@ paper-reading/
 ├── [ICLR 2026] Context-Clues/
 ├── [NeurIPS 2023] EHRSHOT/
 │
-├── Parametric Memory/               # 参数化记忆机制 (0 篇)
+├── Parametric Memory/               # 参数化记忆机制 (5 篇)
+│   ├── [ICML 2024] MemoryLLM/
+│   ├── [ICML 2025] M-Plus/
+│   ├── [Arxiv 2501.00663] Titans/
+│   ├── [NeurIPS 2025] Nested-Learning/
+│   └── [Arxiv 2602.23320] ParamMem/
 │
 ├── RLHF/                           # 强化学习人类反馈 (1 篇)
 │   └── [ICML 2025] MM-RLHF/
