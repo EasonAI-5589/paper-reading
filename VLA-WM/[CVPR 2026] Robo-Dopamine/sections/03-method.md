@@ -18,11 +18,11 @@ Our approach is designed to address the core challenges in real-world robotic le
 ![Figure 2](../images/7c21c299673b9579b5af5fd6f9d0a57c86fe70ba7fb52fb9096110598119332f.jpg)
 *Figure 2. The overview of our method. (a) Dopamine-Reward: GRM 接收任务描述 + 多视角的 initial/goal/before/after 图像，预测 hop。Multi-Perspective Fusion 融合三种预测。(b) Dopamine-RL: One-Shot Adaptation + Policy-Invariant Reward Shaping。*
 
-> 💡 **Figure 2 批读**:
-> - **(a) 左半部分 — GRM 架构**: 输入是 6 张图（initial × 2 views + goal × 2 views + before × 2 views + after × 2 views）+ task description，输出一个 hop 值
-> - **(a) 右半部分 — Fusion**: 三种推理模式（Incremental/Forward/Backward）取平均
-> - **(b) 左 — One-Shot Adaptation**: 仅需一条 demo 做 SFT 微调
-> - **(b) 右 — PBRS**: $`r = r_{gold} + \gamma\Phi(s_{t+1}) - \Phi(s_t)`$，telescoping sum 保证 policy invariance
+> 💡 **Figure 2 解读**:
+> - **(a) 左半部分 — GRM 架构**: 输入是多视角的 initial/goal/before/after 图片 + task description，经过 Vision Encoder → LLM Decoder，输出一个 hop 值（相对进度变化）
+> - **(a) 右半部分 — Multi-Perspective Fusion**: 同一个 GRM 用三种不同方式推理（Incremental/Forward/Backward），融合得到最终进度 Φ*
+> - **(b) 左 — One-Shot Adaptation**: 给 GRM 看 1 条新任务示教，做 SFT 微调即可适配
+> - **(b) 右 — Policy-Invariant Reward Shaping**: 用 PBRS 公式 $`r = r_{gold} + \gamma\Phi^*(s') - \Phi^*(s)`$ 把进度转成 reward，再喂给任意 RL 算法训练 policy
 
 ---
 
@@ -32,10 +32,10 @@ Our approach is designed to address the core challenges in real-world robotic le
 
 The core of our modeling method is to build the GRM, a vision-language model designed to estimate precise task progress. To ensure the model generalizes across diverse embodiments and tasks, we construct a large-scale dataset structured around relative temporal transitions. This section details the three-stage GRM training data construction pipeline, from raw video segmentation to a scientifically rigorous hop-based labeling strategy as follows:
 
-> 💡 **GRM 本质是一个基于 VLM 微调的 Reward Model**，输入多视角图片，输出任务进度估计。这里讲的是如何构建 GRM 的训练数据，分三个阶段：
-> 1. Step-wise task progress discretization（任务进度离散化）
-> 2. Hop-based relative progress normalization（相对进度归一化）
-> 3. Sampling strategy and data balancing（采样与平衡）
+> 💡 **GRM 本质是一个基于 VLM 微调的 Reward Model**，输入多视角图片，输出任务进度估计。这一节讲的是如何给 GRM 造训练数据，分三个阶段：
+> 1. 把连续视频变成带进度标签的离散状态序列
+> 2. 把绝对进度差转成 hop-based 相对进度标签
+> 3. 数据平衡，保证各种情况都有覆盖
 
 ---
 
@@ -45,12 +45,19 @@ $$
 m = \left\lfloor \frac{1}{N} \left\lfloor \frac{L}{C} \right\rfloor \right\rfloor .
 $$
 
-> 💡 **Stage 1 — 进度离散化**:
-> - **输入**: 多视角视频轨迹
-> - **人工标注关键帧** $`K_0, K_1, ..., K_N`$（初始 → 各子任务完成点 → 最终成功）
-> - **自适应采样**: 在每个 $`[K_j, K_{j+1}]`$ 段内均匀采 $`m`$ 个中间点
-> - **公式直觉**: $`L/C`$ 是总采样数，$`1/N`$ 均分到每个 segment
-> - **输出**: 状态序列 $`\mathcal{S} = \{s_0, s_1, ..., s_M\}`$，ground-truth 进度 $`\Phi(s_i) = i/M`$
+> 💡 **Stage 1 — 进度离散化：把连续视频变成带进度标签的状态序列**
+>
+> 具体流程：
+> 1. **人工标注关键帧** $`K_0, K_1, ..., K_N`$：标出子任务的分界点（如"抓起杯子"、"移到盘子上方"、"放下"），将轨迹切成 N 个 segment
+> 2. **在每个 segment 内均匀采样**：不是对整条轨迹无脑均匀采，而是先按子任务切段再在每段内采，保证每个阶段都有足够样本
+> 3. **给每个采样点打进度标签**：Φ(s_i) = i/M，就是"第 i 个点 / 总点数"= 完成百分比
+>
+> **公式中的变量**：
+> - L = 轨迹总帧数，C = chunk size（每隔 C 帧采一个点），L/C = 总采样数
+> - N = 关键帧分出的 segment 数，m = 每个 segment 分到的采样点数
+> - M = 最终状态序列总长度 ≈ L/C
+>
+> **举例**：L=300 帧，C=30，N=3 段 → 总采样 10 个点，每段分到 m=3 个点，Φ 从 0 线性排到 1
 
 This yields a sequence of states $`\mathcal{S} = \{s_0, s_1, \ldots, s_M\}`$ where each state $`s_i`$ is a set of synchronous multi-view visual observations. We then define the ground-truth global progress as $`\Phi(s_i) = i/M`$.
 
@@ -62,20 +69,15 @@ $$
 \mathcal{H}(s_p, s_q) = \begin{cases} \dfrac{\Phi(s_q) - \Phi(s_p)}{\Phi(s_M) - \Phi(s_p)} & \text{if } q \geq p \text{ (PROGRESS)} \\ \dfrac{\Phi(s_q) - \Phi(s_p)}{\Phi(s_p) - \Phi(s_0)} & \text{if } q < p \text{ (REGRESS)} \end{cases}
 $$
 
-> 💡 **Stage 2 — Hop-based 归一化（核心创新）**:
+> 💡 **Stage 2 — Hop-based 归一化：为什么不直接让 GRM 预测绝对进度差？**
 >
-> **为什么不直接回归进度差 $`\Phi(s_q) - \Phi(s_p)`$？**
-> - 迭代预测会累积误差
-> - 重建的 $`\Phi^*(s)`$ 可能超出 $`[0, 1]`$ 范围
+> **问题**：如果让 GRM 预测 Φ(s_q) - Φ(s_p)（绝对进度差），连续迭代时每步的误差会累加，最终重建出的进度可能超出 [0,1]（比如算出 1.2 或 -0.1）。
 >
-> **Hop 公式直觉**:
-> - **前进 (PROGRESS)**: 进度变化 / 剩余距离 → "你完成了剩余路程的多少比例？"
-> - **后退 (REGRESS)**: 进度变化 / 已走距离 → "你倒退了已走路程的多少比例？"
-> - **范围**: hop 值 $`\mathcal{H} \in [-1, 1]`$
+> **解法**：改为预测 hop——"完成了剩余/已走路程的多少比例"，归一化到 [-1, 1]。
+> - **前进 (q ≥ p)**：hop = 进度变化 / 剩余距离。例：当前 60%，走到 65%，hop = 5% / 40% = 0.125，意思是"完成了剩余 40% 中的 12.5%"
+> - **后退 (q < p)**：hop = 进度变化 / 已走距离。例：从 60% 退到 54%，hop = -6% / 60% = -0.1
 >
-> **关键理论优势**: 通过 hop 迭代重建的 $`\Phi^*(s)`$ **保证** 在 $`[0, 1]`$ 内（Appendix A.1 有数学归纳法证明）
->
-> **类比**: 想象你从 A 走到 B，已走 60%。如果有人问"你前进了多少"，naive 方式说"10%"（绝对值），hop 方式说"你走完了剩余 40% 中的 25%"。后者更不容易累积误差。
+> **核心优势**：因为每次跳的是剩余/已走距离的比例，通过 hop 重建出的进度 Φ* 数学上保证永远在 [0, 1] 内（Appendix A.1 有归纳法证明）。越接近目标，同样的 hop 误差对绝对进度的影响越小——误差被"剩余距离"自然压缩。
 
 This dynamically scales the supervision into $`[-1, 1]`$: for forward progress, the change is normalized by the remaining distance to the goal; for regression, by the distance already covered from the initial state. A key theoretical advantage is that, when global progress is reconstructed by iteratively applying predicted hops, the resulting $`\Phi^{\star}(s)`$ is guaranteed to remain strictly within [0, 1]. A detailed proof is provided in Appendix A.1.
 
@@ -87,19 +89,22 @@ $$
 |\Phi(s_q) - \Phi(s_p)| \leq \epsilon.
 $$
 
-> 💡 **Stage 3 — 数据平衡策略**:
-> - **双重分箱**: $`N_{hop}`$ 个 hop 大小的 bin × $`N_{dis}`$ 个时间距离的 bin → 确保各种进度变化幅度和时间跨度都有覆盖
-> - **零 hop 样本**: 额外加入 $`\alpha`$ 比例的"无变化"样本（$`|\Delta\Phi| \leq \epsilon`$）→ 防止模型偏向总是预测有进展
-> - **最终数据量**: 35M 样本，来自 3,400 小时视频、100K+ 轨迹
+> 💡 **Stage 3 — 数据平衡：防止训练数据偏向某类样本**
+>
+> 如果随机采样状态对，大部分样本的 hop 值会集中在某个小范围，导致 GRM 对其他情况预测不准。
+> - **双重分箱**：先按 hop 值大小分 $`N_{hop}`$ 个 bin，再按 before/after 的时间距离分 $`N_{dis}`$ 个 bin，保证大跳/小跳、远距离/近距离的样本都有覆盖
+> - **零 hop 样本**：额外加入 α 比例的"无变化"样本（两个状态进度差 < ε），防止模型偏向总是预测"有进展"
+> - **最终规模**：35M 训练样本，来自 3,400 小时视频、100K+ 轨迹
 
 Applying this three-stage pipeline yields a dataset of 35M samples from about 3,400 hours of video and over 100K trajectories (see Appendix B). We train the GRM on this corpus to estimate hop-based relative progress between arbitrary state pairs, conditioned on the initial state, goal state, and task description.
 
-> 💡 **3.1.1 小结**:
-> | 阶段 | 输入 | 输出 | 关键操作 |
-> |------|------|------|---------|
-> | 1. 进度离散化 | 多视角视频 | 状态序列 $`\mathcal{S}`$ + $`\Phi(s_i)`$ | 关键帧标注 + 自适应采样 |
-> | 2. Hop 归一化 | 状态对 $`(s_p, s_q)`$ | hop 标签 $`\mathcal{H} \in [-1,1]`$ | 相对进度归一化 |
-> | 3. 数据平衡 | hop 标签集 | 35M 训练样本 | 双重分箱 + 零 hop 补充 |
+> 💡 **3.1.1 小结 — 三阶段流水线**：
+>
+> | 阶段 | 做什么 | 输入 → 输出 |
+> |------|--------|-----------|
+> | 1. 进度离散化 | 标关键帧 → 切段 → 均匀采样 → 打进度标签 | 视频 → 状态序列 + Φ(s_i) = i/M |
+> | 2. Hop 归一化 | 把绝对进度差转成相对比例 | 状态对 → hop 标签 ∈ [-1,1] |
+> | 3. 数据平衡 | 双重分箱 + 零 hop 补充 | hop 标签集 → 35M 均衡训练样本 |
 
 ---
 
@@ -107,7 +112,7 @@ Applying this three-stage pipeline yields a dataset of 35M samples from about 3,
 
 To mitigate error accumulation and ensure consistent accuracy, we fuse predictions based on GRM from three complementary perspectives: incremental prediction, forward-anchored prediction, and backward-anchored prediction.
 
-> 💡 **3.1.2 要点预览**: 单一预测方式都有缺陷，融合三种互补视角来消除误差。这是从"单模型多用法"中榨取更多精度的巧妙设计。
+> 💡 **为什么需要融合？** GRM 训练好后，用它来推理时有不同的用法。单一用法都有缺陷（局部准但会累积漂移，或全局稳但不够精细），所以融合三种互补方式来提高精度。
 
 ---
 
@@ -125,11 +130,10 @@ $$
 
 where $`\Phi_I^{\star}(s_t)`$ is accumulated along the trajectory, initialized with $`\Phi^{\star}(s_0) = 0`$.
 
-> 💡 **视角 1 — Incremental（逐步递推）**:
-> - **做法**: 从 $`s_0`$ 开始，每步用 GRM 预测相邻状态间的 hop，逐步累加
-> - **优点**: 局部精度高，能捕捉细微变化
-> - **缺点**: 误差累积——长轨迹上会逐渐偏离真实进度
-> - **类比**: 像用步数计量距离，每步的小误差会叠加
+> 💡 **视角 1 — Incremental（逐步递推）**：
+> - **做法**：BEFORE = 上一步状态，AFTER = 当前状态，GRM 预测相邻两步间的 hop，从 s_0 开始逐步累加得到进度
+> - **优点**：局部精度高，能捕捉每一步的细微变化
+> - **缺点**：误差会逐步累积，长轨迹后段可能偏离真实进度
 
 ---
 
@@ -139,11 +143,10 @@ $$
 \Phi_F^{\star}(s_t) = \mathcal{H}^{\star}(s_{init}, s_t).
 $$
 
-> 💡 **视角 2 — Forward-Anchored（前锚定）**:
-> - **做法**: 直接问 GRM："从初始状态到当前状态完成了多少？"
-> - **优点**: 全局稳定，不受中间步骤误差影响
-> - **缺点**: 当 $`s_t`$ 距离 $`s_{init}`$ 很远时，单次预测精度下降
-> - **类比**: 像用 GPS 测量总距离——稳定但精度受限
+> 💡 **视角 2 — Forward-Anchored（前锚定）**：
+> - **做法**：BEFORE = 初始状态 s_init，AFTER = 当前状态 s_t，直接问 GRM"从头到现在完成了多少"
+> - **优点**：不依赖中间步骤，全局稳定，不会累积误差
+> - **缺点**：当 s_t 离 s_init 很远时（比如任务快完成了），一次性跨越太大，单次预测精度下降
 
 ---
 
@@ -153,11 +156,10 @@ $$
 \Phi_B^{\star}(s_t) = 1 + \mathcal{H}^{\star}(s_{goal}, s_t).
 $$
 
-> 💡 **视角 3 — Backward-Anchored（后锚定）**:
-> - **做法**: 问 GRM："从目标状态到当前状态退了多少？" 然后 1 + (负数) = 当前进度
-> - **优点**: 接近任务完成时精度最高（剩余距离短，hop 预测更准）
-> - **缺点**: 远离目标时精度下降
-> - **类比**: 像从终点倒着量——越近终点越准
+> 💡 **视角 3 — Backward-Anchored（后锚定）**：
+> - **做法**：BEFORE = 目标状态 s_goal，AFTER = 当前状态 s_t，问 GRM"从目标看，当前退了多少"，然后 1 + 负数 = 当前进度
+> - **优点**：接近任务完成时剩余距离短，hop 预测最准
+> - **缺点**：远离目标时（任务刚开始），跨度太大，精度下降
 
 ---
 
@@ -167,15 +169,8 @@ $$
 \Phi^{\star}(s_t) = \frac{1}{3}\left(\Phi_I^{\star}(s_t) + \Phi_F^{\star}(s_t) + \Phi_B^{\star}(s_t)\right).
 $$
 
-> 💡 **三视角融合**:
-> | 视角 | 优势区间 | 弱势区间 |
-> |------|---------|---------|
-> | Incremental | 局部/短时 | 长轨迹后段 |
-> | Forward | 全程稳定 | 远距离精度降 |
-> | Backward | 接近完成时 | 远离目标时 |
->
-> 简单平均就能互补——Incremental 在开头准，Backward 在结尾准，Forward 全程兜底。
-> 消融实验证明（Table 5）：去掉融合后性能分别下降 15%/19.3%/22.5%。
+> 💡 **三者简单平均即可互补**：Incremental 在开头准（局部精度），Backward 在结尾准（接近目标），Forward 全程提供稳定的基准。
+> 消融实验（Table 5）：去掉任一视角性能下降 15%~22.5%，说明三者都不可或缺。
 
 This fusion yields a more accurate and drift-resistant signal, which is critical for the subsequent reward shaping.
 
@@ -185,10 +180,9 @@ This fusion yields a more accurate and drift-resistant signal, which is critical
 
 While the multi-perspective fusion via averaging (Equation (8)) serves as a baseline, its naive application in online RL faces the risk of Out-of-Distribution (OOD) hallucination. Due to the inherent limitations of data coverage, it is impossible for the training set to encompass every corner of the state space. During RL, the policy inevitably explores unseen regions where the reward model may yield spurious high signals, leading to "reward hacking." To address these, we propose a bi-directional consistency checking strategy that leverages consistency as a proxy for reliability, which is motivated by the observation that forward $`\Phi_F^{*}`$ and backward $`\Phi_B^{*}`$ predictions tend to exhibit significant divergence in OOD scenarios or observations, whereas they remain consistent in familiar states.
 
-> 💡 **OOD Reward Hacking 问题**:
-> - 训练数据无法覆盖所有状态
-> - RL 探索会进入 OOD 区域 → GRM 可能给出虚高的 reward → "reward hacking"
-> - **核心洞察**: Forward 和 Backward 预测在 OOD 状态下会**不一致**（因为从两个方向看同一个陌生状态，模型的幻觉模式不同）
+> 💡 **问题**：RL 训练中 agent 会探索到训练数据没覆盖过的状态（OOD），此时 GRM 可能给出虚假的高分 → agent 被骗去重复这些状态（reward hacking）。
+>
+> **解决思路**：在熟悉的状态上，Forward 和 Backward 两个方向的预测应该一致；在 OOD 状态上，两者会明显不一致。利用这个不一致性来判断预测是否可信。
 
 ---
 
@@ -204,11 +198,10 @@ $$
 w_t = \exp\left(-\alpha \cdot (\Delta_{norm}(s_t))^2\right).
 $$
 
-> 💡 **一致性权重**:
-> - **不一致度** $`\Delta_{norm}`$: Forward 和 Backward 预测差异越大 → 越不可信
-> - **除以 $`\bar{\Phi}`$**: 在任务早期（$`\Phi`$ 小）对不一致惩罚更重 → 早期引导很关键
-> - **Gaussian kernel**: 将不一致度映射到 $`(0, 1]`$ 的置信权重
-> - $`w_t \to 0`$: 不信这个预测；$`w_t \to 1`$: 完全信任
+> 💡 **一致性权重**：
+> - Forward 和 Backward 预测差异越大 → $`\Delta_{norm}`$ 越大 → $`w_t`$ 越接近 0（不信这个预测）
+> - 两者一致 → $`\Delta_{norm}`$ 小 → $`w_t`$ 接近 1（信任这个预测）
+> - 除以 $`\bar{\Phi}`$ 的作用：在任务早期 Φ 值小，同样的绝对差异对应更大的 $`\Delta_{norm}`$，即早期对不一致的惩罚更重（因为早期的引导方向很关键）
 
 ---
 
@@ -220,11 +213,10 @@ $$
 
 This mechanism acts as a semantic filter: it ignores uncertain updates when $`w_t \to 0`$ (retaining $`\Phi^{*}(s_{t-1})`$) and fully trusts the estimate when consistency is high $`w_t \to 1`$).
 
-> 💡 **保守更新规则**:
-> - 当 $`w_t \to 0`$（不可信）：$`\Phi^*(s_t) \approx \Phi^*(s_{t-1})`$，保持上一步的进度不变
-> - 当 $`w_t \to 1`$（可信）：正常更新
-> - 相当于一个**软门控**：不确定的时候宁可不更新，也不要被错误的 reward 带偏
-> - 这个模块是 optional 的，但在 OOD 场景下能显著提升稳定性
+> 💡 **保守更新**：
+> - $`w_t`$ 接近 0（不可信）→ 进度保持上一步不变，宁可不更新也不要被错误的 reward 带偏
+> - $`w_t`$ 接近 1（可信）→ 正常更新进度
+> - 本质是一个**软门控**：只在有把握的时候更新，不确定就保守。这个模块是 optional 的，在 OOD 场景下能显著提升稳定性
 
 ---
 
@@ -232,10 +224,10 @@ This mechanism acts as a semantic filter: it ignores uncertain updates when $`w_
 
 Building upon Dopamine-Reward with GRM, we further introduce the Dopamine-RL framework, a reinforcement learning pipeline producing high-performance policy stimulated by Dopamine-Reward, featuring three key critical attributes: minimal downstream task effort for rapid progress alignment (Section 3.2.1), fast convergence with policy-invariant guarantees (Section 3.2.2) and seamless integration with diverse RL paradigms (Section 3.2.3).
 
-> 💡 **Dopamine-RL 三大属性**:
-> 1. 最小下游成本（one-shot 适配）
-> 2. 快速收敛 + policy invariance 保证
-> 3. 与任意 RL 算法兼容
+> 💡 **Dopamine-RL 是把 GRM 的进度估计转化为 RL 可用的 reward 的框架**，三个子模块：
+> 1. **One-Shot Adaptation (3.2.1)**：只需 1 条示教就能让 GRM 适配新任务
+> 2. **Policy-Invariant Reward Shaping (3.2.2)**：用 PBRS 公式安全地把 Φ* 变成 reward，不改变最优策略
+> 3. **Universal Compatibility (3.2.3)**：只改 reward 不改算法，兼容任意 RL 方法
 
 ---
 
@@ -249,33 +241,31 @@ $$
 
 where $`\omega`$ represents the GRM's parameters, initialized by pre-trained $`\text{GRM}_{\omega_0}`$. After SFT, we obtain a task-adapted $`\text{GRM}_{\omega_{\star}}`$, poised for efficient reinforcement learning.
 
-> 💡 **One-Shot 适配**:
-> - **只需 1 条人类示教**即可适配新任务
-> - 原理：预训练 GRM 已有广泛的进度评估先验，只需在新任务上做简单的 SFT 微调
-> - 损失函数：MSE on hop predictions
-> - 这是 few-shot learning 的极端形式——真正的 one-shot
-> - 消融实验（Table 5）：去掉 adaptation（zero-shot）性能下降 21.8%，说明 adaptation 很关键
+> 💡 **One-Shot 适配**：
+> - GRM 在 35M 样本上预训练后已经具备广泛的进度评估能力，面对新任务只需要 1 条人类示教做 SFT 微调
+> - 损失函数就是 MSE：让 GRM 在新任务上的 hop 预测尽量接近 ground-truth
+> - 消融实验（Table 5）：不做 adaptation（zero-shot）性能下降 21.8%，说明微调是必要的
 
 ---
 
 ![Figure 3](../images/5a7740b5e8a4698cf528bfaea884c741681778c79e476c372496f304348d867a.jpg)
 *Figure 3. Reward profiles on a challenging real-world rollout. 对比人类标注参考 reward、VLAC baseline、和 GRM 在同一轨迹上的输出。*
 
-> 💡 **Figure 3 批读**:
-> - **参考信号（Human）**: 绿色线，在错误插入、低位置、错位时给低分，仅在接近成功时给高分
-> - **VLAC**: 蓝色线，对错误操作不够敏感，曲线波动大
-> - **GRM（Ours）**: 红色线，与人类参考高度吻合——准确惩罚错误操作，只在接近成功时给高 reward
-> - 这是 GRM 优于现有方法的直观可视化证据
+> 💡 **Figure 3 解读**：
+> - **Human（绿色线）**：人类标注的参考 reward，在错误操作时给低分，接近成功时给高分
+> - **VLAC（蓝色线）**：对错误操作不够敏感，曲线波动大
+> - **GRM（红色线）**：与人类参考高度吻合，能准确识别错误操作并给出低分
+> - 直观证明 GRM 比现有方法更准
 
 ---
 
 ![Figure 4](../images/717701bbd83aed616fe8105db7d53090733500e4fec58e0d28a99c2e9f5c68c0.jpg)
 *Figure 4. Real-world tasks and hardware setup. 左：8 个代表性长 horizon 操作任务。右：多视角硬件平台（Pika 遥操作 + ZED 相机）。*
 
-> 💡 **Figure 4 批读**:
-> - **8 个任务**: 插入、电路连接、折叠、拾放、组装等——都是 contact-rich 的精细操作
-> - **硬件**: Pika 遥操作系统 + 标定的 ZED 相机（提供同步的腕部和第三人称视角）
-> - 这些任务的共同特点：需要精确的空间感知 + 遮挡处理 → 正是多视角 GRM 的优势场景
+> 💡 **Figure 4 解读**：
+> - **8 个真实任务**：插入、电路连接、折叠、拾放、组装等，都是需要精细操作的 contact-rich 任务
+> - **硬件**：Pika 遥操作系统 + ZED 相机提供同步的腕部和第三人称视角
+> - 这些任务的共同特点：手经常遮挡物体 → 正是多视角 GRM 的优势场景
 
 ---
 
@@ -283,12 +273,10 @@ where $`\omega`$ represents the GRM's parameters, initialized by pre-trained $`\
 
 A straightforward approach to defining the dense process reward function for policy learning is to use the direct increment of this progress: $`r(s_t, a_t, s_{t+1}) = \Phi^{\star}(s_{t+1}) - \Phi^{\star}(s_t)`$. However, optimizing the standard discounted return, $`J(\pi) = \mathbb{E}_\pi[\sum_{t=0}^{\infty} \gamma^t r(s_t, a_t, s_{t+1})]`$, with this reward is mathematically equivalent to maximizing a different objective: $`J'(\pi) \propto \mathbb{E}_\pi[\sum_{t=1}^{\infty} \gamma^{t-1} \Phi^{\star}(s_t) \mid s_0]`$, as detailed in Appendix A.2.
 
-> 💡 **Semantic Trap 的数学证明**:
-> - Naive reward: $`r = \Phi(s_{t+1}) - \Phi(s_t)`$（进度增量）
-> - 看起来合理：奖励进步，惩罚后退
-> - **但** 展开折扣回报后发现：最大化的其实是**各状态进度值的加权和**，而非任务完成
-> - 这意味着 agent 会学到"快速到达高进度状态 → 停在那里不动 → 每步都收获高折扣 reward"
-> - **这就是 semantic trap**：agent 在 90% 进度处原地打转，不愿冒险去完成最后 10%
+> 💡 **为什么不能直接用进度差当 reward？**
+> - 最直觉的做法：r = Φ(s') - Φ(s)，前进奖励，后退惩罚
+> - 但展开折扣累积回报后发现，agent 实际最大化的是"各状态进度值的加权和"，而不是"完成任务"
+> - 结果：agent 快速跑到高进度状态（如 90%）然后**停着不动**，因为每待一步都在"享受"高进度带来的折扣回报。这就是 semantic trap
 
 This transformed objective creates a perverse incentive: it encourages the agent not to complete the task, but rather to seek and maintain states with high progress values. Consequently, the resulting policy is rewarded for stagnation, preferring a safe, suboptimal state over potentially risky trajectories that lead to true task completion. To resolve the misalignment, we formulate our GRM reward $`r_{GRM}`$ that adheres to three desiderata:
 
@@ -296,12 +284,10 @@ This transformed objective creates a perverse incentive: it encourages the agent
 - **Discount consistency**: $`r_{GRM}`$ must be compatible with the standard exponentially discounted return and TD or Bellman updates with factor $`\gamma`$ under a memoryless (Markov) reward assumption.
 - **Locality.** At any step $`t`$, $`r_{GRM}`$ is efficiently computable from the single transition $`(s_t, a_t, s_{t+1})`$.
 
-> 💡 **三个设计约束**:
-> | 约束 | 含义 | 为什么重要 |
-> |------|------|-----------|
-> | Policy invariance | 加了 dense reward 后最优策略不变 | 不改变任务目标 |
-> | Discount consistency | 兼容标准 $`\gamma`$-折扣 TD/Bellman | 与现有 RL 算法兼容 |
-> | Locality | 只需当前 transition 即可计算 | 实时可用 |
+> 💡 **设计 reward 必须满足的三个约束**：
+> - **Policy invariance**：加了 dense reward 后最优策略不变，不偏离原始任务目标
+> - **Discount consistency**：兼容标准的 γ 折扣和 TD/Bellman 更新，与现有 RL 算法兼容
+> - **Locality**：只需当前 transition (s, a, s') 就能算出 reward，不需要回看整条轨迹
 
 ---
 
@@ -317,17 +303,13 @@ $$
 r_{GRM}(s_t, a_t, s_{t+1}) = r_{gold} + \gamma\Phi^{\star}(s_{t+1}) - \Phi^{\star}(s_t).
 $$
 
-> 💡 **Policy-Invariant Reward Shaping（核心公式）**:
+> 💡 **核心公式**：$`r_{GRM} = r_{gold} + \gamma\Phi^*(s_{t+1}) - \Phi^*(s_t)`$
 >
-> $$r_{GRM} = \underbrace{r_{gold}}_{\text{稀疏：完成=1}} + \underbrace{\gamma\Phi^*(s_{t+1}) - \Phi^*(s_t)}_{\text{PBRS 塑形项 F}}$$
+> 和 naive 做法 r = Φ(s') - Φ(s) 相比有**两个关键区别**（不只是加了 γ）：
+> 1. **保留了原始奖励 $`r_{gold}`$**（完成任务 = 1，否则 = 0）：shaping 是补充信号，不替代任务目标
+> 2. **加了折扣因子 γ**：打破 telescoping，保证最优策略不变
 >
-> **与 naive 方法的关键区别**: 多了一个 $`\gamma`$ 系数！
-> - Naive: $`\Phi(s_{t+1}) - \Phi(s_t)`$ → 改变最优策略（semantic trap）
-> - PBRS: $`\gamma\Phi(s_{t+1}) - \Phi(s_t)`$ → **不改变**最优策略
->
-> **自动成功检测**: $`\Phi^*(s_{t+1}) \geq 0.95`$ 时自动判定任务完成，无需人工监督
->
-> 这直接来自 **Ng et al. 1999** 的 PBRS 理论，$`\Phi^*`$ 作为 potential function。
+> 额外设计：当 Φ*(s') ≥ 0.95 时自动判定任务完成（r_gold = 1），无需人工监督
 
 ---
 
@@ -349,13 +331,13 @@ $$
 \arg\max_a Q_{GRM}^{*}(s, a) = \arg\max_a Q_{gold}^{*}(s, a).
 $$
 
-> 💡 **Policy Invariance 证明直觉**:
-> 1. PBRS 项求和后 telescope（相消）为常数 $`-\Phi^*(s_0)`$
-> 2. 因此 $`Q_{GRM} = Q_{gold} - \Phi^*(s)`$——只是加了一个与 action 无关的偏移
-> 3. $`\arg\max`$ 不变 → 最优策略不变
-> 4. **结论**: dense reward 加速了探索，但不会把 agent 引向错误的目标
+> 💡 **为什么加了 γ 就能保证最优策略不变？**
+> 1. PBRS 项 γΦ*(s') - Φ*(s) 在折扣累加后完美 telescope（相消），只剩常数 -Φ*(s_0)
+> 2. 因此 Q_GRM = Q_gold - Φ*(s)，只是加了一个**与 action 无关的偏移**
+> 3. 偏移对所有 action 相同 → argmax 不变 → 最优策略不变
+> 4. 结论：dense reward 加速了探索（让 agent 知道方向），但不改变最终目标
 >
-> 消融实验证实（Table 5）：去掉 PBRS 后性能**暴降 43.7%**——agent 掉入 semantic trap
+> 消融实验（Table 5）：去掉 PBRS 后性能暴降 43.7%——agent 掉入 semantic trap
 
 This matches the standard Potential-Based Reward Shaping (PBRS) framework [41], with the GRM progress $`\Phi^{\star}`$ serving as the potential function.
 
@@ -365,15 +347,15 @@ This matches the standard Potential-Based Reward Shaping (PBRS) framework [41], 
 
 Dopamine-RL exhibits strong universality, seamlessly integrating with any RL algorithm, encompassing online RL, offline RL, and offline-to-online RL paradigms. It adapts effectively to both value-based methods and gradient-based approaches. By reshaping targeted reward functions to guide agent learning, Dopamine-RL is inherently agnostic to the specific RL algorithm employed. Experimental results confirm this flexibility. In simulations, we deploy under two settings: PPO [46] (Proximal Policy Optimization) algorithm and OpenVLA-OFT [26] model, and ReinFlow [61] algorithm with $`\pi_0`$ [6] model. In real-world settings, we combine with Cal-QL [39] (a offline-to-online Q-learning based RL algorithm) and it also delivers exceptional outcomes. Further details are shown in Appendix C.
 
-> 💡 **RL 算法兼容性**:
+> 💡 **Dopamine-RL 只改 reward 函数，不改 RL 算法本身，因此天然兼容一切 RL 方法**：
 >
 > | 环境 | RL 算法 | Policy 架构 | 类型 |
 > |------|---------|------------|------|
 > | 仿真 | PPO [46] | OpenVLA-OFT [26] | Online RL |
-> | 仿真 | ReinFlow [61] | $`\pi_0`$ [6] | Online RL (Flow) |
+> | 仿真 | ReinFlow [61] | π₀ [6] | Online RL (Flow) |
 > | 真实世界 | Cal-QL [39] | — | Offline-to-Online |
 >
-> **关键**: Dopamine-RL 只改 reward 函数，不改 RL 算法本身 → 天然兼容一切 RL 方法。这是 PBRS 框架的固有优势。
+> 这是 PBRS 框架的固有优势——reward shaping 发生在 reward 层面，与 policy 优化算法完全解耦。
 
 ---
 
