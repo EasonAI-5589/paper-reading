@@ -14,13 +14,20 @@ We evaluate Dopamine-Reward with GRM and Dopamine-RL on both simulation and real
 - RQ3: How critical is Multi-Perspective Progress Fusion for final performance?
 - RQ4: How important is the Dopamine-RL framework for turning reward modeling into practical policy learning?
 
-> 💡 **四个 RQ 的对应关系**:
-> | RQ | 验证什么 | 对应方法 |
-> |----|---------|---------|
-> | RQ1 | GRM 奖励精度 | Dopamine-Reward (3.1) |
-> | RQ2 | 端到端策略性能 | 完整框架 |
-> | RQ3 | 三视角融合 | 3.1.2 消融 |
-> | RQ4 | PBRS + One-shot | 3.2 消融 |
+> 💡 **四个 RQ 的详细解读**：
+>
+> | RQ | 验证什么 | 对应方法 | 对应表格/图 |
+> |----|---------|---------|-----------|
+> | RQ1 | GRM 奖励精度：进度预测排序和真实进度有多一致 | Dopamine-Reward (3.1) | Table 1, Table 2 |
+> | RQ2 | 端到端策略性能：成功率、样本效率、泛化 | 完整框架 | Table 3, Table 4 |
+> | RQ3 | 三视角融合是否必要（消融） | 3.1.2 Multi-Perspective Fusion | Table 5 |
+> | RQ4 | Dopamine-RL 框架各组件是否必要（消融） | 3.2 PBRS + One-shot | Table 5 |
+>
+> **RQ2 细节**：对比两类 baseline——
+> - **BC（Behavior Cloning，行为克隆）**：最简单的模仿学习，直接用监督学习让模型模仿人类示教动作（状态→动作），不需要 reward，也不和环境交互。优点是简单稳定，缺点是上限受限于示教数据，且容易过拟合视觉表面特征
+> - **RL baselines**：用其他 reward 设计（如 sparse reward、ConRFT）做 RL 训练
+>
+> RQ2 从三个维度评估：success rate（能不能完成任务）、sample efficiency（需要多少次交互才能学会）、generalization（换个场景还能不能 work）
 
 ---
 
@@ -30,29 +37,30 @@ We evaluate Dopamine-Reward with GRM and Dopamine-RL on both simulation and real
 
 To quantitatively assess task progress perception, we follow the evaluation methodology of GVL [37] and measure the Value-Order Correlation (VOC) between the GRM's predicted progress and the ground-truth chronological order of shuffled frames. A higher VOC score ([-1, 1]) indicates a better understanding of temporal progress. We evaluate on a diverse suite of eight datasets spanning real-world robotics (DROID [24], AGIBOT-World [7], RoboBrain-X [17]), simulation (Libero [30], RoboCasa [40], RoboTwin2.0 [9]), and egocentric human manipulation (EgoDex [19]). To test robustness to temporal granularity, we test under three distinct sampling strategies: Sparse (S) using only major keyframes, Medium (M) using uniform samples between keyframes, and Dense (D) using uniform samples across the entire trajectory.
 
-> 💡 **VOC 评测方法**:
-> - 打乱视频帧顺序 → 让模型预测每帧的进度 → 计算与真实时间顺序的 rank correlation
-> - 三种采样密度（S/M/D）测试不同粒度下的鲁棒性
-> - 7 个数据集覆盖：真实机器人 + 仿真 + 人类自我视角
+> 💡 **4.1.1 详解**：
+>
+> **VOC（Value-Order Correlation）是什么**：把视频帧打乱顺序，让 reward model 给每帧打进度分，然后看模型打分的排序和真实时间顺序有多一致。VOC ∈ [-1, 1]，1 = 完美一致，0 = 随机，负数 = 反着来。本质上测的是"模型能不能分辨哪个状态比哪个更接近完成"。
+>
+> **S/M/D 三种采样密度**：
+> - **S（Sparse）**：只抽关键帧（如"抓起""放下"这些节点），帧数少，排序简单
+> - **M（Medium）**：关键帧之间均匀插值，帧数适中
+> - **D（Dense）**：整条轨迹均匀密采，帧数多，相邻帧差异很小，排序最难
+>
+> 测三种密度是为了验证鲁棒性——好的 reward model 不管帧抽得多密都能排对。
+>
+> **数据集（7 个，跨三类场景）**：
+> - 真实机器人：DROID [24]、AGIBOT-World [7]、RoboBrain-X [17]
+> - 仿真：LIBERO [30]、RoboCasa [40]、RoboTwin2.0 [9]
+> - 人类自我视角：EgoDex [19]
+>
+> **对比方法**：GVL [37]（基于 VLM 的 reward model）、VLAC [59]（VLM-as-classifier）
 
 ---
 
 ![Table 1](../images/f50260d70e05b13d26875b20c3a6809f48c681e1ed0b3a91d1893264147898f8.jpg)
 *Table 1. Video Frame Rank-Correlation (VOC) on Diverse Datasets. GRM 在所有 benchmark 和采样密度上都取得最优。*
 
-> 💡 **Table 1 批读**:
->
-> **关键发现**:
->
-> | 对比项 | 数据 | 说明 |
-> |-------|------|------|
-> | GRM-8B MV vs GVL | 0.96 vs 0.20 (Avg S) | 碾压级优势，GVL 几乎随机 |
-> | GRM-8B MV vs VLAC | 0.96 vs 0.29 (Avg S) | VLAC 也远不如 GRM |
-> | Multi-View vs Single-View | 0.96 vs 0.92 (8B, Avg S) | 多视角一致性更好 |
-> | Sparse vs Dense | 0.96 → 0.94 (8B MV) | GRM 在各密度下都稳定 |
-> | Baselines Dense 退化 | GVL: 0.20→0.13, VLAC: 0.24→0.33 | 细粒度区分能力差 |
->
-> **最突出的点**: GRM 在 DROID 上 VOC 达 0.99（几乎完美），而 GVL 仅 0.01（基本随机）。
+> 💡 **Table 1 批读**：GRM-8B Multi-View 在 Average 上达到 0.96（S）/0.96（M）/0.94（D），碾压 GVL（0.20）和 VLAC（0.29）。Baselines 在 Dense 采样下明显退化，GRM 保持稳定。多视角比单视角高约 4%。
 
 We compare our multi-view and single-view GRM against four state-of-the-art reward models: GVL [37], and VLAC [59]. As shown in Table 1, our multi-view GRM consistently achieves the highest VOC scores across all seven datasets and all sampling strategies. The performance of baseline models tends to degrade as sampling becomes denser, indicating a struggle with fine-grained temporal distinctions. In contrast, our model maintains exceptionally high performance, highlighting the robustness of our hop-based learning formulation and multi-perspective fusion. The performance gap is most significant in complex, long-horizon tasks (e.g., LIBERO [30], RoboBrain-X [17]), where our model's ability to accurately contextualize progress is paramount.
 
@@ -62,25 +70,20 @@ We compare our multi-view and single-view GRM against four state-of-the-art rewa
 
 To assess the GRM's ability to make high-level judgments about task outcomes, we follow the protocol from SARM [8]. We collect 60 real-world rollouts for each of three tasks (stacking blocks, folding T-shirt, clearing desktop), with 20 successful (SE), 20 partially successful (PSE), and 20 failed (FE) episodes.
 
+> 💡 **4.1.2 详解**：
+>
+> **SARM [8] 协议**：SARM（Self-Aligned Reward Model）是另一篇论文，这里借用了它的评测方法——给模型看一段 rollout 视频，让它判断任务结果属于三类中的哪一类（成功 SE / 部分成功 PSE / 失败 FE）。
+>
+> **测试任务**：3 个真实世界任务（叠积木、折 T 恤、清理桌面），每个任务 60 条 rollout（20 成功 + 20 部分成功 + 20 失败），总共 180 条。
+>
+> **为什么只比 VLM 和 RM，没有 VLA？** 因为这个实验测的是**感知能力**（能不能判断任务做到什么程度），不是控制能力。VLA 是用来输出动作的，不做任务完成判断。能做判断的只有通用 VLM（GPT-5、Gemini）和专用 RM（GVL、VLAC、GRM）。
+
 ---
 
 ![Table 2](../images/e2a86aaa6081874e6ad66918e7c2384ba99bb38c175c2730cfa42ee7620e10f1.jpg)
 *Table 2. Task Completion Classification Accuracy (successes out of 60). GRM 比专门的奖励模型和大型通用模型都更准确。*
 
-> 💡 **Table 2 批读**:
->
-> | 对比项 | 数据 | 说明 |
-> |-------|------|------|
-> | GRM-8B MV vs GPT-5 | 92.8% vs 83.9% | 超越最强通用 VLM (+9%) |
-> | GRM-8B MV vs Gemini-2.5-Pro | 92.8% vs 81.1% | 专用模型 > 通用大模型 |
-> | GRM-8B MV vs GVL | 92.8% vs 37.2% | GVL 几乎不可用 |
-> | GRM-8B MV vs VLAC | 92.8% vs 33.9% | VLAC 也几乎不可用 |
-> | Multi-View vs Single-View | 92.8% vs 83.9% | 多视角关键（+9%） |
->
-> **三个关键洞察**:
-> 1. **GPT-5/Gemini 不够用**: 大模型在空间精度上有短板——"near-miss"(PSE) 常被误判为成功
-> 2. **单视角 PRM 失败**: GVL/VLAC <40%，因为遮挡时丢失物体跟踪
-> 3. **多视角是 killer feature**: 即使一个视角被遮挡，另一个视角仍可验证进度
+> 💡 **Table 2 批读**：GRM-8B Multi-View 达到 92.8%，超越 GPT-5（83.9%）和 Gemini-2.5-Pro（81.1%），说明专用微调 VLM 在任务理解上强于通用大模型。GVL/VLAC 低于 40%，几乎不可用。多视角比单视角高 9%——遮挡时一个视角丢失信息，另一个视角可以补上。
 
 ---
 
@@ -101,17 +104,21 @@ We now evaluate the Dopamine-RL framework across 10 simulation tasks (from LIBER
 ![Table 3](../images/5076e53db6a62ef3c7ccf711d02927d5477c8b9283dbe8d4ec6d068d5ca3878c.jpg)
 *Table 3. Policy Performance and Sample Efficiency. Dopamine-RL 用更少的 rollout 达到更高的成功率。*
 
-> 💡 **Table 3 批读**:
+> 💡 **Table 3 批读**：
 >
-> | 对比项 | 数据 | 说明 |
-> |-------|------|------|
-> | Dopamine-RL vs BC (Real) | 95.2% vs 9.8% | BC 50 demos 几乎不可用 |
-> | Dopamine-RL vs Sparse RL (Real) | 95.2% vs 68.0% | 密集奖励大幅优于稀疏 |
-> | Rollout 效率 (Real) | 150 vs 183 | 比稀疏 RL 少 18% 的交互 |
-> | Dopamine-RL vs Sparse RL (Sim) | 81.0% vs 79.9% | 仿真差距不大 |
-> | Rollout 效率 (Sim) | 395 vs 560 | 比稀疏 RL 少 29% 的交互 |
+> **表中没有标注但需要知道的信息**（来自正文 + Appendix C）：
+> - 仿真任务：LIBERO-Goal 10 个任务，跑了两套配置——PPO + OpenVLA-OFT（Setting 1）和 ReinFlow + π₀（Setting 2），Table 3 未区分，Appendix C 中 ReinFlow+π₀ 明确报告了 81% 成功率
+> - 仿真 RL+Sparse baseline：PPO [46] + sparse reward
+> - 真实世界 RL+Sparse baseline：ConRFT [12]（Cal-QL [39] 的变体 + sparse reward）
 >
-> **关键洞察**: 真实世界的提升远大于仿真（95.2% vs 68.0%），说明 dense reward 在真实世界中价值更大（因为探索更困难、rollout 更昂贵）
+> **表中方法解释**（三行对比的是同一个 VLA 上不同训练方式的差异）：
+> - **BC (50 demos)**：行为克隆，用 50 条人类示教直接监督学习，不和环境交互（所以 Rollout 是横杠）
+> - **RL + Sparse**：用同样的 RL 算法和 VLA，但 reward 只有完成任务时的 $r_{gold} = 1$，没有 GRM 提供的 dense 引导
+> - **Dopamine-RL**：完整框架，同样的 RL 算法和 VLA，但用 GRM dense reward（PBRS）
+>
+> **Rollout (#)** = 达到该成功率需要的训练交互次数（agent 从头到尾尝试一次任务 = 1 rollout），衡量样本效率。
+>
+> **核心结论**：Dopamine-RL 在真实世界上 95.2% vs Sparse RL 68.0%，且只需 150 次 rollout（Sparse 需要 183 次）。真实世界提升远大于仿真，说明 dense reward 在探索困难、rollout 昂贵的场景下价值更大。
 
 ---
 
