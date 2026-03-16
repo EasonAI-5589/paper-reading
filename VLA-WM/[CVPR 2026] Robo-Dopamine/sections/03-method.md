@@ -20,9 +20,9 @@ Our approach is designed to address the core challenges in real-world robotic le
 
 > 💡 **Figure 2 解读**:
 > - **(a) 左半部分 — GRM 架构**: 输入是多视角的 initial/goal/before/after 图片 + task description，经过 Vision Encoder → LLM Decoder，输出一个 hop 值（相对进度变化）
-> - **(a) 右半部分 — Multi-Perspective Fusion**: 同一个 GRM 用三种不同方式推理（Incremental/Forward/Backward），融合得到最终进度 $`\Phi^*`$
+> - **(a) 右半部分 — Multi-Perspective Fusion**: 同一个 GRM 用三种不同方式推理（Incremental/Forward/Backward），融合得到最终进度 $\Phi^*$
 > - **(b) 左 — One-Shot Adaptation**: 给 GRM 看 1 条新任务示教，做 SFT 微调即可适配
-> - **(b) 右 — Policy-Invariant Reward Shaping**: 用 PBRS 公式 $`r = r_{gold} + \gamma\Phi^*(s') - \Phi^*(s)`$ 把进度转成 reward，再喂给任意 RL 算法训练 policy
+> - **(b) 右 — Policy-Invariant Reward Shaping**: 用 PBRS 公式 $r = r_{gold} + \gamma\Phi^*(s') - \Phi^*(s)$ 把进度转成 reward，再喂给任意 RL 算法训练 policy
 
 ---
 
@@ -39,7 +39,7 @@ The core of our modeling method is to build the GRM, a vision-language model des
 
 ---
 
-**Step-wise task progress discretization.** We treat task progress itself as the supervision signal. Given raw multi-view video trajectories, we first segment each expert trajectory into sub-tasks using human-annotated multi-view keyframes $`\{K_0, K_1, \ldots, K_N\}`$, where $`K_0`$ is the initial observation, $`K_N`$ is the final success observation, and each $`K_j`$ is a set of synchronized multi-view keyframes. To obtain dense supervision, we perform adaptive sampling within each segment. For a trajectory with $`L`$ frames per view, we set a chunk size $`C`$ to determine the total number of sampled points and distribute them uniformly across the $`N`$ segments. The number of intermediate points $`m`$ within segment $`[K_j, K_{j+1}]`$ is:
+**Step-wise task progress discretization.** We treat task progress itself as the supervision signal. Given raw multi-view video trajectories, we first segment each expert trajectory into sub-tasks using human-annotated multi-view keyframes $\{K_0, K_1, \ldots, K_N\}$, where $K_0$ is the initial observation, $K_N$ is the final success observation, and each $K_j$ is a set of synchronized multi-view keyframes. To obtain dense supervision, we perform adaptive sampling within each segment. For a trajectory with $L$ frames per view, we set a chunk size $C$ to determine the total number of sampled points and distribute them uniformly across the $N$ segments. The number of intermediate points $m$ within segment $[K_j, K_{j+1}]$ is:
 
 $$
 m = \left\lfloor \frac{1}{N} \left\lfloor \frac{L}{C} \right\rfloor \right\rfloor .
@@ -48,9 +48,9 @@ $$
 > 💡 **Stage 1 — 进度离散化：把连续视频变成带进度标签的状态序列**
 >
 > 具体流程：
-> 1. **人工标注关键帧** $`K_0, K_1, ..., K_N`$：标出子任务的分界点（如"抓起杯子"、"移到盘子上方"、"放下"），将轨迹切成 N 个 segment
+> 1. **人工标注关键帧** $K_0, K_1, ..., K_N$：标出子任务的分界点（如"抓起杯子"、"移到盘子上方"、"放下"），将轨迹切成 N 个 segment
 > 2. **在每个 segment 内均匀采样**：不是对整条轨迹无脑均匀采，而是先按子任务切段再在每段内采，保证每个阶段都有足够样本
-> 3. **给每个采样点打进度标签**：$`\Phi(s_i) = i/M`$，就是"第 i 个点 / 总点数"= 完成百分比
+> 3. **给每个采样点打进度标签**：$\Phi(s_i) = i/M$，就是"第 i 个点 / 总点数"= 完成百分比
 >
 > **公式中的变量**：
 > - L = 轨迹总帧数，C = chunk size（每隔 C 帧采一个点），L/C = 总采样数
@@ -59,13 +59,13 @@ $$
 >
 > **举例**：L=300 帧，C=30，N=3 段 → 总采样 10 个点，每段分到 m=3 个点，Φ 从 0 线性排到 1
 
-This yields a sequence of states $`\mathcal{S} = \{s_0, s_1, \ldots, s_M\}`$ where each state $`s_i`$ is a set of synchronous multi-view visual observations. We then define the ground-truth global progress as $`\Phi(s_i) = i/M`$.
+This yields a sequence of states $\mathcal{S} = \{s_0, s_1, \ldots, s_M\}$ where each state $s_i$ is a set of synchronous multi-view visual observations. We then define the ground-truth global progress as $\Phi(s_i) = i/M$.
 
-> 💡 **进度函数 $`\Phi(s)`$**：这里的 $`\Phi`$ 就是后文 PBRS 公式中的势函数（potential function）。在这一步它是 ground-truth 标签（$`\Phi(s_i) = i/M`$，线性分配）；后续 GRM 训练好后，GRM 的输出 $`\Phi^*(s)`$ 就是对这个进度的预测值。$`\Phi`$ 的含义始终是"任务完成了多少"，从 0（开始）到 1（完成）。
+> 💡 **进度函数 $\Phi(s)$**：这里的 $\Phi$ 就是后文 PBRS 公式中的势函数（potential function）。在这一步它是 ground-truth 标签（$\Phi(s_i) = i/M$，线性分配）；后续 GRM 训练好后，GRM 的输出 $\Phi^*(s)$ 就是对这个进度的预测值。$\Phi$ 的含义始终是"任务完成了多少"，从 0（开始）到 1（完成）。
 
 ---
 
-**Hop-based relative progress normalization.** A naive choice is to regress the progress gain $`\Phi_\delta(s_p, s_q) = \Phi(s_q) - \Phi(s_p)`$ between two states, but iterating such predictions accumulates error and can push the reconstructed $`\Phi^{\star}(s)`$ outside $`[0, 1]`$. Instead, we introduce a hop-based formulation that learns relative-relative progress. Each training sample is a tuple $`\mathcal{D}`$ containing a task description $`d_{task}`$, the initial state $`s_0`$, the goal state $`s_M`$, a "BEFORE" state $`s_p`$, an "AFTER" state $`s_q`$, and a hop label $`\mathcal{H}(s_p, s_q)`$ that normalizes the progress from $`s_p`$ to $`s_q`$ relative to the full task span from $`s_0`$ to $`s_M`$. Given $`\Phi(s_p)`$ and $`\Phi(s_q)`$, we define:
+**Hop-based relative progress normalization.** A naive choice is to regress the progress gain $\Phi_\delta(s_p, s_q) = \Phi(s_q) - \Phi(s_p)$ between two states, but iterating such predictions accumulates error and can push the reconstructed $\Phi^{\star}(s)$ outside $[0, 1]$. Instead, we introduce a hop-based formulation that learns relative-relative progress. Each training sample is a tuple $\mathcal{D}$ containing a task description $d_{task}$, the initial state $s_0$, the goal state $s_M$, a "BEFORE" state $s_p$, an "AFTER" state $s_q$, and a hop label $\mathcal{H}(s_p, s_q)$ that normalizes the progress from $s_p$ to $s_q$ relative to the full task span from $s_0$ to $s_M$. Given $\Phi(s_p)$ and $\Phi(s_q)$, we define:
 
 $$
 \mathcal{H}(s_p, s_q) = \begin{cases} \dfrac{\Phi(s_q) - \Phi(s_p)}{\Phi(s_M) - \Phi(s_p)} & \text{if } q \geq p \text{ (PROGRESS)} \\ \dfrac{\Phi(s_q) - \Phi(s_p)}{\Phi(s_p) - \Phi(s_0)} & \text{if } q < p \text{ (REGRESS)} \end{cases}
@@ -73,21 +73,21 @@ $$
 
 > 💡 **Stage 2 — Hop-based 归一化**
 >
-> **传统做法（绝对进度差）**：$`r = \Phi(s_q) - \Phi(s_p)`$
+> **传统做法（绝对进度差）**：$r = \Phi(s_q) - \Phi(s_p)$
 >
 > 问题：每步预测都有误差（如 ±0.03），连续迭代 20 步后误差累加，重建的进度可能超出 [0,1]
 >
 > **Hop 做法（相对比例）**：
-> - **前进** (q ≥ p)：$`\mathcal{H} = \dfrac{\Phi(s_q) - \Phi(s_p)}{\Phi(s_M) - \Phi(s_p)}`$，分母是**剩余距离**，预测"完成了剩余路程的多少比例"
-> - **后退** (q < p)：$`\mathcal{H} = \dfrac{\Phi(s_q) - \Phi(s_p)}{\Phi(s_p) - \Phi(s_0)}`$，分母是**已走距离**，预测"倒退了已走路程的多少比例"
+> - **前进** (q ≥ p)：$\mathcal{H} = \dfrac{\Phi(s_q) - \Phi(s_p)}{\Phi(s_M) - \Phi(s_p)}$，分母是**剩余距离**，预测"完成了剩余路程的多少比例"
+> - **后退** (q < p)：$\mathcal{H} = \dfrac{\Phi(s_q) - \Phi(s_p)}{\Phi(s_p) - \Phi(s_0)}$，分母是**已走距离**，预测"倒退了已走路程的多少比例"
 >
-> 因为分母会随进度自动缩放（越接近目标剩余距离越小），同样的 hop 误差对绝对进度的影响也越来越小，重建的 $`\Phi^*`$ 数学上保证永远在 [0, 1] 内（Appendix A.1）。
+> 因为分母会随进度自动缩放（越接近目标剩余距离越小），同样的 hop 误差对绝对进度的影响也越来越小，重建的 $\Phi^*$ 数学上保证永远在 [0, 1] 内（Appendix A.1）。
 
-This dynamically scales the supervision into $`[-1, 1]`$: for forward progress, the change is normalized by the remaining distance to the goal; for regression, by the distance already covered from the initial state. A key theoretical advantage is that, when global progress is reconstructed by iteratively applying predicted hops, the resulting $`\Phi^{\star}(s)`$ is guaranteed to remain strictly within [0, 1]. A detailed proof is provided in Appendix A.1.
+This dynamically scales the supervision into $[-1, 1]$: for forward progress, the change is normalized by the remaining distance to the goal; for regression, by the distance already covered from the initial state. A key theoretical advantage is that, when global progress is reconstructed by iteratively applying predicted hops, the resulting $\Phi^{\star}(s)$ is guaranteed to remain strictly within [0, 1]. A detailed proof is provided in Appendix A.1.
 
 ---
 
-**Sampling strategy and data balancing.** For each trajectory, we construct a balanced set of hop-based training samples. Continuous hop values are first discretized into $`N_{hop}`$ hop bins. The temporal distance between the "BEFORE" state $`s_p`$ and "AFTER" state $`s_q`$ in each pair is then chosen from $`N_{dis}`$ distance bins within each hop bin, yielding in total $`N_{hop} \times N_{dis}`$ non-trivial transitions. To reduce bias toward static segments, we further introduce an additional fraction $`\alpha`$ of samples explicitly labeled as zero-hop (i.e., $`\mathcal{H}(s_p, s_q) = 0`$), constructed by selecting pairs $`(s_p, s_q)`$ whose progress change is below a small threshold $`\epsilon`$:
+**Sampling strategy and data balancing.** For each trajectory, we construct a balanced set of hop-based training samples. Continuous hop values are first discretized into $N_{hop}$ hop bins. The temporal distance between the "BEFORE" state $s_p$ and "AFTER" state $s_q$ in each pair is then chosen from $N_{dis}$ distance bins within each hop bin, yielding in total $N_{hop} \times N_{dis}$ non-trivial transitions. To reduce bias toward static segments, we further introduce an additional fraction $\alpha$ of samples explicitly labeled as zero-hop (i.e., $\mathcal{H}(s_p, s_q) = 0$), constructed by selecting pairs $(s_p, s_q)$ whose progress change is below a small threshold $\epsilon$:
 
 $$
 |\Phi(s_q) - \Phi(s_p)| \leq \epsilon.
@@ -97,11 +97,11 @@ $$
 >
 > 如果随机采样状态对，大部分样本的 hop 值会集中在某个小范围，导致 GRM 对其他情况预测不准。通过三个操作解决：
 >
-> **操作 1 — Hop 分箱**：把连续的 hop 值离散化成 $`N_{hop}`$ 个区间（如 0\~0.1、0.1\~0.3、0.3\~1.0），保证每种进步幅度的样本数量均衡，GRM 不会只擅长预测小变化。
+> **操作 1 — Hop 分箱**：把连续的 hop 值离散化成 $N_{hop}$ 个区间（如 0\~0.1、0.1\~0.3、0.3\~1.0），保证每种进步幅度的样本数量均衡，GRM 不会只擅长预测小变化。
 >
-> **操作 2 — 时间距离分箱**：同样的 hop 值可能对应不同的时间跨度。比如 hop=0.2，可能是"1 步内快速完成了 20%"，也可能是"20 步内缓慢积累了 20%"。在每个 hop bin 内，再按 $`s_p`$ 和 $`s_q`$ 之间隔了多少步分成 $`N_{dis}`$ 个 bin，让 GRM 见过各种速度下的进度变化。两个维度交叉共 $`N_{hop} \times N_{dis}`$ 种组合。
+> **操作 2 — 时间距离分箱**：同样的 hop 值可能对应不同的时间跨度。比如 hop=0.2，可能是"1 步内快速完成了 20%"，也可能是"20 步内缓慢积累了 20%"。在每个 hop bin 内，再按 $s_p$ 和 $s_q$ 之间隔了多少步分成 $N_{dis}$ 个 bin，让 GRM 见过各种速度下的进度变化。两个维度交叉共 $N_{hop} \times N_{dis}$ 种组合。
 >
-> **操作 3 — 零 hop 样本**：额外加入 α 比例的"无变化"样本（$`|\Phi(s_q) - \Phi(s_p)| \leq \epsilon`$）。这是因为实际操作中经常有"手在动但任务没进展"的情况，如果训练数据里没有这类样本，GRM 会偏向总是预测"有进展"。
+> **操作 3 — 零 hop 样本**：额外加入 α 比例的"无变化"样本（$|\Phi(s_q) - \Phi(s_p)| \leq \epsilon$）。这是因为实际操作中经常有"手在动但任务没进展"的情况，如果训练数据里没有这类样本，GRM 会偏向总是预测"有进展"。
 >
 > **最终规模**：35M 训练样本，来自 3,400 小时视频、100K+ 轨迹
 
@@ -111,7 +111,7 @@ Applying this three-stage pipeline yields a dataset of 35M samples from about 3,
 >
 > | 阶段 | 做什么 | 输入 → 输出 |
 > |------|--------|-----------|
-> | 1. 进度离散化 | 标关键帧 → 切段 → 均匀采样 → 打进度标签 | 视频 → 状态序列 + $`\Phi(s_i) = i/M`$ |
+> | 1. 进度离散化 | 标关键帧 → 切段 → 均匀采样 → 打进度标签 | 视频 → 状态序列 + $\Phi(s_i) = i/M$ |
 > | 2. Hop 归一化 | 把绝对进度差转成相对比例 | 状态对 → hop 标签 ∈ [-1,1] |
 > | 3. 数据平衡 | 双重分箱 + 零 hop 补充 | hop 标签集 → 35M 均衡训练样本 |
 
@@ -125,7 +125,7 @@ To mitigate error accumulation and ensure consistent accuracy, we fuse predictio
 
 ---
 
-**Incremental Prediction** first offers a fine-grained, step-by-step assessment. Refer to Equation (2), the predicted global progress $`\Phi_I^{\star}(s_t)`$ is recursively computed from the preceding state's progress $`\Phi^{\star}(s_{t-1})`$ and the predicted hop $`\mathcal{H}^{\star}(s_{t-1}, s_t)`$. Let $`\Delta\Phi_{t-1,t}^{\star}`$ be the estimated progress hop:
+**Incremental Prediction** first offers a fine-grained, step-by-step assessment. Refer to Equation (2), the predicted global progress $\Phi_I^{\star}(s_t)$ is recursively computed from the preceding state's progress $\Phi^{\star}(s_{t-1})$ and the predicted hop $\mathcal{H}^{\star}(s_{t-1}, s_t)$. Let $\Delta\Phi_{t-1,t}^{\star}$ be the estimated progress hop:
 
 $$
 \Delta\Phi_{t-1,t}^{\star} = \begin{cases} [1 - \Phi^{\star}(s_{t-1})] \cdot \mathcal{H}^{\star} & \text{if } \mathcal{H}^{\star} \geq 0 \\ \Phi^{\star}(s_{t-1}) \cdot \mathcal{H}^{\star} & \text{if } \mathcal{H}^{\star} < 0 \end{cases}
@@ -143,36 +143,36 @@ $$
 \Phi_I^{\star}(s_t) = \Phi^{\star}(s_{t-1}) + \Delta\Phi_{t-1,t}^{\star},
 $$
 
-where $`\Phi_I^{\star}(s_t)`$ is accumulated along the trajectory, initialized with $`\Phi^{\star}(s_0) = 0`$.
+where $\Phi_I^{\star}(s_t)$ is accumulated along the trajectory, initialized with $\Phi^{\star}(s_0) = 0$.
 
 > 💡 **视角 1 — Incremental（逐步递推）**：
-> - **做法**：BEFORE = 上一步状态，AFTER = 当前状态，GRM 预测相邻两步间的 hop，从 $`s_0`$ 开始逐步累加得到进度
+> - **做法**：BEFORE = 上一步状态，AFTER = 当前状态，GRM 预测相邻两步间的 hop，从 $s_0$ 开始逐步累加得到进度
 > - **优点**：局部精度高，能捕捉每一步的细微变化
 > - **缺点**：误差会逐步累积，长轨迹后段可能偏离真实进度
 
 ---
 
-While this method excels at capturing local dynamics, it is susceptible to the accumulation of prediction errors over long trajectories. To counteract this drift, we introduce extra two global perspectives. **Forward-Anchored Prediction** provides a stable global reference by anchoring to the initial state $`s_{init}`$, where progress is zero:
+While this method excels at capturing local dynamics, it is susceptible to the accumulation of prediction errors over long trajectories. To counteract this drift, we introduce extra two global perspectives. **Forward-Anchored Prediction** provides a stable global reference by anchoring to the initial state $s_{init}$, where progress is zero:
 
 $$
 \Phi_F^{\star}(s_t) = \mathcal{H}^{\star}(s_{init}, s_t).
 $$
 
 > 💡 **视角 2 — Forward-Anchored（前锚定）**：
-> - **做法**：BEFORE = 初始状态 $`s_{init}`$，AFTER = 当前状态 $`s_t`$，直接问 GRM"从头到现在完成了多少"
+> - **做法**：BEFORE = 初始状态 $s_{init}$，AFTER = 当前状态 $s_t$，直接问 GRM"从头到现在完成了多少"
 > - **优点**：不依赖中间步骤，全局稳定，不会累积误差
-> - **缺点**：当 $`s_t`$ 离 $`s_{init}`$ 很远时（比如任务快完成了），一次性跨越太大，单次预测精度下降
+> - **缺点**：当 $s_t$ 离 $s_{init}$ 很远时（比如任务快完成了），一次性跨越太大，单次预测精度下降
 
 ---
 
-Conversely, **Backward-Anchored Prediction** is anchored to the goal state $`s_{goal}`$, where progress is one. This approach offers high sensitivity near task completion:
+Conversely, **Backward-Anchored Prediction** is anchored to the goal state $s_{goal}$, where progress is one. This approach offers high sensitivity near task completion:
 
 $$
 \Phi_B^{\star}(s_t) = 1 + \mathcal{H}^{\star}(s_{goal}, s_t).
 $$
 
 > 💡 **视角 3 — Backward-Anchored（后锚定）**：
-> - **做法**：BEFORE = 目标状态 $`s_{goal}`$，AFTER = 当前状态 $`s_t`$，问 GRM"从目标看，当前退了多少"，然后 1 + 负数 = 当前进度
+> - **做法**：BEFORE = 目标状态 $s_{goal}$，AFTER = 当前状态 $s_t$，问 GRM"从目标看，当前退了多少"，然后 1 + 负数 = 当前进度
 > - **优点**：接近任务完成时剩余距离短，hop 预测最准
 > - **缺点**：远离目标时（任务刚开始），跨度太大，精度下降
 
@@ -260,13 +260,13 @@ Building upon Dopamine-Reward with GRM, we further introduce the Dopamine-RL fra
 
 ### 3.2.1. One-shot GRM Adaptation
 
-Dopamine-RL requires only one single human demonstration $`\mathcal{D}_{human}`$ to adapt the pre-trained GRM to novel or high-precision tasks, since the pre-trained GRM has already possessed a broad prior for assessing progress. Given a new task, we minimize the Mean Squared Error (MSE) between its predicted hop value, $`\mathcal{H}_\omega^{\star}`$, and the ground-truth, $`\mathcal{H}_{gt}`$:
+Dopamine-RL requires only one single human demonstration $\mathcal{D}_{human}$ to adapt the pre-trained GRM to novel or high-precision tasks, since the pre-trained GRM has already possessed a broad prior for assessing progress. Given a new task, we minimize the Mean Squared Error (MSE) between its predicted hop value, $\mathcal{H}_\omega^{\star}$, and the ground-truth, $\mathcal{H}_{gt}$:
 
 $$
 \mathcal{L}_{GRM}(\omega) = \mathbb{E}_{(s_p, s_q) \sim \mathcal{D}_{human}} \|\mathcal{H}_\omega^{\star} - \mathcal{H}_{gt}\|_2^2,
 $$
 
-where $`\omega`$ represents the GRM's parameters, initialized by pre-trained $`\text{GRM}_{\omega_0}`$. After SFT, we obtain a task-adapted $`\text{GRM}_{\omega_{\star}}`$, poised for efficient reinforcement learning.
+where $\omega$ represents the GRM's parameters, initialized by pre-trained $\text{GRM}_{\omega_0}$. After SFT, we obtain a task-adapted $\text{GRM}_{\omega_{\star}}$, poised for efficient reinforcement learning.
 
 > 💡 **One-Shot 适配**：
 > - GRM 在 35M 样本上预训练后已经具备广泛的进度评估能力，面对新任务只需要 1 条人类示教做 SFT 微调
@@ -298,18 +298,18 @@ where $`\omega`$ represents the GRM's parameters, initialized by pre-trained $`\
 
 ### 3.2.2. Policy-Invariant Reward Shaping
 
-A straightforward approach to defining the dense process reward function for policy learning is to use the direct increment of this progress: $`r(s_t, a_t, s_{t+1}) = \Phi^{\star}(s_{t+1}) - \Phi^{\star}(s_t)`$. However, optimizing the standard discounted return, $`J(\pi) = \mathbb{E}_\pi[\sum_{t=0}^{\infty} \gamma^t r(s_t, a_t, s_{t+1})]`$, with this reward is mathematically equivalent to maximizing a different objective: $`J'(\pi) \propto \mathbb{E}_\pi[\sum_{t=1}^{\infty} \gamma^{t-1} \Phi^{\star}(s_t) \mid s_0]`$, as detailed in Appendix A.2.
+A straightforward approach to defining the dense process reward function for policy learning is to use the direct increment of this progress: $r(s_t, a_t, s_{t+1}) = \Phi^{\star}(s_{t+1}) - \Phi^{\star}(s_t)$. However, optimizing the standard discounted return, $J(\pi) = \mathbb{E}_\pi[\sum_{t=0}^{\infty} \gamma^t r(s_t, a_t, s_{t+1})]$, with this reward is mathematically equivalent to maximizing a different objective: $J'(\pi) \propto \mathbb{E}_\pi[\sum_{t=1}^{\infty} \gamma^{t-1} \Phi^{\star}(s_t) \mid s_0]$, as detailed in Appendix A.2.
 
 > 💡 **为什么不能直接用进度差当 reward？**
-> - 最直觉的做法：$`r = \Phi(s') - \Phi(s)`$，前进奖励，后退惩罚
+> - 最直觉的做法：$r = \Phi(s') - \Phi(s)$，前进奖励，后退惩罚
 > - 但展开折扣累积回报后发现，agent 实际最大化的是"各状态进度值的加权和"，而不是"完成任务"
 > - 结果：agent 快速跑到高进度状态（如 90%）然后**停着不动**，因为每待一步都在"享受"高进度带来的折扣回报。这就是 semantic trap
 
-This transformed objective creates a perverse incentive: it encourages the agent not to complete the task, but rather to seek and maintain states with high progress values. Consequently, the resulting policy is rewarded for stagnation, preferring a safe, suboptimal state over potentially risky trajectories that lead to true task completion. To resolve the misalignment, we formulate our GRM reward $`r_{GRM}`$ that adheres to three desiderata:
+This transformed objective creates a perverse incentive: it encourages the agent not to complete the task, but rather to seek and maintain states with high progress values. Consequently, the resulting policy is rewarded for stagnation, preferring a safe, suboptimal state over potentially risky trajectories that lead to true task completion. To resolve the misalignment, we formulate our GRM reward $r_{GRM}$ that adheres to three desiderata:
 
-- **Optimal policy invariance.** The optimal policy learned with $`r_{GRM}`$ must coincide with that under the sparse gold reward $`r_{gold}`$ (1 at task completion, 0 otherwise), so shaping guides exploration without changing task objective.
-- **Discount consistency**: $`r_{GRM}`$ must be compatible with the standard exponentially discounted return and TD or Bellman updates with factor $`\gamma`$ under a memoryless (Markov) reward assumption.
-- **Locality.** At any step $`t`$, $`r_{GRM}`$ is efficiently computable from the single transition $`(s_t, a_t, s_{t+1})`$.
+- **Optimal policy invariance.** The optimal policy learned with $r_{GRM}$ must coincide with that under the sparse gold reward $r_{gold}$ (1 at task completion, 0 otherwise), so shaping guides exploration without changing task objective.
+- **Discount consistency**: $r_{GRM}$ must be compatible with the standard exponentially discounted return and TD or Bellman updates with factor $\gamma$ under a memoryless (Markov) reward assumption.
+- **Locality.** At any step $t$, $r_{GRM}$ is efficiently computable from the single transition $(s_t, a_t, s_{t+1})$.
 
 > 💡 **设计 reward 必须满足的三个约束**：
 > - **Policy invariance**：加了 dense reward 后最优策略不变，不偏离原始任务目标
@@ -318,61 +318,61 @@ This transformed objective creates a perverse incentive: it encourages the agent
 
 ---
 
-Adherence to these desiderata uniquely determines the reward structure, we derive the reward from the continuous-time "discounted potential" $`e^{-\lambda t}\Phi^{\star}(s_t)`$. As detailed in Appendix A.4, the natural discrete-time, single-step increment that is consistent with this continuous form is:
+Adherence to these desiderata uniquely determines the reward structure, we derive the reward from the continuous-time "discounted potential" $e^{-\lambda t}\Phi^{\star}(s_t)$. As detailed in Appendix A.4, the natural discrete-time, single-step increment that is consistent with this continuous form is:
 
 $$
 F(s_t, s_{t+1}) = \gamma\Phi^{\star}(s_{t+1}) - \Phi^{\star}(s_t),
 $$
 
-where $`\gamma = e^{-\lambda h}`$. To enable autonomous learning on real robots without the need for continuous human monitoring, we automate the determination of the sparse outcome reward $`r_{gold}`$. Specifically, we consider the task completed when the estimated progress falls within a close margin of the target (i.e., $`\Phi^{\star}(s_{t+1}) \geq 1 - \delta`$, with $`\delta = 0.05`$). Thus, $`r_{gold} = 1`$ if the completion threshold is met, and 0 otherwise. We add the shaping term $`F`$ to this automated gold-standard reward to define our final reward function:
+where $\gamma = e^{-\lambda h}$. To enable autonomous learning on real robots without the need for continuous human monitoring, we automate the determination of the sparse outcome reward $r_{gold}$. Specifically, we consider the task completed when the estimated progress falls within a close margin of the target (i.e., $\Phi^{\star}(s_{t+1}) \geq 1 - \delta$, with $\delta = 0.05$). Thus, $r_{gold} = 1$ if the completion threshold is met, and 0 otherwise. We add the shaping term $F$ to this automated gold-standard reward to define our final reward function:
 
 $$
 r_{GRM}(s_t, a_t, s_{t+1}) = r_{gold} + \gamma\Phi^{\star}(s_{t+1}) - \Phi^{\star}(s_t).
 $$
 
-> 💡 **核心公式**：$`r_{GRM} = r_{gold} + \gamma\Phi^*(s_{t+1}) - \Phi^*(s_t)`$
+> 💡 **核心公式**：$r_{GRM} = r_{gold} + \gamma\Phi^*(s_{t+1}) - \Phi^*(s_t)$
 >
-> 和 naive 做法 $`r = \Phi(s') - \Phi(s)`$ 相比有**两个关键区别**（不只是加了 $`\gamma`$）：
-> 1. **保留了原始奖励 $`r_{gold}`$**（完成任务 = 1，否则 = 0）：shaping 是补充信号，不替代任务目标
+> 和 naive 做法 $r = \Phi(s') - \Phi(s)$ 相比有**两个关键区别**（不只是加了 $\gamma$）：
+> 1. **保留了原始奖励 $r_{gold}$**（完成任务 = 1，否则 = 0）：shaping 是补充信号，不替代任务目标
 > 2. **加了折扣因子 γ**：打破 telescoping，保证最优策略不变
 >
-> 额外设计：当 $`\Phi^*(s') \geq 0.95`$ 时自动判定任务完成（$`r_{gold} = 1`$），无需人工监督
+> 额外设计：当 $\Phi^*(s') \geq 0.95$ 时自动判定任务完成（$r_{gold} = 1$），无需人工监督
 
 ---
 
-This form guarantees policy invariance: the cumulative discounted shaping term $`F`$ forms a telescoping sum that collapses to a constant boundary term depending only on the initial state $`s_0`$. Appendix A.5 shows that the discrete-time sum and the continuous-time integral of the discounted potential's derivative converge to the same constant:
+This form guarantees policy invariance: the cumulative discounted shaping term $F$ forms a telescoping sum that collapses to a constant boundary term depending only on the initial state $s_0$. Appendix A.5 shows that the discrete-time sum and the continuous-time integral of the discounted potential's derivative converge to the same constant:
 
 $$
 \underbrace{\sum_{t=0}^{\infty} \gamma^t (\gamma\Phi^{\star}(s_{t+1}) - \Phi^{\star}(s_t))}_{\text{Discrete PBRS Sum}} = \underbrace{-\Phi^{\star}(s_0)}_{\text{Boundary Term}}
 $$
 
-Since the shaping term telescopes to a state-dependent constant that is independent of the subsequent policy $`\pi`$, the shaped Q-function is simply a state-wise shift of the original one:
+Since the shaping term telescopes to a state-dependent constant that is independent of the subsequent policy $\pi$, the shaped Q-function is simply a state-wise shift of the original one:
 
 $$
 Q_{GRM}^{\pi}(s, a) = Q_{gold}^{\pi}(s, a) - \Phi^{\star}(s).
 $$
 
-The shift $`-\Phi^{\star}(s)`$ is identical for all actions $`a`$ in a given state $`s`$, so the optimal action remains unchanged:
+The shift $-\Phi^{\star}(s)$ is identical for all actions $a$ in a given state $s$, so the optimal action remains unchanged:
 
 $$
 \arg\max_a Q_{GRM}^{*}(s, a) = \arg\max_a Q_{gold}^{*}(s, a).
 $$
 
 > 💡 **为什么加了 γ 就能保证最优策略不变？**
-> 1. PBRS 项 $`\gamma\Phi^*(s') - \Phi^*(s)`$ 在折扣累加后完美 telescope（相消），只剩常数 $`-\Phi^*(s_0)`$
-> 2. 因此 $`Q_{GRM} = Q_{gold} - \Phi^*(s)`$，只是加了一个**与 action 无关的偏移**
+> 1. PBRS 项 $\gamma\Phi^*(s') - \Phi^*(s)$ 在折扣累加后完美 telescope（相消），只剩常数 $-\Phi^*(s_0)$
+> 2. 因此 $Q_{GRM} = Q_{gold} - \Phi^*(s)$，只是加了一个**与 action 无关的偏移**
 > 3. 偏移对所有 action 相同 → argmax 不变 → 最优策略不变
 > 4. 结论：dense reward 加速了探索（让 agent 知道方向），但不改变最终目标
 >
 > 消融实验（Table 5）：去掉 PBRS 后性能暴降 43.7%——agent 掉入 semantic trap
 
-This matches the standard Potential-Based Reward Shaping (PBRS) framework [41], with the GRM progress $`\Phi^{\star}`$ serving as the potential function.
+This matches the standard Potential-Based Reward Shaping (PBRS) framework [41], with the GRM progress $\Phi^{\star}$ serving as the potential function.
 
 ---
 
 ### 3.2.3. Universal RL-Algorithm Compatibility
 
-Dopamine-RL exhibits strong universality, seamlessly integrating with any RL algorithm, encompassing online RL, offline RL, and offline-to-online RL paradigms. It adapts effectively to both value-based methods and gradient-based approaches. By reshaping targeted reward functions to guide agent learning, Dopamine-RL is inherently agnostic to the specific RL algorithm employed. Experimental results confirm this flexibility. In simulations, we deploy under two settings: PPO [46] (Proximal Policy Optimization) algorithm and OpenVLA-OFT [26] model, and ReinFlow [61] algorithm with $`\pi_0`$ [6] model. In real-world settings, we combine with Cal-QL [39] (a offline-to-online Q-learning based RL algorithm) and it also delivers exceptional outcomes. Further details are shown in Appendix C.
+Dopamine-RL exhibits strong universality, seamlessly integrating with any RL algorithm, encompassing online RL, offline RL, and offline-to-online RL paradigms. It adapts effectively to both value-based methods and gradient-based approaches. By reshaping targeted reward functions to guide agent learning, Dopamine-RL is inherently agnostic to the specific RL algorithm employed. Experimental results confirm this flexibility. In simulations, we deploy under two settings: PPO [46] (Proximal Policy Optimization) algorithm and OpenVLA-OFT [26] model, and ReinFlow [61] algorithm with $\pi_0$ [6] model. In real-world settings, we combine with Cal-QL [39] (a offline-to-online Q-learning based RL algorithm) and it also delivers exceptional outcomes. Further details are shown in Appendix C.
 
 > 💡 **Dopamine-RL 只改 reward 函数，不改 RL 算法本身，因此天然兼容一切 RL 方法**：
 >
@@ -395,14 +395,14 @@ Dopamine-RL exhibits strong universality, seamlessly integrating with any RL alg
 | 1 | 数据构建 | 多视角视频 | 35M hop 标签样本 | 关键帧标注 + 自适应采样 + hop 归一化 |
 | 2 | GRM 预训练 | 35M 样本 | 通用 VLM 奖励模型 | 基于 RoboBrain 2.0 的 SFT |
 | 3 | One-Shot 适配 | 1 条示教 + GRM | 任务适配的 GRM | MSE 微调 |
-| 4 | 进度估计 | 当前观测 + GRM | $`\Phi^*(s_t)`$ | 三视角融合 (+ 一致性检查) |
-| 5 | 奖励塑形 | $`\Phi^*(s_t)`$, $`\Phi^*(s_{t+1})`$ | $`r_{GRM}`$ | PBRS: $`r_{gold} + \gamma\Phi^* - \Phi^*`$ |
-| 6 | RL 训练 | $`r_{GRM}`$ + 任意 RL 算法 | 高性能策略 | PPO / Cal-QL / ReinFlow |
+| 4 | 进度估计 | 当前观测 + GRM | $\Phi^*(s_t)$ | 三视角融合 (+ 一致性检查) |
+| 5 | 奖励塑形 | $\Phi^*(s_t)$, $\Phi^*(s_{t+1})$ | $r_{GRM}$ | PBRS: $r_{gold} + \gamma\Phi^* - \Phi^*$ |
+| 6 | RL 训练 | $r_{GRM}$ + 任意 RL 算法 | 高性能策略 | PPO / Cal-QL / ReinFlow |
 
 ### 关键设计选择及理由
 
 **设计 1: Hop-based 相对进度（而非绝对进度）**
-- **具体设计**: 预测归一化的相对进度变化 $`\mathcal{H} \in [-1,1]`$
+- **具体设计**: 预测归一化的相对进度变化 $\mathcal{H} \in [-1,1]$
 - **设计理由**: 绝对进度迭代累积误差、可能超出 [0,1]
 - **解决的问题**: 进度估计的稳定性和有界性
 
@@ -412,6 +412,6 @@ Dopamine-RL exhibits strong universality, seamlessly integrating with any RL alg
 - **解决的问题**: 长轨迹误差累积（消融: -15% ~ -22.5%）
 
 **设计 3: PBRS 而非 naive reward shaping**
-- **具体设计**: $`r = r_{gold} + \gamma\Phi - \Phi`$（多一个 $`\gamma`$）
+- **具体设计**: $r = r_{gold} + \gamma\Phi - \Phi$（多一个 $\gamma$）
 - **设计理由**: 数学保证最优策略不变（telescoping sum）
 - **解决的问题**: Semantic trap（消融: -43.7%）
