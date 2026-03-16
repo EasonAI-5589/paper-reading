@@ -20,7 +20,7 @@ Our approach is designed to address the core challenges in real-world robotic le
 
 > 💡 **Figure 2 解读**:
 > - **(a) 左半部分 — GRM 架构**: 输入是多视角的 initial/goal/before/after 图片 + task description，经过 Vision Encoder → LLM Decoder，输出一个 hop 值（相对进度变化）
-> - **(a) 右半部分 — Multi-Perspective Fusion**: 同一个 GRM 用三种不同方式推理（Incremental/Forward/Backward），融合得到最终进度 Φ*
+> - **(a) 右半部分 — Multi-Perspective Fusion**: 同一个 GRM 用三种不同方式推理（Incremental/Forward/Backward），融合得到最终进度 $`\Phi^*`$
 > - **(b) 左 — One-Shot Adaptation**: 给 GRM 看 1 条新任务示教，做 SFT 微调即可适配
 > - **(b) 右 — Policy-Invariant Reward Shaping**: 用 PBRS 公式 $`r = r_{gold} + \gamma\Phi^*(s') - \Phi^*(s)`$ 把进度转成 reward，再喂给任意 RL 算法训练 policy
 
@@ -50,7 +50,7 @@ $$
 > 具体流程：
 > 1. **人工标注关键帧** $`K_0, K_1, ..., K_N`$：标出子任务的分界点（如"抓起杯子"、"移到盘子上方"、"放下"），将轨迹切成 N 个 segment
 > 2. **在每个 segment 内均匀采样**：不是对整条轨迹无脑均匀采，而是先按子任务切段再在每段内采，保证每个阶段都有足够样本
-> 3. **给每个采样点打进度标签**：Φ(s_i) = i/M，就是"第 i 个点 / 总点数"= 完成百分比
+> 3. **给每个采样点打进度标签**：$`\Phi(s_i) = i/M`$，就是"第 i 个点 / 总点数"= 完成百分比
 >
 > **公式中的变量**：
 > - L = 轨迹总帧数，C = chunk size（每隔 C 帧采一个点），L/C = 总采样数
@@ -61,7 +61,7 @@ $$
 
 This yields a sequence of states $`\mathcal{S} = \{s_0, s_1, \ldots, s_M\}`$ where each state $`s_i`$ is a set of synchronous multi-view visual observations. We then define the ground-truth global progress as $`\Phi(s_i) = i/M`$.
 
-> 💡 **进度函数 Φ(s)**：这里的 Φ 就是后文 PBRS 公式中的势函数（potential function）。在这一步它是 ground-truth 标签（Φ(s_i) = i/M，线性分配）；后续 GRM 训练好后，GRM 的输出 Φ*(s) 就是对这个进度的预测值。Φ 的含义始终是"任务完成了多少"，从 0（开始）到 1（完成）。
+> 💡 **进度函数 $`\Phi(s)`$**：这里的 $`\Phi`$ 就是后文 PBRS 公式中的势函数（potential function）。在这一步它是 ground-truth 标签（$`\Phi(s_i) = i/M`$，线性分配）；后续 GRM 训练好后，GRM 的输出 $`\Phi^*(s)`$ 就是对这个进度的预测值。$`\Phi`$ 的含义始终是"任务完成了多少"，从 0（开始）到 1（完成）。
 
 ---
 
@@ -81,7 +81,7 @@ $$
 > - **前进** (q ≥ p)：$`\mathcal{H} = \dfrac{\Phi(s_q) - \Phi(s_p)}{\Phi(s_M) - \Phi(s_p)}`$，分母是**剩余距离**，预测"完成了剩余路程的多少比例"
 > - **后退** (q < p)：$`\mathcal{H} = \dfrac{\Phi(s_q) - \Phi(s_p)}{\Phi(s_p) - \Phi(s_0)}`$，分母是**已走距离**，预测"倒退了已走路程的多少比例"
 >
-> 因为分母会随进度自动缩放（越接近目标剩余距离越小），同样的 hop 误差对绝对进度的影响也越来越小，重建的 Φ* 数学上保证永远在 [0, 1] 内（Appendix A.1）。
+> 因为分母会随进度自动缩放（越接近目标剩余距离越小），同样的 hop 误差对绝对进度的影响也越来越小，重建的 $`\Phi^*`$ 数学上保证永远在 [0, 1] 内（Appendix A.1）。
 
 This dynamically scales the supervision into $`[-1, 1]`$: for forward progress, the change is normalized by the remaining distance to the goal; for regression, by the distance already covered from the initial state. A key theoretical advantage is that, when global progress is reconstructed by iteratively applying predicted hops, the resulting $`\Phi^{\star}(s)`$ is guaranteed to remain strictly within [0, 1]. A detailed proof is provided in Appendix A.1.
 
@@ -97,9 +97,9 @@ $$
 >
 > 如果随机采样状态对，大部分样本的 hop 值会集中在某个小范围，导致 GRM 对其他情况预测不准。通过三个操作解决：
 >
-> **操作 1 — Hop 分箱**：把连续的 hop 值离散化成 N_hop 个区间（如 0\~0.1、0.1\~0.3、0.3\~1.0），保证每种进步幅度的样本数量均衡，GRM 不会只擅长预测小变化。
+> **操作 1 — Hop 分箱**：把连续的 hop 值离散化成 $`N_{hop}`$ 个区间（如 0\~0.1、0.1\~0.3、0.3\~1.0），保证每种进步幅度的样本数量均衡，GRM 不会只擅长预测小变化。
 >
-> **操作 2 — 时间距离分箱**：同样的 hop 值可能对应不同的时间跨度。比如 hop=0.2，可能是"1 步内快速完成了 20%"，也可能是"20 步内缓慢积累了 20%"。在每个 hop bin 内，再按 s_p 和 s_q 之间隔了多少步分成 N_dis 个 bin，让 GRM 见过各种速度下的进度变化。两个维度交叉共 N_hop × N_dis 种组合。
+> **操作 2 — 时间距离分箱**：同样的 hop 值可能对应不同的时间跨度。比如 hop=0.2，可能是"1 步内快速完成了 20%"，也可能是"20 步内缓慢积累了 20%"。在每个 hop bin 内，再按 $`s_p`$ 和 $`s_q`$ 之间隔了多少步分成 $`N_{dis}`$ 个 bin，让 GRM 见过各种速度下的进度变化。两个维度交叉共 $`N_{hop} \times N_{dis}`$ 种组合。
 >
 > **操作 3 — 零 hop 样本**：额外加入 α 比例的"无变化"样本（$`|\Phi(s_q) - \Phi(s_p)| \leq \epsilon`$）。这是因为实际操作中经常有"手在动但任务没进展"的情况，如果训练数据里没有这类样本，GRM 会偏向总是预测"有进展"。
 >
@@ -111,7 +111,7 @@ Applying this three-stage pipeline yields a dataset of 35M samples from about 3,
 >
 > | 阶段 | 做什么 | 输入 → 输出 |
 > |------|--------|-----------|
-> | 1. 进度离散化 | 标关键帧 → 切段 → 均匀采样 → 打进度标签 | 视频 → 状态序列 + Φ(s_i) = i/M |
+> | 1. 进度离散化 | 标关键帧 → 切段 → 均匀采样 → 打进度标签 | 视频 → 状态序列 + $`\Phi(s_i) = i/M`$ |
 > | 2. Hop 归一化 | 把绝对进度差转成相对比例 | 状态对 → hop 标签 ∈ [-1,1] |
 > | 3. 数据平衡 | 双重分箱 + 零 hop 补充 | hop 标签集 → 35M 均衡训练样本 |
 
@@ -140,7 +140,7 @@ $$
 where $`\Phi_I^{\star}(s_t)`$ is accumulated along the trajectory, initialized with $`\Phi^{\star}(s_0) = 0`$.
 
 > 💡 **视角 1 — Incremental（逐步递推）**：
-> - **做法**：BEFORE = 上一步状态，AFTER = 当前状态，GRM 预测相邻两步间的 hop，从 s_0 开始逐步累加得到进度
+> - **做法**：BEFORE = 上一步状态，AFTER = 当前状态，GRM 预测相邻两步间的 hop，从 $`s_0`$ 开始逐步累加得到进度
 > - **优点**：局部精度高，能捕捉每一步的细微变化
 > - **缺点**：误差会逐步累积，长轨迹后段可能偏离真实进度
 
@@ -153,9 +153,9 @@ $$
 $$
 
 > 💡 **视角 2 — Forward-Anchored（前锚定）**：
-> - **做法**：BEFORE = 初始状态 s_init，AFTER = 当前状态 s_t，直接问 GRM"从头到现在完成了多少"
+> - **做法**：BEFORE = 初始状态 $`s_{init}`$，AFTER = 当前状态 $`s_t`$，直接问 GRM"从头到现在完成了多少"
 > - **优点**：不依赖中间步骤，全局稳定，不会累积误差
-> - **缺点**：当 s_t 离 s_init 很远时（比如任务快完成了），一次性跨越太大，单次预测精度下降
+> - **缺点**：当 $`s_t`$ 离 $`s_{init}`$ 很远时（比如任务快完成了），一次性跨越太大，单次预测精度下降
 
 ---
 
@@ -166,7 +166,7 @@ $$
 $$
 
 > 💡 **视角 3 — Backward-Anchored（后锚定）**：
-> - **做法**：BEFORE = 目标状态 s_goal，AFTER = 当前状态 s_t，问 GRM"从目标看，当前退了多少"，然后 1 + 负数 = 当前进度
+> - **做法**：BEFORE = 目标状态 $`s_{goal}`$，AFTER = 当前状态 $`s_t`$，问 GRM"从目标看，当前退了多少"，然后 1 + 负数 = 当前进度
 > - **优点**：接近任务完成时剩余距离短，hop 预测最准
 > - **缺点**：远离目标时（任务刚开始），跨度太大，精度下降
 
@@ -235,7 +235,7 @@ Building upon Dopamine-Reward with GRM, we further introduce the Dopamine-RL fra
 
 > 💡 **Dopamine-RL 是把 GRM 的进度估计转化为 RL 可用的 reward 的框架**，三个子模块：
 > 1. **One-Shot Adaptation (3.2.1)**：只需 1 条示教就能让 GRM 适配新任务
-> 2. **Policy-Invariant Reward Shaping (3.2.2)**：用 PBRS 公式安全地把 Φ* 变成 reward，不改变最优策略
+> 2. **Policy-Invariant Reward Shaping (3.2.2)**：用 PBRS 公式安全地把 $`\Phi^*`$ 变成 reward，不改变最优策略
 > 3. **Universal Compatibility (3.2.3)**：只改 reward 不改算法，兼容任意 RL 方法
 
 ---
@@ -283,7 +283,7 @@ where $`\omega`$ represents the GRM's parameters, initialized by pre-trained $`\
 A straightforward approach to defining the dense process reward function for policy learning is to use the direct increment of this progress: $`r(s_t, a_t, s_{t+1}) = \Phi^{\star}(s_{t+1}) - \Phi^{\star}(s_t)`$. However, optimizing the standard discounted return, $`J(\pi) = \mathbb{E}_\pi[\sum_{t=0}^{\infty} \gamma^t r(s_t, a_t, s_{t+1})]`$, with this reward is mathematically equivalent to maximizing a different objective: $`J'(\pi) \propto \mathbb{E}_\pi[\sum_{t=1}^{\infty} \gamma^{t-1} \Phi^{\star}(s_t) \mid s_0]`$, as detailed in Appendix A.2.
 
 > 💡 **为什么不能直接用进度差当 reward？**
-> - 最直觉的做法：r = Φ(s') - Φ(s)，前进奖励，后退惩罚
+> - 最直觉的做法：$`r = \Phi(s') - \Phi(s)`$，前进奖励，后退惩罚
 > - 但展开折扣累积回报后发现，agent 实际最大化的是"各状态进度值的加权和"，而不是"完成任务"
 > - 结果：agent 快速跑到高进度状态（如 90%）然后**停着不动**，因为每待一步都在"享受"高进度带来的折扣回报。这就是 semantic trap
 
@@ -314,11 +314,11 @@ $$
 
 > 💡 **核心公式**：$`r_{GRM} = r_{gold} + \gamma\Phi^*(s_{t+1}) - \Phi^*(s_t)`$
 >
-> 和 naive 做法 r = Φ(s') - Φ(s) 相比有**两个关键区别**（不只是加了 γ）：
+> 和 naive 做法 $`r = \Phi(s') - \Phi(s)`$ 相比有**两个关键区别**（不只是加了 $`\gamma`$）：
 > 1. **保留了原始奖励 $`r_{gold}`$**（完成任务 = 1，否则 = 0）：shaping 是补充信号，不替代任务目标
 > 2. **加了折扣因子 γ**：打破 telescoping，保证最优策略不变
 >
-> 额外设计：当 Φ*(s') ≥ 0.95 时自动判定任务完成（r_gold = 1），无需人工监督
+> 额外设计：当 $`\Phi^*(s') \geq 0.95`$ 时自动判定任务完成（$`r_{gold} = 1`$），无需人工监督
 
 ---
 
@@ -341,8 +341,8 @@ $$
 $$
 
 > 💡 **为什么加了 γ 就能保证最优策略不变？**
-> 1. PBRS 项 γΦ*(s') - Φ*(s) 在折扣累加后完美 telescope（相消），只剩常数 -Φ*(s_0)
-> 2. 因此 Q_GRM = Q_gold - Φ*(s)，只是加了一个**与 action 无关的偏移**
+> 1. PBRS 项 $`\gamma\Phi^*(s') - \Phi^*(s)`$ 在折扣累加后完美 telescope（相消），只剩常数 $`-\Phi^*(s_0)`$
+> 2. 因此 $`Q_{GRM} = Q_{gold} - \Phi^*(s)`$，只是加了一个**与 action 无关的偏移**
 > 3. 偏移对所有 action 相同 → argmax 不变 → 最优策略不变
 > 4. 结论：dense reward 加速了探索（让 agent 知道方向），但不改变最终目标
 >
