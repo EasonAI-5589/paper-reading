@@ -9,9 +9,9 @@ Method 由两大模块组成：(a) Dopamine-Reward——如何构建 GRM 并从�
 
 Our approach is designed to address the core challenges in real-world robotic learning by introducing two synergistic components. First, we develop Dopamine-Reward that learns a general-purpose, step-aware process reward from multi-view inputs (Section 3.1). Second, we propose Dopamine-RL, a robust policy learning framework built upon Dopamine-Reward, resolving the theoretical flaws in conventional reward shaping (Section 3.2).
 
-> 💡 **Section 概览**: 两个模块相辅相成——
-> - Dopamine-Reward (3.1): 解决"奖励模型不够好"的问题
-> - Dopamine-RL (3.2): 解决"奖励塑形有理论缺陷"的问题
+> 💡 **本文提出两个模块**：
+> - **Dopamine-Reward (3.1)**：提出 GRM，通过 hop-based 进度预测 + 多视角融合，解决现有 PRM 评不准的问题（对应 Introduction 缺陷 1）
+> - **Dopamine-RL (3.2)**：提出 Policy-Invariant Reward Shaping，通过 PBRS 公式将 GRM 输出安全地转化为 reward，解决 naive dense reward 导致 semantic trap 的问题（对应 Introduction 缺陷 2）
 
 ---
 
