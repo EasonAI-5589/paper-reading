@@ -300,10 +300,13 @@ where $\omega$ represents the GRM's parameters, initialized by pre-trained $\tex
 
 A straightforward approach to defining the dense process reward function for policy learning is to use the direct increment of this progress: $r(s_t, a_t, s_{t+1}) = \Phi^{\star}(s_{t+1}) - \Phi^{\star}(s_t)$. However, optimizing the standard discounted return, $J(\pi) = \mathbb{E}_\pi[\sum_{t=0}^{\infty} \gamma^t r(s_t, a_t, s_{t+1})]$, with this reward is mathematically equivalent to maximizing a different objective: $J'(\pi) \propto \mathbb{E}_\pi[\sum_{t=1}^{\infty} \gamma^{t-1} \Phi^{\star}(s_t) \mid s_0]$, as detailed in Appendix A.2.
 
-> 💡 **为什么不能直接用进度差当 reward？**
-> - 最直觉的做法：$r = \Phi(s') - \Phi(s)$，前进奖励，后退惩罚
-> - 但展开折扣累积回报后发现，agent 实际最大化的是"各状态进度值的加权和"，而不是"完成任务"
-> - 结果：agent 快速跑到高进度状态（如 90%）然后**停着不动**，因为每待一步都在"享受"高进度带来的折扣回报。这就是 semantic trap
+> 💡 **两个公式解读**：
+>
+> **公式 1**：$r = \Phi^{\star}(s_{t+1}) - \Phi^{\star}(s_t)$——最直觉的 dense reward 设计：进度增加就奖励，减少就惩罚。
+>
+> **公式 2**：$J(\pi) = \mathbb{E}[\sum \gamma^t r]$——标准 RL 目标，agent 最大化所有 reward 的折扣累加和。把公式 1 代入公式 2 展开后，进度差会 telescope（相邻项抵消），最终等价于 $J'(\pi) \propto \sum \gamma^{t-1} \Phi^{\star}(s_t)$——变成了"每一步的进度值乘以折扣的加权和"。
+>
+> **问题出在哪**：$J'$ 不是在优化"完成任务"，而是在优化"尽量让每一步都处于高进度状态"。agent 跑到 90% 进度就停住不动，因为停着就能持续收割高 $\Phi$ 值的折扣回报，比冒险完成任务更"划算"。这就是 **semantic trap**，也是 3.2.2 后半段要用 PBRS 解决的核心问题。
 
 This transformed objective creates a perverse incentive: it encourages the agent not to complete the task, but rather to seek and maintain states with high progress values. Consequently, the resulting policy is rewarded for stagnation, preferring a safe, suboptimal state over potentially risky trajectories that lead to true task completion. To resolve the misalignment, we formulate our GRM reward $r_{GRM}$ that adheres to three desiderata:
 
@@ -311,10 +314,15 @@ This transformed objective creates a perverse incentive: it encourages the agent
 - **Discount consistency**: $r_{GRM}$ must be compatible with the standard exponentially discounted return and TD or Bellman updates with factor $\gamma$ under a memoryless (Markov) reward assumption.
 - **Locality.** At any step $t$, $r_{GRM}$ is efficiently computable from the single transition $(s_t, a_t, s_{t+1})$.
 
-> 💡 **设计 reward 必须满足的三个约束**：
-> - **Policy invariance**：加了 dense reward 后最优策略不变，不偏离原始任务目标
-> - **Discount consistency**：兼容标准的 γ 折扣和 TD/Bellman 更新，与现有 RL 算法兼容
-> - **Locality**：只需当前 transition (s, a, s') 就能算出 reward，不需要回看整条轨迹
+> 💡 **三个 desiderata（硬约束）的含义与内在联系**：
+>
+> Desiderata = 拉丁语，意思是"必须满足的条件"。这三条不是孤立的，它们共同推导出 reward 的唯一形式——PBRS：
+>
+> - **Policy invariance**（最优策略不变）：加了 dense reward 后 agent 的最优行为不能变。排除了上面的 naive 做法（$r = \Phi(s') - \Phi(s)$ 会导致 semantic trap）
+> - **Discount consistency**（折扣一致性）：reward 必须兼容标准 RL 的 $\gamma$ 折扣和 TD/Bellman 更新，不能搞特殊的累积方式。排除了不带 $\gamma$ 的 shaping
+> - **Locality**（局部可计算）：每步 reward 只看当前 transition $(s_t, a_t, s_{t+1})$ 就能算，不需要回看整条轨迹。排除了 trajectory-level reward
+>
+> 三条同时满足 → 唯一解就是 $F(s_t, s_{t+1}) = \gamma\Phi(s') - \Phi(s)$，即经典 PBRS（Potential-Based Reward Shaping，基于势函数的奖励塑形）形式。PBRS 是 RL 领域的经典理论 [Ng et al., 1999]，核心思想是：给每个状态定义一个"势"（potential），用相邻状态的势差作为额外 reward，数学上可以证明这不会改变最优策略。这里的势函数就是 GRM 输出的进度 $\Phi^{\ast}(s)$。
 
 ---
 
@@ -323,6 +331,8 @@ Adherence to these desiderata uniquely determines the reward structure, we deriv
 $$
 F(s_t, s_{t+1}) = \gamma\Phi^{\star}(s_{t+1}) - \Phi^{\star}(s_t),
 $$
+
+> 💡 **$F$ 是什么？** $F$ 是 PBRS 的 shaping term（塑形项/引导项），不是 reward model。原始 reward $r_{gold}$ 只在任务完成时给 1 分，其他时候全是 0，agent 不知道自己走对没有。$F$ 就是除了最终 ground truth 以外的引导信号，告诉 agent 每一步"你在前进还是后退"，加速探索。
 
 where $\gamma = e^{-\lambda h}$. To enable autonomous learning on real robots without the need for continuous human monitoring, we automate the determination of the sparse outcome reward $r_{gold}$. Specifically, we consider the task completed when the estimated progress falls within a close margin of the target (i.e., $\Phi^{\star}(s_{t+1}) \geq 1 - \delta$, with $\delta = 0.05$). Thus, $r_{gold} = 1$ if the completion threshold is met, and 0 otherwise. We add the shaping term $F$ to this automated gold-standard reward to define our final reward function:
 
@@ -358,13 +368,23 @@ $$
 \arg\max_a Q_{GRM}^{*}(s, a) = \arg\max_a Q_{gold}^{*}(s, a).
 $$
 
-> 💡 **为什么加了 γ 就能保证最优策略不变？**
-> 1. PBRS 项 $\gamma\Phi^*(s') - \Phi^*(s)$ 在折扣累加后完美 telescope（相消），只剩常数 $-\Phi^*(s_0)$
-> 2. 因此 $Q_{GRM} = Q_{gold} - \Phi^*(s)$，只是加了一个**与 action 无关的偏移**
-> 3. 偏移对所有 action 相同 → argmax 不变 → 最优策略不变
-> 4. 结论：dense reward 加速了探索（让 agent 知道方向），但不改变最终目标
+> 💡 **传统 reward vs GRM reward，以及为什么 Q 不受 $\Phi$ 干扰**：
 >
-> 消融实验（Table 5）：去掉 PBRS 后性能暴降 43.7%——agent 掉入 semantic trap
+> **背景**：RL 的核心是学 Q 函数（= 未来所有 reward 的折扣累加），然后选 Q 最大的动作。Q 是由 reward 累积出来的，所以 reward 怎么设计直接决定 Q 长什么样。
+>
+> **传统 sparse reward**：只有完成任务时 $r_{gold} = 1$，其他时候全是 0。agent 不知道自己在朝正确方向走还是瞎走，Q 学得极慢。
+>
+> **GRM reward**：$r_{GRM} = r_{gold} + F$，多了一个引导项 $F = \gamma\Phi(s') - \Phi(s)$，每一步都告诉 agent "你在前进还是后退"，Q 学得快得多。
+>
+> **关键问题：加了 $F$ 会不会把 Q 带偏？** 不会。因为 Q 是 reward 的累积，$r_{GRM}$ 能拆成两部分：
+>
+> $Q_{GRM} = \sum \gamma^t r_{gold} + \sum \gamma^t F = Q_{gold} + \sum \gamma^t F$
+>
+> 而 $F$ 带了 $\gamma$，使得 $\sum \gamma^t F$ telescope 相消（相邻项两两抵消），只剩一个常数 $-\Phi(s)$。这个常数只和**状态**有关，和**动作**无关，所以给所有动作的 Q 加了相同的偏移，排名不变，最优动作不变。
+>
+> **对比 naive 做法**：如果不带 $\gamma$（$r = \Phi(s') - \Phi(s)$），展开后中间项凑不齐、消不掉，$\sum F$ 不是常数而是和策略有关 → Q 被扭曲 → agent 掉入 semantic trap（停在高进度状态不动）。
+>
+> 消融实验（Table 5）：去掉 PBRS 后性能暴降 43.7%，agent 掉入 semantic trap
 
 This matches the standard Potential-Based Reward Shaping (PBRS) framework [41], with the GRM progress $\Phi^{\star}$ serving as the potential function.
 
@@ -374,7 +394,9 @@ This matches the standard Potential-Based Reward Shaping (PBRS) framework [41], 
 
 Dopamine-RL exhibits strong universality, seamlessly integrating with any RL algorithm, encompassing online RL, offline RL, and offline-to-online RL paradigms. It adapts effectively to both value-based methods and gradient-based approaches. By reshaping targeted reward functions to guide agent learning, Dopamine-RL is inherently agnostic to the specific RL algorithm employed. Experimental results confirm this flexibility. In simulations, we deploy under two settings: PPO [46] (Proximal Policy Optimization) algorithm and OpenVLA-OFT [26] model, and ReinFlow [61] algorithm with $\pi_0$ [6] model. In real-world settings, we combine with Cal-QL [39] (a offline-to-online Q-learning based RL algorithm) and it also delivers exceptional outcomes. Further details are shown in Appendix C.
 
-> 💡 **Dopamine-RL 只改 reward 函数，不改 RL 算法本身，因此天然兼容一切 RL 方法**：
+> 💡 **为什么能兼容一切 RL 算法？**
+>
+> 回顾整个 Dopamine-RL 的流程：GRM 负责评估进度 $\Phi$（3.1 节），PBRS 负责把 $\Phi$ 安全地转成 reward（3.2.2 节）。这两步都只发生在 **reward 层面**——RL 算法拿到的就是一个普通的标量 reward $r_{GRM}$，它不关心这个 reward 是怎么算出来的。所以不管你用什么 RL 算法（value-based 还是 policy gradient），只要它接受 reward 信号，就能直接用。
 >
 > | 环境 | RL 算法 | Policy 架构 | 类型 |
 > |------|---------|------------|------|
@@ -382,7 +404,9 @@ Dopamine-RL exhibits strong universality, seamlessly integrating with any RL alg
 > | 仿真 | ReinFlow [61] | π₀ [6] | Online RL (Flow) |
 > | 真实世界 | Cal-QL [39] | — | Offline-to-Online |
 >
-> 这是 PBRS 框架的固有优势——reward shaping 发生在 reward 层面，与 policy 优化算法完全解耦。
+> 与 3.2.2 的关系：3.2.2 证明了"Q 只多一个与动作无关的偏移，不影响决策"，3.2.3 是这个结论的延伸——既然 RL 算法都是通过 Q 来选动作，而 Q 的排名没变，那用什么 RL 算法都不影响最终结果。
+>
+> 注意：PBRS 不是 GRM reward 的"构造过程"，而是**理论保证**。GRM + 三视角融合构造了进度 $\Phi$，PBRS 只负责最后一步——怎么把 $\Phi$ 变成 reward 而不破坏最优策略。
 
 ---
 
