@@ -124,6 +124,7 @@ LLM 驱动的 Web3 智能代理
 | [Titans](./Parametric%20Memory/%5BArxiv%202501.00663%5D%20Titans/) | arXiv 2501.00663 | Neural long-term memory (surprise metric + momentum + weight decay), MAC/MAG/MAL 三变体, 2M+ context |
 | [Nested Learning](./Parametric%20Memory/%5BNeurIPS%202025%5D%20Nested-Learning/) | NeurIPS 2025 | 嵌套优化范式, 优化器=联想记忆, Continuum Memory System + Hope 架构 |
 | [ParamMem](./Parametric%20Memory/%5BArxiv%202602.23320%5D%20ParamMem/) | arXiv 2602.23320 | 参数化 reflection 记忆, LoRA 编码跨样本反思模式, ~500 样本即有效 |
+| [In-Place TTT](./Parametric%20Memory/%5BICLR%202026%5D%20In-Place%20TTT/) | ICLR 2026 | MLP $W_{down}$ 复用为 fast weights, NTP 对齐目标 + chunk-wise 更新, drop-in 增强 LLM 长上下文能力 |
 
 ---
 
@@ -197,12 +198,13 @@ paper-reading/
 ├── [ICLR 2026] Context-Clues/
 ├── [NeurIPS 2023] EHRSHOT/
 │
-├── Parametric Memory/               # 参数化记忆机制 (5 篇)
+├── Parametric Memory/               # 参数化记忆机制 (6 篇)
 │   ├── [ICML 2024] MemoryLLM/
 │   ├── [ICML 2025] M-Plus/
 │   ├── [Arxiv 2501.00663] Titans/
 │   ├── [NeurIPS 2025] Nested-Learning/
-│   └── [Arxiv 2602.23320] ParamMem/
+│   ├── [Arxiv 2602.23320] ParamMem/
+│   └── [ICLR 2026] In-Place TTT/
 │
 ├── RLHF/                           # 强化学习人类反馈 (1 篇)
 │   └── [ICML 2025] MM-RLHF/
@@ -269,4 +271,4 @@ paper-reading/
 
 ---
 
-*由 3号机 协助整理 📚 | 更新: 2026-03-16 | 共 42 篇论文 + 12 篇待读*
+*由 3号机 协助整理 📚 | 更新: 2026-03-17 | 共 43 篇论文 + 12 篇待读*
