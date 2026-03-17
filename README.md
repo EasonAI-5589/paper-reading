@@ -86,6 +86,15 @@ Agent 记忆机制
 
 ---
 
+### 🔗 LLM Web3 Agent
+LLM 驱动的 Web3 智能代理
+
+| 论文 | 会议 | 方法特点 |
+|------|------|----------|
+| [Web3Agent](./LLM-Web3-Agent/%5BACM%20TWEB%202026%5D%20Web3Agent/) | ACM TWEB 2026 | LLM Agent 端到端链上操作，六模块流水线 + 领域专用 RAG (Operation/API/Error chunks)，94.1% Query SR / 80.3% Op SR |
+
+---
+
 ### 🏥 Medical VQA Benchmark
 医学视觉问答基准
 
@@ -179,6 +188,9 @@ paper-reading/
 │   ├── [Arxiv 2602.03036] LatentMem/
 │   └── [ICLR 2026] MemGen/
 │
+│
+├── LLM-Web3-Agent/                  # LLM Web3 Agent (1 篇)
+│   └── [ACM TWEB 2026] Web3Agent/
 ├── Medical VQA Benchmark/           # 医学视觉问答基准 (0 篇)
 │
 ├── [ICLR 2026 Rejected] MedFrameQA/ # Medical AI (未分组, 3 篇)
@@ -257,4 +269,4 @@ paper-reading/
 
 ---
 
-*由 3号机 协助整理 📚 | 更新: 2026-03-16 | 共 41 篇论文 + 12 篇待读*
+*由 3号机 协助整理 📚 | 更新: 2026-03-16 | 共 42 篇论文 + 12 篇待读*
