@@ -2,62 +2,92 @@
 
 **作者**: Kevin Black, Manuel Y. Galliker, Sergey Levine
 **机构**: Physical Intelligence, UC Berkeley
-**会议**: **NeurIPS 2025**
-**链接**: [arXiv 2506.07339](https://arxiv.org/abs/2506.07339) | [项目主页](https://pi.website/research/real_time_chunking)
+**会议**: NeurIPS 2025
+**链接**: [arXiv 2506.07339](https://arxiv.org/abs/2506.07339) | [项目页面](https://pi.website/research/real_time_chunking) | [代码 (仿真)](https://github.com/Physical-Intelligence/real-time-chunking-kinetix)
+
+---
 
 ## 一句话总结
 
-提出 Real-Time Chunking (RTC)，一种纯推理时算法，通过将异步 action chunking 建模为 inpainting 问题（冻住已执行 action + soft masking guidance），让 diffusion/flow-based VLA 在任意推理延迟下都能平滑实时执行，无需重新训练。
+RTC 是一种纯推理时算法，通过将异步 action chunking 建模为 **inpainting 问题**（冻住已执行 action + soft masking guidance 填充剩余部分），让任何 diffusion/flow-based VLA 实现平滑实时执行，**无需重新训练**。
+
+---
 
 ## 核心贡献
 
-1. **RTC 算法**: 将异步 action chunking 转化为 inpainting 问题，用 ΠGDM guidance + soft masking 保证跨 chunk 连续性
-2. **Soft masking**: 指数衰减的权重矩阵，不只冻住前 $d$ 个 action，而是对所有重叠区域渐进引导
-3. **Kinetix 动态仿真 benchmark**: 12 个高动态任务，解决现有 benchmark 太简单的问题
-4. **大规模真实实验**: π₀.₅ + 6 个双臂任务，480 episodes，28h 机器人时间，证明 RTC 对延迟完全鲁棒
-5. **即插即用**: 纯推理时方法，适用于任何 diffusion/flow-based VLA，不需要改训练
+1. **Inpainting 框架**: 首次将 diffusion/flow inpainting（ΠGDM guidance）应用于实时机器人控制
+2. **Soft Masking**: 指数衰减的 guidance 权重，确保跨 chunk 连续性，比 hard masking 显著更好
+3. **Guidance Weight Clipping (β)**: 适配少 denoising steps 的控制场景，防止 action chunk 发散
+4. **Kinetix Benchmark**: 12 个高动态仿真任务，填补现有 quasi-static benchmark 的空白
+5. **大规模真实实验**: 6 个双臂任务 × 480 episodes × 28h 机器人时间，用 π₀.₅ 验证
+
+---
 
 ## 📖 批读导航
 
 | Section | 内容 |
 |---------|------|
-| [00 - Abstract](sections/00-abstract.md) | 摘要 + Figure 1（点火柴 demo + 轨迹对比） |
-| [01 - Introduction](sections/01-introduction.md) | 动机：物理世界不等你 + action chunking 的不足 |
-| [02 - Preliminaries](sections/02-preliminaries.md) | 符号定义 + flow matching 基础 + 延迟数据 + Figure 2/3（mode bifurcation + RTC 设计图） |
-| [03 - Method](sections/03-method.md) | **核心方法**: ΠGDM inpainting + soft masking + Algorithm 1 双线程系统 |
-| [04 - Experiments](sections/04-experiments.md) | 仿真 12 任务 + 真实 6 任务，RTC 全面最优 |
-| [05 - Related Work](sections/05-related-work.md) | 定位：第一个将 inpainting/guidance 用于实时控制 |
+| [00 - Abstract](sections/00-abstract.md) | 摘要 + Figure 1（点火柴演示 + 轨迹对比） |
+| [01 - Introduction](sections/01-introduction.md) | 动机：物理世界不等你 + action chunking 的两难 |
+| [02 - Preliminaries](sections/02-preliminaries.md) | 符号定义 + flow matching 基础 + 延迟数据 + Figure 2/3 |
+| [03 - Method](sections/03-method.md) | **核心方法**：ΠGDM inpainting + soft masking + Algorithm 1 |
+| [04 - Experiments](sections/04-experiments.md) | 仿真 12 任务 + 真实 6 任务 + Figure 5/6 |
+| [05 - Related Work](sections/05-related-work.md) | 定位：vs 加速推理、MPC、BID、System 1/2 |
 | [06 - Discussion](sections/06-discussion.md) | 局限性 + 未来方向 |
-| [07 - Appendix](sections/07-appendix.md) | β 消融 + 延迟分解 + soft masking 对比 + 超参数 |
+| [07 - Appendix](sections/07-appendix.md) | β 消融 + 延迟分解 + soft masking 消融 + 超参数 |
+
+---
 
 ## 关键数字
 
 | 指标 | 数值 |
 |------|------|
-| RTC 模型延迟 | 97ms (vs baseline 76ms, +28%) |
-| π₀ KV cache prefill | 46ms (RTX 4090) |
+| RTC 模型延迟 | 97ms (vs 76ms vanilla π₀.₅) |
+| 延迟开销 | +28% (来自反向传播) |
 | 控制频率 | 50Hz (Δt = 20ms) |
-| 最大测试延迟 | ~310ms (d≈16, 占 H=50 的 32%) |
-| 仿真评估量 | 2048 trials/data point × 12 envs |
-| 真实评估量 | 480 episodes, 28h 机器人时间 |
+| 支持的最大延迟 | 300ms+ (d ≈ 16, H=50 的 32%) |
+| BID 延迟 | 223ms (RTC 的 2.3x) |
+| 仿真任务 | 12 (Kinetix, 高动态) |
+| 真实任务 | 6 (双臂, 含 2 个移动操作) |
+| 真实评估量 | 480 episodes, 28h |
 | β (guidance clipping) | 5 |
-| BID 延迟 vs RTC | 2.3x (223ms vs 97ms) |
+| Denoising steps | 5 |
 
-## 方法核心图
+---
+
+## 方法概览
 
 ```
-当前执行的 chunk:  [a₀  a₁  a₂  a₃ | a₄  a₅  a₆  a₇  a₈  a₉  a₁₀ | a₁₁ a₁₂ a₁₃ a₁₄]
-                    |-- frozen ---|--- soft decay (exponential) ---|--- free generation --|
-Guidance weight:    [  1   1   1   1 | 0.9  0.7  0.5  0.3  0.1  0.05  0  |  0    0    0    0 ]
-                    
-推理完成前已执行 (d=4)    前一个 chunk 有预测值         超出前一个 chunk 范围
-→ 必须匹配                → 渐进引导                    → 完全自由
+执行线程 (50Hz)                推理线程 (后台)
+─────────────────              ─────────────────
+执行 chunk A:                  
+  a₀ a₁ a₂ a₃ ...            收到 o，开始生成 chunk B
+  ───────────────              ┌─────────────────────┐
+  ↑ frozen (d步)               │ ΠGDM Inpainting:    │
+  已执行，不可更改              │  frozen: W=1         │
+                               │  soft:   W=exp decay │
+  ↑ soft guidance              │  free:   W=0         │
+  前一个 chunk 有参考值         └──────────┬──────────┘
+                                          │
+  ↑ free generation                       ↓
+  前一个 chunk 没覆盖            新 chunk B 就绪 → 替换
 ```
 
-## 与其他 VLA-RTC 论文的关系
+---
 
-| 论文 | 与 RTC 的关系 |
-|------|-------------|
-| Leave No Observation Behind (2509.23224) | RTC 的前身概念——也关注 VLA action chunk 的实时纠偏 |
-| Training-time RTC (2512.05964) | RTC 的训练时改进——将 RTC 的思想融入训练过程 |
-| VLASH (2512.01031) | 不同路线——通过异步推理 + 未来状态预测来解决延迟问题 |
+## 与相关方法对比
+
+| 方法 | 原理 | 需要训练？ | 计算开销 | 延迟鲁棒性 |
+|------|------|-----------|---------|-----------|
+| Synchronous | 执行完停下等 | 否 | 1x | ❌ 线性下降 |
+| Temporal Ensembling | 多 chunk 取平均 | 否 | 1x | ❌❌ 高延迟直接崩溃 |
+| BID | 采样 N 个挑最好 | 需要 weak model | ~50x | ⚠️ 中等 |
+| **RTC** | **Inpainting + soft mask** | **否** | **~1.3x** | **✅ 完全鲁棒** |
+
+---
+
+## 📊 Citation Landscape
+
+> ⚠️ Semantic Scholar API 当前不可用，Citation Landscape 数据待补充。
+
+**Connected Papers**: [查看](https://www.connectedpapers.com/main/2506.07339)
