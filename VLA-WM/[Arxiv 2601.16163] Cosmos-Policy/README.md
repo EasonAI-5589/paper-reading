@@ -66,6 +66,53 @@ Planning (可选):
   → 选择最高价值的动作执行
 ```
 
+## 📝 批读总结
+
+### 核心思路
+
+**用视频模型生成动作，这就是 policy。** 视频模型天然理解物理世界的运动规律，把动作编码成 latent frames 注入视频扩散序列，模型在生成"未来视频"的同时也生成了动作。
+
+### 方法三件套
+
+| 组件 | 做了什么 | 为什么这样设计 |
+|------|---------|-------------|
+| **Latent Frame Injection**（4.1） | 把动作、本体感知、价值等非图像模态编码成 latent frames，插入视频扩散序列 | 不改架构，对 DiT 来说新插入的 frames 和图像 frames 长一样，无法区分 |
+| **Joint Training**（4.2） | 同一个模型通过 conditioning mask 同时训练 policy + world model + value function | 三个任务共享权重，互相受益（auxiliary losses 贡献 +1.5%） |
+| **Model-based Planning**（4.3） | 用 rollout 数据微调出 planning model，推理时 best-of-N 搜索选最优动作 | 让模型从"闭眼执行"变成"先想后做" |
+
+### 关于 Planning（4.3）的理解
+
+这是论文最不好懂的部分。关键点：
+
+1. **为什么需要 rollout 数据？** 只在成功 demo 上训练的 world model 和 value function 没见过失败，给啥都打高分，无法区分好坏动作
+2. **Dual Deployment**：原始 checkpoint 当 policy（提候选），微调后的 checkpoint 当 planning model（WM + VF，评估候选）。分开是为了保证 on-policy
+3. **V(s') vs Q(s,a)**：V(s') 先用 WM 预测未来状态再打分（model-based），Q(s,a) 直接给动作打分（model-free）。V(s') 远优于 Q(s,a)，因为把一个难问题拆成了两个简单问题
+
+### 实验亮点
+
+| 实验 | 结论 | 意义 |
+|------|------|------|
+| **LIBERO**（Table 1） | 98.5% SOTA，所有方法统一 50 demo/task | 控制数据量比纯模型能力 |
+| **RoboCasa**（Table 2） | 67.1%，只用 50 demo，其他方法用 300~3000 | **数据效率极高**，视频预训练先验 > 暴力加数据 |
+| **ALOHA**（Figure 4） | 93.6%，超过 π₀.₅ 和 OpenVLA-OFT+ | 超越大规模动作数据预训练的 VLA |
+| **消融**（Table 4） | 预训练 -3.9%，auxiliary losses -1.5% | 预训练先验是核心优势 |
+| **Planning**（Figure 7） | 难任务 +12.5%，V(s') >> Q(s,a) | planning 有效但昂贵（8 GPU × 5s） |
+
+### 对比方法的失败模式
+
+- **π₀.₅**：高精度任务（ziploc bag）抓不住滑块 → VLM backbone 空间分辨率不足
+- **OpenVLA-OFT+**：多模态任务（candies）手伸向两颗糖果中间 → L1 regression 的 mode averaging 问题
+- **Cosmos Policy**：diffusion process 天然建模多模态分布 + 视频模型保留高分辨率空间信息，两个问题都避免了
+
+### 局限性
+
+- Planning 需要 8 GPU 并行 + ~5s/决策，**不适合实时控制**
+- 需要额外收集 rollout 数据做后训练
+- 基础模型 2B 参数，推理成本不低
+- RoboCasa 上只测了 50 demo 设定，没测更多数据是否还能进一步提升
+
+---
+
 ## 📊 Citation Landscape
 
 **TLDR** (Semantic Scholar): *Cosmos Policy is a simple approach for adapting a large pretrained video model (Cosmos-Predict2) into an effective robot policy through a single stage of post-training on the robot demonstration data collected on the target platform, with no architectural modifications.*

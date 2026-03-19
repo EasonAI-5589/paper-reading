@@ -12,13 +12,20 @@
 The pretrained video model that serves as the initialization for Cosmos Policy is Cosmos-Predict2-2B-Video2World (NVIDIA et al., 2025), a latent video diffusion model that receives a starting image and textual description as input and predicts subsequent frames to create a short video. The model operates over continuous tokens encoded by the Wan2.1 spatiotemporal VAE tokenizer (Wan et al., 2025) and is trained using the EDM denoising score matching formulation (Karras et al., 2022). The core training objective for the denoiser network $D_\theta$ at noise level $\sigma$ is: $\mathcal{L}(D_\theta, \sigma) = \mathbb{E}_{\mathbf{x}_0, \mathbf{c}, \mathbf{n}} \left[ \| D_\theta(\mathbf{x}_0 + \mathbf{n}; \sigma, \mathbf{c}) - \mathbf{x}_0 \|_2^2 \right]$, where $\mathbf{x}_0$ is a clean VAE-encoded image sequence, c represents the textual description encoded as T5-XXL embeddings (Raffel et al., 2020), $\mathbf{n} \sim \mathcal{N}(\mathbf{0}, \sigma^2 \mathbf{I})$ is i.i.d. Gaussian noise used to corrupt $\mathbf{x}_0$, and $D_\theta$ is a diffusion transformer (Peebles & Xie, 2023) that learns to recover the clean sample given the corrupted one. $D_\theta$ conditions on c via cross-attention and on $\sigma$ via adaptive layer normalization (Perez et al., 2018; Peebles & Xie, 2023). The Wan2.1 tokenizer compresses a video sequence of size $(1 + T) \times H \times W \times 3$ into a latent sequence of size $(1 + T') \times H' \times W' \times 16$, where $T' = T/4$, $H' = H/8$, $W' = W/8$; these resulting latent frames compose $\mathbf{x}_0$ above. The first frame undergoes no temporal compression to allow for conditioning on a single input image. During training, a conditioning mask is used to ensure that the first latent frame corresponding to the input image remains clean (without noise) while subsequent frames are corrupted with noise.
 
 > 💡 **Cosmos-Predict2-2B 关键技术细节**:
-> 
+>
 > **模型基本信息**：
 > - 模型名：Cosmos-Predict2-2B-Video2World
 > - 参数量：2B
 > - 类型：Latent Video Diffusion Model
 > - 输入：起始图像 + 文本描述 → 输出：后续视频帧
-> 
+>
+> **核心训练目标**（EDM denoising score matching）：
+> $$\mathcal{L}(D_\theta, \sigma) = \mathbb{E}_{\mathbf{x}_0, \mathbf{c}, \mathbf{n}} \left[ \| D_\theta(\mathbf{x}_0 + \mathbf{n}; \sigma, \mathbf{c}) - \mathbf{x}_0 \|_2^2 \right]$$
+> - **输入**：$\mathbf{x}_0 + \mathbf{n}$，即 clean latent sequence $\mathbf{x}_0$ 加上高斯噪声 $\mathbf{n} \sim \mathcal{N}(\mathbf{0}, \sigma^2 \mathbf{I})$
+> - **条件**：$\sigma$（噪声级别，通过 adaptive layer norm 注入）和 $\mathbf{c}$（T5-XXL 文本 embedding，通过 cross-attention 注入）
+> - **目标**：让去噪网络 $D_\theta$（一个 DiT）从加噪的输入中恢复出 clean sample $\mathbf{x}_0$
+> - **直觉**：模型学会"给定一张噪声图，还原出原始的干净视频帧序列"，这个去噪能力后续被直接复用来生成动作
+>
 > **核心组件**：
 > - **VAE Tokenizer**：Wan2.1 spatiotemporal VAE
 >   - 空间压缩：8× (H/8, W/8)
@@ -27,8 +34,7 @@ The pretrained video model that serves as the initialization for Cosmos Policy i
 > - **去噪网络**：Diffusion Transformer (DiT)
 >   - 文本条件：T5-XXL embeddings → cross-attention
 >   - 噪声级别条件：$\sigma$ → adaptive layer normalization
-> - **训练目标**：EDM 去噪分数匹配（denoising score matching）
-> 
+>
 > **为什么这个设计适合做 policy**：
 > - VAE 的 latent space 是连续的 → 适合表示连续动作
 > - DiT 能处理序列中的任意 token → 可以自然地加入新的 modality
@@ -40,25 +46,13 @@ The pretrained video model that serves as the initialization for Cosmos Policy i
 
 We frame robotic manipulation tasks as finite-horizon Markov decision processes (MDPs) defined by the tuple $\langle S, A, T, R, H \rangle$, where $S$ is a set of states, $A$ is a set of actions, $T: S \times A \to \Pi(S)$ is the state transition function, $R: S \times A \to \mathbb{R}$ is the reward function, and $H \in \mathbb{N}$ is the time horizon, with time steps $t \in \{1, 2, \ldots, H\}$. We train a policy $\pi: S \to \Pi(A)$ to maximize rewards, using sparse rewards where $R(s_t, a_t) = 0$ for $t < H$ and terminal rewards $R(s_H, a_H) \in [0, 1]$. We train policies via imitation learning on expert demonstrations containing state-action pairs. Following Zhao et al. (2023), all policies predict action chunks—sequences of actions for multiple timesteps—to improve motion smoothness and success rates.
 
-> 💡 **形式化关键点**:
-> - **Sparse reward**：只在最后一步给奖励 $R(s_H, a_H) \in [0, 1]$，中间步骤奖励为 0 → 这对 value function 学习很重要
-> - **Action chunks**：不是逐步预测动作，而是一次预测多步动作序列 → ACT (Zhao et al., 2023) 提出的技巧，提升运动平滑性
-> - **Imitation learning**：从专家示范学习，不做 RL 探索（至少 base policy 训练阶段不做）
-
----
-
-![Figure 2](../images/f7b04b0fcb0cc6436b1bfd96e2af96074105d4bdd11d6148772bbf5fc409adf5.jpg)
-*Figure 2: Cosmos Policy 的 latent diffusion 序列。展示了 latent frame injection — 将预训练的 Cosmos-Predict2 适配为可以预测机器人动作、未来状态和价值的策略的主要机制。首先，原始图像被 tokenize 为 latent frames（第一行）。然后，额外的模态直接插入到视频扩散模型的 latent frame 序列中（第二行）。模型被训练对加噪的 latent frames 进行去噪，以 clean frames 为条件（第三行）。*
-
-> 💡 **Figure 2 批读**:
-> - **第一行**（Tokenization）：多视角相机图像 → VAE → latent frames
-> - **第二行**（Latent Injection）：在 latent 序列中插入新模态（本体感知、动作、价值）的 latent frames
-> - **第三行**（Training）：clean frames 作为条件，noised frames 作为去噪目标
-> 
-> **核心洞察**：latent frame injection 的精妙之处在于：
-> 1. 新模态被编码成与图像 latent 同样形状的 tensor → DiT 无法区分"图像 token" 和 "动作 token"
-> 2. 因此不需要任何架构修改！DiT 只是在处理一个更长的 latent 序列
-> 3. 哪些帧加噪、哪些帧不加噪 → 决定了条件输入和生成目标 → 决定了训练的是 policy、world model 还是 value function
+> 💡 **批注**:
+> 把机器人操作任务形式化为有限时间步的 MDP $\langle S, A, T, R, H \rangle$：S 是状态集（相机图像、关节角度等），A 是动作集，T 是状态转移函数，R 是奖励函数，H 是最大步数。
+>
+> 几个关键设计选择：
+> - **Sparse reward**：中间步骤奖励为 0，只在最后一步给 $R(s_H, a_H) \in [0, 1]$。模型在执行过程中完全没有中间信号，只有最后才知道成败。这也是 value function 很重要的原因——需要从中间状态"预判"最终会不会成功
+> - **Imitation learning**：从专家示范（人类遥操作的 state-action 对）学习，不做 RL 探索。好处是不需要设计 dense reward，坏处是只能学到示范覆盖到的行为
+> - **Action chunks**（来自 ACT, Zhao et al., 2023）：不是逐步预测单个动作，而是一次预测未来多步的动作序列。动作更连贯平滑，也减少了 policy 调用次数。Cosmos Policy 在 ALOHA 上用 50 步 = 2 秒 @25Hz
 
 ---
 
@@ -66,11 +60,20 @@ We frame robotic manipulation tasks as finite-horizon Markov decision processes 
 
 A world model $\hat{T}: S \times A \to \Pi(S)$ learns to predict the future state given current state and action, approximating the true environment dynamics. The value function for a policy $\pi$ at state $s$ represents expected discounted returns from $s$ under $\pi$. It is defined as $V^\pi(s) = \mathbb{E}_{\tau \sim \pi} \left[ \sum_{k=t}^{H} \gamma^{k-t} R(s_k, a_k) \mid s_t = s \right] = \mathbb{E}_{\tau \sim \pi} \left[ \gamma^{H-t} R(s_H, a_H) \mid s_t = s \right]$ in the sparse reward setting, where $\gamma$ is a discount factor that backpropagates the terminal reward through time. We simply use Monte Carlo returns in this work, labeling each transition in a rollout with the observed return $\gamma^{H-t} R(s_H, a_H)$. Note: To be precise, we acknowledge that the true state is not fully observable, and the world model predicts future observations (robot proprioception and camera images). However, for notational simplicity and readability, we opt to use the term "state" and treat observations as approximations of the state.
 
-> 💡 **Value Function 设计选择**:
-> - 用 **Monte Carlo returns**（最简单的方法）：每个 transition 的 value = $\gamma^{H-t} R(s_H, a_H)$
-> - 由于是 sparse reward（只有终端奖励），value 本质上就是 "从当前状态出发，成功完成任务的折扣概率"
-> - $\gamma$ 的作用：越早的步骤 value 越小（因为 $\gamma^{H-t}$ 衰减），这鼓励模型快速完成任务
-> - **简化假设**：用 observation 代替 state（部分可观测），这在实际中是合理的简化
+> 💡 **批注**:
+> **World model** $\hat{T}: S \times A \to \Pi(S)$：给定当前状态和动作，预测下一个状态会是什么。本质上是学习环境的动力学——"我在这个状态下做这个动作，世界会变成什么样"。
+>
+> **Value function** 的通用定义：
+> $$V^\pi(s) = \mathbb{E}_{\tau \sim \pi} \left[ \sum_{k=t}^{H} \gamma^{k-t} R(s_k, a_k) \mid s_t = s \right]$$
+> 含义是：从状态 s 出发，按照 policy π 执行，未来所有奖励的折扣累加和的期望。$\gamma \in (0, 1)$ 是折扣因子，越远的奖励权重越小。
+>
+> 因为本文用的是 **sparse reward**（只有最后一步 $R(s_H, a_H) \in [0,1]$，中间全是 0），所以上面的求和简化为：
+> $$V^\pi(s) = \mathbb{E}_{\tau \sim \pi} \left[ \gamma^{H-t} R(s_H, a_H) \mid s_t = s \right]$$
+> 直觉理解：value 就是"从当前状态出发，最终成功完成任务的折扣概率"。$\gamma^{H-t}$ 表示离终点越远，value 越小——鼓励模型尽快完成任务。
+>
+> **Monte Carlo returns**：本文用最简单的方式估计 value——直接用 rollout 的实际结果标注。一条轨迹跑完后，如果成功了（$R=1$），就把轨迹中每个 transition 标注为 $\gamma^{H-t} \times 1$；如果失败了（$R=0$），全部标注为 0。不需要 TD learning 之类的复杂方法。
+>
+> **简化假设**：严格来说状态不完全可观测（POMDP），world model 预测的其实是 observation（相机图像 + 本体感知）而非真正的 state。但为了表述简洁，论文统一用 "state" 指代。
 
 ---
 
