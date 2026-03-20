@@ -128,6 +128,18 @@ LLM 驱动的 Web3 智能代理
 
 ---
 
+### ⚡ VLA Real-Time Chunking (VLA-RTC)
+VLA 实时推理加速 - Action Chunking 的异步执行与校正
+
+| 论文 | 会议 | 方法特点 |
+|------|------|----------|
+| [RTC](./VLA-RTC/%5BNeurIPS%202025%5D%20RTC/) | NeurIPS 2025 | **Real-Time Chunking** - 推理时 inpainting 异步执行，无需重训练，高动态任务 |
+| [Training-time RTC](./VLA-RTC/%5BArxiv%202512.05964%5D%20Training-time%20RTC/) | arXiv 2512.05964 | 训练时模拟延迟 + action prefix conditioning，RTC 的 drop-in 替代，更低开销 |
+| [VLASH](./VLA-RTC/%5BArxiv%202512.01031%5D%20VLASH/) | arXiv 2512.01031 | MIT Han Lab，Future-State-Aware 异步推理，2.03x 加速 / 17.4x 反应延迟降低 |
+| [A2C2](./VLA-RTC/%5BArxiv%202509.23224%5D%20A2C2/) | arXiv 2509.23224 | 轻量校正头，per-step correction，+23% over RTC on Kinetix，plug-in |
+
+---
+
 ### 🎯 RLHF
 强化学习人类反馈
 
@@ -206,6 +218,12 @@ paper-reading/
 │   ├── [Arxiv 2602.23320] ParamMem/
 │   └── [ICLR 2026] In-Place TTT/
 │
+├── VLA-RTC/                         # VLA 实时推理加速 (4 篇)
+│   ├── [NeurIPS 2025] RTC/
+│   ├── [Arxiv 2512.05964] Training-time RTC/
+│   ├── [Arxiv 2512.01031] VLASH/
+│   └── [Arxiv 2509.23224] A2C2/
+│
 ├── RLHF/                           # 强化学习人类反馈 (1 篇)
 │   └── [ICML 2025] MM-RLHF/
 │
@@ -260,7 +278,6 @@ paper-reading/
 | **VACE** | [2503.07598](https://arxiv.org/abs/2503.07598) | 2025-03 | All-in-One 视频创作与编辑，Video Condition Unit | VLA-WM |
 | **Wan-S2V** | [2508.18621](https://arxiv.org/abs/2508.18621) | 2025-08 | 音频驱动电影级视频生成 (Wan2.2) | VLA-WM |
 | **Wan-Move** | [2512.08765](https://arxiv.org/abs/2512.08765) | 2025-12 | 运动可控，Latent Trajectory Guidance | VLA-WM |
-| **Motus** | [2512.13030](https://arxiv.org/abs/2512.13030) | 2025-12 | 清华，统一 latent action WM，MoT 架构，+45% over Pi0.5 | VLA-WM |
 | **Open-Sora** | [2412.20404](https://arxiv.org/abs/2412.20404) | 2024-12 | HPC-AI Tech，STDiT 架构，15s/720p 开源 | VLA-WM |
 | **Open-Sora 2.0** | [2503.09642](https://arxiv.org/abs/2503.09642) | 2025-03 | $200k 训练成本，对标 HunyuanVideo / Runway Gen-3 | VLA-WM |
 | **Open-Sora Plan** | [2412.00131](https://arxiv.org/abs/2412.00131) | 2024-11 | 北大，Wavelet-Flow VAE + Skiparse Denoiser | VLA-WM |
@@ -269,6 +286,14 @@ paper-reading/
 | **ConRFT** | [2502.05450](https://arxiv.org/abs/2502.05450) | 2025-02 | VLA 一致性策略强化微调，8个真实任务 96.3% SR，比 SFT +144% | VLA-WM |
 | **OpenVLA-OFT** | [2502.19645](https://arxiv.org/abs/2502.19645) | 2025-02 | VLA 微调最佳实践（并行解码+action chunking+L1），LIBERO 76.5%→97.1%，26x 加速 | VLA-WM |
 
+### VLA 新方向
+
+| 论文 | arXiv | 日期 | 关键词 | 课题 |
+|------|-------|------|--------|------|
+| **BagelVLA** | [2602.09849](https://arxiv.org/abs/2602.09849) | 2026-02 | Interleaved VL-Action Generation，Residual Flow Guidance，长程操作 | VLA-WM |
+| **DreamZero** | [2602.15922](https://arxiv.org/abs/2602.15922) | 2026-02 | NVIDIA，14B World Action Model，Video Diffusion → Policy，零样本泛化 39.5%，7Hz 实时 | VLA-WM |
+| **GigaBrain-0.5M\*** | 待确认 | 2026-02 | RAMP（World Model-conditioned RL），Laundry/Box/Espresso +30%，自进化闭环 | VLA-WM |
+
 ---
 
-*由 3号机 协助整理 📚 | 更新: 2026-03-17 | 共 43 篇论文 + 12 篇待读*
+*由 3号机 协助整理 📚 | 更新: 2026-03-20 | 共 47 篇论文 + 14 篇待读*
