@@ -10,6 +10,9 @@
 
 We introduce RoboBrain 2.0, our latest generation of embodied vision-language foundation models, designed to unify perception, reasoning, and planning for complex embodied tasks in physical environments. It comes in two variants: a lightweight 7B model and a full-scale 32B model, featuring a heterogeneous architecture with a vision encoder and a language model. Despite its compact size, RoboBrain 2.0 achieves strong performance across a wide spectrum of embodied reasoning tasks. On both spatial and temporal benchmarks, the 32B variant achieves leading results, surpassing prior open-source and proprietary models. In particular, it supports key real-world embodied AI capabilities, including spatial understanding (e.g., affordance prediction, spatial referring, trajectory forecasting) and temporal decision-making (e.g., closed-loop interaction, multi-agent longhorizon planning, and scene graph updating). This report details the model architecture, data construction, multi-stage training strategies, infrastructure and practical applications. We hope RoboBrain 2.0 advances embodied AI research and serves as a practical step toward building generalist embodied agents. The code, checkpoint and benchmark are available at https://superrobobrain.github.io.
 
+![](../images/a808da69c76bee61e7c520fa20705382a73db1fa534e82b58996e4ca135aa768.jpg)  
+Figure 1 Benchmark comparison across spatial and temporal reasoning. RoboBrain2.0-32B achieves best performance on both spatial and temporal reasoning benchmarks across BLINK-Spatial, RoboSpatial, RefSpatial-Bench, Where2Place, EgoPlan2 and Multi-Robot-Plan, outperforming prior open-source models and proprietary models.
+
 > 💡 **Abstract 解读**: RoboBrain 2.0 是 BAAI（北京智源研究院）推出的第二代具身视觉-语言基础模型。核心卖点：
 > - **两个规模**: 7B（轻量）和 32B（完整），异构架构 = 视觉编码器 + 语言模型
 > - **统一三大能力**: 感知（perception）、推理（reasoning）、规划（planning）

@@ -3,42 +3,43 @@
 # 1 Introduction
 
 ## 📌 预览
-Web3 面临三大障碍，AI Agent 逐一对应解决；Web3Agent 是首个在真实 Web3 场景中部署和评估的 LLM 驱动 Agent 系统。
+Web3 面临三大障碍（操作复杂性、信息过载、安全隐患），AI Agent 可以逐一对应解决。Web3Agent 是首个在真实 Web3 场景中部署和评估的 LLM 驱动 Agent 系统，支持从自然语言到链上多步操作的端到端自动化。
 
 ---
 
-## Web3 三大障碍
+In recent years, Web3, as a decentralized web based on blockchain technology, has become a critical direction for the future development of the Internet [4, 11]. This emerging field, characterized by transparency, immutability, and user sovereignty, has injected fresh momentum into the digital ecosystem and is beginning to reshape the core logic of the Internet [12]. Globally, particularly in the United States, policies and increased research investments are actively driving the adoption and application of this technology [38]. For instance, the U.S. Securities and Exchange Commission (SEC) has started providing clearer regulatory frameworks for crypto assets and blockchain applications, while also supporting innovative experiments and technology deployments [39]. These policy measures not only create favorable conditions for the sustained development of Web3 but also highlight its strategic significance.
 
-| 障碍 | 具体表现 | AI Agent 解法 |
-|------|---------|--------------|
-| **操作复杂性** | 创建钱包、理解智能合约、熟悉 dApp | NLP 交互 → 用户说自然语言，Agent 自动处理钱包创建/转账/合约交互 |
-| **信息过载** | DeFi 平台数量爆炸，信息碎片化 | AI 聚合推荐 → 对比 DeFi 利率、推荐安全协议、实时市场监控 |
-| **安全风险** | 合约漏洞、钓鱼攻击、私钥管理不当 | 实时分析 → 合约风险检测、异常交易告警、多签建议 |
+> 💡 **开场批读**: 作者从政策和宏观趋势切入，引用了美国 SEC 的监管框架。这种写法在 ACM 系统类论文中不太常见——通常直接从技术问题入手。这里花了一段讲政策背景，可能是考虑到 ACM TWEB 的读者群不全是区块链圈的人，需要建立 Web3 的合法性和重要性。
 
-> 💡 **批读**: 三大障碍的分类很清晰，对应的 AI 解法也合理。但安全性部分目前仍在早期探索阶段，作者自己也承认 "substantial technical advances are still required"。
+Despite its immense potential, the large-scale adoption of Web3 faces numerous limitations. The current decentralized web encounters three core barriers that significantly restrict access and participation for the average user, from the aspect of operational complexity, information overload, and security concerns. (1) The operational complexity of Web3 lies in the need for users to acquire a range of skills and knowledge, including creating and managing crypto wallets, understanding the basic logic of smart contracts (SCs), and becoming familiar with decentralized applications (dApps). This high technical barrier makes it challenging for non-technical users to effectively access and utilize the services offered by Web3. (2) The information overload underscores the accessibility barrier from another aspect. The content and services provided by Web3 ecosystem are highly fragmented, leaving users overwhelmed by an influx of information without effective filtering and organization. For instance, the sheer growing number of decentralized finance (DeFi) platforms makes it difficult for users to quickly identify the solutions that meet their needs. (3) The security concerns stem from the growing number of vulnerabilities in SCs [3], social engineering scams, phishing attacks [40], and inadequate private key management [13], which issues are expected to become increasingly pronounced as the Web3 user base continues to expand.
 
-## Web3Agent 核心定位
+> 💡 **三大障碍**: 这是全文的问题定义核心。三个障碍的分类清晰且互不重叠：
+> - **操作复杂性** → 技术门槛（钱包、合约、dApp）
+> - **信息过载** → 认知负担（DeFi 平台碎片化）
+> - **安全隐患** → 信任风险（漏洞、钓鱼、私钥管理）
+>
+> 但值得注意的是，这三个问题的解决难度差异巨大。操作复杂性通过 NLP 接口确实可以大幅降低；信息过载通过 RAG + 推荐也有成熟方案；但安全性是最难的——作者后文也承认 "substantial technical advances are still required"。Web3Agent 在前两个方面的贡献更实质，安全方面更多是展望。
 
-- **首个**: 在真实 Web3 应用中部署和评估的 LLM AI Agent
-- **区别于传统助手**: 不局限于固定 API 序列，模拟人类操作流程
-- **端到端**: 从理解用户指令 → 安全执行链上操作
+With the rapid advancement and evolution of Large Language Models, AI Agents powered by LLMs have already demonstrated strong task execution and decision-making capabilities across a variety of complex domains [9]. For instance, in the financial sector, AI Agents are widely applied in automated investment advisory and intelligent risk management systems, offering real-time investment recommendations based on dynamic market conditions [43]. In healthcare, AI Agents assist physicians in diagnostic decision-making and personalized health management, while also providing multi-step support in handling complex cases [33]. Moreover, in customer service and Internet of Thing (IoT) applications, AI Agents autonomously parse complex user instructions and execute multi-step tasks seamlessly [5]. These successful cross-domain applications underscore the maturity and reliability of AI Agents in handling sophisticated tasks, thereby laying a solid technical foundation for their integration into Web3 ecosystems.
 
-### 操作示例
+> 💡 **LLM Agent 跨域应用**: 作者列举了金融、医疗、IoT 三个领域来论证 LLM Agent 的成熟度。引用覆盖面广但每个领域只引了一篇，论证相对浅——不过对于 Introduction 来说足够了。关键信息是：LLM Agent 在这些领域已经能执行多步任务，Web3 只是下一个应用场景。
 
-用户说 "Swap 2 ETH for USDC on Uniswap"，Web3Agent 自动完成：
-1. 合约查询
-2. 交易创建
-3. Gas 费估算
-4. 执行
+Through intelligent interaction design and efficient feature integration, AI Agents can significantly enhance user experiences within decentralized web environments, laying a solid foundation for the widespread adoption of Web3 technology. AI Agents exhibit notable advantages in addressing the first challenge, operational complexity. Leveraging Natural Language Processing (NLP) technologies and intelligent interaction interfaces, AI Agents can provide users with intuitive and user-friendly experiences. For example, users no longer need to learn complex blockchain terminologies or operational procedures, as AI Agents can automatically handle wallet creation, asset transfers, and SC interactions based on user needs. For the second challenge of information overload, AI Agents rely on machine learning algorithms and personalized recommendation mechanisms to deliver precise information filtering and content curation for users. For instance, recent studies have begun exploring the application of LLMs within the crypto ecosystem, such as evaluating their ability to recognize and process DeFi-specific entities [32] or proposing a multi-agent framework for cryptocurrency investment that leverages LLMs to coordinate decision-making, portfolio management, and risk control across diverse market conditions [25]. These advancements indicate the potential for AI Agents to, in the future, provide personalized investment insights based on users' risk preferences, historical behaviors, and market dynamics, while continuously monitoring market changes for real-time updates. This approach not only improves the efficiency of acquiring relevant information but also significantly reduces the cognitive burden required for decision-making. Finally, AI Agents address the third challenge of relative security concerns by enabling real-time monitoring and dynamic analysis of SC operations to help detect potential security threats. While recent studies have begun exploring the use of LLMs for identifying smart contract vulnerabilities and abnormal transaction behaviors [15, 22], current findings suggest that the effectiveness of such techniques remains limited and that substantial technical advances are still required. Nevertheless, these early efforts indicate that AI Agents may, in the future, assist in flagging vulnerabilities in SCs or suspicious transaction behaviors and promptly alerting users. Additionally, AI Agents can assist users in optimizing key management strategies, such as recommending the use of multi-signature and distributed key storage to prevent asset loss due to single points of failure. The integration of these features not only strengthens user asset security but also provides technical assurance for the overall security of decentralized web environments.
 
-> 💡 **批读**: "首个"的声称需要谨慎看待。类似的尝试（如 Sy-Hong-Duc Nguyen et al. 的多 Agent 区块链原型）已存在，但 Web3Agent 确实在系统完整性和评估深度上更进一步。
+> 💡 **AI Agent 对三大障碍的解法**: 这段把三大障碍逐一和 AI Agent 能力对应起来。写法工整但略显冗长——核心信息可以压缩到一半篇幅。有意思的是安全性部分的措辞非常谨慎："may, in the future, assist" 和 "effectiveness remains limited"，这种诚实在很多论文中是看不到的。[32] 和 [25] 是两篇比较有代表性的工作（DeFi 实体识别和多 Agent 投资框架），但都不是 Web3 Agent 系统级的工作，这也侧面说明了 Web3Agent 在系统层面的首创性。
 
----
+Building upon these advances, we propose Web3Agent, a novel AI agent system specifically designed to address the critical challenges of Web3 environments by integrating LLM-based intelligent agents with blockchain networks through seamless API communication. Unlike existing AI assistants that mainly focus on simple conversational tasks, Web3Agent represents the first agent framework that enables fully automated, multi-step interactions within decentralized blockchain-based ecosystems, offering end-to-end support from understanding user instructions to securely executing on-chain operations.
 
-## 🔖 Section 总结
+> 💡 **Web3Agent 定位**: "the first agent framework" 是一个很强的 claim。作者将 Web3Agent 和 "existing AI assistants" 对比，强调的是从对话到执行的闭环。这个定位是准确的——之前的工作（如 [29] 的多 Agent 聊天机器人）只做了比较简单的 API 查询，没有多步链上操作。
 
-### 核心洞察
-1. Web3 的三大障碍本质是 **技术门槛 → 用户流失** 的问题
-2. AI Agent 在金融、医疗、客服等领域的成功验证了技术成熟度
-3. Web3Agent 的创新在于 **端到端自动化** + **多步有状态交互** + **安全保障**
-4. 强调 process automation（流程自动化），而非简单的 QA 对话
+Web3Agent leverages LLM-Based Process Automation to decompose complex user intents into executable Web3 tasks, directly interacting with SCs, dApps, and blockchain infrastructure through standardized API calls. This approach allows Web3Agent to perform intricate operations such as wallet creation, asset transfers, DeFi interactions, and NFT transactions, all initiated via natural language commands. Unlike traditional assistants that are confined to rigid API sequences, Web3Agent emulates human-like operation flows, including contract interaction verification, transaction status monitoring, and error handling, thereby supporting safe, efficient, and intuitive Web3 experiences.
+
+To the best of our knowledge, this is the first study that demonstrates the deployment and evaluation of an LLM-powered AI agent in real-world Web3 applications, overcoming three critical obstacles previously outlined:
+
+— First, in addressing operational complexity, Web3Agent autonomously orchestrates multi-step blockchain workflows through natural conversations, relieving users from understanding complex SC mechanisms and wallet operations. For example, users can simply request "Swap 2 ETH for USDC on Uniswap," and Web3Agent will handle contract querying, transaction creation, gas fee estimation, and execution.
+
+— Second, in mitigating information overload, Web3Agent incorporates AI-driven aggregation and recommendation mechanisms to curate fragmented and overwhelming Web3 content. It can compare DeFi rates, recommend safer protocols based on security audits, and continuously monitor market conditions to update users with actionable insights, thus reducing the cognitive load associated with navigating decentralized ecosystems.
+
+— Third, in enhancing security assurance, Web3Agent dynamically analyzes SC risks, transaction anomalies, and social engineering patterns through AI-powered security heuristics. Before executing any transaction, it can alert users about potential contract vulnerabilities or abnormal gas fees, and recommend multi-signature or time-lock solutions to prevent unauthorized asset movements.
+
+> 💡 **三大贡献**: 对应三大障碍的三个解法，写法非常对称。Swap 的例子很具体，说明了端到端自动化的意义。但需要注意的是，第二和第三个贡献在实验部分并没有得到充分验证——实验主要评估的是指令解析和多步执行，而不是 DeFi 利率比较或安全风险检测。这是 Introduction 的承诺和实验验证之间的 gap。

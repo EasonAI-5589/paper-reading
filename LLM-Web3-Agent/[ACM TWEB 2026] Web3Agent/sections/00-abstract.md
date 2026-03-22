@@ -1,27 +1,17 @@
 [← 返回 README](../README.md)
 
-# Abstract
+# Web3Agent: Automating On-Chain Operations via Natural Language Interfaces
 
-## 📌 预览
-Web3Agent 的核心：用 LLM Agent 自动化复杂的多步链上操作，解决 Web3 对普通用户的可访问性问题。
-
----
+SIZHENG FAN, University of International Business and Economics, Beijing, China
+TIAN MIN, Faculty of Science and Technology, Keio University, Yokohama, Japan
 
 Recent advances in large language models (LLMs) have enabled the emergence of intelligent agents capable of performing complex multi-step tasks across various domains. In parallel, the growth of Web3 has introduced a decentralized web infrastructure, yet remains largely inaccessible to non-technical users due to operational complexity, fragmented information, and security risks. In this article, we present Web3Agent, an AI agent system that integrates LLM-based interaction with blockchain environments to enable language-driven on-chain operations. Web3Agent automatically decomposes user instructions into structured workflows, dynamically queries blockchain data and APIs, and performs multi-step operations such as asset transfers, token swaps, and smart contract execution. Web3Agent incorporates real-time inspection, error handling, and interaction transparency across its operation log, and flow visualization components. We evaluate the system and perform ablation study with customized dataset in a simulated environment, demonstrating its feasibility in orchestrating complex Web3 tasks and highlighting implications for agent-based abstraction in decentralized systems.
 
-> 💡 **Abstract 批读**:
-> - **背景**: LLM Agent 已在多领域展现多步任务执行能力；Web3 增长迅速但对非技术用户门槛极高
-> - **问题**: 操作复杂性 + 信息碎片化 + 安全风险，三大障碍阻碍 Web3 大规模采用
-> - **方案**: Web3Agent — LLM 驱动的 AI Agent 系统，自然语言 → 结构化工作流 → 链上执行
-> - **能力**: 资产转账、Token Swap、智能合约执行等多步操作
-> - **特色**: 实时检查、错误处理、交互透明性（操作日志 + 流程可视化）
-> - **评估**: 模拟环境 + 自定义数据集 + 消融实验
+> 💡 **摘要批读**: 这篇摘要的结构非常标准——背景（LLM + Web3 两条线）→ 问题（非技术用户的准入门槛）→ 方案（Web3Agent）→ 评估。值得注意的是，作者用了 "feasibility" 而非 "effectiveness" 来定位贡献，这是一个很诚实的选择：系统是在模拟环境中评估的，而不是真正上链跑的端到端测试。摘要中提到的三个核心能力——指令分解、动态查询、多步操作——恰好对应了后文的 Instruction Chains Generator、RAG 检索、和 Executor 模块。另外，"interaction transparency" 的强调暗示了作者对 Web3 场景下 AI Agent 安全性和可审计性的重视，这在后文 Discussion 部分会展开讨论。
 
----
+CCS Concepts: • Human-centered computing → Human computer interaction (HCI); • Computing methodologies → Natural language processing; • Information systems → World Wide Web;
 
-## 🔖 Section 总结
+Additional Key Words and Phrases: Web3, blockchain, intelligent virtual assistants, large language models, process automation
 
-### 核心洞察
-1. Web3 的可访问性问题本质上是一个 HCI 问题，LLM Agent 提供了自然语言抽象层
-2. 不同于简单对话助手，Web3Agent 强调多步、有状态的端到端执行
-3. 系统设计同时关注功能性（自动化执行）和安全性（透明性 + 错误处理）
+ACM Reference Format:
+Sizheng Fan and Tian Min. 2026. Web3Agent: Automating On-Chain Operations via Natural Language Interfaces. ACM Trans. Web 20, 1, Article 9 (February 2026), 27 pages. https://doi.org/10.1145/3777446

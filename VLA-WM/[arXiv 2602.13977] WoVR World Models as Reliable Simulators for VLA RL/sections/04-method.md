@@ -86,7 +86,13 @@ WoVR optimizes the VLA policy by interacting with the learned world model. The k
 
 **Masked GRPO.** We adopt Group Relative Policy Optimization (GRPO) to update the policy using imagined rollouts. Because hallucinations often dominate after success has been reached in imagination, we **mask post-success steps** and normalize each trajectory by its valid length.
 
-Formally, given a group of imagined trajectories $\{\tau^{(i)}\}_{i=1}^G$, we compute return and group-relative advantage:
+Formally, given a group of imagined trajectories $\{\tau^{(i)}\}_{i=1}^G$ sampled in the world model,
+
+$$
+\tau^{(i)} = \{(o_t^{(i)}, a_t^{(i)}, \hat{r}_t^{(i)})\}_{t=1}^T, \qquad o_{t+1}^{(i)} \sim \hat{P}_\phi(\cdot \mid o_t^{(i)}, a_t^{(i)}),
+$$
+
+we compute the return $R(\tau^{(i)})$ and group-relative advantage $\hat{A}^{(i)}$:
 
 $$R(\tau^{(i)}) = \sum_{t=1}^{|\tau^{(i)}|} \gamma^{t-1} \hat{r}_t^{(i)}, \qquad \hat{A}^{(i)} = R(\tau^{(i)}) - \frac{1}{G} \sum_{j=1}^G R(\tau^{(j)})$$
 

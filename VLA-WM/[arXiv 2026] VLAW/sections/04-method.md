@@ -64,13 +64,17 @@ To address these issues, we get $K$ trajectories by rolling out the policy in th
 
 **Training Objective.** $\mathcal{D}_{\mathrm{real}}$ captures diverse physical interactions encountered during execution, including both success and failure cases, and is used to finetune a pretrained world model. Specifically, we initialize from the pretrained Ctrl-World model (Guo et al., 2025a), a strong diffusion-based world model trained on the full DROID dataset $\mathcal{D}_{\mathrm{DROID}}$. Finetuning on the online rollout dataset $\mathcal{D}_{\mathrm{real}}$ follows the original diffusion objective (Blattmann et al., 2023):
 
-![Equation 1](../images/c1f0585474eb5dd70005d73d582e16780e93a5cf0b425e1f2cf9d66f3dd92442.jpg)
+$$
+\mathcal { L } _ { \mathcal { D } _ { \mathrm { r e a l } } } = \mathbb { E } _ { x _ { 0 } , \epsilon , t ^ { \prime } } \left\| \hat { x } _ { 0 } ( x _ { t ^ { \prime } } , t ^ { \prime } , c ) - x _ { 0 } \right\| ^ { 2 } ,
+$$
 
 > 💡 **公式 1 解读**：标准的扩散模型去噪损失。预测目标 $x_0 = o_{t+1:t+H}$ 是未来 H 帧观测序列。条件 $c$ 包括：当前观测 $o_t$ + 动作序列 $a_{t:t+H}$（action-conditioned）。这与 Ctrl-World 原始训练目标完全相同——VLAW 的创新不在损失函数，而在**训练数据的组成**（加入失败案例）。
 
 **Progressively Growing Dataset and Co-training.** During successive iterations, we continuously append newly collected real-world trajectories into the dataset: $\mathcal{D}_{\mathrm{real}} = \mathcal{D}_{\mathrm{real}} \cup \tau_{\mathrm{real}}^i$. To prevent overfitting to the limited online rollout data, we also co-train with the original DROID dataset $\mathcal{D}_{\mathrm{DROID}}$ for regularization. The final training objective is:
 
-![Equation 2](../images/49c8a59a61297b2806a4581b098fbf0f7eccd421c7fd45126bdd2bc9a528a595.jpg)
+$$
+\mathcal { L } = \mathcal { L } _ { \mathcal { D } _ { \mathrm { r e a l } } } + \lambda \mathcal { L } _ { \mathcal { D } _ { \mathrm { D R O I D } } }
+$$
 
 > 💡 **Co-training 的必要性**：仅用 250 条 rollout 微调会严重过拟合，忘记 Ctrl-World 的通用知识。λ 控制正则化强度（论文未给出具体值）。渐进式数据集增长意味着第 2 次迭代的世界模型微调使用了 2×50=100 条 rollout/任务。
 
@@ -78,7 +82,9 @@ To address these issues, we get $K$ trajectories by rolling out the policy in th
 
 In implementation, the reward model takes as input a trajectory video $\tau_{\mathrm{real}}^i$ together with a query asking whether the task instruction $I^i$ is successfully completed. We classify a trajectory as successful if the probability assigned to the 'yes' token exceeds a threshold $\alpha$. By adjusting $\alpha$, we can make the reward model more or less conservative.
 
-![Equation 3](../images/d0c8311a3bfa7c5dedd22a52dc3e212751cd73a7d5ca5c6889393f73ae09a36f.jpg)
+$$
+R ( \tau ^ { i } ) = \mathbf { 1 } \big [ P ( \textsf { \mathfrak { v } } _ { \mathtt { Y } \ominus { \cal S } } , \ | \ \tau ^ { i } , I ^ { i } ) > \alpha \big ] ,
+$$
 
 > 💡 **阈值策略的设计权衡**：
 > - 直接 yes/no → 假阳性多（世界模型想象轨迹中乐观预测也会骗过奖励模型）
@@ -98,7 +104,9 @@ Specifically, we generate $N$ trajectories by rolling out the policy in imaginat
 
 **Policy Learning Objective.** We update the $\pi_{0.5}$ policy using a weighted flow-matching objective over both real-world rollouts and world-model–generated data. After filtering for successful trajectories, we assign a binary weight $w(o, a) = 1$ to transitions from successful trajectories and $w(o, a) = 0$ to transitions from failed trajectories:
 
-![Equation 4](../images/ff48781635dbbe9114a593450316ef0f6e2c3100773ed8bac53d5341db9eda7e.jpg)
+$$
+\begin{array} { r l } & { \mathcal { L } = \mathbb { E } _ { ( o , a ) \sim \mathcal { D } _ { \mathrm { s y n } } \cup \mathcal { D } _ { \mathrm { r e a l } } } w ( o , a ) \mathcal { L } _ { \mathrm { F M } } ( \theta ; o , a ) } \\ & { \quad = \mathbb { E } _ { ( o , a ) \sim \mathcal { D } _ { \mathrm { s y n } } ^ { + } \cup \mathcal { D } _ { \mathrm { r e a l } } ^ { + } } \mathcal { L } _ { \mathrm { F M } } ( \theta ; o , a ) , } \end{array}
+$$
 
 > 💡 **公式 4 本质**：等价于只在成功轨迹上做 SFT——binary weight（0/1）意味着失败轨迹被完全忽略，只用成功轨迹（真实 $\mathcal{D}_{\mathrm{real}}^+$ + 合成 $\mathcal{D}_{\mathrm{syn}}^+$）做 flow-matching 训练。这是 AWR (Advantage-Weighted Regression) 在 flow-matching 策略上的特例，Section 4.3 做了理论推导。
 
@@ -136,23 +144,31 @@ In this subsection, we show that the policy update in Eq. 4 can be viewed as pol
 
 Under the regularized RL setting, we constrain the learned policy to remain close to a reference policy $\pi_{\mathrm{ref}}$ while optimizing reward. This yields the following regularized objective:
 
-![Equation 5](../images/cebe63e9823125b088b120d161e75da31f69c2d2a7a458b60b610de14fb31e08.jpg)
+$$
+J ( \theta ) = \mathbb { E } _ { \tau \sim \rho _ { \pi _ { \theta } } } [ R ( \tau ) ] - \beta \mathbb { E } _ { o \sim \rho _ { \pi _ { \theta } } } [ D ( \pi _ { \theta } ( \cdot \vert o ) \Vert \pi _ { \mathrm { r e f } } ( \cdot \vert o ) ) ]
+$$
 
 > 💡 **公式 5 含义**：标准的 KL 正则化 RL 目标。第一项最大化期望奖励，第二项惩罚策略偏离参考策略 π_ref 太多（β 控制强度）。这与 RLHF 中的 KL 约束目标形式完全相同。
 
 The optimal improved policy admits a closed-form solution given by:
 
-![Equation 6](../images/bedb2b4980f6ad947a909ba1a4956b5f1ded4936a5186b2502686ac248368490.jpg)
+$$
+\pi ^ { \star } ( a \mid o ) \propto w ( o , a ) \pi _ { \mathrm { r e f } } ( a \mid o ) , w ( o , a ) = \exp \left( \frac { A ^ { \pi _ { \mathrm { r e f } } } ( o , a ) } { \beta } \right)
+$$
 
 > 💡 **公式 6 含义**：最优策略是参考策略 × exp(advantage/β) 的加权版本。当 γ→1、reward 为二值（成功/失败）时，advantage 退化为 0/1 权重，即公式 4 的 binary weight w(o,a)。这就是 VLAW 与 AWR (Advantage-Weighted Regression) 的理论联系。
 
 We can define a surrogate divergence which measures how well $\pi_\theta$ matches samples drawn from $\pi^\star$ under the flow-matching loss:
 
-![Equation 7](../images/9a5546ba327fbec1814b2143d979db99e666db5036de3ac4b24a7aa9a3f7ee95.jpg)
+$$
+D _ { \mathrm { F M } } ( \pi ^ { \star } ( \cdot \mid o ) , \pi _ { \theta } ( \cdot \mid o ) ) \triangleq \mathbb { E } _ { a \sim \pi ^ { \star } ( \cdot \mid o ) } \big [ \mathcal { L } _ { \mathrm { F M } } ( \theta ; o , a ) \big ] ,
+$$
 
 Using this divergence, we can project policy to the optimal solution with:
 
-![Equation 8](../images/f16301710b395282c90eb32745995cf030f48a4171707a7b43af059a0fbdab80.jpg)
+$$
+\theta ^ { \star } = \arg \operatorname* { m i n } _ { \theta } \ \mathbb { E } _ { ( o , a ) \sim \mathcal { D } } \Big [ w \big ( o , a \big ) \mathcal { L } _ { \mathrm { F M } } \big ( \theta ; o , a \big ) \Big ] ,
+$$
 
 > 💡 **公式 7-8 的意义**：
 > - 问题：flow-matching 策略没有显式 action log-prob，无法用标准 KL 散度

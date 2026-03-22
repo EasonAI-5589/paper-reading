@@ -36,6 +36,10 @@ $$
 
 where subscripts denote robot timesteps and superscripts denote flow matching timesteps, with $\tau \in [ 0 , 1 ]$ . Recent work in high-resolution image [14] and video [38] synthesis has shown that flow matching can achieve strong empirical performance when combined with a simple linear-Gaussian (or optimal transport) probability path [28], given by $q ( \mathbf { A } _ { t } ^ { \tau } | \mathbf { A } _ { t } ) = \mathcal { N } ( \tau \mathbf { A } _ { t } , ( 1 - \tau ) \mathbf { I } )$ . In practice, the network is trained by sampling random noise $\epsilon \sim \mathcal { N } ( \mathbf { 0 } , \mathbf { I } )$ , computing the "noisy actions" $\mathbf { A } _ { t } ^ { \tau } = \tau \mathbf { A } _ { t } + ( 1 - \tau ) \epsilon$ , and then training the network outputs $\mathbf { v } _ { \theta } ( \mathbf { A } _ { t } ^ { \tau } , \mathbf { o } _ { t } )$ to match the denoising vector field ${ \bf u } ( { \bf A } _ { t } ^ { \tau } | { \bf A } _ { t } ) = { \bf A } _ { t } - \epsilon$ . The action expert uses a full bidirectional attention mask, so that all action tokens attend to each other. During training, we sample the flow matching timestep $\tau$ from a beta distribution that emphasizes lower (noisier) timesteps. See Appendix B for more details.
 
+![Figure 14](../images/6afd2a6a4df83746c7be4269848f494fb47b17dc456c1058764de4a9f26f79f0.jpg)
+
+Fig. 14: Flow matching timestep sampling distribution. We sample $\tau$ from a shifted beta distribution that emphasizes lower timesteps (corresponding to noisier actions), and does not sample timesteps at all above a cutoff value $s$ . We use $s = 0 . 9 9 9$ in our experiments.
+
 > 💡 **批注 — Flow Matching 核心原理**:
 > - **目标**: 学习一个向量场 $v_\theta$，将噪声（τ=0）逐步变换为真实动作（τ=1）
 > - **训练过程**:

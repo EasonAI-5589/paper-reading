@@ -154,18 +154,55 @@ This section provides a comprehensive set of qualitative examples that illustrat
 
 > 💡 **B 概览**: 证明 hop-based 迭代更新保证 $\Phi^*(s) \in [0,1]$。用数学归纳法，分正 hop 和负 hop 两种情况。
 
-The proof shows that iteratively applying predicted relative progress hops guarantees $\Phi^{\star}(s) \in [0, 1]$, provided $\Phi^{\star}(s_0) = 0$ and $H \in [-1, 1]$.
+In this subsection, we provide a formal proof that iteratively applying the predicted relative progress hops guarantees that the reconstructed global progress $\Phi ^ { \star } ( s )$ remains strictly within the bounds $[ 0 , 1 ]$ , provided that the initial state is bounded and the model predictions lie within $[ - 1 , 1 ]$ .
 
-**Update rule:**
+First, we define the general recursive update rule. Based on the definition of the hop label $\mathcal { H } ( s _ { p } , s _ { q } )$ in Equation 2, we derive the recursive update rule for estimating the global progress of the next state $\Phi ^ { \star } ( s _ { t } )$ given the current state $\Phi ^ { \star } \left( s _ { t - 1 } \right)$ and the predicted hop $H = \mathcal { H } ( s _ { t - 1 } , s _ { t } )$ . We assume the normalization where $\Phi ( s _ { 0 } ) = 0$ and $\Phi ( s _ { M } ) = 1$ . Rearranging the equation, the update rule is:
 
-$$\Phi^{\star}(s_{t}) = \begin{cases} \Phi^{\star}(s_{t-1}) + H \cdot [1 - \Phi^{\star}(s_{t-1})] & \text{if } H \geq 0 \\ \Phi^{\star}(s_{t-1}) + H \cdot \Phi^{\star}(s_{t-1}) & \text{if } H < 0 \end{cases}$$
+$$
+\Phi ^ { \star } ( s _ { t } ) = { \left\{ \begin{array} { l l } { \Phi ^ { \star } ( s _ { t - 1 } ) + H \cdot [ 1 - \Phi ^ { \star } ( s _ { t - 1 } ) ] } & { { \mathrm { i f ~ } } H \geq 0 } \\ { \Phi ^ { \star } ( s _ { t - 1 } ) + H \cdot \Phi ^ { \star } ( s _ { t - 1 } ) } & { { \mathrm { i f ~ } } H < 0 } \end{array} \right. }
+$$
 
-**Base Case:** $\Phi^{\star}(s_0) = 0 \in [0, 1]$. ✓
+Given that the initial progress $\Phi ^ { \star } ( s _ { 0 } ) = 0$ and the predicted hop $H \in [ - 1 , 1 ]$ , the reconstructed global progress $\Phi ^ { \star } ( s _ { t } )$ satisfies $\Phi ^ { \star } ( s _ { t } ) \in [ 0 , 1 ]$ for all steps $t$ .
 
-**Inductive Step (assume $G = \Phi^{\star}(s_{t-1}) \in [0,1]$):**
+We proceed by mathematical induction as follow: (1) Base Case ( $\ell = 0$ ): By definition, $\Phi ^ { \star } ( s _ { 0 } ) = 0$ , which satisfies $0 \in \left[ 0 , 1 \right]$ . (2) Inductive Step: Assume that for step $t - 1$ , the hypothesis holds: $0 \leq \Phi ^ { \star } ( s _ { t - 1 } ) \leq 1$ . Let $G = \Phi ^ { \star } ( s _ { t - 1 } )$ for brevity, where $G \in [ 0 , 1 ]$ . We analyze the next state $\Phi ^ { \star } ( s _ { t } )$ under two cases (i.e., Positive Hop and Negative Hop) based on the sign of the predicted hop $H$ .
 
-- **Case 1 ($H \geq 0$):** $\Phi^{\star}(s_t) = G + H(1-G) = H + G(1-H)$. Since $G, H \in [0,1]$: lower bound $\geq 0$, upper bound $\leq H + (1-H) = 1$. ✓
-- **Case 2 ($H < 0$):** $\Phi^{\star}(s_t) = G(1+H)$. Since $H \in [-1,0)$: $(1+H) \in [0,1)$, so $G(1+H) \in [0, 1)$. ✓
+# • Case 1: Positive Hop (Progress), $0 \leq H \leq 1$
+
+From Equation (12), the update is written as:
+
+$$
+\Phi ^ { \star } ( s _ { t } ) = G + H ( 1 - G )
+$$
+
+Rearranging terms to view this as a convex combination:
+
+$$
+\Phi ^ { \star } ( s _ { t } ) = H + G ( 1 - H )
+$$
+
+Lower Bound: Since $G \geq 0$ , $H \geq 0$ , and $( 1 - H ) \geq 0$ , it follows that $\Phi ^ { \star } ( s _ { t } ) \geq 0$ . Upper Bound: Since $G \leq 1$ , we substitute the maximum value of $G$ :
+
+$$
+\begin{array} { l } { \Phi ^ { \star } \bigl ( s _ { t } \bigr ) = H + G \bigl ( 1 - H \bigr ) } \\ { \qquad \leq H + 1 \cdot ( 1 - H ) } \\ { \qquad = H + 1 - H } \\ { \qquad = 1 } \end{array}
+$$
+
+Thus, $0 \leq \Phi ^ { \star } ( s _ { t } ) \leq 1$ when $H \geq 0$ .
+
+• Case 2: Negative Hop (Regress), $- 1 \leq H < 0$
+
+From Equation (12), the update is:
+
+$$
+\Phi ^ { \star } ( s _ { t } ) = G + H \cdot G = G ( 1 + H )
+$$
+
+Lower Bound: Since $H \in [ - 1 , 0 )$ , the term $\left( 1 + H \right) \geq 0$ . Since $G \geq 0$ , the product $G ( 1 + H ) \geq 0$ . Upper Bound: Since $H < 0$ , the term $( 1 + H ) < 1$ . Combining this with $G \leq 1$ :
+
+$$
+\Phi ^ { \star } ( s _ { t } ) = G ( 1 + H ) \leq 1 \cdot ( 1 ) = 1
+$$
+
+Thus, $0 \leq \Phi ^ { \star } ( s _ { t } ) \leq 1$ when $H < 0$ .
 
 > 💡 **证明批读**: 
 > - 正 hop 情况：$\Phi^*(s_t) = H + G(1-H)$ 是 $H$ 和 $G$ 的凸组合，自然有界

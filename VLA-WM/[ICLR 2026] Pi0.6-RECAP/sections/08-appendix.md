@@ -47,6 +47,32 @@ Writing and illustration. Kevin Black, Danny Driess, Michael Equi, Chelsea Finn,
 > 3. 参考 [80] 得到 ELBO-style lower bound
 > 4. 最终 loss = discrete CE + flow matching MSE（加权和）
 
+To derive the log-likelihood from Equation (4) we can first observe that we can decompose the full model likelihood into autoregressive and diffusion terms
+
+$$
+\begin{array} { r l } & { \pi _ { \boldsymbol { \theta } } ( \mathbf { a } _ { t : t + H } , \mathbf { a } _ { t : t + H } ^ { \ell } , \widehat { \ell } | I _ { t } , \mathbf { o } _ { t } , \ell ) = } \\ & { \pi _ { \boldsymbol { \theta } } ( \mathbf { a } _ { t : t + H } | I _ { t } , \mathbf { o } _ { t } , \ell , \widehat { \ell } ) \pi _ { \boldsymbol { \theta } } ( \mathbf { a } _ { t : t + H } ^ { \ell } | I _ { t } , \mathbf { o } _ { t } , \ell , \widehat { \ell } ) \pi _ { \boldsymbol { \theta } } ( \widehat { \ell } | I _ { t } , \mathbf { o } _ { t } , \ell ) , } \end{array}
+$$
+
+where the first term is modeled with flow matching, the second term is the autoregressive likelihood of the discretized actions $\mathbf { a } _ { t : t + H } ^ { \ell }$ , and the third term corresponds to the autoregressivekelihood. The autoregressive likelihoods can be estimated in the usual way, using the cross-entropy loss evaluated on ground truth tokens. For the continuous likelihood over $\mathbf { a } _ { t : t + H }$ , a closed form likelihood is not available [79]. We can, however follow prior work [82], and consider the one-step diffusion process as a Gaussian distribution with likelihood
+
+$$
+\begin{array} { r l } & { \log \pi _ { \boldsymbol { \theta } } \big ( \mathbf { a } _ { t : t + H } \big \vert \mathbf { a } _ { 1 : H } ^ { \eta , \omega } , I _ { t } , \mathbf { o } _ { t } , \boldsymbol { \ell } , \hat { \ell } \big ) = } \\ & { \qquad \log \mathcal { N } \Big ( \omega - f _ { \boldsymbol { \theta } } \big ( \mathbf { a } _ { 1 : H } ^ { \eta , \omega } , I _ { t } , \mathbf { o } _ { t } , \boldsymbol { \ell } , \hat { \ell } \big ) , \mathbf { I } \Big ) , } \end{array}
+$$
+
+with $\mathbf { a } _ { t : t + H } ^ { \eta , \omega } = \eta \mathbf { a } _ { t : t + H } + ( 1 - \eta ) \omega$ and $\boldsymbol \omega = \mathcal { N } ( 0 , { \bf I } )$ . From following [80, 82] (effectively marginalizing over $\eta$ and $\omega$ ) which yields
+
+$$
+\begin{array} { r l r } {  { \log \pi _ { \theta } \big ( \mathbf { a } _ { t : t + H } \big | I _ { t } , \mathbf { o } _ { t } , \ell , \widehat { \ell } \big ) \geq } } \\ & { } & { \frac { 1 } { 2 } \mathbb { E } _ { \eta , \omega } \Big [ - w ( \eta ) \| \omega - \mathbf { a } _ { 1 : H } - f _ { \theta } \big ( \mathbf { a } _ { 1 : H } ^ { \eta , \omega } , I _ { t } , \mathbf { o } _ { t } , \ell , \widehat { \ell } \big ) \| ^ { 2 } \Big ] + c , } \\ & { } & { \quad \mathrm { o s } } \end{array}
+$$
+
+where $w ( \eta ) = e ^ { - \eta / 2 }$ is a noise dependent weighting term, and c is a constant independent of $f _ { \theta }$ . For the derivation, see [80], which also derives the relationship between flow matching and diffusion in Appendix D.3 for this choice of weighting term. Finally putting the lower bound together with the autoregressive likelihood for the discretized action part of the text output $\hat { \ell }$ , and subsuming the weighting terms in $\alpha$ gives
+
+$$
+\begin{array} { r l } & { \log \pi _ { \boldsymbol { \theta } } \big ( \mathbf { a } _ { t : t + H } , \mathbf { a } _ { t : t + H } ^ { \boldsymbol { \ell } } \vert I _ { t } , \mathbf { o } _ { t } , \boldsymbol { \ell } , \hat { \ell } \big ) \geq } \\ & { \mathbb { E } _ { \eta , \omega } \Big [ \log p _ { \boldsymbol { \theta } } \big ( \mathbf { a } _ { t : t + H } ^ { \boldsymbol { \ell } } \vert I _ { t } , \mathbf { o } _ { t } , \boldsymbol { \ell } , \hat { \ell } \big ) } \\ & { \qquad - \alpha _ { \eta } \left. \omega - \mathbf { a } _ { 1 : H } - f _ { \boldsymbol { \theta } } \big ( \mathbf { a } _ { 1 : H } ^ { \eta , \omega } , I _ { t } , \mathbf { o } _ { t } , \boldsymbol { \ell } , \hat { \ell } \big ) \right. ^ { 2 } \Big ] , } \end{array}
+$$
+
+which is the bound given in the main part of the paper.
+
 ---
 
 ## D. PPO implementation
@@ -56,15 +82,45 @@ Writing and illustration. Kevin Black, Danny Driess, Michael Equi, Chelsea Finn,
 > - 分别对 autoregressive 和 flow-matching 部分施加 trust region
 > - Flow matching 部分的 trust region 难以 enforce → PPO 效果差的原因之一
 
+We implement a variant of PPO [66] related to DPPO and FPO [23, 82] and use it as an additional baseline. To allow for training both the autoregressive part of the model as well as the diffusion based action expert in a compute effective manner we calculate likelihoods based on the single step diffusion objective alone.
+
+In particular, we use a likelihood bound analogous to Eq. (9) (previous section) but without the improvement indicator. Decomposing into autoregressive and flow-matching terms this
+
+$$
+\begin{array} { r l } & { \log \pi _ { \boldsymbol { \theta } } \big ( \mathbf { a } _ { t : t + H } , \mathbf { a } _ { t : t + H } ^ { \ell } \big | \mathbf { o } _ { t } , \ell , \hat { \ell } \big ) \geq } \\ & { \quad \mathbb { E } _ { \eta , \omega } \bigg [ \log p _ { \boldsymbol { \theta } } \big ( \mathbf { a } _ { t : t + H } ^ { \ell } \big | \mathbf { o } _ { t } , \ell , \hat { \ell } \big ) } \\ & { \qquad - \alpha _ { \eta } \left\| \omega - \mathbf { a } _ { 1 : H } - f _ { \boldsymbol { \theta } } \big ( \mathbf { a } _ { 1 : H } ^ { \eta , \omega } , \mathbf { o } _ { t } , \ell , \hat { \ell } \big ) \right\| ^ { 2 } \bigg ] , } \end{array}
+$$
+
+which is analogous to the diffusion likelihood bound used in FPO [82]. And we combine it with a PPO style loss separated into diffusion and autoregressive terms. In preliminary experiments we found that for our setting it was difficult to enforce a trust region constraint on the action expert (which models actions with an unbounded diffusion head) when using the standard PPO clipping objective. Presumably, this is partially due to the "offline" nature of our algorithm setting, where we cannot afford to collect new data from real robots every few gradient steps. To stabilize training we found using an alternative definition of the PPO constraint following SPO [83] to be effective. The resulting loss is given as:
+
+$$
+\begin{array} { r l } & { \quad \mathcal { L } _ { S r f o } + _ { C o } v L A ( \theta ) = } \\ & { \quad \Bigg \{ \frac { \pi _ { \theta } ( a _ { \ell } \varepsilon \hat { \varepsilon } ( \hat { \varepsilon } | \mathbf { o } _ { t } , \ell ) ) } { \pi _ { \mathrm { e r f } } ( a _ { \ell } \varepsilon \hat { \varepsilon } / \mathbf { { l } _ { 0 } } , \ell ) } A ^ { \pi _ { \theta } } ( o _ { t } , a _ { t } , \ell ) } \\ & { \quad - \frac { \left. \ A ^ { \pi _ { \theta } } \left( o _ { t } , a _ { t } , \ell \right) \right. } { 2 \varepsilon _ { \mathrm { a r } } } \Bigg [ \frac { \pi _ { \theta } ( a _ { \ell } \varepsilon \hat { \varepsilon } ( \hat { \varepsilon } | \mathbf { o } _ { t } , \ell ) } { \pi _ { \mathrm { e r f } } ( a _ { \ell } \varepsilon \hat { \varepsilon } / \mathbf { { l } _ { 0 } } , \ell ) } - 1 \Bigg ] \Bigg \} } \\ & { \quad + \alpha \Bigg \{ \frac { \pi _ { \theta } ( \mathbf { a } _ { t + t + H } | \mathbf { o } _ { t } , \ell ) } { \pi _ { \mathrm { e r f } } ( \mathbf { a } _ { t ; t + H } | \mathbf { o } _ { t } , \ell ) } A ^ { \pi _ { \theta } } ( o _ { t } , a _ { t } , \ell ) } \\ & { \quad \quad - \frac { \left. \ A ^ { \pi _ { \theta } } \left( o _ { t } , a _ { t } , \ell \right) \right. } { 2 \varepsilon _ { \mathrm { t o w } } } \Bigg [ \frac { \pi _ { \theta } ( \mathbf { a } _ { t + t + H } | \mathbf { o } _ { t } , \ell ) } { \pi _ { \mathrm { e r f } } ( \mathbf { a } _ { t ; t + H } | \mathbf { o } _ { t } , \ell ) } - 1 \Bigg ] \Bigg \} , } \end{array}
+$$
+
+where $\alpha$ is a trade-off parameter and $\epsilon _ { \mathrm { a r } } , ~ \epsilon _ { \mathrm { f l o w } }$ are trust-region parameters for autoregressive and flow-matching model parts respectively. We use this variant to perform training on eval data starting from the $\pi _ { 0 . 6 }$ checkpoint.
+
 ---
 
-## E. Using CFG for test-time policy improvement with β > 1
+## E. Using CFG for test-time policy improvement with $\beta > 1$
 
 > 💡 **Appendix E 要点**: 推理时的 CFG
 > - 用 conditional + unconditional model 的梯度差做 guidance
 > - β 控制 guidance 强度（β=1 直接用 conditional，β>1 更 aggressive）
 > - 实践中 β ∈ [1.5, 2.5] 比较好；太大会推到 action distribution 边界 → 动作过于激进
 > - β 和训练时的 $\epsilon_\ell$ 都能 sharpen 分布，但作用时机不同
+
+After training we can choose to further sharpen the policy used for evaluation by setting $\beta > 1$ in Eq. (2). As shown in prior work [4] we can recover this sharpened policy without additional training since it is implicitly defined by the learned policies $\pi _ { \boldsymbol { \theta } } ( \mathbf { a } _ { t : t + H } | I _ { t } , \mathbf { o } _ { t } , \ell )$ and $\pi _ { \boldsymbol { \theta } } \big ( \mathbf { a } _ { t : t + H } \big | \mathbf { o } _ { t } , \boldsymbol { \ell } \big )$ . Specifically, after training we can form the approximation
+
+$$
+\hat { \pi } ( \mathbf { a } _ { t : t + H } | \mathbf { o } _ { t } , \ell ) \propto \pi _ { \mathrm { r e f } } ( \mathbf { a } _ { t : t + H } | \mathbf { o } _ { t } , \ell ) \left( \frac { \pi _ { \mathrm { r e f } } ( \mathbf { a } _ { t : t + H } | I _ { t } , \mathbf { o } _ { t } , \ell ) } { \pi _ { \mathrm { r e f } } ( \mathbf { a } _ { t : t + H } | \mathbf { o } _ { t } , \ell ) } \right) ^ { \beta } .
+$$
+
+One can now realize that the diffusion model effectively learns the gradient of the likelihoods, i.e. it represents $\nabla _ { \mathbf { a } } \log \pi _ { \boldsymbol { \theta } } \big ( \mathbf { a } _ { t : t + H } \big | I _ { t } , \mathbf { o } _ { t } , \boldsymbol { \ell } \big )$ and $\nabla _ { \mathbf { a } } \log \pi _ { \boldsymbol { \theta } } ( \mathbf { a } _ { t : t + H } | \mathbf { o } _ { t } , \boldsymbol { \ell } )$ respectively. From this, following Frans et al. [4], we can see that if we run flow-matching inference following the gradient
+
+$$
+\begin{array} { r l } & { \nabla _ { \mathbf { a } } \log \pi _ { \boldsymbol { \theta } } ( \mathbf { a } _ { t : t + H } | \mathbf { o } _ { t } , \boldsymbol { \ell } ) + } \\ & { \quad \beta ( \nabla _ { \mathbf { a } } \log \pi _ { \boldsymbol { \theta } } ( \mathbf { a } _ { t : t + H } | I _ { t } , \mathbf { o } _ { t } , \boldsymbol { \ell } ) - \nabla _ { \mathbf { a } } \log \pi _ { \boldsymbol { \theta } } ( \mathbf { a } _ { t : t + H } | \mathbf { o } _ { t } , \boldsymbol { \ell } ) ) , } \end{array}
+$$
+
+we are effectively sampling from the desired attenuated distribution. We note that, as mentioned in the main paper, the parameter $\beta$ is loosely connected to the advantage threshold $\epsilon _ { \ell }$ that we introduce during training (in the sense that both sharpen the distribution, one at inference and one at training time). We find that sharpening the distribution after training with high settings for $\beta$ can lead to pushing the action distribution towards the boundaries of its learned support (which can lead to overly aggressive motions) and thus primarily rely on $\epsilon _ { \ell }$ for obtaining a good conditioned policy directly after training and combine it with moderate settings (e.g. $\beta \in [ 1 . 5 , 2 . 5 ] ,$ ) where useful.
 
 ---
 

@@ -18,7 +18,13 @@ Following standard on-policy reinforcement learning, the policy is optimized via
 
 $$\nabla_\theta J(\pi_\theta) = \mathbb{E}_{\tau \sim \pi_\theta} \left[ \sum_{t=1}^{T} \nabla_\theta \log \pi_\theta(a_t \mid o_t, l_t) A(o_t, a_t) \right]$$
 
-where $A(o_t, a_t)$ denotes the advantage function, defined as $A(o_t, a_t) = Q(o_t, a_t) - V(o_t)$.
+where $A(o_t, a_t)$ denotes the advantage function. In general, the advantage function is defined as
+
+$$
+A(o_t, a_t) = Q(o_t, a_t) - V(o_t),
+$$
+
+where $Q(o_t, a_t)$ is the action-value function representing the expected return after taking action $a_t$ at observation $o_t$, and $V(o_t)$ is the state-value function estimating the expected return under the current policy.
 
 > 💡 **标准 Policy Gradient 框架**：这里用的是完整的 policy gradient（带 advantage function），不像 VLAW 那样用 binary-filtered BC 近似。WoVR 用的是真正的 on-policy GRPO，需要显式的 log likelihood——这意味着 WoVR 的 base VLA model（OpenVLA-OFT）必须是 autoregressive 的（提供 log π(a|o)），而不是 flow-matching 的（如 π₀.₅）。这是 WoVR 和 VLAW 在 policy 架构选择上的根本区别。
 
