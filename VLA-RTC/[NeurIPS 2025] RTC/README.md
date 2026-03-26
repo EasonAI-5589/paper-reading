@@ -88,6 +88,74 @@ RTC 是一种纯推理时算法，通过将异步 action chunking 建模为 **in
 
 ## 📊 Citation Landscape
 
-> ⚠️ Semantic Scholar API 当前不可用，Citation Landscape 数据待补充。
+**TLDR** (Semantic Scholar): *Results demonstrate that RTC is fast, performant, and uniquely robust to inference delay, significantly improving task throughput and enabling high success rates in precise tasks - such as lighting a match - even in the presence of significant latency.*
 
-**Connected Papers**: [查看](https://www.connectedpapers.com/main/2506.07339)
+**引用统计**: 参考文献 70 篇 | 被引 71 次 | Influential Citations: 12
+
+### 参考文献分组 (Top 5 per category, by citations)
+
+#### Action Chunking / Real-Time Inference
+| 论文 | 年份 | 引用 |
+|------|------|------|
+| Fine-Tuning Vision-Language-Action Models: Optimizing Speed and Success | 2025 | 350 |
+| FAST: Efficient Action Tokenization for Vision-Language-Action Models | 2025 | 343 |
+| Real-Time Neural MPC: Deep Learning Model Predictive Control for Quadrotors and Agile Robotic Platforms | 2022 | 193 |
+| Control delay in Reinforcement Learning for real-time dynamic systems: A memoryless approach | 2010 | 75 |
+| Bidirectional Decoding: Improving Action Chunking via Closed-Loop Resampling | 2024 | 25 |
+
+#### VLA / Robot Policy
+| 论文 | 年份 | 引用 |
+|------|------|------|
+| Diffusion policy: Visuomotor policy learning via action diffusion | 2023 | 2,702 |
+| RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control | 2023 | 2,621 |
+| OpenVLA: An Open-Source Vision-Language-Action Model | 2024 | 1,832 |
+| Learning Fine-Grained Bimanual Manipulation with Low-Cost Hardware | 2023 | 1,449 |
+| π0: A Vision-Language-Action Flow Model for General Robot Control | 2024 | 1,327 |
+
+#### Diffusion / Flow / Inverse Problems
+| 论文 | 年份 | 引用 |
+|------|------|------|
+| Denoising Diffusion Probabilistic Models | 2020 | 28,506 |
+| Flow Matching for Generative Modeling | 2022 | 3,719 |
+| Flow Straight and Fast: Learning to Generate and Transfer Data with Rectified Flow | 2022 | 2,510 |
+| RePaint: Inpainting using Denoising Diffusion Probabilistic Models | 2022 | 1,954 |
+| Consistency Models | 2023 | 1,636 |
+
+#### Benchmarks / Datasets / Embodiment
+| 论文 | 年份 | 引用 |
+|------|------|------|
+| BridgeData V2: A Dataset for Robot Learning at Scale | 2023 | 574 |
+| Open X-Embodiment: Robotic Learning Datasets and RT-X Models | - | 284 |
+| ALOHA Unleashed: A Simple Recipe for Robot Dexterity | 2024 | 176 |
+| RH20T: A Comprehensive Robotic Dataset for Learning Diverse Skills in One-Shot | 2023 | 171 |
+| Kinetix: Investigating the Training of General Agents through Open-Ended Physics-Based Control Tasks | 2024 | 27 |
+
+#### Control / Planning
+| 论文 | 年份 | 引用 |
+|------|------|------|
+| Temporal Difference Learning for Model Predictive Control | 2022 | 374 |
+| QueST: Self-Supervised Skill Abstractions for Learning Continuous Control | 2024 | 47 |
+| Thinking While Moving: Deep Reinforcement Learning with Concurrent Control | 2020 | 42 |
+| Planning and Learning in Environments with Delayed Feedback | 2007 | 34 |
+| Process Systems Analysis and Control , chapter 18 | 2009 | 0 |
+
+### 推荐论文（Semantic Scholar Recommendations）
+
+| 论文 | 年份 | 引用 | arXiv |
+|------|------|------|-------|
+| Causal World Modeling for Robot Control | 2026 | 10 | [2601.21998](https://arxiv.org/abs/2601.21998) |
+| DynamicVLA: A Vision-Language-Action Model for Dynamic Object Manipulation | 2026 | 5 | [2601.22153](https://arxiv.org/abs/2601.22153) |
+| RISE: Self-Improving Robot Policy with Compositional World Model | 2026 | 4 | [2602.11075](https://arxiv.org/abs/2602.11075) |
+| VLAW: Iterative Co-Improvement of Vision-Language-Action Policy and World Model | 2026 | 4 | [2602.12063](https://arxiv.org/abs/2602.12063) |
+| AsyncVLA: An Asynchronous VLA for Fast and Robust Navigation on the Edge | 2026 | 3 | [2602.13476](https://arxiv.org/abs/2602.13476) |
+| WoVR: World Models as Reliable Simulators for Post-Training VLA Policies with RL | 2026 | 3 | [2602.13977](https://arxiv.org/abs/2602.13977) |
+| World-Gymnast: Training Robots with Reinforcement Learning in a World Model | 2026 | 3 | [2602.02454](https://arxiv.org/abs/2602.02454) |
+| How Fast Can I Run My VLA? Demystifying VLA Inference Performance with VLA-Perf | 2026 | 2 | [2602.18397](https://arxiv.org/abs/2602.18397) |
+| Learning Native Continuation for Action Chunking Flow Policies | 2026 | 2 | [2602.12978](https://arxiv.org/abs/2602.12978) |
+| RL-VLA3: Reinforcement Learning VLA Accelerating via Full Asynchronism | 2026 | 2 | [2602.05765](https://arxiv.org/abs/2602.05765) |
+
+### 🔗 相关链接
+
+- [Connected Papers](https://www.connectedpapers.com/main/2506.07339)
+- [Semantic Scholar](https://www.semanticscholar.org/paper/d0f525dba7d3425e36316127424e67fe2c2fdb0d)
+- [arXiv](https://arxiv.org/abs/2506.07339)
