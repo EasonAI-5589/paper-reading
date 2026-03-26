@@ -136,7 +136,7 @@ VLA 实时推理加速 - Action Chunking 的异步执行与校正
 | [RTC](./VLA-RTC/%5BNeurIPS%202025%5D%20RTC/) | NeurIPS 2025 | **Real-Time Chunking** - 推理时 inpainting 异步执行，无需重训练，高动态任务 |
 | [Training-time RTC](./VLA-RTC/%5BArxiv%202512.05964%5D%20Training-time%20RTC/) | arXiv 2512.05964 | 训练时模拟延迟 + action prefix conditioning，RTC 的 drop-in 替代，更低开销 |
 | [VLASH](./VLA-RTC/%5BArxiv%202512.01031%5D%20VLASH/) | arXiv 2512.01031 | MIT Han Lab，Future-State-Aware 异步推理，2.03x 加速 / 17.4x 反应延迟降低 |
-| [A2C2](./VLA-RTC/%5BArxiv%202509.23224%5D%20A2C2/) | arXiv 2509.23224 | 轻量校正头，per-step correction，+23% over RTC on Kinetix，plug-in |
+| [A2C2](./VLA-RTC/%5BArxiv%202509.23224%5D%20A2C2%20Leave-No-Observation-Behind/) | arXiv 2509.23224 | 轻量校正头，per-step correction，+23% over RTC on Kinetix，plug-in |
 
 ---
 
@@ -222,7 +222,7 @@ paper-reading/
 │   ├── [NeurIPS 2025] RTC/
 │   ├── [Arxiv 2512.05964] Training-time RTC/
 │   ├── [Arxiv 2512.01031] VLASH/
-│   └── [Arxiv 2509.23224] A2C2/
+│   └── [Arxiv 2509.23224] A2C2 Leave-No-Observation-Behind/
 │
 ├── RLHF/                           # 强化学习人类反馈 (1 篇)
 │   └── [ICML 2025] MM-RLHF/
