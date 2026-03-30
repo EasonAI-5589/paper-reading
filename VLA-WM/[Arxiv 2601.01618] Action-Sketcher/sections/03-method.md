@@ -16,6 +16,35 @@
 > - 核心流程：观测 → Reasoning（生成 Sketch 文本描述） → 渲染 Sketch 图像 → Action（生成动作 chunk）
 > - token-gate：`<BOR>` 和 `<BOA>` 是模式切换的关键信号
 > - Sketch 渲染在当前参考视图（ego-view）上，再作为条件输入 Action Mode
+>
+> **🔍 Figure 2 详细解读（上半部分 - 模型结构）**:
+>
+> **LLM 的输入（5类）**：
+> - 🟠 多视角图像（左腕/右腕/底座 3 个相机，每张图像编码为一串 token，用 `BOI/EOI` 括起来）
+> - 🔵 任务指令（语言指令，如 "clean the table"）
+> - 🟢 当前子任务（"step 1: pick up the cola"）
+> - 🟡 Sketch 图像（上一轮推理生成的 Visual Sketch，叠加了框/点/箭头的图像）
+> - 历史子任务（已完成的步骤记录，让 LLM 知道进度）
+>
+> **Action Expert 的输入**：
+> - State（机器人状态）= 机械臂当前关节角度/位置/速度
+> - Noise（随机噪声）= Flow Matching 从随机起点出发逐步"去噪"到目标动作
+>
+> **关于 BOI/EOI**：Begin/End of Image，标记图像 token 的边界，与 BOR/BOA（模式切换）性质不同
+>
+> **🔍 Figure 2 详细解读（下半部分 - 4行循环流程）**:
+>
+> **虚线 = 当前行新生成的内容；实线 = 从上一行继承的内容**
+>
+> - **第1行（首次 Reasoning）**：起点，没有历史和 Sketch → BOR 触发 → LLM 推理出第一个子任务 + Sketch 坐标 → 渲染成 Sketch 图像（虚线，新生成）
+> - **第2行（首次 Action）**：带着新 Sketch（已变实线，继承自第1行）→ BOA 触发 → Action Expert Flow Matching → Action Chunk → EOA → 循环执行直到子任务完成
+> - **第3行（第二轮 Reasoning）**：比第1行**多了已完成子任务历史**（实线，积累的历史）→ BOR 触发 → 推理出下一个子任务 + 新 Sketch
+> - **第4行（第二轮 Action）**：同第2行，按新 Sketch 执行
+>
+> **两种模式的分工**：
+> - Reasoning Mode：LLM 主导（参谋长制定计划）
+> - Action Mode：Action Expert 主导（士兵执行）
+> - 两者是整个框架的状态，不只是 LLM 的状态
 
 ---
 
@@ -76,6 +105,18 @@ $$a_i^\text{rot} = (p_i,\ \text{axis} \in \{x,y,z\},\ \text{dir} \in \{\circlear
 > - 直观展示了 Sketch 在真实场景中的样子
 > - 可以看到点标注在壶嘴/杯口/把手，箭头显示运动轨迹和旋转方向
 > - 这种表达方式人类一眼就能理解并纠错——这是 Human-in-Loop 的基础
+>
+> **🔍 对着图逐元素解读（倒茶任务）**:
+> - 🟠 **橙色圆圈 + "Z"** = Rotation Arrow（旋转箭头），标在壶把手，表示绕 Z 轴旋转 → 让壶嘴朝向目标杯
+> - 🔴 **红色圆点** = Point（关键点），标在壶嘴，精确交互接触点 → 告诉机器人从这里出水
+> - 🔴 **红色向下直线箭头** = Translation Arrow（平移箭头），从壶嘴指向杯口 → 把壶嘴往下移对准杯口
+> - 右侧文字印证：`"point": [[111,59]]`（关键点坐标）、`"star_point"` + `"jagged_arrow"`（平移箭头起终点）
+>
+> **一句话记忆框/点/箭头的作用**：
+> - **框（Boxes）** 说"是谁"（消除目标歧义）
+> - **点（Points）** 说"在哪里"（精确接触位置）
+> - **平移箭头** 说"往哪移"（运动方向）
+> - **旋转箭头** 说"怎么转"（旋转轴和方向）
 
 输入上下文：多视角图像（左腕/右腕/底座相机） + 任务指令 + 已完成子任务历史 + 当前子任务 + Visual Sketch 图像
 
