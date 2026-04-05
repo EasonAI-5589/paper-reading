@@ -9,7 +9,14 @@
 
 Visual-Language Models (VLMs) have demonstrated impressive capabilities in visual understanding, reasoning and generation [31, 50]. Latest flagship models, both closed-sourced [2, 11, 39] and open-sourced [1, 4, 55, 56, 63], represent a significant leap towards a general-purpose intelligent model that can both perceive and think about the visual world. Despite their success, VLMs still face significant inherent challenges when tackling complicated tasks that require advanced visual abilities, such as fine-grained perception, multi-step reasoning, or maintaining fidelity over long generative sequences [17, 25]. A fundamental limitation stems from the pervasive propensity, exhibited during deep autoregressive decoding, toward a deficit in visual memory, which prioritizes accumulated textual context over the initial visual evidence and lacks visual semantic knowledge [52, 90]. It manifests as a "visual processing bottleneck" that impairs performance in fine-grained visual understanding, efficient reasoning, and robust generation.
 
-> 💡 **Visual Processing Bottleneck 的本质**: 自回归解码过程中，模型越生成越多文本，attention 分配给初始视觉 token 的权重就越低。这不是简单的"看不到图"，而是"随着推理深入，图片信息被稀释"。这与 MemGen 解决的问题不同——MemGen 解决的是 agent 跨 episode 的经验记忆，VisMem 解决的是单次推理中的视觉遗忘。
+> 💡 **问题引入**: VLM 尽管成就显著，在以下三类任务上仍有明显缺陷，尤其在长序列生成时：
+> - **Fine-grained perception**：细粒度视觉感知（细节识别、精确定位）
+> - **Multi-step reasoning**：多步视觉推理（跨步骤保持视觉上下文）
+> - **Fidelity maintaining**：长序列生成中的保真度维持（生成不跑偏）
+>
+> **根本原因**：深度自回归解码过程中，随着生成 token 不断累积，文本上下文持续增长，模型对初始视觉证据的依赖被文本上下文覆盖（prioritizes accumulated textual context over initial visual evidence），同时缺乏视觉语义知识的持续维护——合称 **visual memory deficit**。本质上是自回归机制的结构性问题：越往后生成，视觉信息在上下文中的比重越低，记忆越模糊。
+>
+> **Bottleneck 定义**：上述根因导致的 **visual processing bottleneck**，具体表现为三个方面的能力损伤：fine-grained visual understanding、efficient reasoning、robust generation。
 
 Prior efforts to overcome this limitation have explored several distinct strategic axes, which can be primarily categorized into four paradigms, as illustrated in Fig. 1. One intuitive paradigm is the (a) direct training paradigm, which optimizes model parameters via fine-tuning or reinforcement learning [26, 35, 44, 66]. This relatively brute-force approach often sacrifices generalization for task-specific performance, leading to catastrophic forgetting. Another axis concerns the representation space of the intervention, (b) image-level paradigm, operating in the pixel space by explicitly synthesizing new visual inputs, which offers image-level thinking but at a prohibitive computational cost [13, 24, 29, 48, 49, 87]. Conversely, (c) token-level paradigm constrains operations to visual tokens, which is more efficient but fundamentally non-generative, limiting the model to merely re-surfacing what it has already encoded [8, 16, 28, 75]. Recently, a promising direction lies in the (d) latent space paradigm, which introduces continuous latent contexts in the sequential inference process. Unfortunately, existing latent space methods either rely solely on the language space [21, 30, 47, 68, 81] or require auxiliary visual data [70], limiting their application in VLMs.
 
@@ -40,14 +47,14 @@ While this cognitive theory reveals the essence of human cognition, it can be sm
 
 Based on such inspiration, we propose VisMem, a novel and cognitively-aligned framework that systematically incorporates short- and long-term latent vision memory into VLMs. VisMem functions by non-intrusively extending the vocabulary of VLMs with special tokens that trigger on-demand latent vision memory invocation during autoregressive generation. Upon generating an invocation token, a lightweight query builder assesses the hidden states, which contains the current multi-modal cognition, to formulate a contextual-aware query which is then dispatched to one of two specialized, lightweight memory formers: short-term memory former that generates latent tokens encoding fine-grained, perceptual evidences of current visual inputs; long-term memory former that synthesizes tokens representing abstract, high-level semantic knowledge. These generated latent memory tokens are seamlessly inserted into the generation stream, enriching the contexts and enabling it to output with a seamless integration of detailed visual information and generalized semantic knowledge.
 
-> 💡 **VisMem 核心机制（高层）**:
-> 1. 扩展词表 → 添加 4 个特殊 token（短期/长期的调用/结束各一对）
-> 2. 模型生成中遇到调用 token → 触发记忆形成
-> 3. Query Builder 提取当前认知状态 → 生成查询
-> 4. Memory Former（LoRA adapter）根据查询生成 latent memory token
-> 5. 插入生成流 → 继续解码
-> 
-> 这是一种**按需调用**机制，不是每步都加记忆，而是模型自己学会在需要的时候触发。
+> 💡 **VisMem 框架机制**: VisMem 将短期 + 长期视觉潜在记忆注入 VLM 的自回归生成流，具体通过三步实现：
+> 1. **无侵入式扩展词表**：添加特殊调用 token，自回归生成中按需触发记忆，不改动原始模型结构
+> 2. **Query Builder**：生成调用 token 后，提取当前 hidden states（融合了图像 + 文本的多模态上下文）构造 contextual-aware query——这是一个查询请求，携带当前生成状态的上下文信息，用于向 memory former 查询相关记忆
+> 3. **双路 Memory Former**：接收 query 后返回对应的 latent token：
+>    - **短期 Memory Former** → 生成 latent token，编码当前视觉输入的 fine-grained 感知证据
+>    - **长期 Memory Former** → 生成 latent token，合成抽象高层语义知识
+>
+> 生成的 latent memory token 无缝插回生成流，使后续解码同时具备细粒度视觉细节与泛化语义知识。
 
 With a two-stage training paradigm based on reinforcement learning tailored for our proposed framework, the model learns to first generate effective memory contents, based on which the optimal patterns for invoking the memory is then learned. Our extensive experiments across a wide range of benchmarks spanning visual understanding, reasoning, and generation demonstrate that our approach can substantially enhance the comprehensive visual capabilities on various base models, while also improving cross-domain generalization and mitigating the problem of catastrophic forgetting. Our contributions are listed as follows:
 
@@ -56,15 +63,7 @@ With a two-stage training paradigm based on reinforcement learning tailored for 
 - We propose a dynamic memory invocation mechanism for seamlessly invoking and inserting latent memory tokens into the autoregressive inference process.
 - We evaluate the framework on extensive benchmarks, showcasing significant improvements in advanced visual capacities, cross-domain generalization, catastrophic forgetting mitigation, and compatibility across base models.
 
-> 💡 **两阶段 RL 训练**: 先训记忆内容（frozen policy model，优化 memory former），再训调用策略（frozen memory former，优化 policy model）。这种分离训练和 MemGen 的思路有相似之处——MemGen 也是先训记忆生成器再训推理策略。但 VisMem 更显式地分成两个独立优化目标。
-> 
-> **与 MemGen 的对比**:
-> | | MemGen | VisMem |
-> |--|--------|--------|
-> | 目标 | Agent 跨 episode 经验记忆 | VLM 单次推理视觉记忆 |
-> | 模态 | 纯文本 latent memory | 视觉 + 语义 dual memory |
-> | 触发 | 推理-记忆交织 | 特殊 token 触发 |
-> | 训练 | GRPO | GRPO（两阶段） |
+> 💡 **两阶段 RL 训练与收益**: 训练分两阶段解耦优化——第一阶段先训记忆内容质量（优化 memory former，让它生成有效的视觉记忆）；第二阶段再训调用策略（优化 policy model，让它学会在合适时机触发记忆）。实验覆盖理解 / 推理 / 生成三类 benchmark，在多个 base model 上均有显著提升，同时带来两个额外收益：**cross-domain generalization 提升** 和 **catastrophic forgetting 缓解**。
 > | 挂载 | 语言模型 | Vision encoder + Language model |
 
 ---
