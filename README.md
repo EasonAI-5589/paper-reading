@@ -125,6 +125,7 @@ LLM 驱动的 Web3 智能代理
 | [Nested Learning](./Parametric%20Memory/%5BNeurIPS%202025%5D%20Nested-Learning/) | NeurIPS 2025 | 嵌套优化范式, 优化器=联想记忆, Continuum Memory System + Hope 架构 |
 | [ParamMem](./Parametric%20Memory/%5BArxiv%202602.23320%5D%20ParamMem/) | arXiv 2602.23320 | 参数化 reflection 记忆, LoRA 编码跨样本反思模式, ~500 样本即有效 |
 | [In-Place TTT](./Parametric%20Memory/%5BICLR%202026%5D%20In-Place%20TTT/) | ICLR 2026 | MLP $W_{down}$ 复用为 fast weights, NTP 对齐目标 + chunk-wise 更新, drop-in 增强 LLM 长上下文能力 |
+| ⭐ [LaCT (TTT Done Right)](./Parametric%20Memory/%5BArxiv%202505.23884%5D%20TTT-Done-Right/) | arXiv 2505.23884 | **Large Chunk TTT** - chunk size 2K~1M, GPU 利用率 <5%→70%, fast weight 占模型 40%, SwiGLU+Muon, 三模态 (NVS/LM/Video) |
 
 ---
 
