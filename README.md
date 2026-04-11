@@ -126,6 +126,7 @@ LLM 驱动的 Web3 智能代理
 | [ParamMem](./Parametric%20Memory/%5BArxiv%202602.23320%5D%20ParamMem/) | arXiv 2602.23320 | 参数化 reflection 记忆, LoRA 编码跨样本反思模式, ~500 样本即有效 |
 | [In-Place TTT](./Parametric%20Memory/%5BICLR%202026%5D%20In-Place%20TTT/) | ICLR 2026 | MLP $W_{down}$ 复用为 fast weights, NTP 对齐目标 + chunk-wise 更新, drop-in 增强 LLM 长上下文能力 |
 | ⭐ [LaCT (TTT Done Right)](./Parametric%20Memory/%5BArxiv%202505.23884%5D%20TTT-Done-Right/) | arXiv 2505.23884 | **Large Chunk TTT** - chunk size 2K~1M, GPU 利用率 <5%→70%, fast weight 占模型 40%, SwiGLU+Muon, 三模态 (NVS/LM/Video) |
+| [TTT-E2E](./Parametric%20Memory/%5BArxiv%202512.23675%5D%20E2E-TTT-LongContext/) | arXiv 2512.23675 | 标准 SWA Transformer + inner-loop NTP TTT + outer-loop meta-learning，**双 E2E**，3B/164B scaling 比肩 full attention，128K prefill 2.7× 加速 |
 
 ---
 
@@ -211,13 +212,15 @@ paper-reading/
 ├── [ICLR 2026] Context-Clues/
 ├── [NeurIPS 2023] EHRSHOT/
 │
-├── Parametric Memory/               # 参数化记忆机制 (6 篇)
+├── Parametric Memory/               # 参数化记忆机制 (8 篇)
 │   ├── [ICML 2024] MemoryLLM/
 │   ├── [ICML 2025] M-Plus/
 │   ├── [Arxiv 2501.00663] Titans/
 │   ├── [NeurIPS 2025] Nested-Learning/
 │   ├── [Arxiv 2602.23320] ParamMem/
-│   └── [ICLR 2026] In-Place TTT/
+│   ├── [ICLR 2026] In-Place TTT/
+│   ├── [Arxiv 2505.23884] TTT-Done-Right/
+│   └── [Arxiv 2512.23675] E2E-TTT-LongContext/
 │
 ├── VLA-RTC/                         # VLA 实时推理加速 (4 篇)
 │   ├── [NeurIPS 2025] RTC/
