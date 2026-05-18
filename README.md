@@ -45,6 +45,15 @@ Eason 的文献阅读仓库，按课题组织。每篇论文都有「批读格�
 
 ---
 
+### 🌀 Latent Memory
+Latent 空间的隐式记忆/推理机制
+
+| 论文 | 会议 | 方法特点 |
+|------|------|----------|
+| [DMLR](./Latent%20Memory/%5BArxiv%202512.12623%5D%20DMLR/) | arXiv 2512.12623 | **Test-time + Training-free** 多模态 latent 推理。L=4 可优化 latent think tokens，confidence-guided REINFORCE 更新 + Dynamic Visual Injection（reward-gated best patch 累积），6 backbone × 7 benchmark 95%+ 最优，VLAA-Thinking 在 MathVista +6.81% |
+
+---
+
 ### 🤖 VLA (Vision-Language-Action)
 视觉-语言-动作模型，机器人操作
 
@@ -189,6 +198,9 @@ paper-reading/
 │   ├── [arXiv 2602.13977] WoVR World Models as Reliable Simulators for VLA RL/
 │   └── [Arxiv 2512.13030] Motus/     ← ⭐ 新加
 │
+├── Latent Memory/                   # Latent 空间隐式记忆/推理 (1 篇)
+│   └── [Arxiv 2512.12623] DMLR/
+│
 ├── Agent-Memory/                    # Agent 记忆机制 (12 篇)
 │   ├── [Arxiv 2512.13564] Memory in the Age of AI Agents/
 │   ├── [ICLR 2025] Coconut/
@@ -300,4 +312,4 @@ paper-reading/
 
 ---
 
-*由 3号机 协助整理 📚 | 更新: 2026-03-20 | 共 47 篇论文 + 14 篇待读*
+*由 3号机 协助整理 📚 | 更新: 2026-05-18 | 共 48 篇论文 + 14 篇待读*
