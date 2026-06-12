@@ -25,7 +25,7 @@
 | [04 - MemEvolve](sections/04-memevolve.md) | 双层进化 + Diagnose-and-Design 进化算子 |
 | [05 - Experiments](sections/05-experiments.md) | 四大 benchmark 实验 + 跨域泛化 + 进化动态分析 |
 | [06 - Conclusion](sections/06-conclusion.md) | 总结 + 贡献者 |
-| [07 - Appendix](sections/07-appendix.md) | EvolveLab 实现细节 + 数据集 + 进化记忆系统可视化 |
+| 07 - Appendix | 尚未批读 |
 
 ## 关键数字
 

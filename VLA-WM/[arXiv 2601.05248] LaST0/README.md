@@ -44,5 +44,5 @@
 | 论文 | 关系 |
 |------|------|
 | DreamZero（WAM）| LaST₀ 的 latent 世界状态预测是 WAM 的 latent 空间版本，Last-WAM 项目的前置工作 |
-| [CoT-VLA](显式 CoT 基线) | LaST₀ 解决了 CoT-VLA 延迟高（1.1 Hz）的问题 |
+| CoT-VLA（显式 CoT 基线） | LaST₀ 解决了 CoT-VLA 延迟高（1.1 Hz）的问题 |
 | [pi0.5](../[CoRL%202025]%20pi0.5/) | 同为 Flow Matching VLA，LaST₀ 在 RLBench 上超越 π₀.₅ 17% |

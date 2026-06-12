@@ -22,7 +22,7 @@
 |---------|------|
 | [00 - Abstract](sections/00-abstract.md) | 摘要 |
 | [01 - Introduction](sections/01-introduction.md) | Token-level vs Latent-space memory + M+ 动机 |
-| [02 - Related Work](sections/02-related-work.md) | Token-level 和 Latent-space memory 综述 |
+| 02 - Related Work | 尚未批读 |
 | [03 - Methodology](sections/03-methodology.md) | Memory 结构 + Retriever + Multi-LoRA + Data Curriculum |
 | [04 - Experiments](sections/04-experiments.md) | Long Book QA、知识保留、消融实验 |
 

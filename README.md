@@ -23,7 +23,7 @@ Eason 的文献阅读仓库，按课题组织。每篇论文都有「批读格�
 | [VisionZip](./MLLM-Token-Compression/%5BCVPR%202025%5D%20VisionZip/) | CVPR 2025 | Text-agnostic, [CLS] attention + similarity merging |
 | [CDPruner](./MLLM-Token-Compression/%5BNeurIPS%202025%5D%20CDPruner/) | NeurIPS 2025 | DPP 条件多样性剪枝 |
 | [SCOPE](./MLLM-Token-Compression/%5BNeurIPS%202025%5D%20SCOPE/) | NeurIPS 2025 | Saliency + Coverage 联合优化 |
-| [VScan](./MLLM-Token-Compression/%5BArxiv%202505.22654%5D%20VScan/) | TMLR 2026 | 两阶段 Global+Local Scan + Middle Layer Pruning |
+| [VScan](./MLLM-Token-Compression/%5BTMLR%202026%5D%20VScan/) | TMLR 2026 | 两阶段 Global+Local Scan + Middle Layer Pruning |
 | [VisionTrim](./MLLM-Token-Compression/%5BICLR%202026%5D%20VisionTrim/) | ICLR 2026 | Training-free, DVTS (global-local 选) + TGVC (text-guided 补), 两阶段统一压缩 |
 | [HoloV](./MLLM-Token-Compression/%5BNeurIPS%202025%5D%20HoloV/) | NeurIPS 2025 | Crop-wise 自适应分配 + Diversity Variance, 88.9% 剪枝保留 95.8% 性能 |
 
@@ -95,12 +95,16 @@ Agent 记忆机制
 
 ---
 
-### 🔗 LLM Web3 Agent
-LLM 驱动的 Web3 智能代理
+### 💹 AI Finance
+AI Agent 在金融交易、投研决策与 Web3 场景中的应用
 
 | 论文 | 会议 | 方法特点 |
 |------|------|----------|
-| [Web3Agent](./LLM-Web3-Agent/%5BACM%20TWEB%202026%5D%20Web3Agent/) | ACM TWEB 2026 | LLM Agent 端到端链上操作，六模块流水线 + 领域专用 RAG (Operation/API/Error chunks)，94.1% Query SR / 80.3% Op SR |
+| [FinMem](./AI%20Finance/%5BarXiv%202311.13743%5D%20FinMem/) | arXiv 2311.13743（未正式发表） | Profiling + 分层记忆 + 决策模块，面向股票交易的 LLM Agent |
+| [FinAgent](./AI%20Finance/%5BarXiv%202402.18485%5D%20FinAgent/) | arXiv 2402.18485（未正式发表） | 多模态市场感知 + 工具增强 + 双层反思，覆盖股票与 Crypto |
+| [Eliza](./AI%20Finance/%5BarXiv%202501.06781%5D%20Eliza/) | arXiv 2501.06781 | Web3 友好型开源 AI Agent OS，支持多链与插件扩展 |
+| [Financial Benchmarks](./AI%20Finance/Financial-Benchmarks/) | 2021-2026 | FinQA、TAT-QA、ConvFinQA、MultiHiertt、FinanceBench、FinChain 等 9 个评测集 |
+| [Web3Agent](./AI%20Finance/LLM-Web3-Agent/%5BACM%20TWEB%202026%5D%20Web3Agent/) | ACM TWEB 2026 | LLM Agent 端到端链上操作，六模块流水线 + 领域专用 RAG (Operation/API/Error chunks)，94.1% Query SR / 80.3% Op SR |
 
 ---
 
@@ -175,7 +179,7 @@ paper-reading/
 │   ├── [Arxiv 2403.12178] SwiftVLM/
 │   ├── [NeurIPS 2025] CDPruner/
 │   ├── [NeurIPS 2025] SCOPE/
-│   ├── [Arxiv 2505.22654] VScan/
+│   ├── [TMLR 2026] VScan/
 │   ├── [ICLR 2026] VisionTrim/
 │   └── methods-list.md
 │
@@ -273,6 +277,23 @@ paper-reading/
 - 例: `[CVPR 2025] Chapter-Llama`
 - 例: `[NeurIPS 2025] CDPruner`
 - 例: `[Arxiv 2507.20198] Survey-Token-Compression`
+
+## 仓库维护
+
+提交前运行本地结构检查，验证 Markdown 本地链接、论文目录 README 和大文件：
+
+```bash
+python3 scripts/check_repository.py
+```
+
+验证单篇论文的 BibTeX 元数据：
+
+```bash
+scripts/verify_bibtex.sh "Agent-Memory/[ICLR 2026] MemGen"
+```
+
+不传目录时会检查仓库内所有包含 `README.md` 的目录。可通过
+`REQUEST_DELAY=2` 调整 Semantic Scholar API 请求间隔。
 
 ---
 

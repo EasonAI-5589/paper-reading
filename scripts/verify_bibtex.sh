@@ -1,128 +1,125 @@
-#!/bin/bash
-# BibTeX 验证脚本 - 使用 Semantic Scholar API 交叉验证
-# 用法: ./verify_bibtex.sh [论文目录]
-# 如果不传参数，验证所有论文
+#!/usr/bin/env bash
 
-BASE="/mnt/eason/paper-reading"
+set -u
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m'
+REQUEST_DELAY="${REQUEST_DELAY:-1}"
 
 verify_paper() {
     local dir="$1"
     local readme="$dir/README.md"
-    local name=$(basename "$dir")
-    
+    local name
+    local arxiv_id
+    local bib_title
+    local api_url
+    local response
+
+    name="$(basename "$dir")"
+
     if [ ! -f "$readme" ]; then
-        echo -e "${YELLOW}⚠️  $name: 无 README.md${NC}"
+        printf "%b\n" "${YELLOW}WARN  $name: no README.md${NC}"
         return
     fi
-    
-    # 提取 BibTeX 中的 arXiv ID
-    local arxiv_id=$(grep -oP 'arXiv:\K[0-9.]+|eprint=\{\K[0-9.]+|arXiv:.*?(\K[0-9]{4}\.[0-9]{4,5})' "$readme" 2>/dev/null | head -1)
-    
-    # 提取 BibTeX 中的标题
-    local bib_title=$(grep 'title=' "$readme" 2>/dev/null | head -1 | sed 's/.*{\(.*\)}.*/\1/' | sed 's/,$//')
-    
+
+    arxiv_id="$(sed -nE 's/.*(arXiv:|eprint[[:space:]]*=[[:space:]]*\{)([0-9]{4}\.[0-9]{4,5}).*/\2/p' "$readme" | head -1)"
+    bib_title="$(sed -nE 's/^[[:space:]]*title[[:space:]]*=[[:space:]]*\{(.*)\},?[[:space:]]*$/\1/p' "$readme" | head -1)"
+
     if [ -z "$arxiv_id" ] && [ -z "$bib_title" ]; then
-        echo -e "${YELLOW}⚠️  $name: BibTeX 中无 arXiv ID 或标题${NC}"
+        printf "%b\n" "${YELLOW}WARN  $name: BibTeX has no arXiv ID or title${NC}"
         return
     fi
-    
-    # 用 Semantic Scholar API 查询
-    local api_url=""
+
     if [ -n "$arxiv_id" ]; then
         api_url="https://api.semanticscholar.org/graph/v1/paper/ArXiv:${arxiv_id}?fields=title,authors,year,venue,externalIds,citationCount"
     else
-        # 用标题搜索
-        local encoded_title=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$bib_title'))")
+        local encoded_title
+        encoded_title="$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1]))' "$bib_title")"
         api_url="https://api.semanticscholar.org/graph/v1/paper/search?query=${encoded_title}&limit=1&fields=title,authors,year,venue,externalIds,citationCount"
     fi
-    
-    local response=$(curl -s "$api_url")
-    
-    # 解析返回结果
-    if echo "$response" | python3 -c "import sys,json; d=json.load(sys.stdin); assert 'title' in d or 'data' in d" 2>/dev/null; then
-        # 提取 API 返回的元数据
-        local api_data=$(echo "$response" | python3 -c "
-import sys, json
-d = json.load(sys.stdin)
-if 'data' in d and d['data']:
-    d = d['data'][0]
-title = d.get('title', 'N/A')
-year = d.get('year', 'N/A')
-venue = d.get('venue', 'N/A')
-citations = d.get('citationCount', 0)
-authors = ', '.join([a['name'] for a in d.get('authors', [])[:5]])
-if len(d.get('authors', [])) > 5:
-    authors += ', ...'
-arxiv = d.get('externalIds', {}).get('ArXiv', 'N/A')
-print(f'TITLE: {title}')
-print(f'AUTHORS: {authors}')
-print(f'YEAR: {year}')
-print(f'VENUE: {venue}')
-print(f'ARXIV: {arxiv}')
-print(f'CITATIONS: {citations}')
-" 2>/dev/null)
-        
-        local api_title=$(echo "$api_data" | grep "^TITLE:" | sed 's/TITLE: //')
-        local api_authors=$(echo "$api_data" | grep "^AUTHORS:" | sed 's/AUTHORS: //')
-        local api_year=$(echo "$api_data" | grep "^YEAR:" | sed 's/YEAR: //')
-        local api_arxiv=$(echo "$api_data" | grep "^ARXIV:" | sed 's/ARXIV: //')
-        local api_citations=$(echo "$api_data" | grep "^CITATIONS:" | sed 's/CITATIONS: //')
-        local api_venue=$(echo "$api_data" | grep "^VENUE:" | sed 's/VENUE: //')
-        
-        # 提取 BibTeX 中的作者和年份
-        local bib_year=$(grep 'year=' "$readme" 2>/dev/null | head -1 | grep -oP '\d{4}')
-        local bib_authors=$(grep 'author=' "$readme" 2>/dev/null | head -1 | sed 's/.*{\(.*\)}.*/\1/' | sed 's/,$//')
-        
-        echo -e "${GREEN}📄 $name${NC}"
-        echo "  BibTeX  标题: $bib_title"
-        echo "  API     标题: $api_title"
-        
-        # 比对年份
-        if [ "$bib_year" = "$api_year" ]; then
-            echo -e "  年份: ${GREEN}✅ $bib_year${NC}"
-        else
-            echo -e "  年份: ${RED}❌ BibTeX=$bib_year API=$api_year${NC}"
-        fi
-        
-        # 比对 arXiv ID
-        if [ -n "$arxiv_id" ] && [ "$arxiv_id" = "$api_arxiv" ]; then
-            echo -e "  arXiv: ${GREEN}✅ $arxiv_id${NC}"
-        elif [ -n "$arxiv_id" ]; then
-            echo -e "  arXiv: ${RED}❌ BibTeX=$arxiv_id API=$api_arxiv${NC}"
-        fi
-        
-        echo "  API 作者: $api_authors"
-        echo "  BibTeX 作者: $(echo $bib_authors | cut -c1-80)..."
-        echo "  Venue: $api_venue"
-        echo "  Citations: $api_citations"
-        echo ""
-    else
-        echo -e "${RED}❌ $name: Semantic Scholar API 查询失败${NC}"
-        echo "  arXiv ID: $arxiv_id"
-        echo "  Response: $(echo $response | head -c 200)"
-        echo ""
+
+    if ! response="$(curl --fail --silent --show-error --max-time 30 "$api_url")"; then
+        printf "%b\n\n" "${RED}FAIL  $name: Semantic Scholar request failed${NC}"
+        return
     fi
+
+    if ! printf '%s' "$response" | python3 -c "import json,sys; d=json.load(sys.stdin); assert 'title' in d or d.get('data')" 2>/dev/null; then
+        printf "%b\n" "${RED}FAIL  $name: invalid or empty Semantic Scholar response${NC}"
+        printf "  Response: %.200s\n\n" "$response"
+        return
+    fi
+
+    local api_data
+    local api_title
+    local api_authors
+    local api_year
+    local api_arxiv
+    local api_citations
+    local api_venue
+    local bib_year
+    local bib_authors
+
+    api_data="$(printf '%s' "$response" | python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+if "data" in d:
+    d = d["data"][0]
+authors = ", ".join(a["name"] for a in d.get("authors", [])[:5])
+if len(d.get("authors", [])) > 5:
+    authors += ", ..."
+print("TITLE: " + str(d.get("title", "N/A")))
+print("AUTHORS: " + authors)
+print("YEAR: " + str(d.get("year", "N/A")))
+print("VENUE: " + str(d.get("venue", "N/A")))
+print("ARXIV: " + str(d.get("externalIds", {}).get("ArXiv", "N/A")))
+print("CITATIONS: " + str(d.get("citationCount", 0)))
+')"
+
+    api_title="$(printf '%s\n' "$api_data" | sed -n 's/^TITLE: //p')"
+    api_authors="$(printf '%s\n' "$api_data" | sed -n 's/^AUTHORS: //p')"
+    api_year="$(printf '%s\n' "$api_data" | sed -n 's/^YEAR: //p')"
+    api_arxiv="$(printf '%s\n' "$api_data" | sed -n 's/^ARXIV: //p')"
+    api_citations="$(printf '%s\n' "$api_data" | sed -n 's/^CITATIONS: //p')"
+    api_venue="$(printf '%s\n' "$api_data" | sed -n 's/^VENUE: //p')"
+    bib_year="$(sed -nE 's/.*year[[:space:]]*=[[:space:]]*\{?([0-9]{4}).*/\1/p' "$readme" | head -1)"
+    bib_authors="$(sed -nE 's/^[[:space:]]*author[[:space:]]*=[[:space:]]*\{(.*)\},?[[:space:]]*$/\1/p' "$readme" | head -1)"
+
+    printf "%b\n" "${GREEN}PAPER $name${NC}"
+    printf "  BibTeX title: %s\n  API title:    %s\n" "$bib_title" "$api_title"
+
+    if [ -n "$bib_year" ] && [ "$bib_year" = "$api_year" ]; then
+        printf "%b\n" "  Year: ${GREEN}OK $bib_year${NC}"
+    else
+        printf "%b\n" "  Year: ${RED}MISMATCH BibTeX=${bib_year:-N/A} API=$api_year${NC}"
+    fi
+
+    if [ -n "$arxiv_id" ]; then
+        if [ "$arxiv_id" = "$api_arxiv" ]; then
+            printf "%b\n" "  arXiv: ${GREEN}OK $arxiv_id${NC}"
+        else
+            printf "%b\n" "  arXiv: ${RED}MISMATCH BibTeX=$arxiv_id API=$api_arxiv${NC}"
+        fi
+    fi
+
+    printf "  API authors: %s\n" "$api_authors"
+    printf "  BibTeX authors: %.80s%s\n" "$bib_authors" "$([ "${#bib_authors}" -gt 80 ] && printf '...')"
+    printf "  Venue: %s\n  Citations: %s\n\n" "$api_venue" "$api_citations"
 }
 
-echo "=========================================="
-echo "  BibTeX 验证 (via Semantic Scholar API)"
-echo "=========================================="
-echo ""
+printf '%s\n\n' 'BibTeX verification via Semantic Scholar'
 
-if [ -n "$1" ]; then
-    verify_paper "$1"
+if [ "$#" -gt 0 ]; then
+    if [ ! -d "$1" ]; then
+        printf "%b\n" "${RED}Directory not found: $1${NC}" >&2
+        exit 2
+    fi
+    verify_paper "$(cd "$1" && pwd)"
 else
-    # 验证所有论文
-    for d in "$BASE"/Agent-Memory/*/; do
-        verify_paper "$d"
-        sleep 1  # API rate limit
-    done
-    for d in "$BASE"/\[*\]/; do
-        verify_paper "$d"
-        sleep 1
-    done
+    while IFS= read -r -d '' readme; do
+        verify_paper "$(dirname "$readme")"
+        sleep "$REQUEST_DELAY"
+    done < <(find "$REPO_ROOT" -type f -name README.md -not -path '*/.git/*' -print0 | sort -z)
 fi

@@ -26,7 +26,7 @@
 | [04 - Methodology](sections/04-methodology.md) | LatentMem 框架：Experience Bank + Memory Composer + LMPO |
 | [05 - Experiments](sections/05-experiments.md) | 6 benchmarks × 4 MAS 框架，主实验 + 消融 + Case Study |
 | [06 - Conclusion](sections/06-conclusion.md) | 总结 + Impact Statement |
-| [07 - Appendix](sections/07-appendix.md) | 实验细节、额外结果、Prompt 模板、示例轨迹 |
+| 07 - Appendix | 尚未批读 |
 
 ## 📊 Citation Landscape
 
