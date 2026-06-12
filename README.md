@@ -96,16 +96,14 @@ Agent 记忆机制
 ---
 
 ### 💹 AI Finance
-AI Agent 在金融交易、投研决策与 Web3 场景中的应用
+以 FinChain 为起点，扩展可验证金融推理 benchmark、金融模型与可训练基线
 
-| 论文 | 会议 | 方法特点 |
-|------|------|----------|
-| [FinMem](./AI%20Finance/%5BarXiv%202311.13743%5D%20FinMem/) | arXiv 2311.13743（未正式发表） | Profiling + 分层记忆 + 决策模块，面向股票交易的 LLM Agent |
-| [FinAgent](./AI%20Finance/%5BarXiv%202402.18485%5D%20FinAgent/) | arXiv 2402.18485（未正式发表） | 多模态市场感知 + 工具增强 + 双层反思，覆盖股票与 Crypto |
-| [Eliza](./AI%20Finance/%5BarXiv%202501.06781%5D%20Eliza/) | arXiv 2501.06781 | Web3 友好型开源 AI Agent OS，支持多链与插件扩展 |
-| [Financial Models](./AI%20Finance/Financial-Models/) | 2020-2025 | FinBERT、BloombergGPT、FinGPT、Fin-R1、DianJin-R1、Qwen-Open-Finance-R-8B 等 |
+| 模块 | 范围 | 内容 |
+|------|------|------|
+| [FinChain](./AI%20Finance/Financial-Benchmarks/%5BarXiv%202506.02515%5D%20FinChain/) | 核心起点 | 可执行 trace、步骤级验证与 ChainEval |
 | [Financial Benchmarks](./AI%20Finance/Financial-Benchmarks/) | 2021-2026 | FinQA、FinanceMATH、FinChain、RealFin、FinMMEval 等 18 个评测集 |
-| [Web3Agent](./AI%20Finance/LLM-Web3-Agent/%5BACM%20TWEB%202026%5D%20Web3Agent/) | ACM TWEB 2026 | LLM Agent 端到端链上操作，六模块流水线 + 领域专用 RAG (Operation/API/Error chunks)，94.1% Query SR / 80.3% Op SR |
+| [Financial Models](./AI%20Finance/Financial-Models/) | 2020-2025 | FinBERT、BloombergGPT、FinGPT、Fin-R1、DianJin-R1、Qwen-Open-Finance-R-8B 等 8 个模型 |
+| [Research Map](./AI%20Finance/) | 研究索引 | FinChain 引用关系、扩展文献与候选训练基线 |
 
 ---
 
@@ -220,9 +218,11 @@ paper-reading/
 │   ├── [Arxiv 2602.03036] LatentMem/
 │   └── [ICLR 2026] MemGen/
 │
-│
-├── LLM-Web3-Agent/                  # LLM Web3 Agent (1 篇)
-│   └── [ACM TWEB 2026] Web3Agent/
+├── AI Finance/                     # 以 FinChain 为起点的金融推理研究地图
+│   ├── Financial-Benchmarks/       # 金融评测集 (18 个)
+│   ├── Financial-Models/           # 金融模型 (8 个)
+│   ├── [arXiv 2311.13743] FinMem/
+│   └── [arXiv 2402.18485] FinAgent/
 ├── Medical VQA Benchmark/           # 医学视觉问答基准 (0 篇)
 │
 ├── [ICLR 2026 Rejected] MedFrameQA/ # Medical AI (未分组, 3 篇)

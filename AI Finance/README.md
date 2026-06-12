@@ -1,12 +1,31 @@
 # AI Finance
 
-AI Agent 在金融交易、投研决策与 Web3 场景中的相关论文。
+本专题以 [FinChain](./Financial-Benchmarks/%5BarXiv%202506.02515%5D%20FinChain/) 为起点，整理可验证金融推理相关的 benchmark、金融模型和训练基线。
 
-| 论文 | arXiv / 会议 | 方向 | 状态 |
-|------|--------------|------|------|
-| [FinMem](./%5BarXiv%202311.13743%5D%20FinMem/) | arXiv 2311.13743（未正式发表） | 分层记忆 + 角色设计的 LLM 交易 Agent | 已收录 |
-| [FinAgent](./%5BarXiv%202402.18485%5D%20FinAgent/) | arXiv 2402.18485（未正式发表） | 多模态、工具增强的通用金融交易 Agent | 已收录 |
-| [Eliza](./%5BarXiv%202501.06781%5D%20Eliza/) | arXiv 2501.06781 | Web3 友好型 AI Agent OS | 已批读 |
-| [Financial Models](./Financial-Models/) | 2020-2025 | 8 个金融预训练、指令微调与推理增强模型 | 已收录 |
-| [Financial Benchmarks](./Financial-Benchmarks/) | 2021-2026 | 18 个金融 QA、数值推理、RAG 与综合 benchmark | 已收录 |
-| [Web3Agent](./LLM-Web3-Agent/%5BACM%20TWEB%202026%5D%20Web3Agent/) | ACM TWEB 2026 | 自然语言驱动的链上操作 Agent | 已批读 |
+最初的文献范围来自 FinChain 的参考文献、主实验模型与评测设置。在此基础上，我们进一步扩展了较新的金融推理、检索、可靠性、多语言和多模态评测工作，并补充可直接复现或继续训练的开源金融模型。
+
+## 当前范围
+
+| 模块 | 内容 | 数量 |
+|------|------|------|
+| [Financial Benchmarks](./Financial-Benchmarks/) | 金融问答、数值推理、RAG、可验证 CoT、可靠性与多模态评测 | 18 |
+| [Financial Models](./Financial-Models/) | 金融预训练、指令微调和推理增强模型 | 8 |
+| Financial Agents | FinMem、FinAgent，作为金融决策与交易 Agent 的背景工作 | 2 |
+
+## FinChain 扩展路线
+
+1. **从 FinChain 还原研究脉络**：整理其直接引用的 benchmark、ChainEval 方法来源和主实验模型。
+2. **扩展 benchmark**：加入 FinTextQA、FinanceMATH、FinanceReasoning、FinMTEB、RealFin、FinMMEval 等工作，覆盖检索、推理、拒答、多语言和多模态能力。
+3. **整理金融模型谱系**：从 FinBERT、BloombergGPT、FinGPT 扩展到 Fin-R1、DianJin-R1 和 Qwen-Open-Finance-R-8B。
+4. **寻找可训练基线**：优先关注具有公开代码和权重的 Fin-R1，以及可继续进行金融推理 SFT/RL 的 Qwen-Open-Finance-R-8B。
+
+FinChain 的引用关系、实验模型和评测方法见 [FinChain Related Work Map](./Financial-Benchmarks/%5BarXiv%202506.02515%5D%20FinChain/RELATED-WORK.md)。
+
+## 背景工作
+
+| 论文 | arXiv | 定位 |
+|------|-------|------|
+| [FinMem](./%5BarXiv%202311.13743%5D%20FinMem/) | 2311.13743 | 分层记忆与角色设计的 LLM 交易 Agent |
+| [FinAgent](./%5BarXiv%202402.18485%5D%20FinAgent/) | 2402.18485 | 多模态、工具增强的金融交易 Agent |
+
+> 当前以文献收录和研究地图为主，尚未对全部论文进行分章节批读。
