@@ -103,7 +103,8 @@ AI Agent 在金融交易、投研决策与 Web3 场景中的应用
 | [FinMem](./AI%20Finance/%5BarXiv%202311.13743%5D%20FinMem/) | arXiv 2311.13743（未正式发表） | Profiling + 分层记忆 + 决策模块，面向股票交易的 LLM Agent |
 | [FinAgent](./AI%20Finance/%5BarXiv%202402.18485%5D%20FinAgent/) | arXiv 2402.18485（未正式发表） | 多模态市场感知 + 工具增强 + 双层反思，覆盖股票与 Crypto |
 | [Eliza](./AI%20Finance/%5BarXiv%202501.06781%5D%20Eliza/) | arXiv 2501.06781 | Web3 友好型开源 AI Agent OS，支持多链与插件扩展 |
-| [Financial Benchmarks](./AI%20Finance/Financial-Benchmarks/) | 2021-2026 | FinQA、TAT-QA、ConvFinQA、MultiHiertt、FinanceBench、FinChain 等 9 个评测集 |
+| [Financial Models](./AI%20Finance/Financial-Models/) | 2020-2025 | FinBERT、BloombergGPT、FinGPT、Fin-R1、DianJin-R1、Qwen-Open-Finance-R-8B 等 |
+| [Financial Benchmarks](./AI%20Finance/Financial-Benchmarks/) | 2021-2026 | FinQA、FinanceMATH、FinChain、RealFin、FinMMEval 等 18 个评测集 |
 | [Web3Agent](./AI%20Finance/LLM-Web3-Agent/%5BACM%20TWEB%202026%5D%20Web3Agent/) | ACM TWEB 2026 | LLM Agent 端到端链上操作，六模块流水线 + 领域专用 RAG (Operation/API/Error chunks)，94.1% Query SR / 80.3% Op SR |
 
 ---
