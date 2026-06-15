@@ -101,8 +101,8 @@ Agent 记忆机制
 | 模块 | 范围 | 内容 |
 |------|------|------|
 | [FinChain](./AI%20Finance/Financial-Benchmarks/%5BarXiv%202506.02515%5D%20FinChain/) | 核心起点 | 可执行 trace、步骤级验证与 ChainEval |
-| [Financial Benchmarks](./AI%20Finance/Financial-Benchmarks/) | 2021-2026 | FinQA、FinanceMATH、FinChain、RealFin、FinMMEval 等 18 个评测集 |
-| [Financial Models](./AI%20Finance/Financial-Models/) | 2020-2025 | FinChain 对比模型、金融专项模型及候选训练基线等 17 个模型 |
+| [Financial Benchmarks](./AI%20Finance/Financial-Benchmarks/) | 2014-2026 | FinQA、FinChain、FinEval、Finova、FinanceIQ、RealFin、FinMMEval 等 24 个评测集 |
+| [Financial Models](./AI%20Finance/Financial-Models/) | 2020-2026 | FinChain 对比模型、金融专项、过程奖励、检索、多模态与交易决策等 27 个模型系统 |
 | [Research Map](./AI%20Finance/) | 研究索引 | FinChain 引用关系、扩展文献与候选训练基线 |
 
 ---
@@ -219,8 +219,8 @@ paper-reading/
 │   └── [ICLR 2026] MemGen/
 │
 ├── AI Finance/                     # 以 FinChain 为起点的金融推理研究地图
-│   ├── Financial-Benchmarks/       # 金融评测集 (18 个)
-│   ├── Financial-Models/           # 金融与 FinChain 对比模型 (17 个)
+│   ├── Financial-Benchmarks/       # 金融评测集 (24 个)
+│   ├── Financial-Models/           # 金融与 FinChain 对比模型系统 (27 个)
 │   ├── [arXiv 2311.13743] FinMem/
 │   └── [arXiv 2402.18485] FinAgent/
 ├── Medical VQA Benchmark/           # 医学视觉问答基准 (0 篇)

@@ -2,6 +2,8 @@
 
 金融问答、文档理解、数值推理、检索与可验证推理 benchmark 汇总。
 
+统一评测框架、现有工具覆盖和推荐实现见 [Unified Financial Evaluation](./UNIFIED-EVALUATION.md)。
+
 | Benchmark | 论文 / 发表 | 主要任务 |
 |-----------|-------------|----------|
 | [TAT-QA](./%5BACL%202021%5D%20TAT-QA/) | ACL 2021 / arXiv 2105.07624 | 财报表格与文本混合数值问答 |
@@ -22,19 +24,40 @@
 | [FinMTEB](./%5BEMNLP%202025%5D%20FinMTEB/) | EMNLP 2025 | 金融 embedding 与检索评测 |
 | [RealFin](./%5BarXiv%202602.07096%5D%20RealFin/) | arXiv 2602.07096 | 缺失前提识别与拒答能力 |
 | [FinMMEval](./%5BCLEF%202026%5D%20FinMMEval/) | CLEF 2026 | 多语言、多模态金融理解与决策 |
+| [FinEval](./%5BarXiv%202308.09975%5D%20FinEval/) | arXiv 2308.09975 | 中文金融知识、行业、安全与 Agent 综合评测 |
+| [Finova](./%5BarXiv%202507.16802%5D%20Finova/) | arXiv 2507.16802 | 金融 Agent、复杂推理、安全与合规 |
+| [FinanceIQ](./%5BDataset%202023%5D%20FinanceIQ/) | Dataset 2023 | CPA、CFA 等中文金融职业考试 |
+| [FOMC Hawkish-Dovish](./%5BACL%202023%5D%20FOMC-Hawkish-Dovish/) | ACL 2023 | 货币政策鹰派/鸽派立场分类 |
+| [Financial PhraseBank](./%5BJASIST%202014%5D%20Financial-PhraseBank/) | JASIST 2014 | 专家标注金融句子情感分类 |
+| [Commodity News Headlines](./%5BarXiv%202009.04202%5D%20Commodity-News-Headlines/) | arXiv 2009.04202 | 黄金商品新闻标题与市场信号分类 |
 
-## 分类
+## 能力分类
 
-- **表格与文本数值推理**：TAT-QA、FinQA、MultiHiertt、ConvFinQA
-- **综合定量与文档推理**：BizBench、DocMath-Eval、FinanceMATH、FinanceReasoning
-- **开放式问答与检索**：FinanceBench、FinDER
-- **可验证思维链**：FinChain
-- **长篇解释问答**：FinTextQA
-- **综合金融能力**：PIXIU、FinBen、FLUE
-- **向量与检索**：FinMTEB
-- **可靠性与拒答**：RealFin
-- **多语言与多模态**：FinMMEval
+综合 benchmark 会横跨多个类别，表中按其主要用途放置，不能据此认为它只测试单一能力。
+
+| 能力类别 | Benchmark | 主要指标或输出 |
+|----------|-----------|----------------|
+| 金融知识与职业考试 | FinEval、FinanceIQ | Accuracy |
+| 金融情感与政策立场 | FOMC Hawkish-Dovish、Financial PhraseBank、Commodity News Headlines | Weighted F1 |
+| 表格、文本与对话数值推理 | FinQA、TAT-QA、MultiHiertt、ConvFinQA | Answer/program accuracy、EM/F1 |
+| 金融数学与程序推理 | FinanceMATH、FinanceReasoning、BizBench、DocMath-Eval | Accuracy、可执行程序或 Python 解答 |
+| 可验证过程推理 | FinChain | Answer accuracy + ChainEval + execution trace |
+| 开放式问答与长文生成 | FinanceBench、FinTextQA | 答案正确性、证据与生成质量 |
+| RAG、检索与向量表示 | FinDER、FinMTEB | Retrieval、QA、embedding metrics |
+| Agent、安全与合规 | Finova | 工具规划、槽位、推理与合规指标 |
+| 可靠性、缺失信息与拒答 | RealFin | 正常回答、信息不足识别与拒答 |
+| 多语言与多模态决策 | FinMMEval | QA、跨语言理解与金融决策 |
+| 综合金融能力套件 | FLUE/FLANG、PIXIU、FinBen | 分类、抽取、QA、预测、风险、Agent、RAG 等多指标 |
+
+## 按用途选择
+
+- **快速训练回归**：FinanceIQ、FPB、FinQA、TAT-QA，可较快判断知识、分类和数值推理是否退化。
+- **ODA-Fin-RL 同款对比**：FinEval、Finova、FinanceIQ、FOMC、FPB、Headlines、FinQA、TAT-QA、ConvFinQA。
+- **方法核心评测**：FinChain，用于验证最终答案之外的步骤正确性和执行一致性。
+- **最终完整评测**：增加 Finova、RealFin、FinanceReasoning、FinMMEval，测试业务操作、可靠性、代码执行和多模态泛化。
 
 FinChain 的直接引用关系、主实验模型和 ChainEval 方法来源见 [FinChain Related Work Map](./%5BarXiv%202506.02515%5D%20FinChain/RELATED-WORK.md)。
+
+ODA-Fin-RL 的九项评测、模型成绩和收录状态见 [ODA-Fin Benchmark Coverage](../Financial-Models/%5BarXiv%202603.07223%5D%20ODA-Fin-RL-8B/BENCHMARKS.md)。
 
 > 当前目录用于基础收录与横向索引，尚未进行分章节批读。
