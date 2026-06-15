@@ -1,0 +1,4 @@
+interface:
+  display_name: "Paper Reading"
+  short_description: "按本仓库规范完成论文收录、分章节批读、调研与索引维护"
+  default_prompt: "Use $paper-reading to read and organize this paper in the repository format."
