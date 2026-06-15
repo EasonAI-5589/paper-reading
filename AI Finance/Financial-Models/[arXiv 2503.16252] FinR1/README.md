@@ -1,12 +1,12 @@
 # FinR1
 
-**论文**: FinR1: A Large Language Model for Financial Reasoning through Reinforcement Learning  
-**发表**: arXiv 预印本  
-**arXiv**: [2503.16252](https://arxiv.org/abs/2503.16252)  
-**最新版本**: v5, 2026-03-19  
-**基础模型**: Qwen2.5-7B-Instruct  
-**规模**: 7B  
-**代码**: [SUFE-AIFLM-Lab/Fin-R1](https://github.com/SUFE-AIFLM-Lab/Fin-R1)  
+**论文**: FinR1: A Large Language Model for Financial Reasoning through Reinforcement Learning
+**发表**: arXiv 预印本
+**arXiv**: [2503.16252](https://arxiv.org/abs/2503.16252)
+**最新版本**: v5, 2026-03-19
+**基础模型**: Qwen2.5-7B-Instruct
+**规模**: 7B
+**代码**: [SUFE-AIFLM-Lab/Fin-R1](https://github.com/SUFE-AIFLM-Lab/Fin-R1)
 **权重**: [SUFE-AIFLM-Lab/Fin-R1](https://huggingface.co/SUFE-AIFLM-Lab/Fin-R1)
 
 面向金融推理的强化学习模型。使用 DeepSeek-R1 蒸馏并经过双轮质量筛选构建 60,091 条 Fin-R1-Data，再对 Qwen2.5-7B-Instruct 依次执行 SFT 与 GRPO。

@@ -1,12 +1,12 @@
 # Qwen-Open-Finance-R-8B
 
-**论文**: The LLM Pro Finance Suite: Multilingual Large Language Models for Financial Applications  
-**发表**: arXiv 预印本  
-**arXiv**: [2511.08621](https://arxiv.org/abs/2511.08621)  
-**权重**: [DragonLLM/Qwen-Open-Finance-R-8B](https://huggingface.co/DragonLLM/Qwen-Open-Finance-R-8B)  
-**基础模型**: Qwen3-8B  
-**规模**: 8B  
-**许可**: Apache-2.0  
+**论文**: The LLM Pro Finance Suite: Multilingual Large Language Models for Financial Applications
+**发表**: arXiv 预印本
+**arXiv**: [2511.08621](https://arxiv.org/abs/2511.08621)
+**权重**: [DragonLLM/Qwen-Open-Finance-R-8B](https://huggingface.co/DragonLLM/Qwen-Open-Finance-R-8B)
+**基础模型**: Qwen3-8B
+**规模**: 8B
+**许可**: Apache-2.0
 **语言**: English / French / German
 
 LLM Pro Finance Suite 中公开的金融模型之一。训练数据包含约 54.4% 金融数据、19.8% 翻译数据、15.6% 通用数据、8% RAG 数据，以及 2.2% 推理、数学和代码数据。

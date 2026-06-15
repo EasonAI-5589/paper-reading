@@ -9,7 +9,7 @@
 | 模块 | 内容 | 数量 |
 |------|------|------|
 | [Financial Benchmarks](./Financial-Benchmarks/) | 金融问答、数值推理、RAG、可验证 CoT、可靠性与多模态评测 | 18 |
-| [Financial Models](./Financial-Models/) | 金融预训练、指令微调和推理增强模型 | 8 |
+| [Financial Models](./Financial-Models/) | 金融专项、数学增强、通用基线与金融背景模型 | 17 |
 | Financial Agents | FinMem、FinAgent，作为金融决策与交易 Agent 的背景工作 | 2 |
 
 ## FinChain 扩展路线

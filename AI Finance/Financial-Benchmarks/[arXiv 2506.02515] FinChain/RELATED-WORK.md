@@ -19,12 +19,14 @@
 
 ## FinChain 主实验模型
 
+完整的 26 个模型清单、模型版本、权重来源与主实验分数见 [FinChain Model Comparison](./MODEL-COMPARISON.md)。
+
 | 类别 | 模型 |
 |------|------|
-| Frontier proprietary | GPT-5/4.1、Claude Sonnet、Gemini 2.5、DeepSeek V3/R1、Grok 4 |
-| Finance-specific | Fin-o1、Fin-R1、DianJin-R1、Finance-LLaMA、Finance-Qwen |
-| Math-enhanced | WizardMath、MetaMath、Mathstral、Qwen2.5-Math |
-| General open-weight | LLaMA-3.1、Qwen2.5、Qwen3 |
+| Frontier proprietary | 14 个，包括 GPT、Claude、Gemini、DeepSeek 与 Grok 系列 |
+| Finance-specific | 5 个：Fin-o1、Fin-R1、DianJin-R1、Finance-LLaMA、Finance-Qwen |
+| Math-enhanced | 4 个：WizardMath、MetaMath、Mathstral、Qwen2.5-Math |
+| General open-weight | 3 个：Llama-3.1、Qwen2.5、Qwen3 |
 
 主实验结论不是“金融模型一定更强”：Qwen2.5 Instruct 的 ChainEval 为 60.35，略高于 Mathstral 59.87 和 Fin-R1 58.14；Finance-LLaMA 与 Finance-Qwen 则明显较弱。论文据此认为模型规模和窄领域微调都不足以保证可靠的步骤级金融推理。
 
